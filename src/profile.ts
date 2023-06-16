@@ -1,6 +1,7 @@
 export interface Profile {
   db: string;
   user?: string;
+  port?: number;
 }
 
 export type Profiles = {

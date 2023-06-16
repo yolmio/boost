@@ -54,13 +54,75 @@
             "notNull": false
           }
         ]
+      },
+      {
+        "name": "user_role",
+        "uniqueConstraints": [
+          {
+            "fields": [
+              "user",
+              "role"
+            ]
+          }
+        ],
+        "checks": [],
+        "fields": [
+          {
+            "type": {
+              "type": "ForeignKey",
+              "table": "user",
+              "onDelete": "Cascade"
+            },
+            "name": "user",
+            "notNull": true
+          },
+          {
+            "type": {
+              "type": "Enum",
+              "enum": "role"
+            },
+            "name": "role",
+            "notNull": true
+          }
+        ]
       }
     ],
     "searchMatches": []
   },
-  "decisionTables": [],
+  "decisionTables": [
+    {
+      "name": "display_role",
+      "outputs": [
+        {
+          "name": "output",
+          "type": {
+            "type": "String"
+          }
+        }
+      ],
+      "parameters": [
+        {
+          "name": "value",
+          "type": {
+            "type": "Enum",
+            "enum": "role"
+          }
+        }
+      ],
+      "csv": "input.value,output\n'sys_admin','Sys admin'"
+    }
+  ],
   "scalarFunctions": [],
-  "enums": [],
+  "enums": [
+    {
+      "name": "role",
+      "values": [
+        {
+          "name": "sys_admin"
+        }
+      ]
+    }
+  ],
   "ui": {
     "tree": [
       {
@@ -382,7 +444,38 @@
                               },
                               "'Home'"
                             ],
-                            "on": {},
+                            "on": {
+                              "click": [
+                                {
+                                  "t": "SetScalar",
+                                  "name": "ui.showing_mobile_menu",
+                                  "expr": "false"
+                                },
+                                {
+                                  "t": "SetScalar",
+                                  "name": "ui.in_exit_animation",
+                                  "expr": "true"
+                                },
+                                {
+                                  "t": "Spawn",
+                                  "detached": true,
+                                  "statements": [
+                                    {
+                                      "t": "Delay",
+                                      "ms": "200"
+                                    },
+                                    {
+                                      "t": "SetScalar",
+                                      "name": "ui.in_exit_animation",
+                                      "expr": "false"
+                                    },
+                                    {
+                                      "t": "CommitUiChanges"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
                             "props": {
                               "href": "'/'"
                             },
@@ -396,7 +489,38 @@
                               "children": [
                                 "'Contacts'"
                               ],
-                              "on": {},
+                              "on": {
+                                "click": [
+                                  {
+                                    "t": "SetScalar",
+                                    "name": "ui.showing_mobile_menu",
+                                    "expr": "false"
+                                  },
+                                  {
+                                    "t": "SetScalar",
+                                    "name": "ui.in_exit_animation",
+                                    "expr": "true"
+                                  },
+                                  {
+                                    "t": "Spawn",
+                                    "detached": true,
+                                    "statements": [
+                                      {
+                                        "t": "Delay",
+                                        "ms": "200"
+                                      },
+                                      {
+                                        "t": "SetScalar",
+                                        "name": "ui.in_exit_animation",
+                                        "expr": "false"
+                                      },
+                                      {
+                                        "t": "CommitUiChanges"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
                               "props": {
                                 "href": "'/contacts'"
                               },
@@ -409,7 +533,38 @@
                               "children": [
                                 "'Reports'"
                               ],
-                              "on": {},
+                              "on": {
+                                "click": [
+                                  {
+                                    "t": "SetScalar",
+                                    "name": "ui.showing_mobile_menu",
+                                    "expr": "false"
+                                  },
+                                  {
+                                    "t": "SetScalar",
+                                    "name": "ui.in_exit_animation",
+                                    "expr": "true"
+                                  },
+                                  {
+                                    "t": "Spawn",
+                                    "detached": true,
+                                    "statements": [
+                                      {
+                                        "t": "Delay",
+                                        "ms": "200"
+                                      },
+                                      {
+                                        "t": "SetScalar",
+                                        "name": "ui.in_exit_animation",
+                                        "expr": "false"
+                                      },
+                                      {
+                                        "t": "CommitUiChanges"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
                               "props": {
                                 "href": "'/reports'"
                               },
@@ -419,9 +574,34 @@
                           ]
                         ],
                         "on": {
-                          "click": [
+                          "clickAway": [
                             {
-                              "t": "StopPropagation"
+                              "t": "SetScalar",
+                              "name": "ui.showing_mobile_menu",
+                              "expr": "false"
+                            },
+                            {
+                              "t": "SetScalar",
+                              "name": "ui.in_exit_animation",
+                              "expr": "true"
+                            },
+                            {
+                              "t": "Spawn",
+                              "detached": true,
+                              "statements": [
+                                {
+                                  "t": "Delay",
+                                  "ms": "200"
+                                },
+                                {
+                                  "t": "SetScalar",
+                                  "name": "ui.in_exit_animation",
+                                  "expr": "false"
+                                },
+                                {
+                                  "t": "CommitUiChanges"
+                                }
+                              ]
                             }
                           ]
                         },
@@ -435,36 +615,6 @@
                         ]
                       },
                       "on": {
-                        "click": [
-                          {
-                            "t": "SetScalar",
-                            "name": "ui.showing_mobile_menu",
-                            "expr": "false"
-                          },
-                          {
-                            "t": "SetScalar",
-                            "name": "ui.in_exit_animation",
-                            "expr": "true"
-                          },
-                          {
-                            "t": "Spawn",
-                            "detached": true,
-                            "statements": [
-                              {
-                                "t": "Delay",
-                                "ms": "200"
-                              },
-                              {
-                                "t": "SetScalar",
-                                "name": "ui.in_exit_animation",
-                                "expr": "false"
-                              },
-                              {
-                                "t": "CommitUiChanges"
-                              }
-                            ]
-                          }
-                        ],
                         "keydown": [
                           {
                             "t": "If",
@@ -910,9 +1060,34 @@
                           }
                         ],
                         "on": {
-                          "click": [
+                          "clickAway": [
                             {
-                              "t": "StopPropagation"
+                              "t": "SetScalar",
+                              "name": "ui.showing_settings",
+                              "expr": "false"
+                            },
+                            {
+                              "t": "SetScalar",
+                              "name": "ui.in_exit_animation",
+                              "expr": "true"
+                            },
+                            {
+                              "t": "Spawn",
+                              "detached": true,
+                              "statements": [
+                                {
+                                  "t": "Delay",
+                                  "ms": "200"
+                                },
+                                {
+                                  "t": "SetScalar",
+                                  "name": "ui.in_exit_animation",
+                                  "expr": "false"
+                                },
+                                {
+                                  "t": "CommitUiChanges"
+                                }
+                              ]
                             }
                           ]
                         },
@@ -926,36 +1101,6 @@
                         ]
                       },
                       "on": {
-                        "click": [
-                          {
-                            "t": "SetScalar",
-                            "name": "ui.showing_settings",
-                            "expr": "false"
-                          },
-                          {
-                            "t": "SetScalar",
-                            "name": "ui.in_exit_animation",
-                            "expr": "true"
-                          },
-                          {
-                            "t": "Spawn",
-                            "detached": true,
-                            "statements": [
-                              {
-                                "t": "Delay",
-                                "ms": "200"
-                              },
-                              {
-                                "t": "SetScalar",
-                                "name": "ui.in_exit_animation",
-                                "expr": "false"
-                              },
-                              {
-                                "t": "CommitUiChanges"
-                              }
-                            ]
-                          }
-                        ],
                         "keydown": [
                           {
                             "t": "If",
@@ -1113,55 +1258,39 @@
       "tables": []
     }
   },
-  "runProfile": [
-    {
-      "asUser": "bbab7507-ed34-46d4-82c4-c28fe2a4dc8f",
-      "name": "default",
-      "procedure": [],
-      "time": "2021-11-11T16:37:49.715Z"
-    }
-  ],
+  "runProfile": [],
   "scripts": [
+    {
+      "name": "init-dev-db",
+      "procedure": [
+        {
+          "t": "Modify",
+          "sql": "insert into db.user (global_id, disabled, email) values\n      (cast('147d4c57-947b-426f-9d81-fac3d9db5d31' as uuid), false, 'realemail@test.com')"
+        },
+        {
+          "t": "Modify",
+          "sql": "insert into db.user_role (user, role) values (0, 'sys_admin')"
+        },
+        {
+          "t": "SaveDb",
+          "dir": "data/dev"
+        }
+      ]
+    },
     {
       "name": "init-db",
       "procedure": [
         {
-          "t": "TableDeclaration",
-          "name": "User",
-          "fields": [
-            {
-              "name": "db_id",
-              "type": {
-                "type": "BigInt"
-              }
-            },
-            {
-              "name": "notification_type",
-              "type": {
-                "type": "String",
-                "maxLength": 2000
-              }
-            },
-            {
-              "name": "email",
-              "type": {
-                "type": "String",
-                "maxLength": 2000
-              }
-            }
-          ]
-        },
-        {
-          "t": "Modify",
-          "sql": "insert into User (db_id, notification_type, email) values\n      (0, 'none', 'ralf.haug@nuvanti.com')"
-        },
-        {
           "t": "AddUsers",
-          "query": "select * from User"
+          "query": "select * from (values(next_record_id(db.user), 'none', 'realemail@test.com')) as user(db_id, notification_type, email)"
         },
         {
           "t": "Modify",
-          "sql": "insert into db.User select global_id, false as disabled from added_user order by db_id"
+          "sql": "insert into db.user (global_id, disabled, email) values\n      ((select global_id from added_user), false, 'realemail@test.com')"
+        },
+        {
+          "t": "Modify",
+          "sql": "insert into db.user_role (user, role) values (0, 'sys_admin')"
         },
         {
           "t": "SetDb",

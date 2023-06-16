@@ -46,8 +46,10 @@ if (!fs.existsSync(dbPath)) {
       script.name === initScriptName
     );
     if (initScript) {
+      console.log(`About to run script "${initScriptName}"`);
       writeAppModelToDisk(scriptModel);
       runScript(initScriptName);
+      console.log(`Successfully ran script "${initScriptName}"`);
     }
   }
 }
@@ -56,6 +58,9 @@ const runArgs: string[] = ["run", `--db=${dbPath}`];
 
 if (profile.user) {
   runArgs.push(`--user=${profile.user}`);
+}
+if (profile.port) {
+  runArgs.push(`--port=${profile.port}`);
 }
 
 let handle;
