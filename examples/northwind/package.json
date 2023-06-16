@@ -1,0 +1,14 @@
+{
+  "name": "northwind",
+  "version": "0.0.0",
+  "type": "module",
+  "license": "MIT",
+  "dependencies": {
+    "@yolm/boost": "file:../.."
+  },
+  "scripts": {
+    "start": "tsx node_modules/@yolm/boost/dist/scripts/start.js",
+    "save": "tsx node_modules/@yolm/boost/dist/scripts/save.js",
+    "script": "tsx node_modules/@yolm/boost/dist/scripts/script.js"
+  }
+}

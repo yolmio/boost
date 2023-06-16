@@ -1,0 +1,352 @@
+import { ImageSetFieldGroup, Table } from "../modelTypes.js";
+import { element, ifNode, state } from "../nodeHelpers.js";
+import {
+  commitUiChanges,
+  delay,
+  exit,
+  if_,
+  navigate,
+  record,
+  scalar,
+  serviceProc,
+  setScalar,
+  spawn,
+  try_,
+} from "../procHelpers.js";
+import { model, theme } from "../singleton.js";
+import {
+  createStyles,
+  flexGrowStyles,
+  visuallyHiddenStyles,
+} from "../styleUtils.js";
+import { getUploadStatements, getVariantFromImageSet } from "../utils/image.js";
+import { stringLiteral } from "../utils/sqlHelpers.js";
+import { BaseStatement, ClientProcStatement, SqlExpression } from "../yom.js";
+import { alert } from "./alert.js";
+import { button } from "./button.js";
+import { chip } from "./chip.js";
+import { imageDalog } from "./imageDialog.js";
+import { materialIcon } from "./materialIcon.js";
+import { recordDeleteButton } from "./recordDeleteButton.js";
+import { typography } from "./typography.js";
+
+export interface NamedPageHeaderOpts {
+  tableName: string;
+  recordId: SqlExpression;
+  subHeader?: SqlExpression;
+  chips?: string[];
+  prefix?: string;
+  imageGroup?: string;
+  disableImage?: boolean;
+  refreshKey: string;
+  triggerRefresh: BaseStatement;
+  editUrl: SqlExpression;
+  afterDeleteUrl: SqlExpression;
+}
+
+const styles = createStyles({
+  root: {
+    gridColumn: `span 12 / span 12`,
+    display: "flex",
+    gap: 2,
+    alignItems: "center",
+    flexDirection: "column",
+    md: {
+      alignItems: "flex-start",
+      flexDirection: "row",
+    },
+  },
+  emptyLabel: () => ({
+    width: 128,
+    height: 128,
+    borderRadius: "xl",
+    border: "1px solid",
+    borderColor: "divider",
+    fontSize: 80,
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    cursor: "pointer",
+    "&:focus-within": theme.focus.default,
+  }),
+  imgWrapper: {
+    width: 128,
+    height: 128,
+    borderRadius: "xl",
+  },
+  img: () => ({
+    width: 128,
+    height: 128,
+    borderRadius: "xl",
+    cursor: "pointer",
+    "&:focus": theme.focus.default,
+  }),
+  subHeader: {
+    fontSize: "lg",
+    fontWeight: "md",
+    color: "text-secondary",
+    my: 0,
+  },
+  uploadFail: {
+    position: "fixed",
+    bottom: 16,
+    left: 16,
+  },
+  grow: {
+    display: "none",
+    md: {
+      flexGrow: 1,
+      display: "block",
+    },
+  },
+  chips: {
+    display: "flex",
+    gap: 1,
+  },
+});
+
+function imagePart(
+  imageFieldGroup: ImageSetFieldGroup,
+  opts: NamedPageHeaderOpts
+) {
+  const { spawnUploadTasks, joinUploadTasks, updateImagesInDb } =
+    getUploadStatements(opts.tableName, opts.recordId, imageFieldGroup);
+  return state({
+    procedure: [
+      scalar(`uploading`, `false`),
+      scalar(`dialog_open`, `false`),
+      scalar(`failed_upload`, `false`),
+    ],
+    children: [
+      ifNode(
+        `record.named_page_header_thumb is null`,
+        element("label", {
+          styles: styles.emptyLabel(),
+          children: [
+            element("input", {
+              styles: visuallyHiddenStyles,
+              props: {
+                accept: "'image/*'",
+                type: `'file'`,
+              },
+              on: {
+                fileChange: [
+                  if_(`uploading`, exit()),
+                  setScalar(`uploading`, `true`),
+                  commitUiChanges(),
+                  ...spawnUploadTasks,
+                  try_<ClientProcStatement>({
+                    body: [
+                      ...joinUploadTasks,
+                      serviceProc([...updateImagesInDb, opts.triggerRefresh]),
+                    ],
+                    catch: [
+                      setScalar(`failed_upload`, `true`),
+                      spawn([
+                        delay("5000"),
+                        setScalar(`failed_upload`, `false`),
+                      ]),
+                    ],
+                  }),
+                  setScalar(`uploading`, `false`),
+                ],
+              },
+            }),
+            materialIcon("Person"),
+          ],
+        }),
+        [
+          element("div", {
+            styles: styles.imgWrapper,
+            children: element("img", {
+              styles: styles.img(),
+              props: {
+                tabIndex: `0`,
+                src: `'/_a/file/' || sys.account || '/' || sys.app || '/' || record.named_page_header_thumb`,
+              },
+              on: {
+                click: [setScalar(`dialog_open`, `true`)],
+                keydown: [
+                  if_(`event.key = 'Enter'`, [
+                    setScalar(`dialog_open`, `true`),
+                  ]),
+                ],
+              },
+            }),
+          }),
+          imageDalog({
+            open: `dialog_open`,
+            group: "image",
+            onClose: [setScalar(`dialog_open`, `false`)],
+            recordId: `ui.record_id`,
+            tableName: opts.tableName,
+            afterReplace: [opts.triggerRefresh],
+            afterRemove: [opts.triggerRefresh],
+          }),
+        ]
+      ),
+      ifNode(
+        `failed_upload`,
+        element("div", {
+          styles: styles.uploadFail,
+          children: alert({
+            color: "danger",
+            children: "'Failed to upload image'",
+            size: "lg",
+            startDecorator: materialIcon("Warning"),
+          }),
+        })
+      ),
+    ],
+  });
+}
+
+function getImageFieldGroup(
+  table: Table,
+  opts: NamedPageHeaderOpts
+): ImageSetFieldGroup | undefined {
+  if (opts.disableImage) {
+    return;
+  }
+  if (opts.imageGroup) {
+    const imageFieldGroup = table.fieldGroups[opts.imageGroup];
+    if (!imageFieldGroup) {
+      throw new Error(`Field group ${opts.imageGroup} not found`);
+    }
+    if (imageFieldGroup.type !== "Image") {
+      throw new Error(
+        `Field group ${opts.imageGroup} is not an image set field group`
+      );
+    }
+    return imageFieldGroup;
+  }
+  let imageSetCount = 0;
+  for (const group of Object.values(table.fieldGroups)) {
+    if (group.type === "Image") {
+      imageSetCount += 1;
+    }
+  }
+  if (imageSetCount === 0) {
+    return;
+  }
+  if (imageSetCount === 1) {
+    return Object.values(table.fieldGroups).find(
+      (g) => g.type === "Image"
+    ) as ImageSetFieldGroup;
+  }
+  for (const group of Object.values(table.fieldGroups)) {
+    if (group.type === "Image" && group.name === "main_image") {
+      return group;
+    }
+  }
+  throw new Error(
+    "Multiple image set field groups found, but none named 'main_image'"
+  );
+}
+
+export function namedPageHeader(opts: NamedPageHeaderOpts) {
+  const tableModel = model.database.tables[opts.tableName];
+  if (!tableModel.recordDisplayName) {
+    throw new Error("Table must have recordDisplayName for simpleNamedHeader");
+  }
+  const nameExpr = tableModel.recordDisplayName.expr(
+    ...tableModel.recordDisplayName.fields.map((f) => `record.${f}`)
+  );
+  let selectFields = opts.chips ? ", " + opts.chips.join(", ") : "";
+  if (opts.prefix) {
+    selectFields += ", " + opts.prefix;
+  }
+  if (opts.subHeader) {
+    selectFields += `, ${opts.subHeader} as named_page_sub_header`;
+  }
+  const imageFieldGroup = getImageFieldGroup(tableModel, opts);
+  if (imageFieldGroup) {
+    const variant = getVariantFromImageSet(
+      imageFieldGroup,
+      "square_thumbnail",
+      ["general_thumbnail"]
+    );
+    if (!variant) {
+      throw new Error("No thumbnail variant found");
+    }
+    selectFields += `, ${variant} as named_page_header_thumb`;
+  }
+  return state({
+    watch: [opts.refreshKey],
+    procedure: [
+      record(
+        `record`,
+        `select ${nameExpr} as name${selectFields} from db.${tableModel.name.name} as record where id = ${opts.recordId}`
+      ),
+    ],
+    children: element("div", {
+      styles: styles.root,
+      children: [
+        imageFieldGroup ? imagePart(imageFieldGroup, opts) : undefined,
+        element("div", {
+          styles: { display: "flex", gap: 0.5, flexDirection: "column" },
+          children: [
+            element("div", {
+              styles: { display: "flex", alignItems: "baseline", gap: 0.5 },
+              children: [
+                typography({
+                  level: "h4",
+                  children: [
+                    opts.prefix ? `record.${opts.prefix} || ' '` : `''`,
+                    `record.name`,
+                  ],
+                }),
+              ],
+            }),
+            opts.subHeader
+              ? element("h6", {
+                  styles: styles.subHeader,
+                  children: `record.named_page_sub_header`,
+                })
+              : undefined,
+            opts.chips
+              ? element("div", {
+                  styles: styles.chips,
+                  children: opts.chips.map((c) => {
+                    const field = tableModel.fields[c];
+                    return ifNode(
+                      `record.${c}`,
+                      chip({
+                        variant: "soft",
+                        color: "neutral",
+                        size: "sm",
+                        children: stringLiteral(field.name.displayName),
+                      })
+                    );
+                  }),
+                })
+              : undefined,
+          ],
+        }),
+        element("div", {
+          styles: styles.grow,
+        }),
+        element("div", {
+          styles: { display: "flex", gap: 1 },
+          children: [
+            button({
+              color: "info",
+              size: "sm",
+              variant: "outlined",
+              startDecorator: materialIcon("Edit"),
+              children: `'Edit'`,
+              href: opts.editUrl,
+            }),
+            recordDeleteButton({
+              table: opts.tableName,
+              recordId: `ui.record_id`,
+              dialogConfirmDescription: `'Are you sure you want to delete ' || record.name || '?'`,
+              size: "sm",
+              afterDeleteService: [navigate(opts.afterDeleteUrl)],
+            }),
+          ],
+        }),
+      ],
+    }),
+  });
+}

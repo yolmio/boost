@@ -1,0 +1,96 @@
+{
+  "name": "@yolm/boost",
+  "version": "0.0.0",
+  "type": "module",
+  "license": "MIT",
+  "files": [
+    "dist/**",
+    "material-icons/**"
+  ],
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "dev": "tsc --project tsconfig.json --watch",
+    "lint": "TIMING=1 eslint src --fix",
+    "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
+    "format": "prettier --write \"**/*.ts\""
+  },
+  "exports": {
+    "./yom": "./dist/yom.js",
+    "./modelTypes": "./dist/modelTypes.js",
+    "./modelHelpers": "./dist/modelHelpers.js",
+    "./procHelpers": "./dist/procHelpers.js",
+    "./nodeHelpers": "./dist/nodeHelpers.js",
+    "./formState": "./dist/formState.js",
+    "./singleton": "./dist/singleton.js",
+    "./migrate": "./dist/migrate.js",
+    "./profile": "./dist/profile.js",
+    "./components/datagrid": "./dist/components/datagrid/index.js",
+    "./utils/*": "./dist/utils/*.js",
+    "./components/*": "./dist/components/*.js",
+    "./pages/*": "./dist/pages/*.js",
+    "./shells/*": "./dist/shells/*.js"
+  },
+  "typesVersions": {
+    "*": {
+      "yom": [
+        "./dist/yom.d.ts"
+      ],
+      "migrate": [
+        "./dist/migrate.d.ts"
+      ],
+      "profile": [
+        "./dist/profile.d.ts"
+      ],
+      "modelTypes": [
+        "./dist/modelTypes.d.ts"
+      ],
+      "modelHelpers": [
+        "./dist/modelHelpers.d.ts"
+      ],
+      "nodeHelpers": [
+        "./dist/nodeHelpers.d.ts"
+      ],
+      "formState": [
+        "./dist/formState.d.ts"
+      ],
+      "procHelpers": [
+        "./dist/procHelpers.d.ts"
+      ],
+      "singleton": [
+        "./dist/singleton.d.ts"
+      ],
+      "components/datagrid": [
+        "./dist/components/datagrid/index.d.ts"
+      ],
+      "utils/*": [
+        "./dist/utils/*.d.ts"
+      ],
+      "components/*": [
+        "./dist/components/*.d.ts"
+      ],
+      "pages/*": [
+        "./dist/pages/*.d.ts"
+      ],
+      "shells/*": [
+        "./dist/shells/*.d.ts"
+      ]
+    }
+  },
+  "dependencies": {
+    "@types/node": "=20.3.1",
+    "csstype": "=3.1.2",
+    "node-fetch": "=3.3.1",
+    "toposort": "=2.0.2",
+    "tsx": "=3.12.7"
+  },
+  "devDependencies": {
+    "@types/toposort": "=2.0.3",
+    "eslint": "=8.42.0",
+    "fast-glob": "=3.2.12",
+    "fs-extra": "=11.1.1",
+    "jsdom": "=22.1.0",
+    "prettier": "=2.8.8",
+    "svgo": "=2.8.0",
+    "typescript": "=5.1.3"
+  }
+}
