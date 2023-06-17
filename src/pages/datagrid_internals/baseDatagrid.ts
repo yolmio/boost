@@ -56,9 +56,9 @@ export function baseDatagrid(opts: BaseDatagridOpts) {
   const { columns, datagridStyles, dts } = opts;
   if (opts.enableViews) {
     addViewTables();
-    model.enums.datagrid_view_name.values.push({
+    model.enums.datagrid_view_name.values[opts.datagridName] = {
       name: config.createNameObject(opts.datagridName),
-    });
+    };
   }
   addDgFilterOp();
   const columnToResultField = new Map<number, string>();

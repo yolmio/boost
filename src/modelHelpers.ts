@@ -9,6 +9,7 @@ import type {
   DurationField,
   DurationSize,
   Enum,
+  EnumValue,
   Field,
   FieldBase,
   FieldCheck,
@@ -56,10 +57,6 @@ export class TableBuilder {
     this.#renameFrom = name;
   }
 
-  // nuvaId(name: HelperName): FieldBuilder {
-  //   return new FieldBuilder(name, { type: "NuvaId" as any }, this);
-  // }
-
   bool(name: HelperName) {
     return new BoolFieldBuilder(name, this);
   }
@@ -72,13 +69,17 @@ export class TableBuilder {
     return new DateFieldBuilder(name, this);
   }
 
-  // time(name: HelperName): FieldBuilder {
-  //   return new FieldBuilder(name, { type: "Time" }, this);
-  // }
+  time(name: HelperName) {
+    return new TimeFieldBuilder(name, this);
+  }
 
-  // timestamp(name: HelperName): FieldBuilder {
-  //   return new FieldBuilder(name, { type: "Timestamp" }, this);
-  // }
+  timestamp(name: HelperName) {
+    return new TimestampFieldBuilder(name, this);
+  }
+
+  tx(name: HelperName) {
+    return new TxFieldBuilder(name, this);
+  }
 
   tinyInt(name: HelperName) {
     return new TinyIntFieldBuilder(name, this);
@@ -130,7 +131,7 @@ export class TableBuilder {
       precision: number;
       scale: number;
       signed?: boolean;
-    },
+    }
   ) {
     return new DecimalFieldBuilder(
       name,
@@ -138,7 +139,7 @@ export class TableBuilder {
       opts.precision,
       opts.scale,
       opts.signed ?? false,
-      { type: "Money", currency: "USD" },
+      { type: "Money", currency: "USD" }
     );
   }
 
@@ -148,7 +149,7 @@ export class TableBuilder {
       precision: number;
       scale: number;
       signed?: boolean;
-    },
+    }
   ) {
     return new DecimalFieldBuilder(
       name,
@@ -156,7 +157,7 @@ export class TableBuilder {
       opts.precision,
       opts.scale,
       opts.signed ?? false,
-      { type: "Percentage" },
+      { type: "Percentage" }
     );
   }
 
@@ -166,7 +167,7 @@ export class TableBuilder {
       precision: number;
       scale: number;
       signed?: boolean;
-    },
+    }
   ) {
     return new DecimalFieldBuilder(
       name,
@@ -174,7 +175,7 @@ export class TableBuilder {
       opts.precision,
       opts.scale,
       opts.signed ?? true,
-      undefined,
+      undefined
     );
   }
 
@@ -203,7 +204,7 @@ export class TableBuilder {
     return new ForeignKeyFieldBuilder(
       name,
       this,
-      table ?? (typeof name === "string" ? name : name.name),
+      table ?? (typeof name === "string" ? name : name.name)
     );
   }
 
@@ -211,12 +212,12 @@ export class TableBuilder {
     return new EnumFieldBuilder(
       name,
       this,
-      enumName ?? (typeof name === "string" ? name : name.name),
+      enumName ?? (typeof name === "string" ? name : name.name)
     );
   }
 
   unique(
-    constraint: yom.UniqueConstraintField[] | yom.UniqueConstraint,
+    constraint: yom.UniqueConstraintField[] | yom.UniqueConstraint
   ): TableBuilder {
     if (Array.isArray(constraint)) {
       this.#uniques.push({ fields: constraint });
@@ -237,7 +238,7 @@ export class TableBuilder {
   }
 
   fieldGroupFromCatalog(
-    catalog: FieldGroupCatalog | ((table: TableBuilder) => void),
+    catalog: FieldGroupCatalog | ((table: TableBuilder) => void)
   ) {
     if (typeof catalog === "function") {
       catalog(this);
@@ -258,9 +259,10 @@ export class TableBuilder {
       name,
       fields: virtual.fields,
       expr: virtual.expr,
-      type: typeof virtual.type === "string"
-        ? { type: virtual.type }
-        : virtual.type,
+      type:
+        typeof virtual.type === "string"
+          ? { type: virtual.type }
+          : virtual.type,
     };
     return this;
   }
@@ -278,7 +280,7 @@ export class TableBuilder {
   recordDisplayName(fields: string[], expr?: (...fields: string[]) => string) {
     if (fields.length !== 1 && !expr) {
       throw new Error(
-        "Please make sure to specify an expression for setRecordDisplayName",
+        "Please make sure to specify an expression for setRecordDisplayName"
       );
     }
     this.#recordDisplayName = {
@@ -294,13 +296,12 @@ export class TableBuilder {
   }
 
   linkable(f?: (id: string) => string) {
-    this.#getHrefToRecord = f ??
+    this.#getHrefToRecord =
+      f ??
       ((id) =>
-        `'/' || ${
-          stringLiteral(
-            getTableBaseUrl(this.name.name),
-          )
-        } || '/' || ${id}`);
+        `'/' || ${stringLiteral(
+          getTableBaseUrl(this.name.name)
+        )} || '/' || ${id}`);
     return this;
   }
 
@@ -355,7 +356,7 @@ export class TableBuilder {
         fields: [],
         expr: () => {
           throw new Error(
-            `recordDisplayName not provided for table ${this.name.name}`,
+            `recordDisplayName not provided for table ${this.name.name}`
           );
         },
       };
@@ -390,7 +391,7 @@ export class TableBuilder {
         });
       } else {
         throw new Error(
-          "createDefaultNameMatch assumes either a `name` field or a `first_name` and `last_name`",
+          "createDefaultNameMatch assumes either a `name` field or a `first_name` and `last_name`"
         );
       }
     }
@@ -482,7 +483,7 @@ abstract class BaseFieldBuilder {
 
   check(
     check: (field: string) => string,
-    errorMessage: (field: string) => string,
+    errorMessage: (field: string) => string
   ) {
     this._checks.push({ check, errorMessage });
   }
@@ -548,7 +549,7 @@ interface SimpleNumericFieldBuilder {
 }
 
 function createSimpleNumericBuilder(
-  type: Exclude<NumericFields["type"], "Decimal">,
+  type: Exclude<NumericFields["type"], "Decimal">
 ): SimpleNumericFieldBuilder {
   return class extends BaseNumericBuilder {
     finish(): Field {
@@ -581,7 +582,7 @@ class DecimalFieldBuilder extends BaseFieldBuilder {
     precision: number,
     scale: number,
     signed: boolean,
-    usage: DecimalUsage | undefined,
+    usage: DecimalUsage | undefined
   ) {
     super(name, table);
     this.#precision = precision;
@@ -610,7 +611,7 @@ class DurationFieldBuilder extends BaseFieldBuilder {
     name: HelperName,
     table: TableBuilder,
     backing: yom.FieldIntegerTypes,
-    size: DurationSize,
+    size: DurationSize
   ) {
     super(name, table);
     this.#backing = backing;
@@ -655,6 +656,24 @@ class OrderingFieldBuilder extends BaseFieldBuilder {
 class DateFieldBuilder extends BaseFieldBuilder {
   finish(): Field {
     return { type: "Date", ...this.finishBase() };
+  }
+}
+
+class TimeFieldBuilder extends BaseFieldBuilder {
+  finish(): Field {
+    return { type: "Date", ...this.finishBase() };
+  }
+}
+
+class TimestampFieldBuilder extends BaseFieldBuilder {
+  finish(): Field {
+    return { type: "Timestamp", ...this.finishBase() };
+  }
+}
+
+class TxFieldBuilder extends BaseFieldBuilder {
+  finish(): Field {
+    return { type: "Tx", ...this.finishBase() };
   }
 }
 
@@ -770,7 +789,7 @@ export function addTable(name: HelperName, f: (table: TableBuilder) => void) {
 
 export function addDeviceDatabaseTable(
   name: HelperName,
-  f: (table: TableBuilder) => void,
+  f: (table: TableBuilder) => void
 ) {
   const nameObj = config.createNameObject(name);
   const builder = new TableBuilder(nameObj);
@@ -791,13 +810,13 @@ export interface SimpleDt {
 
 export type BoolDt =
   | {
-    name: string;
-    trues: string[];
-  }
+      name: string;
+      trues: string[];
+    }
   | {
-    name: string;
-    falses: string[];
-  };
+      name: string;
+      falses: string[];
+    };
 
 export interface HelperEnum {
   name: HelperName;
@@ -842,9 +861,10 @@ export function addEnum(enum_: HelperEnum) {
       enum_.withSimpleDts.push({
         name: e.name,
         outputType: "Bool",
-        fields: "trues" in e
-          ? e.trues.map((n) => [n, `true`] as [string, string])
-          : e.falses.map((n) => [n, "false"] as [string, string]),
+        fields:
+          "trues" in e
+            ? e.trues.map((n) => [n, `true`] as [string, string])
+            : e.falses.map((n) => [n, "false"] as [string, string]),
         default: "trues" in e ? `false` : `true`,
       });
     }
@@ -861,17 +881,22 @@ export function addEnum(enum_: HelperEnum) {
           },
         ],
         output: { name: "output", type: dt.outputType },
-        csv: `input.value,output\n` +
+        csv:
+          `input.value,output\n` +
           dt.fields.map(([field, value]) => `'${field}',${value}`).join("\n") +
           (dt.default ? `\nany,` + dt.default : ``),
       });
     }
   }
+  const valuesObject: Record<string, EnumValue> = {};
+  for (const v of values) {
+    valuesObject[v.name.name] = v;
+  }
   const modelEnum: Enum = {
     name: enumName,
     renameFrom: enum_.renameFrom,
     description: enum_.description,
-    values,
+    values: valuesObject,
   };
   model.enums[enumName.name] = modelEnum;
   if (enum_.withDisplayDt) {
@@ -935,9 +960,10 @@ export function addDecisionTable(dt: HelperDecisionTable) {
     const name = config.createNameObject(dt.output.name);
     outputs[name.name] = {
       name: name,
-      type: typeof dt.output.type === "string"
-        ? { type: dt.output.type }
-        : dt.output.type,
+      type:
+        typeof dt.output.type === "string"
+          ? { type: dt.output.type }
+          : dt.output.type,
       collation: dt.output.collation,
     };
   }
@@ -946,9 +972,8 @@ export function addDecisionTable(dt: HelperDecisionTable) {
       const name = config.createNameObject(output.name);
       outputs[name.name] = {
         name: name,
-        type: typeof output.type === "string"
-          ? { type: output.type }
-          : output.type,
+        type:
+          typeof output.type === "string" ? { type: output.type } : output.type,
         collation: output.collation,
       };
     }
@@ -994,9 +1019,8 @@ export function addScalarFunction(f: HelperScalarFunction) {
     description: f.description,
     inputs,
     procedure: f.procedure,
-    returnType: typeof f.returnType === "string"
-      ? { type: f.returnType }
-      : f.returnType,
+    returnType:
+      typeof f.returnType === "string" ? { type: f.returnType } : f.returnType,
   };
   if (f.bound) {
     model.database.scalarFunctions[tableName.name] = newDt;
@@ -1011,10 +1035,6 @@ export function addPage(page: Page) {
 
 export function setShell(node: Node) {
   model.shell = node;
-}
-
-export function addRunProfile(profile: yom.RunProfile) {
-  model.runProfiles.push(profile);
 }
 
 export function addScript(script: yom.Script) {
@@ -1033,7 +1053,7 @@ export function addScriptDbFromMappingFile(name: string, mappingFile: string) {
 
 export function addScriptDbDefinition(
   name: string,
-  define: (db: ScriptDbDefinition) => void,
+  define: (db: ScriptDbDefinition) => void
 ) {
   inScriptDb = {
     autoTrim: model.autoTrim,

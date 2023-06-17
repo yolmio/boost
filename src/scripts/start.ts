@@ -42,8 +42,8 @@ if (!fs.existsSync(dbPath)) {
     const parsed = path.parse(dbPath);
     const scriptModel = await getScriptModel();
     const initScriptName = `init-${parsed.name}-db`;
-    const initScript = scriptModel.scripts?.find((script) =>
-      script.name === initScriptName
+    const initScript = scriptModel.scripts?.find(
+      (script) => script.name === initScriptName
     );
     if (initScript) {
       console.log(`About to run script "${initScriptName}"`);
@@ -108,7 +108,7 @@ if (!found) {
 
 const sendModelPath = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
-  "sendModel.js",
+  "sendModel.js"
 );
 
 spawn("tsx", ["watch", "--clear-screen=false", sendModelPath], {

@@ -8,9 +8,7 @@ export type Profiles = {
   default: Profile;
 } & Record<string, Profile>;
 
-export function createProfiles(
-  profiles: Record<string, Partial<Profile>>,
-) {
+export function createProfiles(profiles: Record<string, Partial<Profile>>) {
   const computedProfile: Record<string, Profile> = {
     default: {
       db: "data/dev",

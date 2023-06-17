@@ -23,8 +23,6 @@ export interface Model {
   tableFunctions?: TableFunction[];
   scripts?: Script[];
   scriptDbs?: ScriptDb[];
-  /** Specifies how to set up the database and more for development */
-  runProfile?: RunProfile[];
   test?: TestModel;
   api?: AppApi;
   /** @private */
@@ -51,25 +49,6 @@ export interface Enum {
   renameFrom?: string;
   values: EnumValue[];
 }
-
-interface RunProfileBase {
-  name: string;
-  /** uuid of the user that should be the logged in user */
-  asUser: string;
-}
-
-export interface RunProfilePath extends RunProfileBase {
-  /** Path to directory containing data.db, map.json to load */
-  dir: string;
-}
-
-export interface RunProfileProcedure extends RunProfileBase {
-  time: string;
-  /** Use this procedure to intialize the database */
-  procedure: BasicStatement[];
-}
-
-export type RunProfile = RunProfilePath | RunProfileProcedure;
 
 export interface PwaIcon {
   hash: string;

@@ -349,11 +349,9 @@ insertFormPage({
                   ]),
                   serviceProc([
                     modify(
-                      `insert into customer select company_name as name, * from db.customer where id = ${
-                        state.fields.get(
-                          "customer",
-                        )
-                      }`,
+                      `insert into customer select company_name as name, * from db.customer where id = ${state.fields.get(
+                        "customer"
+                      )}`
                     ),
                   ]),
                   if_(`not ` + state.fields.touched("ship_address"), [
@@ -426,7 +424,7 @@ insertFormPage({
                           "product_unit_price",
                           `(select unit_price from db.product where id = ${
                             cursor.field("product").value
-                          })`,
+                          })`
                         ),
                       ]),
                       if_(
@@ -437,7 +435,7 @@ insertFormPage({
                             .field("unit_price")
                             .setValue("cast(product_unit_price as string)"),
                           commitUiChanges(),
-                        ],
+                        ]
                       ),
                     ]),
                   ],
@@ -478,8 +476,7 @@ cardGridRecordPage({
           // check if freight needs to be added
           {
             label: "'Total'",
-            expr:
-              `(select sum(cast((unit_price * quantity) * (1 - discount) as decimal(10, 2))) from db.order_detail where order = record_id)`,
+            expr: `(select sum(cast((unit_price * quantity) * (1 - discount) as decimal(10, 2))) from db.order_detail where order = record_id)`,
             display: (v) => `'$' || ${v}`,
           },
         ],
@@ -527,11 +524,9 @@ cardGridRecordPage({
                   serviceProc([
                     setScalar(
                       "product_unit_price",
-                      `(select unit_price from db.product where id = ${
-                        state.fields.get(
-                          "product",
-                        )
-                      })`,
+                      `(select unit_price from db.product where id = ${state.fields.get(
+                        "product"
+                      )})`
                     ),
                   ]),
                   if_(
@@ -540,10 +535,10 @@ cardGridRecordPage({
                     [
                       state.fields.set(
                         "unit_price",
-                        "cast(product_unit_price as string)",
+                        "cast(product_unit_price as string)"
                       ),
                       commitUiChanges(),
-                    ],
+                    ]
                   ),
                 ]),
               ],

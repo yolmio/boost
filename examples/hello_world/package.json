@@ -4,7 +4,8 @@
   "type": "module",
   "license": "MIT",
   "dependencies": {
-    "@yolm/boost": "file:../.."
+    "@yolm/boost": "file:../..",
+    "tsx": "=3.12.7"
   },
   "scripts": {
     "start": "tsx node_modules/@yolm/boost/dist/scripts/start.js",

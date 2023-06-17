@@ -208,6 +208,26 @@ export interface DateField extends FieldBase {
   formatString?: string;
 }
 
+export interface TimeField extends FieldBase {
+  type: "Time";
+  /** how to display the date in the ui */
+  formatString?: string;
+}
+
+export interface TimestampField extends FieldBase {
+  type: "Timestamp";
+  /** how to display the date in the ui */
+  formatString?: string;
+}
+
+export interface TxField extends FieldBase {
+  type: "Tx";
+}
+
+export interface NuvaIdField extends FieldBase {
+  type: "NuvaId";
+}
+
 export interface BoolEnumLikeConfig {
   null?: string;
   false: string;
@@ -261,7 +281,10 @@ export type Field =
   | CustomField
   | OrderingField
   | UuidField
-  | DurationField;
+  | DurationField
+  | TimestampField
+  | TimeField
+  | TxField;
 
 export interface Parameter {
   name: Names;
@@ -318,7 +341,7 @@ export interface EnumControlOpts extends ComponentOpts {
 export interface Enum {
   name: Names;
   renameFrom?: string;
-  values: EnumValue[];
+  values: Record<string, EnumValue>;
 
   description?: string;
   getDisplayName?: (value: string) => string;
@@ -411,7 +434,6 @@ export interface BoostModel {
   scalarFunctions: { [name: string]: ScalarFunction };
   //todo: add table functions
   test: yom.TestModel;
-  runProfiles: yom.RunProfile[];
   scripts: yom.Script[];
   scriptDbs: ScriptDb[];
 

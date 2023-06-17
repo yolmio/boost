@@ -77,6 +77,9 @@ function generateTable(t: Table): yom.Table {
       case "Uuid":
       case "Date":
       case "Ordering":
+      case "Time":
+      case "Timestamp":
+      case "Tx":
         return { type: { type: f.type }, ...base };
       case "Decimal":
         return {
@@ -206,7 +209,7 @@ export function generateYom(): yom.Model {
       name: e.name.name,
       renameFrom: e.renameFrom,
       description: e.description,
-      values: e.values.map((v) => ({
+      values: Object.values(e.values).map((v) => ({
         name: v.name.name,
         renameFrom: v.renameFrom,
         description: v.description,
@@ -219,7 +222,6 @@ export function generateYom(): yom.Model {
         tables: Object.values(model.deviceDb.tables).map(generateTable),
       },
     },
-    runProfile: model.runProfiles,
     scripts: model.scripts,
     scriptDbs: model.scriptDbs.map((db) => {
       if (db.definition.type === "MappingFile") {

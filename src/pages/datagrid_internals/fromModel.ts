@@ -9,11 +9,7 @@ import {
 } from "../../procHelpers.js";
 import { model } from "../../singleton.js";
 import { ident, stringLiteral } from "../../utils/sqlHelpers.js";
-import {
-  ClientProcStatement,
-  FieldType,
-  ServiceProcStatement,
-} from "../../yom.js";
+import { ClientProcStatement, FieldType } from "../../yom.js";
 import { fieldCell } from "./cells.js";
 import { BeforeEditTransaction, doEdit } from "./editHelper.js";
 import {
@@ -52,7 +48,6 @@ export function filterTypeFromField(type: Field): FilterType {
     case "ForeignKey":
       return { type: "table", table: type.table };
     case "Date":
-      // case "Timestamp":
       return { type: "date" };
     case "Bool":
       return type.enumLike
@@ -161,7 +156,7 @@ export function getFieldCellWidth(field: Field): number {
   if (field.type === "Enum") {
     const enum_ = model.enums[field.enum];
     const maxVariant = Math.max(
-      ...enum_.values.map((v) => v.name.displayName.length)
+      ...Object.values(enum_.values).map((v) => v.name.displayName.length)
     );
     const maxVariantTotal = maxVariant * charSize + headerBuffer;
     return Math.max(maxVariantTotal, headerLength);

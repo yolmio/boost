@@ -45,7 +45,7 @@ export async function getAppModel(): Promise<Model> {
   const app = "app" in module ? module.app : generateYom();
   console.log(
     "generating yom took",
-    (performance.now() - start).toFixed(2) + "ms",
+    (performance.now() - start).toFixed(2) + "ms"
   );
   return app;
 }
@@ -56,7 +56,7 @@ export async function getScriptModel(): Promise<Model> {
   const app = "app" in module ? module.app : generateYom();
   console.log(
     "generating yom took",
-    (performance.now() - start).toFixed(2) + "ms",
+    (performance.now() - start).toFixed(2) + "ms"
   );
   return app;
 }
@@ -64,7 +64,7 @@ export async function getScriptModel(): Promise<Model> {
 export function writeAppModelToDisk(model: Model) {
   fs.writeFileSync(
     path.join(process.cwd(), "app.json"),
-    JSON.stringify(model, undefined, 2),
+    JSON.stringify(model, undefined, 2)
   );
 }
 

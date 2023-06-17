@@ -201,7 +201,7 @@ export function enumCell(opts: BaseFieldCellOpts, field: EnumField): Cell {
             element("select", {
               styles: styles.select,
               props: { value: `value`, yolmFocusKey: `true` },
-              children: enumModel.values.map((v) =>
+              children: Object.values(enumModel.values).map((v) =>
                 element("option", {
                   children: stringLiteral(v.name.displayName),
                   props: { value: stringLiteral(v.name.name) },

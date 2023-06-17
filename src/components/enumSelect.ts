@@ -12,7 +12,7 @@ export type EnumSelectOpts = Omit<SelectOpts, "children"> & {
 
 const getEnumOptions = memoize((enumName: string, emptyOption?: string) => {
   const enum_ = model.enums[enumName];
-  const options = enum_.values.map((v) =>
+  const options = Object.values(enum_.values).map((v) =>
     element("option", {
       children: stringLiteral(v.name.displayName),
       props: { value: stringLiteral(v.name.name) },

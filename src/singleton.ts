@@ -65,7 +65,6 @@ export const model: BoostModel = {
   enums: {},
   scalarFunctions: {},
 
-  runProfiles: [],
   test: {
     data: [],
     api: [],

@@ -115,13 +115,13 @@ addScript({
   procedure: [
     importCsv(`csv`, `data/csv`),
     modify(
-      `insert into db.shipper select companyName as name, phone from csv.Shipper`,
+      `insert into db.shipper select companyName as name, phone from csv.Shipper`
     ),
     modify(
-      `insert into db.category select categoryName as name, description from csv.Category`,
+      `insert into db.category select categoryName as name, description from csv.Category`
     ),
     modify(
-      `insert into db.supplier select companyName as company_name, contactName as contact_name, contactTitle as contact_title, address, city, region as state, postalCode as zip, country, phone, fax from csv.Supplier`,
+      `insert into db.supplier select companyName as company_name, contactName as contact_name, contactTitle as contact_title, address, city, region as state, postalCode as zip, country, phone, fax from csv.Supplier`
     ),
     modify(
       `insert into db.customer
@@ -135,7 +135,7 @@ addScript({
             country,
             phone,
             fax
-      from csv.Customer`,
+      from csv.Customer`
     ),
     modify(
       `insert into db.product
@@ -148,7 +148,7 @@ addScript({
           unitsOnOrder as units_on_order,
           reorderLevel as reorder_level,
           discontinued = 1 as discontinued
-        from csv.Product`,
+        from csv.Product`
     ),
     modify(
       `insert into db.employee
@@ -169,7 +169,7 @@ addScript({
           rng.uuid() as global_id,
           firstName || lastName || '@gmail.com' as email,
           false as disabled 
-          from csv.Employee`,
+          from csv.Employee`
     ),
     modify(
       `insert into db.order
@@ -186,7 +186,7 @@ addScript({
           shipRegion as ship_state,
           shipPostalCode as ship_zip,
           shipCountry as ship_country
-        from csv.Order`,
+        from csv.Order`
     ),
     modify(
       `insert into db.order_detail
@@ -196,10 +196,10 @@ addScript({
           unitPrice as unit_price,
           quantity,
           discount
-        from csv.OrderDetails`,
+        from csv.OrderDetails`
     ),
     modify(
-      `insert into db.employee_role (employee, role) values (0, 'sys_admin')`,
+      `insert into db.employee_role (employee, role) values (0, 'sys_admin')`
     ),
     saveDb(`data/dev`),
   ],

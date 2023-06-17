@@ -1023,7 +1023,8 @@ export function defaultInitialValue(field: Field) {
     case "Enum":
       if (field.notNull) {
         const enum_ = model.enums[field.enum];
-        return `cast(${stringLiteral(enum_.values[0].name.name)} as enums.${
+        const firstValue = Object.values(enum_.values)[0];
+        return `cast(${stringLiteral(firstValue.name.name)} as enums.${
           enum_.name.name
         })`;
       }
