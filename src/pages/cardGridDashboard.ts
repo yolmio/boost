@@ -7,7 +7,6 @@ import { addPage } from "../modelHelpers.js";
 import { element, ifNode, state } from "../nodeHelpers.js";
 import { Node } from "../nodeTypes.js";
 import { table } from "../procHelpers.js";
-import { StyleObject } from "../styleTypes.js";
 import { createStyles } from "../styleUtils.js";
 import {
   containerStyles,

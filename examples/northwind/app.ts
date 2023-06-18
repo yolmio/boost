@@ -13,7 +13,7 @@ import {
 } from "@yolm/boost/procHelpers";
 import { tableSuperGrid } from "@yolm/boost/pages/tableSuperGrid";
 import { adminPage } from "@yolm/boost/pages/admin";
-import { cardGridRecordPage } from "@yolm/boost/pages/cardGridRecord";
+import { recordGridPage } from "@yolm/boost/pages/recordGrid";
 import { tableSimpleGrid } from "@yolm/boost/pages/tableSimpleDatagrid";
 import { insertFormPage } from "@yolm/boost/pages/insertForm";
 import { model } from "@yolm/boost/singleton";
@@ -268,33 +268,34 @@ tableSuperGrid({
   ignoreFields: ["global_id"],
 });
 
-cardGridRecordPage({
+recordGridPage({
   table: "employee",
-  header: {
-    type: "namedHeader",
-    prefix: "title_of_courtesy",
-    subHeader: "title",
-  },
-  cards: [
+  children: [
     {
-      colSpan: 12,
-      md: { colSpan: 6 },
-      content: {
-        type: "staticTable",
-        rows: ["birth_date", "hire_date", "home_phone"],
+      type: "namedHeader",
+      prefix: "title_of_courtesy",
+      subHeader: "title",
+    },
+    {
+      type: "staticTableCard",
+      rows: ["birth_date", "hire_date", "home_phone"],
+      styles: { gridColumnSpan: 12, md: { gridColumnSpan: 6 } },
+    },
+    {
+      type: "addressCard",
+      styles: {
+        alignSelf: "start",
+        gridColumnSpan: 12,
+        md: { gridColumnSpan: 6 },
       },
     },
     {
-      colSpan: 12,
-      md: { colSpan: 4 },
-      alignSelf: "flex-start",
-      content: { type: "address" },
-    },
-    {
-      colSpan: 12,
-      md: { colSpan: 4 },
-      alignSelf: "flex-start",
-      content: { type: "notes" },
+      type: "notesCard",
+      styles: {
+        alignSelf: "start",
+        gridColumnSpan: 12,
+        md: { gridColumnSpan: 6 },
+      },
     },
   ],
 });
@@ -455,99 +456,98 @@ insertFormPage({
   ],
 });
 
-cardGridRecordPage({
+recordGridPage({
   table: "order",
-  header: { type: "superSimpleHeader", header: "Order Details" },
-  createUpdatePage: true,
-  cards: [
+  children: [
+    { type: "superSimpleHeader", header: "Order Details" },
     {
-      colSpan: 12,
-      lg: { colSpan: 8, rowSpan: 2 },
-      rowSpan: 1,
-      content: {
-        type: "staticTable",
-        rows: [
-          "order_date",
-          "required_date",
-          "shipped_date",
-          "customer",
-          "employee",
-          "ship_via",
-          // check if freight needs to be added
-          {
-            label: "'Total'",
-            expr: `(select sum(cast((unit_price * quantity) * (1 - discount) as decimal(10, 2))) from db.order_detail where order = record_id)`,
-            display: (v) => `'$' || ${v}`,
-          },
-        ],
+      type: "staticTableCard",
+      styles: {
+        gridColumnSpan: 12,
+        lg: { gridColumnSpan: 8 },
       },
+      rows: [
+        "order_date",
+        "required_date",
+        "shipped_date",
+        "customer",
+        "employee",
+        "ship_via",
+        // check if freight needs to be added
+        {
+          label: "'Total'",
+          expr: `(select sum(cast((unit_price * quantity) * (1 - discount) as decimal(10, 2))) from db.order_detail where order = record_id)`,
+          display: (v) => `'$' || ${v}`,
+        },
+      ],
     },
     {
-      colSpan: 12,
-      lg: { colSpan: 4 },
-      alignSelf: "flex-start",
-      content: {
-        type: "address",
-        header: `'Ship Address'`,
-        group: "ship_address",
+      type: "addressCard",
+      styles: {
+        alignSelf: "start",
+        gridColumnSpan: 12,
+        lg: { gridColumnSpan: 4 },
       },
+      header: `'Ship Address'`,
+      group: "ship_address",
     },
-  ],
-  footer: {
-    type: "relatedTable",
-    table: "order_detail",
-    fields: [
-      "product",
-      "unit_price",
-      "quantity",
-      "discount",
-      {
-        expr: (detail) =>
-          `'$' || cast((${detail}.unit_price * ${detail}.quantity) * (1 - ${detail}.discount) as decimal(10, 2))`,
-        label: "Total",
-      },
-    ],
-    insertDialog: {
-      fieldOverrides: {
-        product: {
-          onChange: (state) => [
-            spawn({
-              detached: true,
-              statements: [
-                if_(`not ` + state.fields.touched("unit_price"), [
-                  scalar(`product_unit_price`, {
-                    type: "Decimal",
-                    precision: 10,
-                    scale: 2,
-                    signed: true,
-                  }),
-                  serviceProc([
-                    setScalar(
-                      "product_unit_price",
-                      `(select unit_price from db.product where id = ${state.fields.get(
-                        "product"
-                      )})`
+    {
+      type: "relatedTable",
+      table: "order_detail",
+      fields: [
+        "product",
+        "unit_price",
+        "quantity",
+        "discount",
+        {
+          expr: (detail) =>
+            `'$' || cast((${detail}.unit_price * ${detail}.quantity) * (1 - ${detail}.discount) as decimal(10, 2))`,
+          label: "Total",
+        },
+      ],
+      insertDialog: {
+        fieldOverrides: {
+          product: {
+            onChange: (state) => [
+              spawn({
+                detached: true,
+                statements: [
+                  if_(`not ` + state.fields.touched("unit_price"), [
+                    scalar(`product_unit_price`, {
+                      type: "Decimal",
+                      precision: 10,
+                      scale: 2,
+                      signed: true,
+                    }),
+                    serviceProc([
+                      setScalar(
+                        "product_unit_price",
+                        `(select unit_price from db.product where id = ${state.fields.get(
+                          "product"
+                        )})`
+                      ),
+                    ]),
+                    if_(
+                      `product_unit_price is not null and not ` +
+                        state.fields.touched("unit_price"),
+                      [
+                        state.fields.set(
+                          "unit_price",
+                          "cast(product_unit_price as string)"
+                        ),
+                        commitUiChanges(),
+                      ]
                     ),
                   ]),
-                  if_(
-                    `product_unit_price is not null and not ` +
-                      state.fields.touched("unit_price"),
-                    [
-                      state.fields.set(
-                        "unit_price",
-                        "cast(product_unit_price as string)"
-                      ),
-                      commitUiChanges(),
-                    ]
-                  ),
-                ]),
-              ],
-            }),
-          ],
+                ],
+              }),
+            ],
+          },
         },
       },
     },
-  },
+  ],
+  createUpdatePage: true,
 });
 
 tableSuperGrid({
@@ -560,24 +560,22 @@ tableSuperGrid({
   viewButtonUrl: (id) => `'/customers/' || ${id}`,
 });
 
-cardGridRecordPage({
+recordGridPage({
   table: "customer",
-  header: { type: "namedHeader" },
-  createUpdatePage: true,
-  cards: [
+  children: [
+    { type: "namedHeader" },
     {
-      colSpan: 12,
-      md: { colSpan: 8 },
-      content: {
-        type: "staticTable",
-        rows: ["contact_name", "contact_title", "phone", "fax"],
-      },
+      type: "staticTableCard",
+      styles: { gridColumnSpan: 12, lg: { gridColumnSpan: 8 } },
+      rows: ["contact_name", "contact_title", "phone", "fax"],
     },
     {
-      colSpan: 12,
-      md: { colSpan: 4 },
-      alignSelf: "flex-start",
-      content: { type: "address" },
+      type: "addressCard",
+      styles: {
+        alignSelf: "start",
+        gridColumnSpan: 12,
+        lg: { gridColumnSpan: 4 },
+      },
     },
   ],
 });
@@ -591,25 +589,22 @@ tableSimpleGrid({
 
 tableSimpleGrid({ table: "supplier" });
 
-cardGridRecordPage({
+recordGridPage({
   table: "supplier",
-  header: {
-    type: "namedHeader",
-  },
-  cards: [
+  children: [
+    { type: "namedHeader" },
     {
-      colSpan: 12,
-      md: { colSpan: 8 },
-      content: {
-        type: "staticTable",
-        rows: ["contact_name", "contact_title", "phone", "fax", "home_page"],
-      },
+      type: "staticTableCard",
+      styles: { gridColumnSpan: 12, lg: { gridColumnSpan: 8 } },
+      rows: ["contact_name", "contact_title", "phone", "fax", "home_page"],
     },
     {
-      colSpan: 12,
-      md: { colSpan: 4 },
-      alignSelf: "flex-start",
-      content: { type: "address" },
+      type: "addressCard",
+      styles: {
+        alignSelf: "start",
+        gridColumnSpan: 12,
+        lg: { gridColumnSpan: 4 },
+      },
     },
   ],
 });
@@ -621,28 +616,22 @@ tableSimpleGrid({
   },
 });
 
-cardGridRecordPage({
+recordGridPage({
   table: "product",
-  header: {
-    type: "namedHeader",
-    chips: ["discontinued"],
-  },
-  cards: [
+  children: [
+    { type: "namedHeader", chips: ["discontinued"] },
     {
-      colSpan: 12,
-      md: { colSpan: 6 },
-      content: {
-        type: "staticTable",
-        rows: [
-          "supplier",
-          "category",
-          "quantity_per_unit",
-          "unit_price",
-          "units_in_stock",
-          "units_on_order",
-          "reorder_level",
-        ],
-      },
+      type: "staticTableCard",
+      styles: { gridColumnSpan: 12, md: { gridColumnSpan: 6 } },
+      rows: [
+        "supplier",
+        "category",
+        "quantity_per_unit",
+        "unit_price",
+        "units_in_stock",
+        "units_on_order",
+        "reorder_level",
+      ],
     },
   ],
 });

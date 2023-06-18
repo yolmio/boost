@@ -280,6 +280,16 @@ export interface AliasesCSSProperties {
    * @see https://developer.mozilla.org/docs/Web/CSS/display
    */
   displayPrint?: StandardCSSProperties["display"];
+  /**
+   * Makes the element span n-columns wide. It has no effect if its parent is not a grid container.
+   * "full" will take the full width of the grid container.
+   */
+  gridColumnSpan?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | "full";
+  /**
+   * Makes the element span n-rows high. It has no effect if its parent is not a grid container.
+   * "full" will take the full height of the grid container.
+   */
+  gridRowSpan?: number | "full";
 }
 
 export interface OverwriteCSSProperties {

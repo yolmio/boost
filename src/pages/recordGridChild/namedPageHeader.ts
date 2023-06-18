@@ -1,5 +1,5 @@
-import { ImageSetFieldGroup, Table } from "../modelTypes.js";
-import { element, ifNode, state } from "../nodeHelpers.js";
+import { ImageSetFieldGroup, Table } from "../../modelTypes.js";
+import { element, ifNode, state } from "../../nodeHelpers.js";
 import {
   commitUiChanges,
   delay,
@@ -12,41 +12,37 @@ import {
   setScalar,
   spawn,
   try_,
-} from "../procHelpers.js";
-import { model, theme } from "../singleton.js";
+} from "../../procHelpers.js";
+import { theme } from "../../singleton.js";
+import { createStyles, visuallyHiddenStyles } from "../../styleUtils.js";
 import {
-  createStyles,
-  flexGrowStyles,
-  visuallyHiddenStyles,
-} from "../styleUtils.js";
-import { getUploadStatements, getVariantFromImageSet } from "../utils/image.js";
-import { stringLiteral } from "../utils/sqlHelpers.js";
-import { BaseStatement, ClientProcStatement, SqlExpression } from "../yom.js";
-import { alert } from "./alert.js";
-import { button } from "./button.js";
-import { chip } from "./chip.js";
-import { imageDalog } from "./imageDialog.js";
-import { materialIcon } from "./materialIcon.js";
-import { recordDeleteButton } from "./recordDeleteButton.js";
-import { typography } from "./typography.js";
+  getUploadStatements,
+  getVariantFromImageSet,
+} from "../../utils/image.js";
+import { stringLiteral } from "../../utils/sqlHelpers.js";
+import { ClientProcStatement, SqlExpression } from "../../yom.js";
+import { alert } from "../../components/alert.js";
+import { button } from "../../components/button.js";
+import { chip } from "../../components/chip.js";
+import { imageDalog } from "../../components/imageDialog.js";
+import { materialIcon } from "../../components/materialIcon.js";
+import { recordDeleteButton } from "../../components/recordDeleteButton.js";
+import { typography } from "../../components/typography.js";
+import { RecordGridContext } from "./shared.js";
 
-export interface NamedPageHeaderOpts {
-  tableName: string;
-  recordId: SqlExpression;
+export const name = "namedHeader";
+
+export interface Opts {
   subHeader?: SqlExpression;
   chips?: string[];
   prefix?: string;
   imageGroup?: string;
   disableImage?: boolean;
-  refreshKey: string;
-  triggerRefresh: BaseStatement;
-  editUrl: SqlExpression;
-  afterDeleteUrl: SqlExpression;
 }
 
 const styles = createStyles({
   root: {
-    gridColumn: `span 12 / span 12`,
+    gridColumnSpan: "full",
     display: "flex",
     gap: 2,
     alignItems: "center",
@@ -107,10 +103,11 @@ const styles = createStyles({
 
 function imagePart(
   imageFieldGroup: ImageSetFieldGroup,
-  opts: NamedPageHeaderOpts
+  opts: Opts,
+  ctx: RecordGridContext
 ) {
   const { spawnUploadTasks, joinUploadTasks, updateImagesInDb } =
-    getUploadStatements(opts.tableName, opts.recordId, imageFieldGroup);
+    getUploadStatements(ctx.table.name.name, ctx.recordId, imageFieldGroup);
   return state({
     procedure: [
       scalar(`uploading`, `false`),
@@ -138,7 +135,7 @@ function imagePart(
                   try_<ClientProcStatement>({
                     body: [
                       ...joinUploadTasks,
-                      serviceProc([...updateImagesInDb, opts.triggerRefresh]),
+                      serviceProc([...updateImagesInDb, ctx.triggerRefresh]),
                     ],
                     catch: [
                       setScalar(`failed_upload`, `true`),
@@ -179,9 +176,9 @@ function imagePart(
             group: "image",
             onClose: [setScalar(`dialog_open`, `false`)],
             recordId: `ui.record_id`,
-            tableName: opts.tableName,
-            afterReplace: [opts.triggerRefresh],
-            afterRemove: [opts.triggerRefresh],
+            tableName: ctx.table.name.name,
+            afterReplace: [ctx.triggerRefresh],
+            afterRemove: [ctx.triggerRefresh],
           }),
         ]
       ),
@@ -203,7 +200,7 @@ function imagePart(
 
 function getImageFieldGroup(
   table: Table,
-  opts: NamedPageHeaderOpts
+  opts: Opts
 ): ImageSetFieldGroup | undefined {
   if (opts.disableImage) {
     return;
@@ -244,8 +241,8 @@ function getImageFieldGroup(
   );
 }
 
-export function namedPageHeader(opts: NamedPageHeaderOpts) {
-  const tableModel = model.database.tables[opts.tableName];
+export function content(opts: Opts, ctx: RecordGridContext) {
+  const { table: tableModel, refreshKey, recordId } = ctx;
   if (!tableModel.recordDisplayName) {
     throw new Error("Table must have recordDisplayName for simpleNamedHeader");
   }
@@ -272,17 +269,17 @@ export function namedPageHeader(opts: NamedPageHeaderOpts) {
     selectFields += `, ${variant} as named_page_header_thumb`;
   }
   return state({
-    watch: [opts.refreshKey],
+    watch: [refreshKey],
     procedure: [
       record(
         `record`,
-        `select ${nameExpr} as name${selectFields} from db.${tableModel.name.name} as record where id = ${opts.recordId}`
+        `select ${nameExpr} as name${selectFields} from db.${tableModel.name.name} as record where id = ${recordId}`
       ),
     ],
     children: element("div", {
       styles: styles.root,
       children: [
-        imageFieldGroup ? imagePart(imageFieldGroup, opts) : undefined,
+        imageFieldGroup ? imagePart(imageFieldGroup, opts, ctx) : undefined,
         element("div", {
           styles: { display: "flex", gap: 0.5, flexDirection: "column" },
           children: [
@@ -335,14 +332,16 @@ export function namedPageHeader(opts: NamedPageHeaderOpts) {
               variant: "outlined",
               startDecorator: materialIcon("Edit"),
               children: `'Edit'`,
-              href: opts.editUrl,
+              href: `${stringLiteral(
+                ctx.pathBase
+              )} || '/' || ui.record_id || '/edit'`,
             }),
             recordDeleteButton({
-              table: opts.tableName,
+              table: tableModel.name.name,
               recordId: `ui.record_id`,
               dialogConfirmDescription: `'Are you sure you want to delete ' || record.name || '?'`,
               size: "sm",
-              afterDeleteService: [navigate(opts.afterDeleteUrl)],
+              afterDeleteService: [navigate(stringLiteral(ctx.pathBase))],
             }),
           ],
         }),

@@ -1,5 +1,12 @@
-import { VirtualType } from "../modelTypes.js";
-import { each, element, eventHandlers, ifNode, state } from "../nodeHelpers.js";
+import { VirtualType } from "../../modelTypes.js";
+import {
+  each,
+  element,
+  eventHandlers,
+  ifNode,
+  sourceMap,
+  state,
+} from "../../nodeHelpers.js";
 import {
   commitTransaction,
   commitUiChanges,
@@ -14,37 +21,45 @@ import {
   startTransaction,
   table,
   try_,
-} from "../procHelpers.js";
-import { model } from "../singleton.js";
-import { AllSystemCSSProperties, Style, StyleObject } from "../styleTypes.js";
-import { cssVar } from "../styleUtils.js";
-import { stringLiteral } from "../utils/sqlHelpers.js";
-import { createRelatedUnionQuery, UnionRecordHelper } from "../utils/union.js";
-import { chip } from "./chip.js";
-import { iconButton } from "./iconButton.js";
-import { materialIcon } from "./materialIcon.js";
-import { IconName } from "./materialIconNames.js";
-import { popoverMenu } from "./menu.js";
-import { typography } from "./typography.js";
-import { confirmDangerDialog } from "./confirmDangerDialog.js";
-import { updateDialog } from "./updateDialog.js";
-import { button } from "./button.js";
-import { insertDialog } from "./insertDialog.js";
-import { divider } from "./divider.js";
+} from "../../procHelpers.js";
+import { model } from "../../singleton.js";
+import {
+  AllSystemCSSProperties,
+  Style,
+  StyleObject,
+} from "../../styleTypes.js";
+import { cssVar } from "../../styleUtils.js";
+import { stringLiteral } from "../../utils/sqlHelpers.js";
+import {
+  createRelatedUnionQuery,
+  UnionRecordHelper,
+} from "../../utils/union.js";
+import { chip } from "../../components/chip.js";
+import { iconButton } from "../../components/iconButton.js";
+import { materialIcon } from "../../components/materialIcon.js";
+import { IconName } from "../../components/materialIconNames.js";
+import { popoverMenu } from "../../components/menu.js";
+import { typography } from "../../components/typography.js";
+import { confirmDangerDialog } from "../../components/confirmDangerDialog.js";
+import { updateDialog } from "../../components/updateDialog.js";
+import { button } from "../../components/button.js";
+import { insertDialog } from "../../components/insertDialog.js";
+import { divider } from "../../components/divider.js";
 import {
   ClientProcStatement,
   DynamicClass,
   ServiceProcStatement,
   StateStatement,
-} from "../yom.js";
-import { Node } from "../nodeTypes.js";
-import { FormState } from "../formState.js";
-import { getUniqueUiId } from "./utils.js";
-import { AutoLabelOnLeftFieldOverride } from "./internal/updateFormShared.js";
+} from "../../yom.js";
+import { Node } from "../../nodeTypes.js";
+import { FormState } from "../../formState.js";
+import { getUniqueUiId } from "../../components/utils.js";
+import { AutoLabelOnLeftFieldOverride } from "../../components/internal/updateFormShared.js";
+import { RecordGridContext } from "./shared.js";
 
-export interface RelatedRecordsTimelineOpts {
-  foreignKeyId: string;
-  foreignKeyTable: string;
+export const name = "relatedRecordsTimeline";
+
+export interface Opts {
   dateField: string;
   timelineHeader: string;
   additionalState?: StateStatement[];
@@ -83,12 +98,16 @@ export interface RelatedRecordsTimelineOpts {
   }[];
 }
 
-const rootStyles = { display: "flex", flexDirection: "column" };
+const rootStyles = {
+  display: "flex",
+  flexDirection: "column",
+  gridColumnSpan: "full",
+};
 
-export function relatedRecordsTimeline(opts: RelatedRecordsTimelineOpts) {
+export function content(opts: Opts, ctx: RecordGridContext) {
   const query = createRelatedUnionQuery({
-    foreignKeyExpr: opts.foreignKeyId,
-    foreignKeyTable: opts.foreignKeyTable,
+    foreignKeyExpr: ctx.recordId,
+    foreignKeyTable: ctx.table.name.name,
     limit: `row_count`,
     orderBy: "date desc, event_type, id desc",
     orderByFields: ["date"],
@@ -98,7 +117,7 @@ export function relatedRecordsTimeline(opts: RelatedRecordsTimelineOpts) {
       const exprs = t.exprs ?? [];
       for (const field of Object.values(tableModel.fields)) {
         if (field.type === "ForeignKey") {
-          if (field.table === opts.foreignKeyTable) {
+          if (field.table === ctx.table.name.name) {
             continue;
           }
           const otherTable = model.database.tables[field.table];
@@ -391,7 +410,7 @@ export function relatedRecordsTimeline(opts: RelatedRecordsTimelineOpts) {
                 for (const field of Object.values(tableModel.fields)) {
                   if (
                     field.type === "ForeignKey" &&
-                    field.table === opts.foreignKeyTable
+                    field.table === ctx.table.name.name
                   ) {
                     ignoreFields.push(field.name.name);
                     continue;
@@ -422,9 +441,7 @@ export function relatedRecordsTimeline(opts: RelatedRecordsTimelineOpts) {
                       fieldOverrides,
                       ignoreFields,
                     },
-                    afterSubmitService: () => [
-                      setScalar(`ui.refresh_key`, `ui.refresh_key + 1`),
-                    ],
+                    afterSubmitService: () => [ctx.triggerRefresh],
                   }),
                 };
               }),
@@ -446,7 +463,7 @@ export function relatedRecordsTimeline(opts: RelatedRecordsTimelineOpts) {
                         )
                       ),
                       commitTransaction(),
-                      setScalar(`ui.refresh_key`, `ui.refresh_key + 1`),
+                      ctx.triggerRefresh,
                     ]),
                   ],
                   catch: [
@@ -479,143 +496,146 @@ export function relatedRecordsTimeline(opts: RelatedRecordsTimelineOpts) {
       }),
     ],
   });
-  return state({
-    procedure: [scalar(`refresh_key`, `0`), scalar(`row_count`, `50`)],
-    children: state({
-      watch: [`refresh_key`, `row_count`],
-      procedure: [
-        table(`result`, query.query),
-        scalar(`service_row_count`, `row_count`),
-        ...(opts.additionalState ?? []),
-      ],
-      statusScalar: `status`,
-      children: element("div", {
-        styles: opts.styles ? [rootStyles, opts.styles] : rootStyles,
-        children: [
-          eventHandlers({
-            document: {
-              scroll: [
-                if_(
-                  `status != 'received' or (service_row_count is not null and (select count(*) from result) < service_row_count)`,
-                  [exit()]
-                ),
-                getWindowProperty("scrollY", "scroll_y"),
-                getWindowProperty("innerHeight", "height"),
-                getElProperty(
-                  "scrollHeight",
-                  "doc_scroll_height",
-                  "'yolm-document-body'"
-                ),
-                if_(`doc_scroll_height - scroll_y - height < 500`, [
-                  setScalar(`row_count`, `row_count + 50`),
-                ]),
-              ],
-            },
-          }),
-          divider(),
-          element("div", {
-            styles: {
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "baseline",
-              pt: 2,
-              px: 1,
-            },
-            children: [
-              typography({ level: "h5", children: opts.timelineHeader }),
-              state({
-                procedure: opts.tables.map((t, i) =>
-                  scalar(`adding_${i}`, `false`)
-                ),
-                children: [
-                  element("div", {
-                    styles: { position: "relative" },
-                    children: popoverMenu({
-                      menuListOpts: {
-                        styles: { width: 240 },
-                        floating: {
-                          strategy: "'fixed'",
-                          placement: `'bottom-end'`,
-                          flip: { mainAxis: "true", crossAxis: "true" },
-                          shift: { mainAxis: "false", crossAxis: "false" },
-                        },
-                      },
-                      id: `'add-related-record'`,
-                      button: ({ buttonProps, onButtonClick }) =>
-                        button({
-                          variant: "soft",
-                          color: "info",
-                          children: `'Add...'`,
-                          startDecorator: materialIcon("Add"),
-                          props: buttonProps,
-                          on: {
-                            click: onButtonClick,
-                          },
-                        }),
-                      items: opts.tables.map((t, i) => ({
-                        children:
-                          `'Add ' || ` +
-                          stringLiteral(
-                            model.database.tables[t.table].name.displayName
-                          ),
-                        onClick: [setScalar(`ui.adding_${i}`, `true`)],
-                      })),
-                    }),
-                  }),
-                  opts.tables.map((t, i) => {
-                    const tableModel = model.database.tables[t.table];
-                    const withValues: Record<string, string> =
-                      t.insertDialogOpts?.withValues ?? {};
-                    let foreignKeyField = Object.values(tableModel.fields).find(
-                      (f) =>
-                        f.type === "ForeignKey" &&
-                        f.table === opts.foreignKeyTable
-                    );
-                    const overrides: Record<
-                      string,
-                      AutoLabelOnLeftFieldOverride
-                    > = {
-                      date: {
-                        initialValue: `current_date()`,
-                      },
-                    };
-                    if (foreignKeyField) {
-                      overrides[foreignKeyField.name.name] = {
-                        initialValue: opts.foreignKeyId,
-                      };
-                      withValues[foreignKeyField.name.name] = opts.foreignKeyId;
-                    }
-                    const ignoreFields = Object.values(withValues);
-                    return insertDialog({
-                      open: `ui.adding_${i}`,
-                      onClose: [setScalar(`ui.adding_${i}`, `false`)],
-                      table: t.table,
-                      content: {
-                        type: "AutoLabelOnLeft",
-                        fieldOverrides: overrides,
-                        ignoreFields,
-                      },
-                      withValues,
-                      serviceCheck: t.insertDialogOpts?.serviceCheck,
-                      postInsert: t.insertDialogOpts?.postInsert,
-                      afterSubmitService: () => [
-                        setScalar(`ui.refresh_key`, `ui.refresh_key + 1`),
-                      ],
-                    });
-                  }),
-                ],
-              }),
-            ],
-          }),
-          opts.afterHeaderNode ? opts.afterHeaderNode : undefined,
-          each({
-            table: `result`,
-            recordName: `record`,
-            key: `record.id || '_' || record.event_type`,
-            children: item,
-          }),
+  return sourceMap(
+    `relatedRecordsTimeline`,
+    state({
+      procedure: [scalar(`row_count`, `50`)],
+      children: state({
+        watch: [ctx.refreshKey, `row_count`],
+        procedure: [
+          table(`result`, query.query),
+          scalar(`service_row_count`, `row_count`),
+          ...(opts.additionalState ?? []),
         ],
+        statusScalar: `status`,
+        children: element("div", {
+          styles: opts.styles ? [rootStyles, opts.styles] : rootStyles,
+          children: [
+            eventHandlers({
+              document: {
+                scroll: [
+                  if_(
+                    `status != 'received' or (service_row_count is not null and (select count(*) from result) < service_row_count)`,
+                    [exit()]
+                  ),
+                  getWindowProperty("scrollY", "scroll_y"),
+                  getWindowProperty("innerHeight", "height"),
+                  getElProperty(
+                    "scrollHeight",
+                    "doc_scroll_height",
+                    "'yolm-document-body'"
+                  ),
+                  if_(`doc_scroll_height - scroll_y - height < 500`, [
+                    setScalar(`row_count`, `row_count + 50`),
+                  ]),
+                ],
+              },
+            }),
+            divider(),
+            element("div", {
+              styles: {
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "baseline",
+                pt: 2,
+                px: 1,
+              },
+              children: [
+                typography({ level: "h5", children: opts.timelineHeader }),
+                state({
+                  procedure: opts.tables.map((t, i) =>
+                    scalar(`adding_${i}`, `false`)
+                  ),
+                  children: [
+                    element("div", {
+                      styles: { position: "relative" },
+                      children: popoverMenu({
+                        menuListOpts: {
+                          styles: { width: 240 },
+                          floating: {
+                            strategy: "'fixed'",
+                            placement: `'bottom-end'`,
+                            flip: { mainAxis: "true", crossAxis: "true" },
+                            shift: { mainAxis: "false", crossAxis: "false" },
+                          },
+                        },
+                        id: `'add-related-record'`,
+                        button: ({ buttonProps, onButtonClick }) =>
+                          button({
+                            variant: "soft",
+                            color: "info",
+                            children: `'Add...'`,
+                            startDecorator: materialIcon("Add"),
+                            props: buttonProps,
+                            on: {
+                              click: onButtonClick,
+                            },
+                          }),
+                        items: opts.tables.map((t, i) => ({
+                          children:
+                            `'Add ' || ` +
+                            stringLiteral(
+                              model.database.tables[t.table].name.displayName
+                            ),
+                          onClick: [setScalar(`ui.adding_${i}`, `true`)],
+                        })),
+                      }),
+                    }),
+                    opts.tables.map((t, i) => {
+                      const tableModel = model.database.tables[t.table];
+                      const withValues: Record<string, string> =
+                        t.insertDialogOpts?.withValues ?? {};
+                      let foreignKeyField = Object.values(
+                        tableModel.fields
+                      ).find(
+                        (f) =>
+                          f.type === "ForeignKey" &&
+                          f.table === ctx.table.name.name
+                      );
+                      const overrides: Record<
+                        string,
+                        AutoLabelOnLeftFieldOverride
+                      > = {
+                        date: {
+                          initialValue: `current_date()`,
+                        },
+                      };
+                      if (foreignKeyField) {
+                        overrides[foreignKeyField.name.name] = {
+                          initialValue: ctx.recordId,
+                        };
+                        withValues[foreignKeyField.name.name] = ctx.recordId;
+                      }
+                      const ignoreFields = Object.values(withValues);
+                      return insertDialog({
+                        open: `ui.adding_${i}`,
+                        onClose: [setScalar(`ui.adding_${i}`, `false`)],
+                        table: t.table,
+                        content: {
+                          type: "AutoLabelOnLeft",
+                          fieldOverrides: overrides,
+                          ignoreFields,
+                        },
+                        withValues,
+                        serviceCheck: t.insertDialogOpts?.serviceCheck,
+                        postInsert: t.insertDialogOpts?.postInsert,
+                        afterSubmitService: () => [ctx.triggerRefresh],
+                      });
+                    }),
+                  ],
+                }),
+              ],
+            }),
+            opts.afterHeaderNode ? opts.afterHeaderNode : undefined,
+            each({
+              table: `result`,
+              recordName: `record`,
+              key: `record.id || '_' || record.event_type`,
+              children: item,
+            }),
+          ],
+        }),
       }),
-    }),
-  });
+    })
+  );
 }

@@ -12,7 +12,7 @@ import {
   UpdateFormContent,
   updateFormContent,
 } from "./internal/updateFormShared.js";
-import { element } from "../nodeHelpers.js";
+import { element, sourceMap } from "../nodeHelpers.js";
 
 export interface EditDialogPart extends GridItemDescription {
   field?: string;
@@ -54,52 +54,55 @@ const styles = createStyles({
 
 export function updateDialog(opts: EditDialogOpts) {
   const tableModel = model.database.tables[opts.table];
-  return modal({
-    onClose: opts.onClose,
-    open: opts.open,
-    children: (closeModal) =>
-      modalDialog({
-        size: "lg",
-        styles: styles.modalDialog,
-        props: {
-          role: "'dialog'",
-          "aria-labelledby": titleId,
-        },
-        children: [
-          typography({
-            tag: "h2",
-            level: "inherit",
-            styles: styles.title,
-            props: {
-              id: titleId,
-            },
-            children: `'Update ' || ${stringLiteral(
-              tableModel.name.displayName
-            )}`,
-          }),
-          divider({ styles: styles.divider }),
-          withUpdateFormState({
-            table: opts.table,
-            recordId: opts.recordId,
-            fields: getFieldsFromUpdateFormContent(opts.content, tableModel),
-            afterSubmitService: opts.afterSubmitService,
-            initialRecord: opts.initialRecord,
-            afterSubmitClient: (state) => [
-              ...(opts.afterSubmitClient?.(state) ?? []),
-              ...closeModal,
-            ],
-            children: ({ formState, onSubmit }) =>
-              element("div", {
-                styles: styles.contentWrapper,
-                children: updateFormContent(opts.content, {
-                  formState,
-                  onSubmit,
-                  table: tableModel,
-                  cancel: { type: "Proc", proc: closeModal },
+  return sourceMap(
+    `updateDialog(table: ${opts.table})`,
+    modal({
+      onClose: opts.onClose,
+      open: opts.open,
+      children: (closeModal) =>
+        modalDialog({
+          size: "lg",
+          styles: styles.modalDialog,
+          props: {
+            role: "'dialog'",
+            "aria-labelledby": titleId,
+          },
+          children: [
+            typography({
+              tag: "h2",
+              level: "inherit",
+              styles: styles.title,
+              props: {
+                id: titleId,
+              },
+              children: `'Update ' || ${stringLiteral(
+                tableModel.name.displayName
+              )}`,
+            }),
+            divider({ styles: styles.divider }),
+            withUpdateFormState({
+              table: opts.table,
+              recordId: opts.recordId,
+              fields: getFieldsFromUpdateFormContent(opts.content, tableModel),
+              afterSubmitService: opts.afterSubmitService,
+              initialRecord: opts.initialRecord,
+              afterSubmitClient: (state) => [
+                ...(opts.afterSubmitClient?.(state) ?? []),
+                ...closeModal,
+              ],
+              children: ({ formState, onSubmit }) =>
+                element("div", {
+                  styles: styles.contentWrapper,
+                  children: updateFormContent(opts.content, {
+                    formState,
+                    onSubmit,
+                    table: tableModel,
+                    cancel: { type: "Proc", proc: closeModal },
+                  }),
                 }),
-              }),
-          }),
-        ],
-      }),
-  });
+            }),
+          ],
+        }),
+    })
+  );
 }

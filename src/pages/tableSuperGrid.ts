@@ -18,15 +18,15 @@ import { StateStatement } from "../yom.js";
 import {
   columnFromField,
   columnFromVirtual,
-} from "./datagrid_internals/fromModel.js";
+} from "./datagridInternals/fromModel.js";
 import {
   columnPopover,
   seperator,
   superGrid,
   SuperGridColumn,
   ToolbarConfig,
-} from "./datagrid_internals/superGrid.js";
-import { styles as sharedStyles } from "./datagrid_internals/styles.js";
+} from "./datagridInternals/superGrid.js";
+import { styles as sharedStyles } from "./datagridInternals/styles.js";
 import { checkbox } from "../components/checkbox.js";
 
 export interface ToolbarOpts {

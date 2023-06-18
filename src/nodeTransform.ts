@@ -282,6 +282,13 @@ mappers.displayPrint = (v) => ({
   },
 });
 
+mappers.gridColumnSpan = (v) => ({
+  gridColumn: v === "full" ? "1 / -1" : `span ${v} / span ${v}`,
+});
+mappers.gridRowSpan = (v) => ({
+  gridRow: v === "full" ? "1 / -1" : `span ${v} / span ${v}`,
+});
+
 /**
  * Quick lookup for unit-less numbers.
  */

@@ -1,5 +1,5 @@
 import { FormState, withInsertFormState } from "../formState.js";
-import { element } from "../nodeHelpers.js";
+import { element, sourceMap } from "../nodeHelpers.js";
 import { model } from "../singleton.js";
 import { createStyles } from "../styleUtils.js";
 import { stringLiteral } from "../utils/sqlHelpers.js";
@@ -58,55 +58,58 @@ export function insertDialog(opts: InsertDialogOpts) {
     opts.content,
     tableModel
   );
-  return modal({
-    onClose: opts.onClose,
-    open: opts.open,
-    children: (closeModal) =>
-      modalDialog({
-        size: "lg",
-        styles: styles.modalDialog,
-        props: {
-          role: "'dialog'",
-          "aria-labelledby": titleId,
-        },
-        children: [
-          typography({
-            tag: "h2",
-            level: "inherit",
-            styles: styles.header,
-            props: {
-              id: titleId,
-            },
-            children:
-              opts.title ?? `'Add a new ${tableModel.name.displayName}'`,
-          }),
-          divider({ styles: styles.divider }),
-          withInsertFormState({
-            table: opts.table,
-            fields,
-            relations,
-            withValues: opts.withValues,
-            afterSubmitService: opts.afterSubmitService,
-            afterSubmitClient: (state) => [
-              ...(opts.afterSubmitClient?.(state) ?? []),
-              ...closeModal,
-            ],
-            serviceCheck: opts.serviceCheck,
-            postInsert: opts.postInsert,
-            beforeSubmitClient: opts.beforeSubmitClient,
-            beforeTransaction: opts.beforeTransaction,
-            children: ({ formState, onSubmit }) =>
-              element("div", {
-                styles: styles.contentWrapper,
-                children: insertFormContent(opts.content, {
-                  formState,
-                  onSubmit,
-                  table: tableModel,
-                  cancel: { type: "Proc", proc: closeModal },
+  return sourceMap(
+    `insertDialog(table: "${opts.table}")`,
+    modal({
+      onClose: opts.onClose,
+      open: opts.open,
+      children: (closeModal) =>
+        modalDialog({
+          size: "lg",
+          styles: styles.modalDialog,
+          props: {
+            role: "'dialog'",
+            "aria-labelledby": titleId,
+          },
+          children: [
+            typography({
+              tag: "h2",
+              level: "inherit",
+              styles: styles.header,
+              props: {
+                id: titleId,
+              },
+              children:
+                opts.title ?? `'Add a new ${tableModel.name.displayName}'`,
+            }),
+            divider({ styles: styles.divider }),
+            withInsertFormState({
+              table: opts.table,
+              fields,
+              relations,
+              withValues: opts.withValues,
+              afterSubmitService: opts.afterSubmitService,
+              afterSubmitClient: (state) => [
+                ...(opts.afterSubmitClient?.(state) ?? []),
+                ...closeModal,
+              ],
+              serviceCheck: opts.serviceCheck,
+              postInsert: opts.postInsert,
+              beforeSubmitClient: opts.beforeSubmitClient,
+              beforeTransaction: opts.beforeTransaction,
+              children: ({ formState, onSubmit }) =>
+                element("div", {
+                  styles: styles.contentWrapper,
+                  children: insertFormContent(opts.content, {
+                    formState,
+                    onSubmit,
+                    table: tableModel,
+                    cancel: { type: "Proc", proc: closeModal },
+                  }),
                 }),
-              }),
-          }),
-        ],
-      }),
-  });
+            }),
+          ],
+        }),
+    })
+  );
 }

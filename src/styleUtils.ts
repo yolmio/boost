@@ -671,6 +671,10 @@ export function getGridStyles(description: GridDescription) {
   return [gridConstStyles, transformGridStyles(extracted)];
 }
 
+export const baseGridStyles: StyleObject = {
+  display: "grid",
+  gridTemplateColumns: "repeat(12, minmax(0, 1fr))",
+};
 export const flexGrowStyles: StyleObject = { flexGrow: 1 };
 export const visibilityHidden: StyleObject = { visibility: "hidden" };
 export const displayNoneStyles: StyleObject = { display: "none" };

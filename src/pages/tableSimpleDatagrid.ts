@@ -8,14 +8,14 @@ import { StateStatement } from "../yom.js";
 import {
   simpleColumnFromField,
   simpleColumnFromVirtual,
-} from "./datagrid_internals/fromModel.js";
+} from "./datagridInternals/fromModel.js";
 import {
   SimpleColumn,
   simpleDatagrid,
   ToolbarConfig,
-} from "./datagrid_internals/simpleDatagrid.js";
+} from "./datagridInternals/simpleDatagrid.js";
 import { checkbox } from "../components/checkbox.js";
-import { BeforeEditTransaction } from "./datagrid_internals/editHelper.js";
+import { BeforeEditTransaction } from "./datagridInternals/editHelper.js";
 import { Authorization } from "../modelTypes.js";
 
 export interface ToolbarOpts {
