@@ -3,19 +3,13 @@ import {
   FormStateTableCursor,
   InsertFormField,
   InsertFormRelation,
-  UpdateFormField,
 } from "../../formState.js";
 import { Table } from "../../modelTypes.js";
 import { element, ifNode } from "../../nodeHelpers.js";
 import { Node } from "../../nodeTypes.js";
 import { model } from "../../singleton.js";
-import {
-  createStyles,
-  getGridItemStyles,
-  getGridStyles,
-  GridDescription,
-  GridItemDescription,
-} from "../../styleUtils.js";
+import { Style } from "../../styleTypes.js";
+import { baseGridStyles, createStyles } from "../../styleUtils.js";
 import { downcaseFirst } from "../../utils/inflectors.js";
 import { stringLiteral } from "../../utils/sqlHelpers.js";
 import { ClientProcStatement, EventHandler } from "../../yom.js";
@@ -33,7 +27,8 @@ import { getUniqueUiId } from "../utils.js";
 import { fieldFormControl } from "./fieldFormControl.js";
 import { labelOnLeftFormField } from "./labelOnLeftFormField.js";
 
-export interface InsertGridFormPart extends GridItemDescription {
+export interface InsertGridFormPart {
+  styles?: Style;
   field?: string;
   initialValue?: string;
   label?: string;
@@ -55,7 +50,8 @@ export type InsertRelationFormPart = {
   )[];
 };
 
-export interface InsertGridSection extends GridDescription {
+export interface InsertGridSection {
+  styles?: Style;
   divider?: boolean;
   header?: string;
   description?: string;
@@ -224,21 +220,21 @@ const styles = createStyles({
     dark: {
       backgroundColor: "neutral-800",
     },
-    gridColumn: `span 12 / span 12`,
+    gridColumnSpan: "full",
     lg: {
-      gridColumn: `span 6 / span 6`,
+      gridColumnSpan: 6,
     },
     xl: {
-      gridColumn: `span 4 / span 4`,
+      gridColumnSpan: 4,
     },
   },
   addButtonWrapper: {
-    gridColumn: `span 12 / span 12`,
+    gridColumnSpan: "full",
     lg: {
-      gridColumn: `span 6 / span 6`,
+      gridColumnSpan: 6,
     },
     xl: {
-      gridColumn: `span 4 / span 4`,
+      gridColumnSpan: 4,
     },
 
     display: "flex",
@@ -261,6 +257,10 @@ const styles = createStyles({
       borderColor: "primary-600",
     },
   },
+  baseGridSection: {
+    ...baseGridStyles,
+    gap: 2,
+  },
 });
 
 function gridPart(
@@ -268,15 +268,14 @@ function gridPart(
   formState: FormState,
   table: Table
 ) {
-  const spanStyles = getGridItemStyles(part);
   if (!part.field) {
-    return element("div", { styles: spanStyles });
+    return element("div", { styles: part.styles });
   }
   const field = table.fields[part.field];
   const id = stringLiteral(getUniqueUiId());
   if (field.type === "Bool" && !field.enumLike) {
     return element("div", {
-      styles: spanStyles,
+      styles: part.styles,
       children: checkbox({
         label: stringLiteral(field.name.displayName),
         variant: "outlined",
@@ -305,7 +304,7 @@ function gridPart(
     );
   }
   return formControl({
-    styles: spanStyles,
+    styles: part.styles,
     children: [
       formLabel({
         props: { htmlFor: id },
@@ -350,7 +349,9 @@ export function sectionedGridFormContent(
     if (section.parts) {
       parts.push(
         element("div", {
-          styles: getGridStyles(section),
+          styles: section.styles
+            ? [styles.baseGridSection, section.styles]
+            : styles.baseGridSection,
           children: section.parts.map((p) => gridPart(p, formState, table)),
         })
       );
@@ -359,7 +360,7 @@ export function sectionedGridFormContent(
       const relationTable = model.database.tables[section.relation.table];
       parts.push(
         element("div", {
-          styles: getGridStyles({ gridGap: 2 }),
+          styles: styles.baseGridSection,
           children: [
             formState.each(relationTable.name.name, (cursor) =>
               card({
@@ -450,16 +451,15 @@ export function gridInsertFormContent(
     element("div", {
       styles: styles.grid,
       children: content.parts.map((p) => {
-        const spanStyles = getGridItemStyles(p);
         if (!p.field) {
-          return element("div", { styles: spanStyles });
+          return element("div", { styles: p.styles });
         }
         const field = table.fields[p.field];
 
         const id = stringLiteral(getUniqueUiId());
         if (field.type === "Bool" && !field.enumLike) {
           return element("div", {
-            styles: spanStyles,
+            styles: p.styles,
             children: checkbox({
               label: stringLiteral(field.name.displayName),
               variant: "outlined",
@@ -486,7 +486,7 @@ export function gridInsertFormContent(
           );
         }
         return formControl({
-          styles: spanStyles,
+          styles: p.styles,
           children: [
             formLabel({
               props: { htmlFor: id },

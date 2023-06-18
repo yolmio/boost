@@ -2,7 +2,9 @@ import { FormState, UpdateFormField } from "../../formState.js";
 import { Table } from "../../modelTypes.js";
 import { element, ifNode } from "../../nodeHelpers.js";
 import { Node } from "../../nodeTypes.js";
+import { Style } from "../../styleTypes.js";
 import {
+  baseGridStyles,
   createStyles,
   getGridItemStyles,
   getGridStyles,
@@ -23,13 +25,15 @@ import { getUniqueUiId } from "../utils.js";
 import { fieldFormControl } from "./fieldFormControl.js";
 import { labelOnLeftFormField } from "./labelOnLeftFormField.js";
 
-export interface UpdateGridFormPart extends GridItemDescription {
+export interface UpdateGridFormPart {
+  styles?: Style;
   field?: string;
   initialValue?: string;
   label?: string;
 }
 
-export interface UpdateGridSection extends GridDescription {
+export interface UpdateGridSection {
+  styles?: Style;
   divider?: boolean;
   header?: string;
   description?: string;
@@ -174,6 +178,10 @@ const styles = createStyles({
     justifyContent: "flex-end",
     gap: 1,
   },
+  baseGridSection: {
+    ...baseGridStyles,
+    gap: 2,
+  },
 });
 
 function gridPart(
@@ -181,15 +189,14 @@ function gridPart(
   formState: FormState,
   table: Table
 ) {
-  const spanStyles = getGridItemStyles(part);
   if (!part.field) {
-    return element("div", { styles: spanStyles });
+    return element("div", { styles: part.styles });
   }
   const field = table.fields[part.field];
   const id = stringLiteral(getUniqueUiId());
   if (field.type === "Bool" && !field.enumLike) {
     return element("div", {
-      styles: spanStyles,
+      styles: part.styles,
       children: checkbox({
         label: stringLiteral(field.name.displayName),
         variant: "outlined",
@@ -217,7 +224,7 @@ function gridPart(
     );
   }
   return formControl({
-    styles: spanStyles,
+    styles: part.styles,
     children: [
       formLabel({
         props: { htmlFor: id },
@@ -262,7 +269,9 @@ export function sectionedGridFormContent(
     if (section.parts) {
       parts.push(
         element("div", {
-          styles: getGridStyles(section),
+          styles: section.styles
+            ? [styles.baseGridSection, section.styles]
+            : styles.baseGridSection,
           children: section.parts.map((p) => gridPart(p, formState, table)),
         })
       );
@@ -300,16 +309,15 @@ export function gridUpdateFormContent(
     element("div", {
       styles: styles.grid,
       children: content.parts.map((p) => {
-        const spanStyles = getGridItemStyles(p);
         if (!p.field) {
-          return element("div", { styles: spanStyles });
+          return element("div", { styles: p.styles });
         }
         const field = table.fields[p.field];
 
         const id = stringLiteral(getUniqueUiId());
         if (field.type === "Bool" && !field.enumLike) {
           return element("div", {
-            styles: spanStyles,
+            styles: p.styles,
             children: checkbox({
               label: stringLiteral(field.name.displayName),
               variant: "outlined",
@@ -336,7 +344,7 @@ export function gridUpdateFormContent(
           );
         }
         return formControl({
-          styles: spanStyles,
+          styles: p.styles,
           children: [
             formLabel({
               props: { htmlFor: id },

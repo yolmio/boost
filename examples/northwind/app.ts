@@ -311,6 +311,8 @@ tableSuperGrid({
   viewButtonUrl: (id) => `'/orders/' || ${id}`,
 });
 
+const orderFormPartStyles = { gridColumnSpan: 12, lg: { gridColumnSpan: 3 } };
+
 insertFormPage({
   table: "order",
   content: {
@@ -318,12 +320,10 @@ insertFormPage({
     sections: [
       {
         header: "Add Order",
-        gridGap: 2,
         parts: [
           {
             field: "customer",
-            colSpan: 12,
-            xl: { colSpan: 3 },
+            styles: orderFormPartStyles,
             onChange: (state) => [
               spawn({
                 detached: true,
@@ -381,24 +381,22 @@ insertFormPage({
           {
             field: "order_date",
             initialValue: `current_date()`,
-            colSpan: 12,
-            xl: { colSpan: 3 },
+            styles: orderFormPartStyles,
           },
-          { field: "required_date", colSpan: 12, xl: { colSpan: 3 } },
-          { field: "ship_via", colSpan: 12, xl: { colSpan: 3 } },
-          { field: "freight", colSpan: 12, xl: { colSpan: 3 } },
+          { field: "required_date", styles: orderFormPartStyles },
+          { field: "ship_via", styles: orderFormPartStyles },
+          { field: "freight", styles: orderFormPartStyles },
         ],
       },
       {
         header: "Shipping Information",
-        gridGap: 2,
         parts: [
-          { field: "ship_name", colSpan: 12, xl: { colSpan: 3 } },
-          { field: "ship_address", colSpan: 12, xl: { colSpan: 3 } },
-          { field: "ship_city", colSpan: 12, xl: { colSpan: 3 } },
-          { field: "ship_zip", colSpan: 12, xl: { colSpan: 3 } },
-          { field: "ship_state", colSpan: 12, xl: { colSpan: 3 } },
-          { field: "ship_country", colSpan: 12, xl: { colSpan: 3 } },
+          { field: "ship_name", styles: orderFormPartStyles },
+          { field: "ship_address", styles: orderFormPartStyles },
+          { field: "ship_city", styles: orderFormPartStyles },
+          { field: "ship_zip", styles: orderFormPartStyles },
+          { field: "ship_state", styles: orderFormPartStyles },
+          { field: "ship_country", styles: orderFormPartStyles },
         ],
       },
       {
