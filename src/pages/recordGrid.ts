@@ -10,12 +10,11 @@ import {
   baseGridStyles,
   containerStyles,
   createStyles,
-  GridDescription,
 } from "../styleUtils.js";
 import { pluralize } from "../utils/inflectors.js";
 import { stringLiteral } from "../utils/sqlHelpers.js";
 import { updateFormPage } from "./updateForm.js";
-import { ChildOpts, childrenFnMap } from "./recordGridChild/index.js";
+import { ChildOpts, childFnMap } from "./recordGridChild/index.js";
 import { RecordGridContext } from "./recordGridChild/shared.js";
 import { materialIcon } from "../components/materialIcon.js";
 
@@ -28,7 +27,7 @@ export interface CustomChild {
 
 export type RecordGridChild = ChildOpts | CustomChild;
 
-export interface RecordGridPageOpts extends GridDescription {
+export interface RecordGridPageOpts {
   path?: string;
   table: string;
   createUpdatePage?: boolean;
@@ -79,7 +78,7 @@ export function recordGridPage(opts: RecordGridPageOpts) {
     if (child.type === "custom") {
       children.push(child.content(props));
     } else {
-      children.push(childrenFnMap[child.type](child as any, props));
+      children.push(childFnMap[child.type](child as any, props));
     }
   }
   const tableLowercase = stringLiteral(

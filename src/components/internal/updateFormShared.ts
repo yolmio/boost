@@ -3,14 +3,7 @@ import { Table } from "../../modelTypes.js";
 import { element, ifNode } from "../../nodeHelpers.js";
 import { Node } from "../../nodeTypes.js";
 import { Style } from "../../styleTypes.js";
-import {
-  baseGridStyles,
-  createStyles,
-  getGridItemStyles,
-  getGridStyles,
-  GridDescription,
-  GridItemDescription,
-} from "../../styleUtils.js";
+import { baseGridStyles, createStyles } from "../../styleUtils.js";
 import { stringLiteral } from "../../utils/sqlHelpers.js";
 import { ClientProcStatement, EventHandler } from "../../yom.js";
 import { alert } from "../alert.js";

@@ -9,7 +9,7 @@ import * as relatedTable from "./relatedTable.js";
 import * as relatedRecordsTimeline from "./relatedRecordsTimeline.js";
 import * as superSimpleHeader from "./superSimpleHeader.js";
 
-export const childrenFnMap = {
+export const childFnMap = {
   [addressCard.name]: addressCard.content,
   [addressesCard.name]: addressesCard.content,
   [namedHeader.name]: namedHeader.content,

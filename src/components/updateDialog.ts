@@ -1,6 +1,6 @@
 import { FormState, withUpdateFormState } from "../formState.js";
 import { model } from "../singleton.js";
-import { createStyles, GridItemDescription } from "../styleUtils.js";
+import { createStyles } from "../styleUtils.js";
 import { stringLiteral } from "../utils/sqlHelpers.js";
 import { ClientProcStatement, ServiceProcStatement } from "../yom.js";
 import { divider } from "./divider.js";
@@ -13,12 +13,6 @@ import {
   updateFormContent,
 } from "./internal/updateFormShared.js";
 import { element, sourceMap } from "../nodeHelpers.js";
-
-export interface EditDialogPart extends GridItemDescription {
-  field?: string;
-  initialValue?: string;
-  comboboxInitialInputText?: string;
-}
 
 export interface EditDialogOpts {
   open: string;

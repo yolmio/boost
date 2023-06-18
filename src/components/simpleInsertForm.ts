@@ -4,15 +4,9 @@ import {
   withInsertFormState,
 } from "../formState.js";
 import { element, ifNode } from "../nodeHelpers.js";
-import { setScalar } from "../procHelpers.js";
 import { model } from "../singleton.js";
-import { getGridItemStyles, GridItemDescription } from "../styleUtils.js";
 import { stringLiteral } from "../utils/sqlHelpers.js";
-import {
-  BaseStatement,
-  ClientProcStatement,
-  ServiceProcStatement,
-} from "../yom.js";
+import { ClientProcStatement, ServiceProcStatement } from "../yom.js";
 import { alert } from "./alert.js";
 import { button } from "./button.js";
 import { checkbox } from "./checkbox.js";
@@ -22,8 +16,10 @@ import { materialIcon } from "./materialIcon.js";
 import { typography } from "./typography.js";
 import { fieldFormControl } from "./internal/fieldFormControl.js";
 import { getUniqueUiId } from "./utils.js";
+import { Style } from "../styleTypes.js";
 
-export interface InsertFormPart extends GridItemDescription {
+export interface InsertFormPart {
+  styles?: Style;
   field?: string;
   initialValue?: string;
   comboboxInitialInputText?: string;
@@ -67,16 +63,15 @@ export function simpleInsertForm(opts: InsertFormOpts) {
               mb: 1.5,
             },
             children: opts.parts.map((p) => {
-              const spanStyles = getGridItemStyles(p);
               if (!p.field) {
-                return element("div", { styles: spanStyles });
+                return element("div", { styles: p.styles });
               }
               const field = tableModel.fields[p.field];
 
               const id = stringLiteral(getUniqueUiId());
               if (field.type === "Bool" && !field.enumLike) {
                 return element("div", {
-                  styles: spanStyles,
+                  styles: p.styles,
                   children: checkbox({
                     label: stringLiteral(field.name.displayName),
                     variant: "outlined",
@@ -106,7 +101,7 @@ export function simpleInsertForm(opts: InsertFormOpts) {
                 );
               }
               return formControl({
-                styles: spanStyles,
+                styles: p.styles,
                 children: [
                   formLabel({
                     props: { htmlFor: id },
