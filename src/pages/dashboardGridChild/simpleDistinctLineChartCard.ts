@@ -4,11 +4,13 @@ import { simpleDistinctLineChart } from "../../components/simpleDistinctLineChar
 import { typography } from "../../components/typography.js";
 import { element, ifNode, state } from "../../nodeHelpers.js";
 import { table } from "../../procHelpers.js";
+import { Style } from "../../styleTypes.js";
 import { createStyles } from "../../styleUtils.js";
 
 export const name = "simpleDistinctLineChartCard";
 
 export interface Opts {
+  styles?: Style;
   header: string;
   stateQuery: string;
   lineChartQuery: string;
@@ -31,6 +33,7 @@ const styles = createStyles({
 export function content(opts: Opts) {
   return card({
     variant: "outlined",
+    styles: opts.styles,
     children: state({
       procedure: [table(`result`, opts.stateQuery)],
       statusScalar: `status`,
