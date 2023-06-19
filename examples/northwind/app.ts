@@ -16,6 +16,7 @@ import { adminPage } from "@yolm/boost/pages/admin";
 import { recordGridPage } from "@yolm/boost/pages/recordGrid";
 import { tableSimpleGrid } from "@yolm/boost/pages/tableSimpleDatagrid";
 import { insertFormPage } from "@yolm/boost/pages/insertForm";
+import { dashboardGridPage } from "@yolm/boost/pages/dashboardGrid";
 import { model } from "@yolm/boost/singleton";
 
 model.name = "northwind";
@@ -253,6 +254,44 @@ navbar({
       },
     ],
   },
+});
+
+// In an application that has data not from 1998, you should replace this with `today()`
+const today = `DATE '1998-05-06'`;
+
+dashboardGridPage({
+  children: [
+    {
+      type: "threeStats",
+      header: `'Last 30 Days'`,
+      left: {
+        title: "'Orders'",
+        value: `(select count(*) from db.order where order_date > date.add(day, -30, ${today}))`,
+        previous: `(select count(*) from db.order where order_date between date.add(day, -60, ${today}) and date.add(day, -30, ${today}))`,
+        trend: `cast((value - previous) as decimal(10, 2)) / cast(previous as decimal(10, 2)) * 100`,
+      },
+      middle: {
+        title: "'Income'",
+        value: `(select sum(cast((unit_price * quantity) * (1 - discount) as decimal(10, 2)))
+          from db.order
+            join db.order_detail
+              on order = order.id
+          where order_date > date.add(day, -30, ${today}))`,
+        previous: `(select sum(cast((unit_price * quantity) * (1 - discount) as decimal(10, 2)))
+          from db.order
+            join db.order_detail
+              on order = order.id
+          where order_date between date.add(day, -60, ${today}) and date.add(day, -30, ${today}))`,
+        trend: `(value - previous) / previous * 100`,
+      },
+      right: {
+        title: "'Shipped Orders'",
+        value: `(select count(*) from db.order where shipped_date > date.add(day, -30, ${today}))`,
+        previous: `(select count(*) from db.order where shipped_date between date.add(day, -60, ${today}) and date.add(day, -30, ${today})))`,
+        trend: `cast((value - previous) as decimal(10, 2)) / cast(previous as decimal(10, 2)) * 100`,
+      },
+    },
+  ],
 });
 
 adminPage();

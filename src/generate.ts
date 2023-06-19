@@ -8,7 +8,7 @@ import type {
   ScalarFunction,
   Table,
 } from "./modelTypes";
-import { default404Page } from "./pages/default404Page.js";
+import { default404Page } from "./pages/default404.js";
 
 function generateDecisionTable(dt: DecisionTable): yom.DecisionTable {
   return {

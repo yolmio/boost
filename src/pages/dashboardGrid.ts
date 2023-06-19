@@ -5,15 +5,6 @@ import { baseGridStyles, createStyles } from "../styleUtils.js";
 import { containerStyles } from "../styleUtils.js";
 import { ChildOpts, childFnMap } from "./dashboardGridChild/index.js";
 
-export interface SimpleDistinctLineChartCardOpts {
-  header: string;
-  lineChart: {
-    stateQuery: string;
-    lineChartQuery: string;
-    lineChartLabels?: string;
-  };
-}
-
 const styles = createStyles({
   header: {
     ml: 1.5,
@@ -53,7 +44,7 @@ export function dashboardGridPage(opts: DashboardGridPageOpts) {
       if (c.type === "custom") {
         return c.content();
       } else {
-        return childFnMap[c.type](c);
+        return childFnMap[c.type](c as any);
       }
     }),
   });
