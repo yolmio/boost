@@ -19,7 +19,9 @@ dns.setDefaultResultOrder("ipv4first");
 const hasProfilesFile = fs.existsSync(path.join(process.cwd(), "profiles.ts"));
 let profiles = createProfiles({});
 if (hasProfilesFile) {
-  const module = await import(path.join(process.cwd(), "profiles.ts"));
+  const module = await import(
+    "file:///" + path.join(process.cwd(), "profiles.ts")
+  );
   profiles = module.profiles;
 }
 
@@ -113,4 +115,5 @@ const sendModelPath = path.join(
 
 spawn("tsx", ["watch", "--clear-screen=false", sendModelPath], {
   stdio: "inherit",
+  shell: true,
 });

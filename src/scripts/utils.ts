@@ -41,7 +41,7 @@ export function fetchWithTimeout(request: Request, timeOutMs: number) {
 
 export async function getAppModel(): Promise<Model> {
   const start = performance.now();
-  const module = await import(path.join(process.cwd(), "app.ts"));
+  const module = await import("file:///" + path.join(process.cwd(), "app.ts"));
   const app = "app" in module ? module.app : generateYom();
   console.log(
     "generating yom took",
@@ -52,7 +52,9 @@ export async function getAppModel(): Promise<Model> {
 
 export async function getScriptModel(): Promise<Model> {
   const start = performance.now();
-  const module = await import(path.join(process.cwd(), "scripts.ts"));
+  const module = await import(
+    "file:///" + path.join(process.cwd(), "scripts.ts")
+  );
   const app = "app" in module ? module.app : generateYom();
   console.log(
     "generating yom took",
