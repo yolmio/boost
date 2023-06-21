@@ -115,7 +115,7 @@ function createStat(opts: StatOptions) {
                     materialIcon("TrendingDown")
                   ),
                   color: "success",
-                  children: `trend || '%'`,
+                  children: `format.percent(trend)`,
                 }),
               ],
             })

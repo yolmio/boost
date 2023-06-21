@@ -185,6 +185,8 @@ export function generateYom(): yom.Model {
     console.log();
   }
   return {
+    // todo make this part of the model
+    locale: "en_us",
     name: model.name,
     dbExecutionMode: model.dbRunMode,
     collation: model.collation,

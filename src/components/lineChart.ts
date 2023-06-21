@@ -116,7 +116,7 @@ export function lineChart(opts: LineChartOpts): LineChartNode {
     axisX: {
       type: "'fixed'",
       divisor: "7",
-      labelInterpolation: `date.format(date.from_epoch(try_cast(label as bigint) / 1000), '%e %b')`,
+      labelInterpolation: `format.date(date.from_epoch(try_cast(label as bigint) / 1000), '%e %b')`,
     },
     showPointLabel: `true`,
   };

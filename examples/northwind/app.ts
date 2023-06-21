@@ -268,7 +268,7 @@ dashboardGridPage({
         title: "'Orders'",
         value: `(select count(*) from db.order where order_date > date.add(day, -30, ${today}))`,
         previous: `(select count(*) from db.order where order_date between date.add(day, -60, ${today}) and date.add(day, -30, ${today}))`,
-        trend: `cast((value - previous) as decimal(10, 2)) / cast(previous as decimal(10, 2)) * 100`,
+        trend: `cast((value - previous) as decimal(10, 2)) / cast(previous as decimal(10, 2))`,
       },
       middle: {
         title: "'Income'",
@@ -282,13 +282,13 @@ dashboardGridPage({
             join db.order_detail
               on order = order.id
           where order_date between date.add(day, -60, ${today}) and date.add(day, -30, ${today}))`,
-        trend: `(value - previous) / previous * 100`,
+        trend: `(value - previous) / previous`,
       },
       right: {
         title: "'Shipped Orders'",
         value: `(select count(*) from db.order where shipped_date > date.add(day, -30, ${today}))`,
         previous: `(select count(*) from db.order where shipped_date between date.add(day, -60, ${today}) and date.add(day, -30, ${today})))`,
-        trend: `cast((value - previous) as decimal(10, 2)) / cast(previous as decimal(10, 2)) * 100`,
+        trend: `cast((value - previous) as decimal(10, 2)) / cast(previous as decimal(10, 2))`,
       },
     },
   ],
@@ -514,7 +514,7 @@ recordGridPage({
         {
           label: "'Total'",
           expr: `(select sum(cast((unit_price * quantity) * (1 - discount) as decimal(10, 2))) from db.order_detail where order = record_id)`,
-          display: (v) => `'$' || ${v}`,
+          display: (v) => `format.currency(${v}, 'usd')`,
         },
       ],
     },
@@ -538,7 +538,7 @@ recordGridPage({
         "discount",
         {
           expr: (detail) =>
-            `'$' || cast((${detail}.unit_price * ${detail}.quantity) * (1 - ${detail}.discount) as decimal(10, 2))`,
+            `format.currency(cast((${detail}.unit_price * ${detail}.quantity) * (1 - ${detail}.discount) as decimal(10, 2)), 'usd')`,
           label: "Total",
         },
       ],

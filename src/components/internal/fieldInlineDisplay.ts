@@ -11,7 +11,7 @@ export function inlineFieldDisplay(field: Field, expr: string) {
       const formatString = stringLiteral(field.formatString ?? "%-d %b %Y");
       return typography({
         level: "body1",
-        children: `date.format(record.${field.name.name}, ${formatString})`,
+        children: `format.date(record.${field.name.name}, ${formatString})`,
       });
     }
     case "ForeignKey": {
@@ -63,17 +63,28 @@ export function inlineFieldDisplay(field: Field, expr: string) {
           case "Money": {
             return typography({
               level: "body1",
-              children: `'$' || ${expr}`,
+              children: `format.currency(${expr}, 'usd')`,
             });
           }
           case "Percentage": {
             return typography({
               level: "body1",
-              children: `${expr} || '%'`,
+              children: `format.percent(${expr})`,
             });
           }
         }
+      } else {
+        expr = `format.decimal(${expr})`;
       }
+      break;
+    }
+    case "BigInt":
+    case "BigUint":
+    case "Uint":
+    case "Int":
+    case "SmallInt":
+    case "SmallUint": {
+      expr = `format.decimal(${expr})`;
       break;
     }
     case "Enum": {

@@ -251,7 +251,7 @@ export function dateCell(opts: BaseFieldCellOpts, field: DateField): Cell {
       }),
       element("span", {
         styles: sharedStyles.ellipsisSpan,
-        children: `date.format(try_cast(${
+        children: `format.date(try_cast(${
           props.value
         } as date), ${stringLiteral(formatString)})`,
       })

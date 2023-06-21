@@ -347,7 +347,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                                 children: [
                                   element("p", {
                                     styles: styles.noteDate,
-                                    children: `date.format(note_record.date, '%-d %b %Y')`,
+                                    children: `format.date(note_record.date, '%-d %b %Y')`,
                                   }),
                                   element("div", { styles: flexGrowStyles }),
                                   iconButton({

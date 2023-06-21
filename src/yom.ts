@@ -2,6 +2,7 @@
  * The complete model of a SPA which can be compiled and run.
  */
 export interface Model {
+  locale: Locale;
   name: string;
   displayName: string;
   shortDisplayName?: string;
@@ -28,6 +29,8 @@ export interface Model {
   /** @private */
   internalLogicTests?: LogicTest[];
 }
+
+export type Locale = "en_us";
 
 export type OpaqueString = string & {};
 export type SqlExpression = OpaqueString;

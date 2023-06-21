@@ -171,10 +171,10 @@ export function content(opts: Opts, ctx: RecordGridContext) {
         },
         children: [
           element("span", {
-            children: `date.format(record.date, '%-d %b')`,
+            children: `format.date(record.date, '%-d %b')`,
           }),
           element("span", {
-            children: `date.format(record.date, '%Y')`,
+            children: `format.date(record.date, '%Y')`,
           }),
         ],
       }),
