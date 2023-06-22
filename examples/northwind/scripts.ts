@@ -59,7 +59,7 @@ addScript({
           homePhone as home_phone,
           cast(extension as string),
           reportsTo - 1 as reports_to,
-          rng.uuid() as global_id,
+          random.uuid() as global_id,
           firstName || lastName || '@gmail.com' as email,
           false as disabled 
           from csv.Employee`
