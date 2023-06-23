@@ -2,6 +2,7 @@ import { addEnum, addTable } from "@yolm/boost/modelHelpers";
 import { navbar } from "@yolm/boost/shells/navbar";
 import {
   commitUiChanges,
+  debugQuery,
   if_,
   modify,
   navigate,
@@ -10,6 +11,7 @@ import {
   serviceProc,
   setScalar,
   spawn,
+  table,
 } from "@yolm/boost/procHelpers";
 import { tableSuperGrid } from "@yolm/boost/pages/tableSuperGrid";
 import { adminPage } from "@yolm/boost/pages/admin";
@@ -18,6 +20,7 @@ import { tableSimpleGrid } from "@yolm/boost/pages/tableSimpleDatagrid";
 import { insertFormPage } from "@yolm/boost/pages/insertForm";
 import { dashboardGridPage } from "@yolm/boost/pages/dashboardGrid";
 import { model } from "@yolm/boost/singleton";
+import { button } from "@yolm/boost/components/button";
 
 model.name = "northwind";
 
@@ -259,8 +262,105 @@ navbar({
 // In an application that has data not from 1998, you should replace this with `today()`
 const today = `DATE '1998-05-06'`;
 
+const ordersNotShipped = `
+select
+  order.id as order_id,
+  order_date,
+  required_date,
+  customer.company_name as customer_name,
+  customer.id as customer_id,
+  employee.first_name || ' ' || employee.last_name as employee_name,
+  employee.id as employee_id
+from db.order
+  join db.customer on customer = customer.id
+  join db.employee on employee = employee.id
+where shipped_date is null
+order by order_date
+limit 5`;
+
+const newOrders = `
+select
+  order.id as order_id,
+  order_date,
+  required_date,
+  customer.company_name as customer_name,
+  customer.id as customer_id,
+  employee.first_name || ' ' || employee.last_name as employee_name,
+  employee.id as employee_id
+from db.order
+  join db.customer on customer = customer.id
+  join db.employee on employee = employee.id
+order by order_date desc
+limit 5`;
+
+const orderTableColumns = [
+  {
+    cell: (row) =>
+      button({
+        href: `'/orders/' || ${row}.order_id`,
+        color: "info",
+        size: "sm",
+        variant: "soft",
+        children: `'View'`,
+      }),
+    header: "",
+  },
+  {
+    cell: (row) => `${row}.customer_name`,
+    href: (row) => `'/customers/' || ${row}.customer_id`,
+    header: "Customer",
+  },
+  {
+    cell: (row) => `${row}.employee_name`,
+    href: (row) => `'/employees/' || ${row}.employee_id`,
+    header: "Employee",
+  },
+  {
+    cell: (row) => `format.date(${row}.order_date, '%-d %b')`,
+    header: "Order Date",
+  },
+  {
+    cell: (row) => `format.date(${row}.required_date, '%-d %b')`,
+    header: "Required Date",
+  },
+];
+
+// If you want to do weekly, make sure to get rid of the reverseData, change the lineChartQuery to weeklyCountQuery, and change the labels to what you want
+const weeklyCountQuery = `
+select
+  date.add(day, 6, daily.value) as date,
+  count(order.id) as count
+from series.daily(${today}, 7, -7) as daily
+  left join db.order
+    on order_date between daily.value and date.add(day, 6, daily.value)
+group by daily.value
+order by daily.value`;
+
+const monthlyCountQuery = `
+select date.trunc(month, order_date) as date, count(*) as count
+from db.order
+group by date.trunc(month, order_date)
+order by date desc
+limit 7`;
+
+const pieChartQuery = `
+with employee_order_count as (
+  select employee, count(*) as count
+  from db.order
+  where shipped_date is null
+  group by employee
+)
+select first_name || ' ' || last_name as employee, count
+from employee_order_count
+join db.employee on employee = employee.id`;
+
 dashboardGridPage({
   children: [
+    {
+      type: "header",
+      header: `'Northwind Traders Dashboard'`,
+      subHeader: "'Welcome back. Here''s whats going on'",
+    },
     {
       type: "threeStats",
       header: `'Last 30 Days'`,
@@ -272,17 +372,27 @@ dashboardGridPage({
       },
       middle: {
         title: "'Income'",
-        value: `(select sum(cast((unit_price * quantity) * (1 - discount) as decimal(10, 2)))
-          from db.order
-            join db.order_detail
-              on order = order.id
-          where order_date > date.add(day, -30, ${today}))`,
-        previous: `(select sum(cast((unit_price * quantity) * (1 - discount) as decimal(10, 2)))
-          from db.order
-            join db.order_detail
-              on order = order.id
-          where order_date between date.add(day, -60, ${today}) and date.add(day, -30, ${today}))`,
-        trend: `(value - previous) / previous`,
+        procedure: [
+          scalar(
+            `value_num`,
+            `(select sum(cast((unit_price * quantity) * (1 - discount) as decimal(10, 2)))
+              from db.order
+                join db.order_detail
+                  on order = order.id
+              where order_date > date.add(day, -30, ${today}))`
+          ),
+          scalar(
+            `previous_num`,
+            `(select sum(cast((unit_price * quantity) * (1 - discount) as decimal(10, 2)))
+              from db.order
+                join db.order_detail
+                  on order = order.id
+              where order_date between date.add(day, -60, ${today}) and date.add(day, -30, ${today}))`
+          ),
+        ],
+        value: `format.currency(value_num, 'USD')`,
+        previous: `format.currency(previous_num, 'USD')`,
+        trend: `(value_num - previous_num) / previous_num`,
       },
       right: {
         title: "'Shipped Orders'",
@@ -290,6 +400,87 @@ dashboardGridPage({
         previous: `(select count(*) from db.order where shipped_date between date.add(day, -60, ${today}) and date.add(day, -30, ${today})))`,
         trend: `cast((value - previous) as decimal(10, 2)) / cast(previous as decimal(10, 2))`,
       },
+    },
+    {
+      type: "lineChart",
+      stateQuery: monthlyCountQuery,
+      reverseData: "true",
+      lineChartQuery: "select count as y, date as x from result",
+      labels: "select format.date(date, '%b') from result",
+      header: "Order Count",
+    },
+    {
+      type: "pieChart",
+      styles: { lg: { gridRowSpan: 2 } },
+      cardStyles: { minHeight: "300px", lg: { minHeight: "450px" } },
+      header: "Unshipped Orders by Employee",
+      stateQuery: pieChartQuery,
+      labels: "select employee from result",
+      lineChartQuery: "select count from result",
+      donut: true,
+    },
+    {
+      type: "barChart",
+      header: "Sales By Category",
+      state: [
+        table(
+          "last_60",
+          `select
+            product.category as category,
+            sum(cast((order_detail.unit_price * quantity) * (1 - discount) as decimal(10, 2))) as sales
+          from db.order
+            join db.order_detail on order = order.id
+            join db.product on product = product.id
+          where order_date > date.add(day, -60, ${today})
+          group by product.category
+          order by sales desc
+          limit 5`
+        ),
+        table(
+          "last_30",
+          `select
+            category,
+            (select
+              sum((order_detail.unit_price * quantity) * (1 - discount))
+            from db.order
+              join db.order_detail on order = order.id
+              join db.product on product = product.id
+            where order_date > date.add(day, -30, ${today}) and product.category = last_60.category
+            ) as sales
+          from last_60`
+        ),
+        table(
+          "label",
+          "select name from last_60 join db.category on category = category.id"
+        ),
+      ],
+      series: [
+        {
+          query: "select sales as y, category as x from last_30",
+          name: "Last 30 Days",
+        },
+        {
+          query: "select sales as y, category as x from last_60",
+          name: "Last 60 Days",
+        },
+      ],
+      labels: "select name from label",
+      axisY: {
+        labelInterpolation:
+          "'$' || format.decimal((cast(label as decimal(28, 10)) / 1000)) || 'K'",
+      },
+    },
+    {
+      type: "table",
+      query: ordersNotShipped,
+      header: "Orders Not Shipped",
+      columns: orderTableColumns,
+    },
+    {
+      type: "table",
+      query: newOrders,
+      header: "New Orders",
+      columns: orderTableColumns,
     },
   ],
 });

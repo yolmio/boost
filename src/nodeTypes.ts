@@ -69,7 +69,7 @@ export interface DataGridColumn {
   visible?: string;
 }
 
-export type ElementNode = Omit<yom.ElementNode, "classes" | "children"> & {
+export type ElementNode = Omit<yom.ElementNode, "children"> & {
   styles?: Style;
   children?: Node;
 };

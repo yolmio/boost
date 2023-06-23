@@ -359,6 +359,9 @@ const styles = createStyles({
     textDecoration: "none",
     color: "primary-500",
     fontWeight: "lg",
+    "&:hover": {
+      textDecoration: "underline",
+    },
   },
   eachHeaderCell: {
     px: 2.5,

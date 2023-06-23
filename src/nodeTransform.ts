@@ -646,6 +646,10 @@ export function transformNode(
       };
       break;
     case "Element": {
+      let classes = styleToClass(node.styles, false);
+      if (node.classes) {
+        classes = classes ? classes + " " + node.classes : node.classes;
+      }
       transformed = {
         t: "Element",
         tag: node.tag,
@@ -658,7 +662,7 @@ export function transformNode(
         on: node.on,
         props: node.props,
         testId: node.testId,
-        classes: styleToClass(node.styles, false),
+        classes,
         style: node.style,
         dynamicClasses: node.dynamicClasses,
       };

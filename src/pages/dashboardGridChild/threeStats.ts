@@ -33,7 +33,7 @@ const styles = createStyles({
     borderColor: "divider",
     borderRadius: "md",
     boxShadow: "sm",
-    sm: {
+    lg: {
       gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
     },
   },
@@ -47,8 +47,15 @@ const styles = createStyles({
     display: "flex",
     flexDirection: "column",
     p: 3,
-    borderRight: "1px solid",
-    borderColor: "divider",
+    "&:not(:last-child)": {
+      borderBottom: "1px solid",
+      borderColor: "divider",
+      lg: {
+        borderBottom: "none",
+        borderRight: "1px solid",
+        borderColor: "divider",
+      },
+    },
   },
   statTitle: {
     my: 0,
