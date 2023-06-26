@@ -1,5 +1,6 @@
 import { addEnum, addTable } from "@yolm/boost/modelHelpers";
-import { navbar } from "@yolm/boost/shells/navbar";
+import { sidebarShell } from "@yolm/boost/shells/sidebar";
+import { navbarShell } from "@yolm/boost/shells/navbar";
 import {
   commitUiChanges,
   debugQuery,
@@ -179,85 +180,96 @@ addTable("order_detail", (table) => {
 // UI
 //
 
-navbar({
-  color: "primary",
-  variant: "solid",
-  links: [
-    "/employees",
-    "/orders",
-    "/customers",
-    "/shippers",
-    "/suppliers",
-    "/products",
-    "/categories",
-    {
-      auth: { allow: "sys_admin" },
-      url: "/admin",
-    },
-    {
-      auth: { allow: "sys_admin" },
-      url: "/users",
-    },
+sidebarShell({
+  items: [
+    { label: "Dashboard", icon: "Dashboard", href: "/" },
+    { label: "Employees", icon: "Badge", href: "/employees" },
+    { label: "Customers", icon: "Person", href: "/customers" },
+    { label: "Suppliers", icon: "LocalShipping", href: "/suppliers" },
+    { label: "Products", icon: "LocalPizza", href: "/products" },
+    { label: "Orders", icon: "Receipt", href: "/orders" },
   ],
-  multiSearchDialog: {
-    tables: [
-      {
-        name: "employee",
-        displayValues: [
-          {
-            expr: "employee.title",
-            label: "Title",
-            type: { type: "String", maxLength: 2000 },
-          },
-        ],
-        icon: "Badge",
-      },
-      {
-        name: "customer",
-        displayValues: [
-          {
-            expr: "customer.contact_name",
-            label: "Contact Name",
-            type: { type: "String", maxLength: 2000 },
-          },
-          {
-            expr: "customer.contact_title",
-            label: "Contact Title",
-            type: { type: "String", maxLength: 2000 },
-          },
-        ],
-        icon: "Person",
-      },
-      {
-        name: "supplier",
-        icon: "LocalShipping",
-        displayValues: [
-          {
-            expr: "supplier.contact_name",
-            label: "Contact Name",
-            type: { type: "String", maxLength: 2000 },
-          },
-          {
-            expr: "supplier.contact_title",
-            label: "Contact Title",
-            type: { type: "String", maxLength: 2000 },
-          },
-        ],
-      },
-      {
-        name: "product",
-        icon: "LocalPizza",
-        displayValues: [
-          {
-            expr: "(select name from db.category where id = product.category)",
-            label: "Category",
-            type: { type: "String", maxLength: 2000 },
-          },
-        ],
-      },
-    ],
-  },
 });
+
+// navbarShell({
+//   color: "primary",
+//   variant: "solid",
+//   links: [
+//     "/employees",
+//     "/orders",
+//     "/customers",
+//     "/shippers",
+//     "/suppliers",
+//     "/products",
+//     "/categories",
+//     {
+//       auth: { allow: "sys_admin" },
+//       url: "/admin",
+//     },
+//     {
+//       auth: { allow: "sys_admin" },
+//       url: "/users",
+//     },
+//   ],
+//   multiSearchDialog: {
+//     tables: [
+//       {
+//         name: "employee",
+//         displayValues: [
+//           {
+//             expr: "employee.title",
+//             label: "Title",
+//             type: { type: "String", maxLength: 2000 },
+//           },
+//         ],
+//         icon: "Badge",
+//       },
+//       {
+//         name: "customer",
+//         displayValues: [
+//           {
+//             expr: "customer.contact_name",
+//             label: "Contact Name",
+//             type: { type: "String", maxLength: 2000 },
+//           },
+//           {
+//             expr: "customer.contact_title",
+//             label: "Contact Title",
+//             type: { type: "String", maxLength: 2000 },
+//           },
+//         ],
+//         icon: "Person",
+//       },
+//       {
+//         name: "supplier",
+//         icon: "LocalShipping",
+//         displayValues: [
+//           {
+//             expr: "supplier.contact_name",
+//             label: "Contact Name",
+//             type: { type: "String", maxLength: 2000 },
+//           },
+//           {
+//             expr: "supplier.contact_title",
+//             label: "Contact Title",
+//             type: { type: "String", maxLength: 2000 },
+//           },
+//         ],
+//       },
+//       {
+//         name: "product",
+//         icon: "LocalPizza",
+//         displayValues: [
+//           {
+//             expr: "(select name from db.category where id = product.category)",
+//             label: "Category",
+//             type: { type: "String", maxLength: 2000 },
+//           },
+//         ],
+//       },
+//     ],
+//   },
+// });
 
 // In an application that has data not from 1998, you should replace this with `today()`
 const today = `DATE '1998-05-06'`;

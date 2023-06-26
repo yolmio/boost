@@ -9,6 +9,7 @@ import type {
   Table,
 } from "./modelTypes";
 import { default404Page } from "./pages/default404.js";
+import { Node, RouteNode, RoutesNode } from "./nodeTypes.js";
 
 function generateDecisionTable(dt: DecisionTable): yom.DecisionTable {
   return {
@@ -142,33 +143,62 @@ function generateDatabase(database: Database): yom.Database {
 }
 
 function getTransformedUi(): [yom.Node, string] {
-  const serializer = new StyleSerializer();
-  addRootStyles(serializer, theme);
   if (!model.pages.some((p) => p.path === "/*" || p.path === "*")) {
     model.pages.push({
       path: "*",
       content: default404Page(),
     });
   }
-  const node = transformNode(
-    [
-      model.shell,
-      {
-        t: "Routes",
-        children: model.pages.map((p) => ({
+  const pagesWithShell = model.pages
+    .filter((p) => !p.ignoreShell)
+    .map(
+      (p) =>
+        ({
           t: "Route",
           path: p.path,
           children: p.content,
-        })),
-      },
-    ],
-    (styles, dynamicStyle) => {
-      if (!styles) {
-        return;
-      }
-      return serializer.addStyle(styles, !dynamicStyle);
+        } as RouteNode)
+    );
+  const pagesWithoutShell = model.pages
+    .filter((p) => p.ignoreShell)
+    .map(
+      (p) =>
+        ({
+          t: "Route",
+          path: p.path,
+          children: p.content,
+        } as RouteNode)
+    );
+  let rootNode: Node;
+  if (model.shell) {
+    const shell = model.shell({
+      t: "Routes",
+      children: pagesWithShell,
+    });
+    rootNode =
+      pagesWithoutShell.length === 0
+        ? shell
+        : ({
+            t: "Routes",
+            children: [
+              ...pagesWithoutShell,
+              { t: "Route", path: "*", children: shell },
+            ],
+          } as RoutesNode);
+  } else {
+    rootNode = {
+      t: "Routes",
+      children: [...pagesWithShell, ...pagesWithoutShell],
+    };
+  }
+  const serializer = new StyleSerializer();
+  addRootStyles(serializer, theme);
+  const node = transformNode(rootNode, (styles, dynamicStyle) => {
+    if (!styles) {
+      return;
     }
-  );
+    return serializer.addStyle(styles, !dynamicStyle);
+  });
   return [node, serializer.getCss()];
 }
 

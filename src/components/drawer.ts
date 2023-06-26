@@ -2,6 +2,7 @@ import { parenWrap } from "../utils/sqlHelpers.js";
 import { ClientProcStatement } from "../yom.js";
 import {
   commitUiChanges,
+  debugExpr,
   delay,
   if_,
   scalar,
@@ -52,7 +53,6 @@ const styles = createStyles({
       display: "flex",
       flexDirection: "column",
       height: "100%",
-      flex: "1 0 auto",
       position: "fixed",
       top: 0,
       backgroundColor: "background-popup",

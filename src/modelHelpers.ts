@@ -1033,7 +1033,7 @@ export function addPage(page: Page) {
   model.pages.push(page);
 }
 
-export function setShell(node: Node) {
+export function setShell(node: (pages: Node) => Node) {
   model.shell = node;
 }
 

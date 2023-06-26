@@ -438,6 +438,6 @@ export interface BoostModel {
   scriptDbs: ScriptDb[];
 
   deviceDb: DeviceDb;
-  shell: Node;
+  shell?: (pages: Node) => Node;
   pages: Page[];
 }

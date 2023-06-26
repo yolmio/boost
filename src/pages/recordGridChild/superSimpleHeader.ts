@@ -49,6 +49,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
       recordDeleteButton({
         table: ctx.table.name.name,
         recordId: ctx.recordId,
+        size: "sm",
         afterDeleteService: [navigate(stringLiteral(ctx.pathBase))],
       }),
     ],

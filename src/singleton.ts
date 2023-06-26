@@ -74,7 +74,6 @@ export const model: BoostModel = {
   scriptDbs: [],
 
   deviceDb: { tables: {} },
-  shell: "''",
   pages: [],
 };
 

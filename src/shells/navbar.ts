@@ -196,7 +196,7 @@ const styles = createStyles({
   },
 });
 
-export function navbar(opts: NavbarProps) {
+export function navbarShell(opts: NavbarProps) {
   const variant = opts.variant ?? "solid";
   const color = opts.color ?? "neutral";
   const normalizedLabels = opts.links.map((link) => {
@@ -520,5 +520,5 @@ export function navbar(opts: NavbarProps) {
       ],
     }),
   });
-  setShell(content);
+  setShell((pages) => [content, pages]);
 }
