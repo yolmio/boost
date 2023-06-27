@@ -45,7 +45,7 @@ const styles = createStyles({
   label: {
     fontSize: "sm",
     fontWeight: "md",
-    color: "text-secondary",
+    fill: cssVar("palette-text-secondary"),
     userSelect: "none",
   },
   slice: {

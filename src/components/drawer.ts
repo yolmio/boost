@@ -1,16 +1,6 @@
-import { parenWrap } from "../utils/sqlHelpers.js";
 import { ClientProcStatement } from "../yom.js";
-import {
-  commitUiChanges,
-  debugExpr,
-  delay,
-  if_,
-  scalar,
-  setScalar,
-  spawn,
-  stopPropagation,
-} from "../procHelpers.js";
-import { element, ifNode, portal, state } from "../nodeHelpers.js";
+import { if_ } from "../procHelpers.js";
+import { portal } from "../nodeHelpers.js";
 import type { Node } from "../nodeTypes.js";
 import { registerKeyframes } from "../nodeTransform.js";
 import { StyleObject } from "../styleTypes.js";
@@ -18,6 +8,7 @@ import { createStyles, cssVar } from "../styleUtils.js";
 import { SlottedComponentWithSlotNames } from "./utils.js";
 import { createSlotsFn } from "./utils.js";
 import { backdropStyles } from "./modal.js";
+import { withExitTransition } from "./withExitTransition.js";
 
 type Direction = "left" | "right";
 
@@ -64,7 +55,7 @@ const styles = createStyles({
       animationTimingFunction: "ease-out",
       animationDuration: "200ms",
       opacity: 1,
-      "&.in_exit_animation": {
+      "&.in_exit_transition": {
         animationName: exitAnimation,
         animationTimingFunction: "ease-in",
         transform,
@@ -92,50 +83,37 @@ function getDrawerOutOfViewTransform(direction: Direction) {
 
 export function drawer(opts: DrawerOpts) {
   const slot = createSlotsFn(opts);
-  const closeWithAnimation = [
-    ...opts.onClose,
-    setScalar(`ui.in_exit_animation`, `true`),
-    spawn({
-      detached: true,
-      statements: [
-        delay(`200`),
-        setScalar(`ui.in_exit_animation`, `false`),
-        commitUiChanges(),
-      ],
-    }),
-  ];
-  return state({
-    procedure: [scalar(`in_exit_animation`, `false`)],
-    children: ifNode(parenWrap(opts.open) + ` or in_exit_animation`, [
-      portal(
-        slot("root", {
-          tag: "div",
-          styles: backdropStyles(),
-          dynamicClasses: [
-            {
-              classes: "in_exit_animation",
-              condition: "in_exit_animation",
-            },
-          ],
-          on: {
-            keydown: [if_("event.key = 'Escape'", closeWithAnimation)],
-          },
-          children: slot("drawer", {
+  return withExitTransition(
+    200,
+    ({ dynamicClasses, transitionIfNode, startCloseTransition }) =>
+      transitionIfNode(opts.open, [
+        portal(
+          slot("root", {
             tag: "div",
+            styles: backdropStyles(),
+            dynamicClasses,
             on: {
-              clickAway: closeWithAnimation,
+              keydown: [
+                if_("event.key = 'Escape'", [
+                  ...opts.onClose,
+                  ...startCloseTransition,
+                ]),
+              ],
             },
-            styles: styles.drawerStyles(opts.direction),
-            dynamicClasses: [
-              {
-                classes: "in_exit_animation",
-                condition: "in_exit_animation",
+            children: slot("drawer", {
+              tag: "div",
+              on: {
+                clickAway: [...opts.onClose, ...startCloseTransition],
               },
-            ],
-            children: opts.children(closeWithAnimation),
-          }),
-        })
-      ),
-    ]),
-  });
+              styles: styles.drawerStyles(opts.direction),
+              dynamicClasses,
+              children: opts.children([
+                ...opts.onClose,
+                ...startCloseTransition,
+              ]),
+            }),
+          })
+        ),
+      ])
+  );
 }

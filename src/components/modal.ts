@@ -1,20 +1,11 @@
-import { element, ifNode, portal, state } from "../nodeHelpers.js";
+import { portal } from "../nodeHelpers.js";
 import { registerKeyframes } from "../nodeTransform.js";
 import { Node } from "../nodeTypes.js";
-import {
-  commitUiChanges,
-  delay,
-  if_,
-  scalar,
-  setScalar,
-  spawn,
-  stopPropagation,
-} from "../procHelpers.js";
+import { if_, stopPropagation } from "../procHelpers.js";
 import { theme } from "../singleton.js";
 import { createStyles, cssVar } from "../styleUtils.js";
 import { Variant } from "../theme.js";
 import { lazy } from "../utils/memoize.js";
-import { parenWrap } from "../utils/sqlHelpers.js";
 import { ClientProcStatement } from "../yom.js";
 import {
   createSlotsFn,
@@ -22,6 +13,7 @@ import {
   SingleElementComponentOpts,
   SlottedComponentWithSlotNames,
 } from "./utils.js";
+import { withExitTransition } from "./withExitTransition.js";
 
 export interface ModalOpts extends SlottedComponentWithSlotNames<"backdrop"> {
   open: string;
@@ -66,7 +58,7 @@ export const backdropStyles = lazy(() => {
     animationName: enterAnimation,
     animationTimingFunction: "ease-out",
     animationDuration: "200ms",
-    "&.in_exit_animation": {
+    "&.in_exit_transition": {
       animationName: exitAnimation,
       animationTimingFunction: "ease-in",
       backdropFilter: "blur(0px)",
@@ -154,45 +146,37 @@ const styles = createStyles({
 
 export function modal(opts: ModalOpts) {
   const slot = createSlotsFn(opts);
-  const closeWithAnimation = [
-    ...opts.onClose,
-    setScalar(`ui.in_exit_animation`, `true`),
-    spawn({
-      detached: true,
-      statements: [
-        delay(`200`),
-        setScalar(`ui.in_exit_animation`, `false`),
-        commitUiChanges(),
-      ],
-    }),
-  ];
-  return state({
-    procedure: [scalar(`in_exit_animation`, `false`)],
-    children: ifNode(
-      parenWrap(opts.open) + ` or in_exit_animation`,
-      portal(
-        slot("root", {
-          tag: "div",
-          styles: styles.modalRoot,
-          children: slot("backdrop", {
+  return withExitTransition(
+    200,
+    ({ transitionIfNode, dynamicClasses, startCloseTransition }) =>
+      transitionIfNode(
+        opts.open,
+        portal(
+          slot("root", {
             tag: "div",
-            styles: backdropStyles(),
-            dynamicClasses: [
-              {
-                classes: "in_exit_animation",
-                condition: "in_exit_animation",
+            styles: styles.modalRoot,
+            children: slot("backdrop", {
+              tag: "div",
+              styles: backdropStyles(),
+              dynamicClasses,
+              on: {
+                click: [...opts.onClose, ...startCloseTransition],
+                keydown: [
+                  if_("event.key = 'Escape'", [
+                    ...opts.onClose,
+                    ...startCloseTransition,
+                  ]),
+                ],
               },
-            ],
-            on: {
-              click: closeWithAnimation,
-              keydown: [if_("event.key = 'Escape'", closeWithAnimation)],
-            },
-            children: opts.children(closeWithAnimation),
-          }),
-        })
+              children: opts.children([
+                ...opts.onClose,
+                ...startCloseTransition,
+              ]),
+            }),
+          })
+        )
       )
-    ),
-  });
+  );
 }
 
 type Size = "sm" | "md" | "lg";
