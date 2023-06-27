@@ -3,7 +3,11 @@ import { createHarmonizeVars, createStyles, cssVar } from "../styleUtils.js";
 import { element, eventHandlers, state } from "../nodeHelpers.js";
 import type { ColorPaletteProp } from "../theme.js";
 import { getVariantStyle } from "../styleUtils.js";
-import { button, ButtonOpts } from "../components/button.js";
+import {
+  button,
+  ButtonOpts,
+  styles as buttonStyles,
+} from "../components/button.js";
 import { iconButton } from "../components/iconButton.js";
 import { drawer } from "../components/drawer.js";
 import { materialIcon } from "../components/materialIcon.js";
@@ -103,6 +107,12 @@ const styles = createStyles({
   linksDrawer: {
     maxWidth: 360,
   },
+  link: () => ({
+    ...buttonStyles.button("plain", "harmonize", "sm", false),
+    "&.active": {
+      ...getVariantStyle("soft", "harmonize"),
+    },
+  }),
 });
 
 export function navbarShell(opts: NavbarProps) {
@@ -163,12 +173,18 @@ export function navbarShell(opts: NavbarProps) {
             }),
             normalizedLabels.map((link) =>
               makeAuthorizedLink(
-                button({
-                  color: "harmonize",
-                  variant: "plain",
-                  size: "sm",
+                element("a", {
+                  props: { href: stringLiteral(link.url) },
+                  styles: styles.link(),
+                  dynamicClasses: [
+                    {
+                      condition: `uri.is_match(location.pathname, ${stringLiteral(
+                        link.url
+                      )})`,
+                      classes: "active",
+                    },
+                  ],
                   children: stringLiteral(link.label),
-                  href: stringLiteral(link.url),
                 }),
                 link.auth
               )

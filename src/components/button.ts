@@ -33,7 +33,7 @@ export interface ButtonOpts
   children: Node;
 }
 
-const styles = createStyles({
+export const styles = createStyles({
   button: (variant: Variant, color: Color, size: Size, fullWidth: boolean) => {
     const styles: StyleObject = {
       appearance: "none",

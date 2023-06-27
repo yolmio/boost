@@ -193,10 +193,6 @@ navbarShell({
       auth: { allow: "sys_admin" },
       url: "/admin",
     },
-    {
-      auth: { allow: "sys_admin" },
-      url: "/users",
-    },
   ],
   multiTableSearchDialog: {
     tables: [
