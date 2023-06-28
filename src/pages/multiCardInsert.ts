@@ -85,7 +85,7 @@ const styles = createStyles({
       ...containerStyle,
       sm: {
         ...containerStyle.sm,
-        gap: 4,
+        gap: 3,
       },
     };
   },
@@ -105,7 +105,7 @@ const styles = createStyles({
       gridTemplateColumns: `repeat(3, minmax(0, 1fr))`,
     },
     sm: {
-      gap: 4,
+      gap: 3,
     },
   },
   card: {
@@ -115,7 +115,7 @@ const styles = createStyles({
     flexDirection: "column",
     gap: 3,
     sm: {
-      p: 4,
+      p: 3,
     },
     dark: {
       backgroundColor: "neutral-800",
@@ -179,7 +179,7 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
           opts.sharedSection
             ? [
                 typography({
-                  level: "h4",
+                  level: "h5",
                   children: opts.sharedSection.header,
                 }),
                 element("div", {
@@ -216,7 +216,7 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
               ]
             : null,
           typography({
-            level: "h4",
+            level: "h5",
             children: `'Add your ${downcaseFirst(
               pluralize(table.name.displayName)
             )}'`,

@@ -23,7 +23,7 @@ export const styles = createStyles({
       "--input-radius": cssVar(`radius-sm`),
       "--input-gap": "0.5rem",
       "--input-placeholder-color": "inherit",
-      "--input-placeholder-opacity": 0.5,
+      "--input-placeholder-opacity": "0.5",
       "--input-focused-thickness": cssVar(`focus-thickness`),
       // variables for controlling child components
       "--input-decorator-child-offset":
@@ -191,7 +191,7 @@ export const styles = createStyles({
     "--icon-margin": "0 calc(var(--input-padding-x) / -4) 0 0",
     display: "inherit",
     alignItems: "center",
-    marginStart: "var(--input-gap)",
+    marginLeft: "var(--input-gap)",
     color:
       color === "harmonize"
         ? `var(--harmonize-${variant}-color)`

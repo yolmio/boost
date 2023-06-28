@@ -1,9 +1,5 @@
 import { if_, preventDefault } from "../procHelpers.js";
-import {
-  ClientProcStatement,
-  ElementEventHandlers,
-  ElementProps,
-} from "../yom.js";
+import { ClientProcStatement } from "../yom.js";
 import { input, InputOpts } from "./input.js";
 import { mergeElEventHandlers } from "./utils.js";
 
@@ -21,7 +17,11 @@ export function durationInput(opts: DurationInputOpts) {
       ...opts.slots,
       input: {
         ...opts.slots?.input,
-        props: { inputMode: `'numeric'`, ...opts.slots?.input?.props },
+        props: {
+          inputMode: `'numeric'`,
+          placeholder: "'hh:mm'",
+          ...opts.slots?.input?.props,
+        },
         on: mergeElEventHandlers(
           {
             keydown: [

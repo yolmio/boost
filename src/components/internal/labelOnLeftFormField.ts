@@ -1,8 +1,9 @@
 import { element } from "../../nodeHelpers.js";
 import { Node } from "../../nodeTypes.js";
-import { createStyles } from "../../styleUtils.js";
+import { createStyles, cssVar } from "../../styleUtils.js";
 import { stringLiteral } from "../../utils/sqlHelpers.js";
 import { checkbox } from "../checkbox.js";
+import { formLabel } from "../formLabel.js";
 import { fieldFormControl, FieldFormControlOpts } from "./fieldFormControl.js";
 
 export interface LabelOnLeftFormFieldOpts extends FieldFormControlOpts {
@@ -10,28 +11,27 @@ export interface LabelOnLeftFormFieldOpts extends FieldFormControlOpts {
 }
 
 const styles = createStyles({
-  cardFieldWrapper: {
+  root: {
     display: "flex",
-    alignItems: "flex-end",
-  },
-  cardFieldLabel: {
-    mb: 1,
-    mr: 1.5,
-    fontWeight: "lg",
-    fontSize: "md",
-    color: "text-secondary",
-    width: "35%",
-    flexShrink: 0,
+    flexDirection: "column",
+    "--form-label-font-size": cssVar(`font-size-sm`),
+    "--form-label-margin-bottom": "0.25rem",
+    sm: {
+      "--form-label-margin-bottom": "0",
+      "--form-label-font-size": cssVar(`font-size-md`),
+      display: "grid",
+      gridTemplateColumns: "minmax(0, 1fr) minmax(0, 2fr)",
+      gap: 1,
+    },
   },
 });
 
 export function labelOnLeftFormField(opts: LabelOnLeftFormFieldOpts): Node {
   if (opts.field.type === "Bool" && !opts.field.enumLike) {
     return element("div", {
-      styles: styles.cardFieldWrapper,
+      styles: styles.root,
       children: [
-        element("label", {
-          styles: styles.cardFieldLabel,
+        formLabel({
           props: { htmlFor: opts.id },
           children: opts.label ?? stringLiteral(opts.field.name.displayName),
         }),
@@ -59,10 +59,9 @@ export function labelOnLeftFormField(opts: LabelOnLeftFormFieldOpts): Node {
     );
   }
   return element("div", {
-    styles: styles.cardFieldWrapper,
+    styles: styles.root,
     children: [
-      element("label", {
-        styles: styles.cardFieldLabel,
+      formLabel({
         props: { htmlFor: opts.id },
         children: opts.label ?? stringLiteral(opts.field.name.displayName),
       }),
