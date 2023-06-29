@@ -161,12 +161,11 @@ const styles = createStyles({
     mt: 3,
   },
   grid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(12, minmax(0, 1fr))",
+    ...baseGridStyles,
     gap: 2,
-    mb: 1.5,
   },
   buttons: {
+    mt: 1.5,
     display: "flex",
     justifyContent: "flex-end",
     gap: 1,
@@ -175,6 +174,7 @@ const styles = createStyles({
     ...baseGridStyles,
     gap: 2,
   },
+  formError: { alignItems: "flex-start" },
 });
 
 function gridPart(
@@ -351,7 +351,7 @@ export function gridUpdateFormContent(
     ifNode(
       formState.getFormError + " is not null",
       alert({
-        styles: { alignItems: "flex-start", mb: 1.5 },
+        styles: styles.formError,
         variant: "soft",
         color: "danger",
         startDecorator: materialIcon("Warning"),
