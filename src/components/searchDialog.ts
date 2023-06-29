@@ -31,7 +31,6 @@ import { SequentialIDGenerator } from "../utils/SequentialIdGenerator.js";
 import { pluralize } from "../utils/inflectors.js";
 import { ident, stringLiteral } from "../utils/sqlHelpers.js";
 import {
-  BaseStatement,
   ClientProcStatement,
   FieldType,
   ProcTableField,
@@ -40,6 +39,7 @@ import {
 import { checkbox } from "./checkbox.js";
 import { chip } from "./chip.js";
 import { divider } from "./divider.js";
+import { iconButton } from "./iconButton.js";
 import { materialIcon, MaterialIconOpts } from "./materialIcon.js";
 import { IconName } from "./materialIconNames.js";
 import { modal } from "./modal.js";
@@ -120,26 +120,6 @@ const styles = createStyles({
     pl: 2,
     outline: "none",
     color: cssVar(`palette-neutral-plain-color`),
-  },
-  escButton: {
-    mr: 1,
-    height: 22,
-    borderRadius: "5",
-    backgroundColor: "neutral-100",
-    borderColor: "neutral-400",
-    borderWidth: 1,
-    borderStyle: "solid",
-    color: "neutral-800",
-    fontWeight: 700,
-    letterSpacing: "0.08rem",
-    fontSize: "0.75rem",
-    fontFamily: "monospace",
-    cursor: "pointer",
-    dark: {
-      backgroundColor: "neutral-800",
-      borderColor: "neutral-500",
-      color: "neutral-400",
-    },
   },
   listbox: {
     m: 0,
@@ -462,9 +442,10 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
                         },
                       }),
                     }),
-                    element("button", {
-                      styles: styles.escButton,
-                      children: `'esc'`,
+                    iconButton({
+                      variant: "plain",
+                      color: "neutral",
+                      children: materialIcon("Close"),
                       on: { click: closeModal },
                     }),
                   ],
@@ -828,9 +809,10 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
                         },
                       }),
                     }),
-                    element("button", {
-                      styles: styles.escButton,
-                      children: `'esc'`,
+                    iconButton({
+                      variant: "plain",
+                      color: "neutral",
+                      children: materialIcon("Close"),
                       on: { click: closeModal },
                     }),
                   ],
@@ -1234,9 +1216,10 @@ export function recordSelectDialog(opts: RecordSelectDialog) {
                       },
                     }),
                   }),
-                  element("button", {
-                    styles: styles.escButton,
-                    children: `'esc'`,
+                  iconButton({
+                    variant: "plain",
+                    color: "neutral",
+                    children: materialIcon("Close"),
                     on: { click: closeModal },
                   }),
                 ],

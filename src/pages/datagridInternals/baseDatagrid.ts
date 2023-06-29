@@ -6,6 +6,7 @@ import {
   block,
   commitTransaction,
   debugExpr,
+  debugQuery,
   forEachQuery,
   forEachTable,
   if_,
@@ -26,6 +27,12 @@ import {
   StateStatement,
 } from "../../yom.js";
 
+export interface DefaultView {
+  columnOrder?: string[];
+  sort?: { column: string; sort: "asc" | "desc" }[];
+  filter?: { column: string; op: string; value_1: string }[];
+}
+
 export interface BaseDatagridOpts {
   datagridStyles: DataGridStyles;
   children: (dgNode: Node) => Node;
@@ -40,6 +47,7 @@ export interface BaseDatagridOpts {
   extraState?: StateStatement[];
   idField: string;
   source: string;
+  defaultView?: DefaultView;
 }
 
 /**
@@ -69,14 +77,12 @@ export function baseDatagrid(opts: BaseDatagridOpts) {
     }
   }
   const getResultsProc: StateStatement[] = [];
-  // getResultsProc.push(scalar(
-  //   `query`,
-  //   makeDynamicQuery(
-  //     dts,
-  //     opts.source,
-  //     opts.quickSearchMatchConfig,
-  //   ),
-  // ));
+  // getResultsProc.push(
+  //   scalar(
+  //     `query`,
+  //     makeDynamicQuery(dts, opts.source, opts.quickSearchMatchConfig)
+  //   )
+  // );
   // getResultsProc.push(debugExpr(`query`));
   getResultsProc.push({
     t: "DynamicQuery",
@@ -234,6 +240,74 @@ export function baseDatagrid(opts: BaseDatagridOpts) {
           ),
         ]
       : [];
+    const loadDefault: StateStatement[] = [];
+    if (opts.defaultView) {
+      const reordered = opts.columns.map((col, id) => ({
+        name: col.viewStorageName,
+        id,
+      }));
+      if (opts.defaultView.columnOrder) {
+        for (let i = 0; i < opts.defaultView.columnOrder.length; i++) {
+          const name = opts.defaultView.columnOrder[i];
+          const oldIndex = reordered.findIndex((x) => x.name === name);
+          if (oldIndex === -1) {
+            throw new Error(
+              `Invalid default view column order: column ${name} not found`
+            );
+          }
+          const column = reordered.splice(oldIndex, 1)[0];
+          reordered.splice(i, 0, column);
+        }
+      }
+      for (let i = 0; i < reordered.length; i++) {
+        const { name, id } = reordered[i];
+        let sortFields = "";
+        if (opts.defaultView.sort) {
+          const sortIndex = opts.defaultView.sort.findIndex(
+            (col) => name === col.column
+          );
+          if (sortIndex !== -1) {
+            const asc = opts.defaultView.sort[sortIndex].sort === "asc";
+            sortFields = `, sort_index = ${sortIndex}, sort_asc = ${asc} `;
+          }
+        }
+        loadDefault.push(
+          modify(
+            `update column set ordering = ordering.n_after(${i})${sortFields} where id = ${id}`
+          )
+        );
+      }
+      if (opts.defaultView.filter) {
+        for (let i = 0; i < opts.defaultView.filter.length; i++) {
+          const filter = opts.defaultView.filter[i];
+          const id = reordered.find((x) => x.name === filter.column)?.id;
+          if (!id) {
+            throw new Error(
+              `Invalid default view filter: column ${filter.column} not found`
+            );
+          }
+          loadDefault.push(
+            modify(
+              `insert into filter_term (id, column_id, ordering, op, value_1) values
+            (next_filter_id, ${id}, ordering.n_after(${i}), cast(${stringLiteral(
+                filter.op
+              )} as enums.dg_filter_op), ${stringLiteral(filter.value_1)})}`
+            ),
+            setScalar(`next_filter_id`, `next_filter_id + 1`)
+          );
+        }
+      }
+    } else {
+      loadDefault.push(
+        forEachQuery(`select id from column`, `column_record`, [
+          modify(
+            `update column
+                  set ordering = ordering.new((select max(ordering) from column))
+                  where id = column_record.id`
+          ),
+        ])
+      );
+    }
     const loadColumnsFromView = block([
       scalar(`using_view`, `false`),
       if_("view is not null", [
@@ -269,15 +343,7 @@ export function baseDatagrid(opts: BaseDatagridOpts) {
           ...loadFilter,
         ]),
       ]),
-      if_("not using_view", [
-        forEachQuery(`select id from column`, `column_record`, [
-          modify(
-            `update column
-                  set ordering = ordering.new((select max(ordering) from column))
-                  where id = column_record.id`
-          ),
-        ]),
-      ]),
+      if_("not using_view", loadDefault),
     ]);
     mainStateProc.push(loadColumnsFromView);
   }

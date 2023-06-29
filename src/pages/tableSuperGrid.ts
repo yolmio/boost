@@ -28,6 +28,7 @@ import {
 } from "./datagridInternals/superGrid.js";
 import { styles as sharedStyles } from "./datagridInternals/styles.js";
 import { checkbox } from "../components/checkbox.js";
+import { DefaultView } from "./datagridInternals/baseDatagrid.js";
 
 export interface ToolbarOpts {
   views?: boolean;
@@ -53,6 +54,7 @@ export interface DatagridPageOpts {
   selectable?: boolean;
   toolbar?: ToolbarOpts;
   ignoreFields?: string[];
+  defaultView?: DefaultView;
 }
 
 function idColumn(
@@ -234,6 +236,17 @@ export function tableSuperGrid(opts: DatagridPageOpts) {
   } else if (opts.toolbar?.add) {
     toolbarConfig.add = opts.toolbar.add;
   }
+  if (opts.defaultView) {
+    opts.defaultView = { ...opts.defaultView };
+    if (opts.defaultView.columnOrder) {
+      if (opts.viewButtonUrl) {
+        opts.defaultView.columnOrder.unshift("dg_view_button_col");
+      }
+      if (selectable) {
+        opts.defaultView.columnOrder.unshift("dg_checkbox_col");
+      }
+    }
+  }
   const extraState: StateStatement[] = [];
   if (selectable) {
     extraState.push(
@@ -250,5 +263,6 @@ export function tableSuperGrid(opts: DatagridPageOpts) {
     tableModel: tableModel,
     toolbar: toolbarConfig,
     extraState,
+    defaultView: opts.defaultView,
   });
 }

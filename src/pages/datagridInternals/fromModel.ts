@@ -1,4 +1,9 @@
-import { Field, VirtualField, VirtualType } from "../../modelTypes.js";
+import {
+  Field,
+  UuidField,
+  VirtualField,
+  VirtualType,
+} from "../../modelTypes.js";
 import { element } from "../../nodeHelpers.js";
 import {
   commitUiChanges,
@@ -131,11 +136,18 @@ export function getVirtualProcFieldType(virtual: VirtualField): FieldType {
   }
 }
 
-export function getFieldCellWidth(field: Field): number {
-  const charSize = 9;
+export function getFieldCellWidth(field: Field, table: string): number {
+  const charSize = 10;
   const headerBuffer = 46;
   const cellBuffer = 20;
   const headerLength = field.name.displayName.length * charSize + headerBuffer;
+  if (field.type === "Uuid" && field.group) {
+    const tableModel = model.database.tables[table];
+    const group = tableModel.fieldGroups[field.group];
+    if (group.type === "Image") {
+      return 138;
+    }
+  }
   if (field.type === "Bool") {
     if (field.enumLike) {
       const maxValue = Math.max(
@@ -308,7 +320,7 @@ export function columnFromField(
     sort: !noSort ? { ascNode: `'A → Z'`, descNode: `'Z → A'` } : undefined,
     cell: fieldCell({ tableName: table, field, stringified: true }),
     initiallyDisplaying: true,
-    initialWidth: getFieldCellWidth(field),
+    initialWidth: getFieldCellWidth(field, table),
     header: [
       element("span", {
         styles: sharedStyles.headerText,
@@ -443,7 +455,7 @@ export function simpleColumnFromField({
       stringified: false,
       beforeEditTransaction,
     }),
-    width: getFieldCellWidth(field),
+    width: getFieldCellWidth(field, table),
     header: element("span", {
       styles: sharedStyles.headerText,
       children: stringLiteral(field.name.displayName),

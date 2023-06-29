@@ -25,6 +25,7 @@ import {
   BaseColumnQueryGeneration,
   baseDatagrid,
   Cell,
+  DefaultView,
   triggerQueryRefresh,
 } from "./baseDatagrid.js";
 import { styles as sharedStyles } from "./styles.js";
@@ -480,6 +481,7 @@ export interface SuperGridConfig {
   idField: string;
   pageSize: number;
   extraState?: StateStatement[];
+  defaultView?: DefaultView;
 }
 
 export function superGrid(config: SuperGridConfig) {
@@ -566,6 +568,7 @@ export function superGrid(config: SuperGridConfig) {
     pageSize: config.pageSize,
     quickSearchMatchConfig: config.toolbar.search?.matchConfig,
     extraState: config.extraState,
+    defaultView: config.defaultView,
   });
   addPage({
     path: config.path,
