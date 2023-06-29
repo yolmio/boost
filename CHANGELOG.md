@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+Add `defaultView` to datagrid
+
+Visual bug fixes
+Internal refactoring
+
 ## 0.1.3 - 2023-06-21
 Fix yom to specify locale
 

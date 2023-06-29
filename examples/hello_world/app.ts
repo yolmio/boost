@@ -1,4 +1,4 @@
-import { navbar } from "@yolm/boost/shells/navbar";
+import { navbarShell } from "@yolm/boost/shells/navbar";
 import { addEnum, addPage, addTable } from "@yolm/boost/modelHelpers";
 import { model } from "@yolm/boost/singleton";
 
@@ -27,7 +27,7 @@ addTable("user_role", (table) => {
 
 // ui
 
-navbar({
+navbarShell({
   color: "primary",
   variant: "solid",
   links: ["/contacts", "/reports"],
