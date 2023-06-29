@@ -138,6 +138,7 @@ const styles = createStyles({
           right: "unset",
           bottom: "unset",
           transform: "translate(-50%, -50%)",
+          borderRadius: "var(--modal-dialog-radius)",
         },
       }),
     };
