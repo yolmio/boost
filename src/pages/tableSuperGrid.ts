@@ -71,10 +71,16 @@ function idColumn(
   const sqlName = tableModel.primaryKeyFieldName
     ? ident(tableModel.primaryKeyFieldName)
     : `id`;
+  const sortConfig = {
+    ascNode: "'1 → 9'",
+    descNode: "'9 → 1'",
+    ascText: "1 → 9",
+    descText: "9 → 1",
+  };
   return {
     displayName: idDisplayName,
     filter: { type: { type: "number" }, notNull: true },
-    sort: { ascNode: "'1 → 9'", descNode: "'9 → 1'" },
+    sort: sortConfig,
     initialWidth: 150,
     initiallyDisplaying: false,
     header: [
@@ -82,7 +88,7 @@ function idColumn(
         styles: sharedStyles.headerText,
         children: stringLiteral(idDisplayName),
       }),
-      columnPopover(index, startFixedColumns),
+      columnPopover(index, startFixedColumns, sortConfig),
       seperator(index, 50),
     ],
     cell: ({ value }) => value,

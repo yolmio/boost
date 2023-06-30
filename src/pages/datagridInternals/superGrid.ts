@@ -45,6 +45,13 @@ export interface ToolbarConfig {
     | { type: "href"; href: string };
 }
 
+export interface SortConfig {
+  ascNode: Node;
+  descNode: Node;
+  ascText: string;
+  descText: string;
+}
+
 export interface SuperGridColumn {
   queryGeneration?: BaseColumnQueryGeneration;
   viewStorageName: string;
@@ -56,10 +63,7 @@ export interface SuperGridColumn {
     type: FilterType;
     notNull: boolean;
   };
-  sort?: {
-    ascNode: Node;
-    descNode: Node;
-  };
+  sort?: SortConfig;
   keydownCellHandler?: ClientProcStatement[];
   keydownHeaderHandler?: ClientProcStatement[];
   cell: Cell;
@@ -162,7 +166,8 @@ const styles = createStyles({
     display: "flex",
     flexDirection: "column",
     zIndex: 100,
-    width: "100%",
+    minWidth: 192,
+    width: 192,
     border: "1px solid",
     borderColor: "divider",
   },
@@ -241,7 +246,11 @@ export function seperator(idx: number, minWidth?: number) {
 
 const popoverId = stringLiteral(getUniqueUiId());
 
-export function columnPopover(i: number, startFixedColumns: number) {
+export function columnPopover(
+  i: number,
+  startFixedColumns: number,
+  sort: SortConfig | undefined
+) {
   function updateBetweenColumns(before: string, after: string) {
     return modify(
       `update ui.column set ordering = ordering.new(${before}, ${after}) where id = ${i}`
@@ -291,42 +300,46 @@ export function columnPopover(i: number, startFixedColumns: number) {
             clickAway: [setScalar(`ui.dialog_open`, `false`)],
           },
           children: [
-            listItem({
-              on: {
-                click: [
-                  modify(
-                    `update ui.column set
+            sort
+              ? [
+                  listItem({
+                    on: {
+                      click: [
+                        modify(
+                          `update ui.column set
                       sort_index = case when sort_index is null then (select count(*) from ui.column where sort_index is not null) else sort_index end,
                       sort_asc = true
                     where id = ${i}`
-                  ),
-                  triggerQueryRefresh(),
-                ],
-              },
-              children: listItemButton({
-                variant: "plain",
-                color: "neutral",
-                children: "'Sort A-Z'",
-              }),
-            }),
-            listItem({
-              on: {
-                click: [
-                  modify(
-                    `update ui.column set
+                        ),
+                        triggerQueryRefresh(),
+                      ],
+                    },
+                    children: listItemButton({
+                      variant: "plain",
+                      color: "neutral",
+                      children: ["'Sort '", sort.ascNode],
+                    }),
+                  }),
+                  listItem({
+                    on: {
+                      click: [
+                        modify(
+                          `update ui.column set
                       sort_index = case when sort_index is null then (select count(*) from ui.column where sort_index is not null) else sort_index end,
                       sort_asc = false
                     where id = ${i}`
-                  ),
-                  triggerQueryRefresh(),
-                ],
-              },
-              children: listItemButton({
-                variant: "plain",
-                color: "neutral",
-                children: "'Sort Z-A'",
-              }),
-            }),
+                        ),
+                        triggerQueryRefresh(),
+                      ],
+                    },
+                    children: listItemButton({
+                      variant: "plain",
+                      color: "neutral",
+                      children: ["'Sort '", sort.descNode],
+                    }),
+                  }),
+                ]
+              : undefined,
             listItem({
               on: {
                 click: [

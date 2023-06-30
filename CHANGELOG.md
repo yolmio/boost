@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+Various datagrid improvents
 Add recent searches for `tableSearchDialog` and `multiTableSearchDialog`
 Add ability to pass field to `tableSearchDialog` and `multiTableSearchDialog`
 

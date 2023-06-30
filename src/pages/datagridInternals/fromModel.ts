@@ -1,9 +1,4 @@
-import {
-  Field,
-  UuidField,
-  VirtualField,
-  VirtualType,
-} from "../../modelTypes.js";
+import { Field, VirtualField, VirtualType } from "../../modelTypes.js";
 import { element } from "../../nodeHelpers.js";
 import {
   commitUiChanges,
@@ -21,11 +16,16 @@ import {
   columnPopover,
   FilterType,
   seperator,
+  SortConfig,
   SuperGridColumn,
 } from "./superGrid.js";
 import { styles as sharedStyles } from "./styles.js";
 import { SimpleColumn } from "./simpleDatagrid.js";
 import { normalizeCase, upcaseFirst } from "../../utils/inflectors.js";
+import { lazy } from "../../utils/memoize.js";
+import { materialIcon } from "../../components/materialIcon.js";
+import { Styles } from "../../styleUtils.js";
+import { Style } from "../../styleTypes.js";
 
 export function filterTypeFromField(type: Field): FilterType {
   switch (type.type) {
@@ -247,6 +247,42 @@ export const dynamicBooleanCellKeydownHandler = (
   ]),
 ];
 
+const stringSortConfig: SortConfig = {
+  ascNode: `'A → Z'`,
+  descNode: `'Z → A'`,
+  ascText: `A → Z`,
+  descText: `Z → A`,
+};
+const numberSortConfig: SortConfig = {
+  ascNode: `'1 → 9'`,
+  descNode: `'9 → 1'`,
+  ascText: `1 → 9`,
+  descText: `9 → 1`,
+};
+const checkboxSortConfig = lazy((): SortConfig => {
+  const styles: Style = { ml: 1, display: "inline-flex" };
+  return {
+    ascNode: element("span", {
+      styles,
+      children: [
+        materialIcon("CheckBoxOutlined"),
+        `' → '`,
+        materialIcon("CheckBoxOutlineBlank"),
+      ],
+    }),
+    descNode: element("span", {
+      styles,
+      children: [
+        materialIcon("CheckBoxOutlineBlank"),
+        `' → '`,
+        materialIcon("CheckBoxOutlined"),
+      ],
+    }),
+    ascText: `☐ → ✓`,
+    descText: `✓ → ☐`,
+  };
+});
+
 export function columnFromField(
   table: string,
   field: Field,
@@ -308,6 +344,32 @@ export function columnFromField(
           " yet"
       );
   }
+  let sort: SortConfig | undefined;
+  if (!noSort) {
+    switch (field.type) {
+      case "Date":
+      case "Duration":
+      case "BigInt":
+      case "BigUint":
+      case "Int":
+      case "Uint":
+      case "SmallInt":
+      case "SmallUint":
+      case "TinyInt":
+      case "TinyUint":
+      case "Double":
+      case "Real":
+      case "Decimal":
+        sort = numberSortConfig;
+        break;
+      case "String":
+        sort = stringSortConfig;
+        break;
+      case "Bool":
+        sort = checkboxSortConfig();
+        break;
+    }
+  }
   return {
     displayName,
     keydownCellHandler: keydownHandler,
@@ -317,7 +379,7 @@ export function columnFromField(
           notNull: field.notNull ?? false,
         }
       : undefined,
-    sort: !noSort ? { ascNode: `'A → Z'`, descNode: `'Z → A'` } : undefined,
+    sort,
     cell: fieldCell({ tableName: table, field, stringified: true }),
     initiallyDisplaying: true,
     initialWidth: getFieldCellWidth(field, table),
@@ -326,7 +388,7 @@ export function columnFromField(
         styles: sharedStyles.headerText,
         children: stringLiteral(displayName),
       }),
-      columnPopover(columnIndex, startFixedColumns),
+      columnPopover(columnIndex, startFixedColumns, sort),
       seperator(columnIndex, 50),
     ],
     queryGeneration: {
@@ -344,13 +406,31 @@ export function columnFromVirtual(
   columnIndex: number,
   startFixedColumns: number
 ): SuperGridColumn {
+  let sort: SortConfig | undefined;
+  switch (virtual.type.type) {
+    case "Date":
+    case "BigInt":
+    case "Int":
+    case "SmallInt":
+    case "Double":
+    case "Real":
+    case "Decimal":
+      sort = numberSortConfig;
+      break;
+    case "String":
+      sort = stringSortConfig;
+      break;
+    case "Bool":
+      sort = checkboxSortConfig();
+      break;
+  }
   return {
     displayName: virtual.name.displayName,
     filter: {
       type: filterTypeFromVirtual(virtual.type),
       notNull: false,
     },
-    sort: { ascNode: `'A → Z'`, descNode: `'Z → A'` },
+    sort,
     cell: ({ value }) => value,
     initiallyDisplaying: true,
     initialWidth: 250,
@@ -359,7 +439,7 @@ export function columnFromVirtual(
         styles: sharedStyles.headerText,
         children: stringLiteral(virtual.name.displayName),
       }),
-      columnPopover(columnIndex, startFixedColumns),
+      columnPopover(columnIndex, startFixedColumns, sort),
       seperator(columnIndex, 50),
     ],
     queryGeneration: {
@@ -484,7 +564,6 @@ export function simpleColumnFromVirtual(
         styles: sharedStyles.headerText,
         children: stringLiteral(virtual.name.displayName),
       }),
-      columnPopover(columnIndex, startFixedColumns),
       seperator(columnIndex, 50),
     ],
     queryGeneration: {

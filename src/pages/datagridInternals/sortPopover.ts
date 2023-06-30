@@ -1,4 +1,4 @@
-import { each, element, ifNode, state } from "../../nodeHelpers.js";
+import { each, element, ifNode, state, switchNode } from "../../nodeHelpers.js";
 import { if_, modify, scalar, setScalar } from "../../procHelpers.js";
 import { stringLiteral } from "../../utils/sqlHelpers.js";
 import { button } from "../../components/button.js";
@@ -10,8 +10,8 @@ import { typography } from "../../components/typography.js";
 import { divider } from "../../components/divider.js";
 import { styles as sharedStyles } from "./styles.js";
 import { createStyles } from "../../styleUtils.js";
-import { SuperGridColumn } from "./superGrid.js";
-import { Node } from "../../nodeTypes.js";
+import { SortConfig, SuperGridColumn } from "./superGrid.js";
+import { Node, SwitchNodeCase } from "../../nodeTypes.js";
 
 const styles = createStyles({
   columns: {
@@ -21,17 +21,34 @@ const styles = createStyles({
 });
 
 export function sortPopover(columns: SuperGridColumn[]) {
+  const sorts = new Map<SortConfig, number[]>();
   const options: Node[] = [];
   for (let i = 0; i < columns.length; i++) {
     const col = columns[i];
-    if (col.displayName) {
+    if (col.displayName && col.sort) {
+      if (!sorts.has(col.sort)) {
+        sorts.set(col.sort, []);
+      }
+      sorts.get(col.sort)!.push(i);
       options.push(
         element("option", {
-          props: { value: `${i}` },
+          props: { value: i.toString() },
           children: stringLiteral(col.displayName!),
         })
       );
     }
+  }
+  const ascNodeCases: SwitchNodeCase[] = [];
+  const descNodeCases: SwitchNodeCase[] = [];
+  for (const [sort, indices] of sorts.entries()) {
+    ascNodeCases.push({
+      condition: `column_record.id in (${indices.join(", ")})`,
+      node: stringLiteral(sort.ascText),
+    });
+    descNodeCases.push({
+      condition: `column_record.id in (${indices.join(", ")})`,
+      node: stringLiteral(sort.descText),
+    });
   }
   return [
     typography({
@@ -92,11 +109,11 @@ export function sortPopover(columns: SuperGridColumn[]) {
             children: [
               element("option", {
                 props: { value: "'asc'" },
-                children: "'A-Z'",
+                children: { t: "Switch", cases: ascNodeCases },
               }),
               element("option", {
                 props: { value: "'desc'" },
-                children: "'Z-A'",
+                children: { t: "Switch", cases: descNodeCases },
               }),
             ],
           }),

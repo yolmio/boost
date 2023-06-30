@@ -1,11 +1,16 @@
 import { each, element, ifNode, state, switchNode } from "../../nodeHelpers.js";
 import { Node } from "../../nodeTypes.js";
 import {
+  abortTask,
+  commitUiChanges,
   debugExpr,
+  delay,
+  exit,
   if_,
   modify,
   scalar,
   setScalar,
+  spawn,
 } from "../../procHelpers.js";
 import { model } from "../../singleton.js";
 import { stringLiteral } from "../../utils/sqlHelpers.js";
@@ -361,44 +366,102 @@ function columnFilter(
   if (columns.some((col) => col.filter?.type?.type === "string")) {
     switchCases.push([
       `dt.is_string_filter_op(${filterTerm}.op)`,
-      input({
-        size: "sm",
-        slots: {
-          input: {
-            props: { value: `${filterTerm}.value_1` },
-            on: {
-              input: [
-                modify(
-                  `update ui.filter_term set value_1 = target_value where id = ${filterTerm}.id`
-                ),
-              ],
-              blur: [triggerQueryRefresh()],
+      state({
+        procedure: [
+          scalar(`debounce_handle`, { type: "BigUint" }),
+          scalar(`did_trigger_refresh`, `false`),
+        ],
+        children: input({
+          size: "sm",
+          slots: {
+            input: {
+              props: { value: `${filterTerm}.value_1` },
+              on: {
+                input: [
+                  modify(
+                    `update ui.filter_term set value_1 = target_value where id = ${filterTerm}.id`
+                  ),
+                  setScalar(`did_trigger_refresh`, `false`),
+                  if_("debounce_handle is not null", [
+                    abortTask(`debounce_handle`),
+                  ]),
+                  spawn({
+                    detached: true,
+                    handleScalar: "task_handle",
+                    statements: [
+                      delay(`500`),
+                      triggerQueryRefresh(),
+                      setScalar(`did_trigger_refresh`, `true`),
+                      setScalar(`debounce_handle`, `null`),
+                      commitUiChanges(),
+                    ],
+                  }),
+                  setScalar(`debounce_handle`, `task_handle`),
+                ],
+                blur: [
+                  if_(`did_trigger_refresh`, [exit()]),
+                  if_("debounce_handle is not null", [
+                    abortTask(`debounce_handle`),
+                    setScalar(`debounce_handle`, `null`),
+                  ]),
+                  triggerQueryRefresh(),
+                ],
+              },
             },
           },
-        },
+        }),
       }),
     ]);
   }
   if (columns.some((col) => col.filter?.type?.type === "number")) {
     switchCases.push([
       `dt.is_number_filter_op(${filterTerm}.op)`,
-      input({
-        size: "sm",
-        slots: {
-          input: {
-            props: { value: `${filterTerm}.value_1` },
-            on: {
-              input: [
-                if_("literal.number(target_value) is not null", [
-                  modify(
-                    `update ui.filter_term set value_1 = target_value where id = ${filterTerm}.id`
-                  ),
-                ]),
-              ],
-              blur: [triggerQueryRefresh()],
+      state({
+        procedure: [
+          scalar(`debounce_handle`, { type: "BigUint" }),
+          scalar(`did_trigger_refresh`, `false`),
+        ],
+        children: input({
+          size: "sm",
+          slots: {
+            input: {
+              props: { value: `${filterTerm}.value_1` },
+              on: {
+                input: [
+                  if_("literal.number(target_value) is not null", [
+                    modify(
+                      `update ui.filter_term set value_1 = target_value where id = ${filterTerm}.id`
+                    ),
+                    setScalar(`did_trigger_refresh`, `false`),
+                    if_("debounce_handle is not null", [
+                      abortTask(`debounce_handle`),
+                    ]),
+                    spawn({
+                      detached: true,
+                      handleScalar: "task_handle",
+                      statements: [
+                        delay(`500`),
+                        triggerQueryRefresh(),
+                        setScalar(`did_trigger_refresh`, `true`),
+                        setScalar(`debounce_handle`, `null`),
+                        commitUiChanges(),
+                      ],
+                    }),
+                    setScalar(`debounce_handle`, `task_handle`),
+                  ]),
+                ],
+                blur: [
+                  if_(`did_trigger_refresh`, [exit()]),
+                  if_("debounce_handle is not null", [
+                    abortTask(`debounce_handle`),
+                    setScalar(`debounce_handle`, `null`),
+                  ]),
+                  triggerQueryRefresh(),
+                ],
+              },
             },
           },
-        },
+        }),
       }),
     ]);
   }
@@ -540,7 +603,6 @@ function columnFilter(
           size: "sm",
           slots: { input: { props: { value: `value` } } },
           onChange: (value) => [
-            debugExpr(value),
             setScalar(`value`, value),
             modify(
               `update ui.filter_term set value_1 = sfn.parse_minutes_duration(${value}) where id = ${filterTerm}.id`
