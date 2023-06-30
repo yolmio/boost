@@ -203,54 +203,27 @@ navbarShell({
     tables: [
       {
         name: "employee",
-        displayValues: [
-          {
-            expr: "employee.title",
-            label: "Title",
-            type: { type: "String", maxLength: 2000 },
-          },
-        ],
+        displayValues: ["title"],
         icon: "Badge",
       },
       {
         name: "customer",
-        displayValues: [
-          {
-            expr: "customer.contact_name",
-            label: "Contact Name",
-            type: { type: "String", maxLength: 2000 },
-          },
-          {
-            expr: "customer.contact_title",
-            label: "Contact Title",
-            type: { type: "String", maxLength: 2000 },
-          },
-        ],
+        displayValues: ["contact_name", "contact_title"],
         icon: "Person",
       },
       {
         name: "supplier",
         icon: "LocalShipping",
-        displayValues: [
-          {
-            expr: "supplier.contact_name",
-            label: "Contact Name",
-            type: { type: "String", maxLength: 2000 },
-          },
-          {
-            expr: "supplier.contact_title",
-            label: "Contact Title",
-            type: { type: "String", maxLength: 2000 },
-          },
-        ],
+        displayValues: ["contact_name", "contact_title"],
       },
       {
         name: "product",
         icon: "LocalPizza",
         displayValues: [
           {
-            expr: "(select name from db.category where id = product.category)",
-            label: "Category",
+            expr: (record) =>
+              `(select name from db.category where id = ${record}.category)`,
+            name: "category",
             type: { type: "String", maxLength: 2000 },
           },
         ],

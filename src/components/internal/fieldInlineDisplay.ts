@@ -2,17 +2,22 @@ import { Field } from "../../modelTypes.js";
 import { element, state } from "../../nodeHelpers.js";
 import { scalar } from "../../procHelpers.js";
 import { model } from "../../singleton.js";
+import { createStyles } from "../../styleUtils.js";
 import { stringLiteral } from "../../utils/sqlHelpers.js";
-import { typography } from "../typography.js";
+
+const styles = createStyles({
+  link: {
+    color: "primary-500",
+    textDecoration: "none",
+    "&:hover": { textDecoration: "underline" },
+  },
+});
 
 export function inlineFieldDisplay(field: Field, expr: string) {
   switch (field.type) {
     case "Date": {
       const formatString = stringLiteral(field.formatString ?? "%-d %b %Y");
-      return typography({
-        level: "body1",
-        children: `format.date(record.${field.name.name}, ${formatString})`,
-      });
+      return `format.date(record.${field.name.name}, ${formatString})`;
     }
     case "ForeignKey": {
       const toTable = model.database.tables[field.table];
@@ -30,21 +35,14 @@ export function inlineFieldDisplay(field: Field, expr: string) {
       let innerDisplay;
       if (toTable.getHrefToRecord) {
         innerDisplay = element("a", {
-          styles: {
-            color: "primary-500",
-            textDecoration: "none",
-            "&:hover": { textDecoration: "underline" },
-          },
+          styles: styles.link,
           props: {
             href: toTable.getHrefToRecord(`record.${field.name.name}`),
           },
           children: `name`,
         });
       } else {
-        innerDisplay = typography({
-          level: "body1",
-          children: `name`,
-        });
+        innerDisplay = `name`;
       }
       return state({
         watch: [expr],
@@ -61,16 +59,10 @@ export function inlineFieldDisplay(field: Field, expr: string) {
       if (field.usage) {
         switch (field.usage.type) {
           case "Money": {
-            return typography({
-              level: "body1",
-              children: `format.currency(${expr}, 'usd')`,
-            });
+            return `format.currency(${expr}, 'usd')`;
           }
           case "Percentage": {
-            return typography({
-              level: "body1",
-              children: `format.percent(${expr})`,
-            });
+            return `format.percent(${expr})`;
           }
         }
       } else {
@@ -104,8 +96,5 @@ export function inlineFieldDisplay(field: Field, expr: string) {
       }
     }
   }
-  return typography({
-    level: "body1",
-    children: expr,
-  });
+  return expr;
 }

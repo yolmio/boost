@@ -1,3 +1,5 @@
+import { TableBuilder, addDeviceDatabaseTable } from "../modelHelpers.js";
+import { Table } from "../modelTypes.js";
 import {
   each,
   element,
@@ -11,6 +13,7 @@ import { Node } from "../nodeTypes.js";
 import {
   block,
   debugExpr,
+  debugQuery,
   exit,
   getBoundingClientRect,
   if_,
@@ -28,18 +31,20 @@ import {
 import { config, model, theme } from "../singleton.js";
 import { createStyles, cssVar } from "../styleUtils.js";
 import { SequentialIDGenerator } from "../utils/SequentialIdGenerator.js";
-import { pluralize } from "../utils/inflectors.js";
+import { normalizeCase, pluralize, upcaseFirst } from "../utils/inflectors.js";
 import { ident, stringLiteral } from "../utils/sqlHelpers.js";
 import {
   ClientProcStatement,
   FieldType,
   ProcTableField,
   RankedSearchTable,
+  SqlExpression,
 } from "../yom.js";
 import { checkbox } from "./checkbox.js";
 import { chip } from "./chip.js";
 import { divider } from "./divider.js";
 import { iconButton } from "./iconButton.js";
+import { inlineFieldDisplay } from "./internal/fieldInlineDisplay.js";
 import { materialIcon, MaterialIconOpts } from "./materialIcon.js";
 import { IconName } from "./materialIconNames.js";
 import { modal } from "./modal.js";
@@ -49,16 +54,25 @@ import { getUniqueUiId } from "./utils.js";
 // waiting to polish these
 
 export interface TableSearchDisplay {
-  expr: string;
+  expr: (record: string) => SqlExpression;
+  name: string;
+  label?: string;
+  type: FieldType;
+}
+
+interface PreparedTableSearchDisplay {
+  expr: (record: string) => SqlExpression;
+  name: string;
   label: string;
   type: FieldType;
+  display: (value: SqlExpression) => Node;
 }
 
 export interface TableSearchDialogOpts {
   open: string;
   onClose: ClientProcStatement[];
   table: string;
-  displayValues?: TableSearchDisplay[];
+  displayValues?: (string | TableSearchDisplay)[];
 }
 
 const styles = createStyles({
@@ -154,29 +168,9 @@ const styles = createStyles({
     borderWidth: "1px",
     borderStyle: "solid",
     cursor: "pointer",
-    '&[aria-selected="true"]': {
-      backgroundColor: cssVar(`palette-primary-50`),
-      borderColor: cssVar(`palette-primary-500`),
-      dark: {
-        backgroundColor: cssVar(`palette-primary-900`),
-      },
-      borderRadius: "10px",
-      borderWidth: "1px",
-      borderStyle: "solid",
-    },
-  },
-  multiTableOption: {
-    py: 1.5,
-    px: 3,
     display: "flex",
+    gap: 1,
     justifyContent: "space-between",
-    alignItems: "center",
-    listStyle: "none",
-    borderColor: "transparent",
-    borderBottomColor: cssVar(`palette-divider`),
-    borderWidth: "1px",
-    borderStyle: "solid",
-    cursor: "pointer",
     '&[aria-selected="true"]': {
       backgroundColor: cssVar(`palette-primary-50`),
       borderColor: cssVar(`palette-primary-500`),
@@ -191,6 +185,15 @@ const styles = createStyles({
   optionLabel: {
     fontSize: "md",
     fontWeight: "md",
+  },
+  optionLabelContainer: {
+    display: "flex",
+    flexDirection: "column",
+  },
+  optionLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: 2,
   },
   displayValues: {
     display: "flex",
@@ -209,14 +212,145 @@ const styles = createStyles({
   },
 });
 
+function prepareDisplayValue(
+  table: Table,
+  value: string | TableSearchDisplay
+): PreparedTableSearchDisplay {
+  if (typeof value === "string") {
+    const field = table.fields[value];
+    let type: FieldType;
+    switch (field.type) {
+      case "String":
+        type = { type: "String", maxLength: field.maxLength };
+        break;
+      case "Enum":
+        type = { type: "Enum", enum: field.enum };
+        break;
+      case "Tx":
+      case "ForeignKey":
+        type = { type: "BigUint" };
+        break;
+      case "Duration":
+        type = { type: field.backing };
+        break;
+      case "Custom":
+        throw new Error("Custom fields are not supported in tableSearchDialog");
+      default:
+        type = { type: field.type as any };
+        break;
+    }
+    return {
+      expr: (record) => `${record}.${value}`,
+      name: value,
+      label: field.name.displayName,
+      type,
+      display: (value) => inlineFieldDisplay(field, value),
+    };
+  } else {
+    return {
+      expr: value.expr,
+      name: value.name,
+      label: value.label ?? upcaseFirst(normalizeCase(value.name).join(" ")),
+      type: value.type,
+      display: (value) => value,
+    };
+  }
+}
+
+function addDisplayValueToTable(
+  table: TableBuilder,
+  v: PreparedTableSearchDisplay,
+  name: string
+) {
+  switch (v.type.type) {
+    case "String":
+      table.string(name, v.type.maxLength);
+      break;
+    case "Enum":
+      table.enum(name, v.type.enum);
+      break;
+    case "ForeignKey":
+    case "Tx":
+      table.bigUint(name);
+      break;
+    case "BigInt":
+      table.bigInt(name);
+      break;
+    case "BigUint":
+      table.bigUint(name);
+      break;
+    case "Int":
+      table.int(name);
+      break;
+    case "Uint":
+      table.uint(name);
+      break;
+    case "SmallInt":
+      table.smallInt(name);
+      break;
+    case "SmallUint":
+      table.smallUint(name);
+      break;
+    case "TinyInt":
+      table.tinyInt(name);
+      break;
+    case "TinyUint":
+      table.tinyUint(name);
+      break;
+    case "Bool":
+      table.bool(name);
+      break;
+    case "Double":
+      table.double(name);
+      break;
+    case "Real":
+      table.real(name);
+      break;
+    case "Date":
+      table.date(name);
+      break;
+    case "Ordering":
+      table.ordering(name);
+      break;
+    case "Time":
+      table.time(name);
+      break;
+    case "Uuid":
+      table.uuid(name);
+      break;
+    case "Decimal":
+      table.decimal(name, {
+        precision: v.type.precision,
+        scale: v.type.scale,
+      });
+      break;
+    case "Timestamp":
+      table.timestamp(name);
+      break;
+  }
+}
+
 export function tableSearchDialog(opts: TableSearchDialogOpts) {
-  // addDeviceDatabaseTable(`recent_${opts.table}_search`, (table) => {
-  //   table.string("value", 500);
-  // });
   const tableModel = model.database.tables[opts.table];
   if (!tableModel.recordDisplayName) {
     throw new Error("tableSearchDialog expects recordDisplayName to exist");
   }
+  if (!tableModel.getHrefToRecord) {
+    throw new Error("tableSearchDialog expects getHrefToRecord to exist");
+  }
+  const displayValues = opts.displayValues?.map((value) =>
+    prepareDisplayValue(tableModel, value)
+  );
+  addDeviceDatabaseTable(`recent_${opts.table}_search`, (table) => {
+    table.bigUint("recent_search_id").notNull();
+    table.string("recent_search_label", 500).notNull();
+    table.timestamp("recent_search_timestamp").notNull();
+    if (displayValues) {
+      for (const v of displayValues) {
+        addDisplayValueToTable(table, v, v.name);
+      }
+    }
+  });
   const nameExpr = tableModel.recordDisplayName.expr(
     ...tableModel.recordDisplayName.fields.map((f) => `record.${f}`)
   );
@@ -225,18 +359,28 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
   const optionId = (id: string) => `${inputId} || '-' || ${id}`;
   const fieldNameGenerator = new SequentialIDGenerator();
   const extraValuesIds: string[] = [];
-  const tableFields = opts.displayValues?.map((v): ProcTableField => {
+  const tableFields = displayValues?.map((v): ProcTableField => {
     const name = fieldNameGenerator.next();
     extraValuesIds.push(name);
     return { name, type: v.type };
   });
   let extraValuesSelect = ``;
-  if (opts.displayValues) {
+  let extraValuesFromDeviceSelect = ``;
+  let extraValuesToDeviceSelect = ``;
+  if (displayValues) {
     extraValuesSelect = `,`;
-    extraValuesSelect += opts.displayValues
+    extraValuesSelect += displayValues
       .map((v, id) => {
-        return v.expr + " as " + extraValuesIds[id];
+        return v.expr("record") + " as " + extraValuesIds[id];
       })
+      .join(",");
+    extraValuesFromDeviceSelect = `,`;
+    extraValuesFromDeviceSelect += displayValues
+      .map((v, id) => v.name + " as " + extraValuesIds[id])
+      .join(",");
+    extraValuesToDeviceSelect = `,`;
+    extraValuesToDeviceSelect += displayValues
+      .map((v, id) => extraValuesIds[id] + " as " + v.name)
       .join(",");
   }
   const searchConfig = tableModel.searchConfig;
@@ -259,6 +403,20 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
       ),
     ]);
   }
+  const updateRecentSearch = block([
+    scalar(`result_id`, `(select id from ui.result where active)`),
+    modify(
+      `delete from device.recent_${opts.table}_search where recent_search_id = result_id`
+    ),
+    modify(
+      `insert into device.recent_${opts.table}_search select id as recent_search_id, label as recent_search_label, current_timestamp() as recent_search_timestamp ${extraValuesToDeviceSelect} from ui.result where active`
+    ),
+    if_(`(select count(*) from device.recent_${opts.table}_search) >= 20`, [
+      modify(
+        `delete from device.recent_${opts.table}_search where recent_search_id = (select recent_search_id from device.recent_${opts.table}_search order by recent_search_timestamp asc limit 1)`
+      ),
+    ]),
+  ]);
   return modal({
     open: opts.open,
     onClose: opts.onClose,
@@ -279,22 +437,27 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
                   {
                     name: "label",
                     type: { type: "String", maxLength: 1000 },
+                    notNull: true,
                   },
-                  { name: "id", type: { type: "BigInt" } },
-                  { name: "index", type: { type: "BigInt" } },
-                  { name: "active", type: { type: "Bool" } },
+                  { name: "id", type: { type: "BigInt" }, notNull: true },
+                  { name: "index", type: { type: "BigInt" }, notNull: true },
+                  { name: "active", type: { type: "Bool" }, notNull: true },
+                  { name: "is_recent", type: { type: "Bool" }, notNull: true },
                   ...(tableFields ?? []),
                 ]),
                 if_(
                   `trim(query) = ''`,
-                  modify(`insert into result
-                select
-                  ${nameExpr} as label, 
-                  rank() over () = 1 as active,
-                  rank() over () as index,
-                  record.id as id ${extraValuesSelect}
-                from db.${opts.table} as record
-                limit 15`),
+                  modify(
+                    `insert into result select
+                        recent_search_timestamp = (select max(recent_search_timestamp) from device.recent_${opts.table}_search) as active,
+                        recent_search_id as id,
+                        recent_search_label as label,
+                        rank() over (order by recent_search_timestamp desc) as index,
+                        true as is_recent
+                        ${extraValuesFromDeviceSelect}
+                      from device.recent_${opts.table}_search
+                      order by recent_search_timestamp desc`
+                  ),
                   [
                     search({
                       query: "query",
@@ -317,6 +480,7 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
                   ${nameExpr} as label, 
                   rank() over () = 1 as active,
                   rank() over () as index,
+                  false as is_recent,
                   record_id as id ${extraValuesSelect}
                 from tmp_result
                 join db.${opts.table} as record on record_id = id`),
@@ -374,12 +538,15 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
                             ),
                             if_(`event.key = 'Enter' or event.key = 'Tab'`, [
                               scalar(
-                                `id`,
+                                `result_id`,
                                 `(select id from ui.result where active)`
                               ),
-                              if_(`id is not null`, [
+                              if_(`result_id is not null`, [
                                 preventDefault(),
-                                navigate(`'/contacts/' || id`),
+                                updateRecentSearch,
+                                navigate(
+                                  tableModel.getHrefToRecord!("result_id")
+                                ),
                                 ...closeModal,
                               ]),
                               exit(),
@@ -471,44 +638,84 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
                       styles: styles.option,
                       on: {
                         click: [
-                          navigate(`'/contacts/' || record.id`),
+                          updateRecentSearch,
+                          navigate(tableModel.getHrefToRecord!(`record.id`)),
                           ...closeModal,
                         ],
                       },
                       children: [
-                        element("span", {
-                          styles: styles.optionLabel,
-                          children: `record.label`,
+                        element("div", {
+                          styles: styles.optionLeft,
+                          children: [
+                            ifNode(
+                              `record.is_recent`,
+                              materialIcon({
+                                name: "History",
+                                fontSize: "xl2",
+                              })
+                            ),
+                            element("div", {
+                              styles: styles.optionLabelContainer,
+                              children: [
+                                element("span", {
+                                  styles: styles.optionLabel,
+                                  children: `record.label`,
+                                }),
+                                displayValues
+                                  ? element("div", {
+                                      styles: styles.displayValues,
+                                      children: displayValues.map((v, i) => {
+                                        const value =
+                                          `record.` + extraValuesIds[i];
+                                        return ifNode(
+                                          value + ` is not null`,
+                                          element("div", {
+                                            styles: styles.optionExtraData,
+                                            children: [
+                                              element("p", {
+                                                styles:
+                                                  styles.optionExtraDataLabel,
+                                                children: `${stringLiteral(
+                                                  v.label
+                                                )} || ':'`,
+                                              }),
+                                              element("span", {
+                                                children: v.display(value),
+                                              }),
+                                            ],
+                                          })
+                                        );
+                                      }),
+                                    })
+                                  : undefined,
+                              ],
+                            }),
+                          ],
                         }),
-                        opts.displayValues
-                          ? element("div", {
-                              styles: styles.displayValues,
-                              children: opts.displayValues.map((v, i) => {
-                                const value = `record.` + extraValuesIds[i];
-                                return ifNode(
-                                  value + ` is not null`,
-                                  element("div", {
-                                    styles: styles.optionExtraData,
-                                    children: [
-                                      element("p", {
-                                        styles: styles.optionExtraDataLabel,
-                                        children: `${stringLiteral(
-                                          v.label
-                                        )} || ':'`,
-                                      }),
-                                      element("span", {
-                                        children: value,
-                                      }),
-                                    ],
-                                  })
-                                );
-                              }),
-                            })
-                          : undefined,
+                        ifNode(
+                          `record.is_recent`,
+                          iconButton({
+                            variant: "plain",
+                            children: materialIcon("Close"),
+                            size: "sm",
+                            on: {
+                              click: [
+                                stopPropagation(),
+                                modify(
+                                  `delete from device.recent_${opts.table}_search where recent_search_id = record.id`
+                                ),
+                                modify(
+                                  `delete from ui.result where id = record.id`
+                                ),
+                              ],
+                            },
+                          })
+                        ),
                       ],
                     }),
                   }),
                 }),
+                ,
               ],
             }),
           }),
@@ -519,13 +726,22 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
 
 export interface MultiTableSearchDialogTable {
   name: string;
-  displayValues?: TableSearchDisplay[];
+  displayValues?: (string | TableSearchDisplay)[];
   icon: IconName;
 }
 
-function calcMultiTable(tables: MultiTableSearchDialogTable[]) {
+interface PreparedMultiTableSearchDialogTable {
+  name: string;
+  tableModel: Table;
+  icon: IconName;
+  displayValues?: PreparedTableSearchDisplay[];
+}
+
+function calcMultiTable(tables: PreparedMultiTableSearchDialogTable[]) {
   const extraRecordFields: ProcTableField[] = [];
   let extraValuesSelect = "";
+  let extraValuesFromDeviceSelect = ``;
+  let extraValuesToDeviceSelect = ``;
   let joinToTables = "";
   const tableConfigs: RankedSearchTable[] = [];
   const fieldNameGenerator = new SequentialIDGenerator();
@@ -556,7 +772,9 @@ function calcMultiTable(tables: MultiTableSearchDialogTable[]) {
         const name = fieldNameGenerator.next();
         displayValueNames[table.name].push(name);
         extraRecordFields.push({ name, type: value.type });
-        extraValuesSelect += `, ${value.expr} as ${name}`;
+        extraValuesSelect += `, ${value.expr(table.name)} as ${name}`;
+        extraValuesFromDeviceSelect += `, ${table.name}_field_${value.name} as ${name}`;
+        extraValuesToDeviceSelect += `, ${name} as ${table.name}_field_${value.name}`;
       }
     }
     joinToTables += `left join db.${ident(
@@ -586,6 +804,8 @@ function calcMultiTable(tables: MultiTableSearchDialogTable[]) {
     labelExpr,
     urlExpr,
     displayValueNames,
+    extraValuesFromDeviceSelect,
+    extraValuesToDeviceSelect,
   };
 }
 
@@ -600,15 +820,60 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
   const listboxId = stringLiteral(getUniqueUiId());
   const containerId = stringLiteral(getUniqueUiId());
   const optionId = (id: string) => `${inputId} || '-' || ${id}`;
+  const tables = opts.tables.map((t): PreparedMultiTableSearchDialogTable => {
+    const tableModel = model.database.tables[t.name];
+    return {
+      name: t.name,
+      icon: t.icon,
+      tableModel,
+      displayValues: t.displayValues?.map((v) =>
+        prepareDisplayValue(tableModel, v)
+      ),
+    };
+  });
+  addDeviceDatabaseTable("recent_multi_table_search", (table) => {
+    table.bigUint("recent_search_id").notNull();
+    table.string("recent_search_table", 200).notNull();
+    table.string("recent_search_label", 500).notNull();
+    table.timestamp("recent_search_timestamp").notNull();
+    for (const tableOpts of tables) {
+      if (tableOpts.displayValues) {
+        for (const v of tableOpts.displayValues) {
+          addDisplayValueToTable(table, v, tableOpts.name + "_field_" + v.name);
+        }
+      }
+    }
+  });
   const {
     extraRecordFields,
     extraValuesSelect,
+    extraValuesFromDeviceSelect,
+    extraValuesToDeviceSelect,
     joinToTables,
     tableConfigs,
     labelExpr,
     displayValueNames,
     urlExpr,
-  } = calcMultiTable(opts.tables);
+  } = calcMultiTable(tables);
+  const updateRecentSearch = block([
+    scalar(`result_id`, `(select id from ui.result where active)`),
+    modify(
+      `delete from device.recent_multi_table_search where recent_search_id = result_id`
+    ),
+    modify(
+      `insert into device.recent_multi_table_search
+        select id as recent_search_id,
+        label as recent_search_label,
+        cast(table as string) as recent_search_table,
+        current_timestamp() as recent_search_timestamp
+        ${extraValuesToDeviceSelect} from ui.result where active`
+    ),
+    if_(`(select count(*) from device.recent_multi_table_search) >= 20`, [
+      modify(
+        `delete from device.recent_multi_table_search where recent_search_id = (select recent_search_id from device.recent_multi_table_search order by recent_search_timestamp asc limit 1)`
+      ),
+    ]),
+  ]);
   function scrollToItem(alignToTop: boolean) {
     return block([
       getBoundingClientRect(containerId, `container_rect`),
@@ -653,42 +918,64 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
                   {
                     name: "label",
                     type: { type: "String", maxLength: 1000 },
+                    notNull: true,
                   },
-                  { name: "id", type: { type: "BigInt" } },
+                  { name: "id", type: { type: "BigInt" }, notNull: true },
                   {
                     name: "table",
                     type: { type: "Enum", enum: "sys_db_table" },
+                    notNull: true,
                   },
-                  { name: "index", type: { type: "BigInt" } },
-                  { name: "active", type: { type: "Bool" } },
+                  { name: "index", type: { type: "BigInt" }, notNull: true },
+                  { name: "active", type: { type: "Bool" }, notNull: true },
+                  { name: "is_recent", type: { type: "Bool" }, notNull: true },
                   ...extraRecordFields,
                 ]),
-                if_(`trim(query) != ''`, [
-                  search({
-                    query: "query",
-                    resultTable: `tmp_result`,
-                    limit: `20`,
-                    config: {
-                      tokenizer: {
-                        splitter: { type: "Alphanumeric" },
-                        filters: [{ type: "Lowercase" }],
+                if_(
+                  `trim(query) = ''`,
+                  [
+                    modify(
+                      `insert into result select
+                        recent_search_timestamp = (select max(recent_search_timestamp) from device.recent_multi_table_search) as active,
+                        recent_search_id as id,
+                        recent_search_label as label,
+                        rank() over (order by recent_search_timestamp desc) as index,
+                        cast(recent_search_table as enums.sys_db_table) as table,
+                        true as is_recent
+                        ${extraValuesFromDeviceSelect}
+                      from device.recent_multi_table_search
+                      where try_cast(recent_search_table as enums.sys_db_table) is not null
+                      order by recent_search_timestamp desc`
+                    ),
+                  ],
+                  [
+                    search({
+                      query: "query",
+                      resultTable: `tmp_result`,
+                      limit: `20`,
+                      config: {
+                        tokenizer: {
+                          splitter: { type: "Alphanumeric" },
+                          filters: [{ type: "Lowercase" }],
+                        },
+                        style: {
+                          type: "Fuzzy",
+                          ...config.defaultFuzzyConfig,
+                        },
+                        tables: tableConfigs,
                       },
-                      style: {
-                        type: "Fuzzy",
-                        ...config.defaultFuzzyConfig,
-                      },
-                      tables: tableConfigs,
-                    },
-                  }),
-                  modify(`insert into result
+                    }),
+                    modify(`insert into result
                 select
-                  ${labelExpr} as label, 
+                  ${labelExpr} as label,
                   rank() over () = 1 as active,
                   rank() over () as index,
+                  false as is_recent,
                   table,
                   record_id as id ${extraValuesSelect}
                 from tmp_result ${joinToTables}`),
-                ]),
+                  ]
+                ),
               ],
               children: [
                 eventHandlers({
@@ -746,6 +1033,7 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
                               ),
                               if_(`record.id is not null`, [
                                 preventDefault(),
+                                updateRecentSearch,
                                 navigate(urlExpr),
                                 ...closeModal,
                               ]),
@@ -894,71 +1182,117 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
                             "aria-selected": `record.active`,
                             tabIndex: "0",
                           },
-                          styles: styles.multiTableOption,
+                          styles: styles.option,
                           on: {
-                            click: [navigate(urlExpr), ...closeModal],
+                            click: [
+                              navigate(urlExpr),
+                              updateRecentSearch,
+                              ...closeModal,
+                            ],
                           },
                           children: [
                             element("div", {
+                              styles: styles.optionLeft,
                               children: [
-                                element("span", {
-                                  styles: styles.optionLabel,
-                                  children: `record.label`,
-                                }),
-                                switchNode(
-                                  ...opts.tables
-                                    .filter((t) => t.displayValues)
-                                    .map((t) => {
-                                      const displayValueIds =
-                                        displayValueNames[t.name];
-                                      return [
-                                        `record.table = ${stringLiteral(
-                                          t.name
-                                        )}`,
-                                        element("div", {
-                                          styles: styles.displayValues,
-                                          children: t.displayValues!.map(
-                                            (v, i) => {
-                                              const value =
-                                                `record.` + displayValueIds[i];
-                                              return ifNode(
-                                                value + ` is not null`,
-                                                element("div", {
-                                                  styles:
-                                                    styles.optionExtraData,
-                                                  children: [
-                                                    element("p", {
+                                ifNode(
+                                  `record.is_recent`,
+                                  materialIcon({
+                                    name: "History",
+                                    fontSize: "xl2",
+                                  })
+                                ),
+                                element("div", {
+                                  styles: styles.optionLabelContainer,
+                                  children: [
+                                    element("span", {
+                                      styles: styles.optionLabel,
+                                      children: `record.label`,
+                                    }),
+                                    switchNode(
+                                      ...tables
+                                        .filter((t) => t.displayValues)
+                                        .map((t) => {
+                                          const displayValueIds =
+                                            displayValueNames[t.name];
+                                          return [
+                                            `record.table = ${stringLiteral(
+                                              t.name
+                                            )}`,
+                                            element("div", {
+                                              styles: styles.displayValues,
+                                              children: t.displayValues!.map(
+                                                (v, i) => {
+                                                  const value =
+                                                    `record.` +
+                                                    displayValueIds[i];
+                                                  return ifNode(
+                                                    value + ` is not null`,
+                                                    element("div", {
                                                       styles:
-                                                        styles.optionExtraDataLabel,
-                                                      children: `${stringLiteral(
-                                                        v.label
-                                                      )} || ':'`,
-                                                    }),
-                                                    element("span", {
-                                                      children: value,
-                                                    }),
-                                                  ],
-                                                })
-                                              );
-                                            }
-                                          ),
-                                        }),
-                                      ] as [string, Node];
-                                    })
+                                                        styles.optionExtraData,
+                                                      children: [
+                                                        element("p", {
+                                                          styles:
+                                                            styles.optionExtraDataLabel,
+                                                          children: `${stringLiteral(
+                                                            v.label
+                                                          )} || ':'`,
+                                                        }),
+                                                        element("span", {
+                                                          children: value,
+                                                        }),
+                                                      ],
+                                                    })
+                                                  );
+                                                }
+                                              ),
+                                            }),
+                                          ] as [string, Node];
+                                        })
+                                    ),
+                                  ],
+                                }),
+                              ],
+                            }),
+                            element("div", {
+                              styles: {
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 0.5,
+                              },
+                              children: [
+                                switchNode(
+                                  ...opts.tables.map((t) => {
+                                    return [
+                                      `record.table = ${stringLiteral(t.name)}`,
+                                      materialIcon({
+                                        name: t.icon,
+                                        fontSize: "xl",
+                                      }),
+                                    ] as [string, Node];
+                                  })
+                                ),
+                                ifNode(
+                                  `record.is_recent`,
+                                  iconButton({
+                                    variant: "plain",
+                                    children: materialIcon("Close"),
+                                    size: "sm",
+                                    on: {
+                                      click: [
+                                        stopPropagation(),
+                                        modify(
+                                          `delete from device.recent_multi_table_search where recent_search_id = record.id`
+                                        ),
+                                        modify(
+                                          `delete from ui.result where id = record.id`
+                                        ),
+                                      ],
+                                    },
+                                  })
                                 ),
                               ],
                             }),
-                            switchNode(
-                              ...opts.tables.map((t) => {
-                                return [
-                                  `record.table = ${stringLiteral(t.name)}`,
-                                  materialIcon({
-                                    name: t.icon,
-                                    fontSize: "xl",
-                                  }),
-                                ] as [string, Node];
-                              })
-                            ),
                           ],
                         }),
                       }),
@@ -984,13 +1318,13 @@ export interface RecordSelectDialog {
 }
 
 export function recordSelectDialog(opts: RecordSelectDialog) {
-  // addDeviceDatabaseTable(`recent_${opts.table}_search`, (table) => {
-  //   table.string("value", 500);
-  // });
   const tableModel = model.database.tables[opts.table];
   if (!tableModel.recordDisplayName) {
     throw new Error("tableSearchDialog expects recordDisplayName to exist");
   }
+  const displayValues = opts.displayValues?.map((value) =>
+    prepareDisplayValue(tableModel, value)
+  );
   const nameExpr = tableModel.recordDisplayName.expr(
     ...tableModel.recordDisplayName.fields.map((f) => `record.${f}`)
   );
@@ -999,15 +1333,15 @@ export function recordSelectDialog(opts: RecordSelectDialog) {
   const optionId = (id: string) => `${inputId} || '-' || ${id}`;
   const fieldNameGenerator = new SequentialIDGenerator();
   const extraValuesIds: string[] = [];
-  const tableFields = opts.displayValues?.map((v): ProcTableField => {
+  const tableFields = displayValues?.map((v): ProcTableField => {
     const name = fieldNameGenerator.next();
     extraValuesIds.push(name);
     return { name, type: v.type };
   });
   let extraValuesSelect = ``;
-  if (opts.displayValues) {
+  if (displayValues) {
     extraValuesSelect = `,`;
-    extraValuesSelect += opts.displayValues
+    extraValuesSelect += displayValues
       .map((v, id) => {
         return v.expr + " as " + extraValuesIds[id];
       })
@@ -1257,10 +1591,10 @@ export function recordSelectDialog(opts: RecordSelectDialog) {
                         styles: styles.optionLabel,
                         children: `search_record.label`,
                       }),
-                      opts.displayValues
+                      displayValues
                         ? element("div", {
                             styles: { display: "flex", gap: 1 },
-                            children: opts.displayValues.map((v, i) => {
+                            children: displayValues.map((v, i) => {
                               const value =
                                 `search_record.` + extraValuesIds[i];
                               return ifNode(
