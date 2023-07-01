@@ -81,7 +81,7 @@
     "csstype": "=3.1.2",
     "node-fetch": "=3.3.1",
     "toposort": "=2.0.2",
-    "tsx": "=3.12.7"
+    "bun": "^0.6.12"
   },
   "devDependencies": {
     "@types/toposort": "=2.0.3",

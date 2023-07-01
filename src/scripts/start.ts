@@ -70,7 +70,7 @@ try {
   const cmdPath = yolmPath();
   handle = spawn(cmdPath, runArgs, {
     detached: false,
-    stdio: [process.stdin, process.stdout, process.stderr],
+    stdio: "inherit",
     env: {
       ...process.env,
       RUST_MIN_STACK: "10000000",
@@ -113,7 +113,7 @@ const sendModelPath = path.join(
   "sendModel.js"
 );
 
-spawn("tsx", ["watch", "--clear-screen=false", sendModelPath], {
+spawn("bun", ["--watch", sendModelPath], {
   stdio: "inherit",
   shell: true,
 });
