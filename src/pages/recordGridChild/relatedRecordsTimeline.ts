@@ -418,15 +418,6 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                   const override: AutoLabelOnLeftFieldOverride = {
                     initialValue: recordHelper.field(field.name.name),
                   };
-                  if (field.type === "ForeignKey") {
-                    const otherTable = model.database.tables[field.table];
-                    if (otherTable.recordDisplayName) {
-                      // override.comboboxInitialInputText = recordHelper
-                      //   .field(
-                      //     `${field.name.name}_name`,
-                      //   );
-                    }
-                  }
                   fieldOverrides[field.name.name] = override;
                 }
                 return {
@@ -606,7 +597,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                         };
                         withValues[foreignKeyField.name.name] = ctx.recordId;
                       }
-                      const ignoreFields = Object.values(withValues);
+                      const ignoreFields = Object.keys(withValues);
                       return insertDialog({
                         open: `ui.adding_${i}`,
                         onClose: [setScalar(`ui.adding_${i}`, `false`)],
