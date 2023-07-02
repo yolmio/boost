@@ -72,7 +72,7 @@ export function writeAppModelToDisk(model: Model) {
 
 export function runScript(name: string) {
   spawnSync(yolmPath(), ["script", name], {
-    stdio: [process.stdin, process.stdout, process.stderr],
+    stdio: "inherit",
     env: {
       ...process.env,
       RUST_MIN_STACK: "10000000",
