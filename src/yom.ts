@@ -4,12 +4,7 @@
 export interface Model {
   locale: Locale;
   name: string;
-  displayName: string;
-  shortDisplayName?: string;
-  description: string;
-  pwaThemeColor: string;
-  pwaBackgroundColor: string;
-  pwaIcons?: PwaIcon[];
+  pwaConfig: PwaConfig;
   /** Where and how queries and transactions run against the database */
   dbExecutionMode: DbExecutionMode;
   collation: Collation;
@@ -28,6 +23,22 @@ export interface Model {
   api?: AppApi;
   /** @private */
   internalLogicTests?: LogicTest[];
+}
+
+export interface PwaConfig {
+  name: string;
+  display: string;
+  shortName?: string;
+  description?: string;
+  themeColor?: string;
+  backgroundColor?: string;
+  icons?: PwaIcon[];
+}
+
+export interface PwaIcon {
+  assetName: string;
+  sizes: string;
+  iconType: string;
 }
 
 export type Locale = "en_us";
@@ -51,12 +62,6 @@ export interface Enum {
   name: string;
   renameFrom?: string;
   values: EnumValue[];
-}
-
-export interface PwaIcon {
-  hash: string;
-  sizes: string;
-  iconType: string;
 }
 
 export type DbExecutionMode =

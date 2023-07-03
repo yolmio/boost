@@ -7,10 +7,10 @@ import { ident, stringLiteral } from "./utils/sqlHelpers.js";
 
 export const model: BoostModel = {
   name: "please-rename",
-  displayName: "boost",
-  description: "",
-  pwaBackgroundColor: "#fff",
-  pwaThemeColor: "#fff",
+  pwaConfig: {
+    name: "Temporary name",
+    display: "minimal-ui",
+  },
   dbRunMode: "BrowserSync",
   autoTrim: "None",
   collation: "NoCase",
