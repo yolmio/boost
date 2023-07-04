@@ -1,7 +1,7 @@
-import { theme } from "../singleton.js";
-import { element, ifNode } from "../nodeHelpers.js";
-import type { ElementNode, Node } from "../nodeTypes.js";
-import { Style, StyleObject } from "../styleTypes.js";
+import { model } from "../singleton.js";
+import { ifNode } from "../nodeHelpers.js";
+import type { Node } from "../nodeTypes.js";
+import { StyleObject } from "../styleTypes.js";
 import { Variant } from "../theme.js";
 import { createStyles, cssVar, getVariantStyle } from "../styleUtils.js";
 import {
@@ -55,7 +55,7 @@ export const styles = createStyles({
       fontFamily: cssVar(`font-family-body`),
       fontWeight: cssVar(`font-weight-md`),
       lineHeight: 1,
-      "&:focus-visible": theme.focus.default,
+      "&:focus-visible": model.theme.focus.default,
       "&:hover": getVariantStyle(variant, color, "hover"),
       "&:active": getVariantStyle(variant, color, "active"),
       ...getVariantStyle(variant, color),

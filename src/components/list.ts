@@ -1,4 +1,4 @@
-import { theme } from "../singleton.js";
+import { model } from "../singleton.js";
 import type { Node } from "../nodeTypes.js";
 import { StyleObject } from "../styleTypes.js";
 import { Variant } from "../theme.js";
@@ -161,7 +161,7 @@ export const styles = createStyles({
         marginRight: inRow ? "var(--list-gap)" : undefined,
         marginTop: inRow ? undefined : "var(--list-gap)",
       },
-      "&:focus-visible": theme.focus.default,
+      "&:focus-visible": model.theme.focus.default,
     };
   },
   listItemButton: (
@@ -171,7 +171,7 @@ export const styles = createStyles({
   ): StyleObject => {
     return {
       ...styles.baseListItemButton(inRow),
-      '[aria-selected="true"]': theme.focus.default,
+      '[aria-selected="true"]': model.theme.focus.default,
       "&:hover": getVariantStyle(variant, color, "hover"),
       "&:active": getVariantStyle(variant, color, "active"),
       ...getVariantStyle(variant, color),

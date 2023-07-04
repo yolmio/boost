@@ -155,7 +155,7 @@ function gridPart(
     return element("div", {
       styles: part.styles,
       children: checkbox({
-        label: stringLiteral(field.name.displayName),
+        label: stringLiteral(field.displayName),
         variant: "outlined",
         checked: formState.fields.get(part.field),
         props: { id },
@@ -185,7 +185,7 @@ function gridPart(
     children: [
       formLabel({
         props: { htmlFor: id },
-        children: stringLiteral(field.name.displayName),
+        children: stringLiteral(field.displayName),
       }),
       fieldValue,
     ],
@@ -197,7 +197,7 @@ function twoColumnSectionedUpdateFormContent(
   { table, formState, onSubmit, cancel }: UpdateFormContentOpts
 ): Node {
   const header = stringLiteral(
-    content.header ?? downcaseFirst(table.name.displayName)
+    content.header ?? downcaseFirst(table.displayName)
   );
   const sections: Node[] = [
     element("h1", {

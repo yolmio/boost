@@ -27,7 +27,7 @@ export function deleteRecordDialog(opts: DeleteRecordDialog) {
     onClose: opts.onClose,
     description:
       opts.confirmDescription ??
-      `'Are you sure you want to delete this ${table.name.displayName.toLowerCase()}?'`,
+      `'Are you sure you want to delete this ${table.displayName.toLowerCase()}?'`,
     onConfirm: (closeModal) => [
       setScalar(`dialog_waiting`, `true`),
       commitUiChanges(),

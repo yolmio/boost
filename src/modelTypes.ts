@@ -2,6 +2,7 @@ import type * as yom from "./yom.js";
 import type { Node } from "./nodeTypes.js";
 import type { Style } from "./styleTypes.js";
 import { ComponentOpts } from "./components/types.js";
+import { Theme } from "./theme.js";
 
 export interface ExtensibleObject {
   /**
@@ -11,17 +12,6 @@ export interface ExtensibleObject {
    * top of boost and build your own generators and functions without hassle.
    */
   ext: Record<string, any>;
-}
-
-export interface Names extends ExtensibleObject {
-  /** Name as it will be in the app spec */
-  name: string;
-  /** A name for displaying this object to the user */
-  displayName: string;
-  /** If used in a form control label, use this over the display name */
-  formControlLabelName?: string;
-  /** Name to use in dropdowns (for enum values) */
-  dropdownName?: string;
 }
 
 export interface Check {
@@ -88,7 +78,8 @@ export type FieldGroup = AddressFieldGroup | ImageSetFieldGroup;
 
 export interface Table extends ExtensibleObject {
   primaryKeyFieldName?: string;
-  name: Names;
+  name: string;
+  displayName: string;
   renameFrom?: string;
   fields: Record<string, Field>;
   virtualFields: Record<string, VirtualField>;
@@ -107,7 +98,8 @@ export interface Table extends ExtensibleObject {
 }
 
 export interface VirtualField {
-  name: Names;
+  name: string;
+  displayName: string;
   fields: string[];
   expr: (...fields: string[]) => string;
   type: VirtualType;
@@ -133,7 +125,8 @@ export interface FieldCheck {
 }
 
 export interface FieldBase extends ExtensibleObject {
-  name: Names;
+  name: string;
+  displayName: string;
   renameFrom?: string;
   notNull?: boolean;
   checks: FieldCheck[];
@@ -287,24 +280,24 @@ export type Field =
   | TxField;
 
 export interface Parameter {
-  name: Names;
+  name: string;
   notNull?: boolean;
   type: yom.FieldType;
 }
 
 export interface DecisionTableOutput {
-  name: Names;
+  name: string;
   collation?: yom.Collation;
   type: yom.ScalarType;
 }
 
 export interface DecisionTableVariable {
-  name: Names;
+  name: string;
   expr: string;
 }
 
 export interface DecisionTable {
-  name: Names;
+  name: string;
   description?: string;
   csv: string;
   setup?: yom.BasicStatement[];
@@ -313,7 +306,7 @@ export interface DecisionTable {
 }
 
 export interface ScalarFunction {
-  name: Names;
+  name: string;
   description?: string;
   procedure: yom.BasicStatement[];
   inputs: { [name: string]: Parameter };
@@ -321,7 +314,8 @@ export interface ScalarFunction {
 }
 
 export interface EnumValue {
-  name: Names;
+  name: string;
+  displayName: string;
   renameFrom?: string;
   description?: string;
 }
@@ -339,7 +333,8 @@ export interface EnumControlOpts extends ComponentOpts {
 }
 
 export interface Enum {
-  name: Names;
+  name: string;
+  displayName?: string;
   renameFrom?: string;
   values: Record<string, EnumValue>;
 
@@ -416,11 +411,29 @@ export interface DeviceDb {
   tables: Record<string, Table>;
 }
 
+/** How the display name derived from the sql name for tables, fields, etc. */
+export interface DisplayNameConfig {
+  default: (sqlName: string) => string;
+  table: (sqlName: string) => string;
+  field: (sqlName: string) => string;
+  virtual: (sqlName: string) => string;
+  enum: (sqlName: string) => string;
+  enumValue: (sqlName: string) => string;
+}
+
+export interface SearchConfig {
+  defaultFuzzyConfig: yom.FuzzyConfig;
+  defaultTokenizer: yom.Tokenizer;
+}
+
 /**
  * A model that is easier to code generate with and has more information.
  */
 export interface BoostModel {
   name: string;
+  theme: Theme;
+  displayNameConfig: DisplayNameConfig;
+  searchConfig: SearchConfig;
   pwaConfig: yom.PwaConfig;
   dbRunMode: yom.DbExecutionMode;
   collation: yom.Collation;

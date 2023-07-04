@@ -98,7 +98,7 @@ export function simpleDatagrid(config: SimpleGridConfig) {
         }),
         insertDialog({
           ...config.toolbar.add.opts,
-          table: config.tableModel.name.name,
+          table: config.tableModel.name,
           open: `adding`,
           onClose: [setScalar(`adding`, `false`)],
           content: {
@@ -115,7 +115,7 @@ export function simpleDatagrid(config: SimpleGridConfig) {
     });
   }
   let content: Node = simpleBaseDatagrid({
-    source: "db." + ident(config.tableModel.name.name),
+    source: "db." + ident(config.tableModel.name),
     idFieldSource: config.tableModel.primaryKeyFieldName
       ? ident(config.tableModel.primaryKeyFieldName)
       : "id",

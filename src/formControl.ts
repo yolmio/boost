@@ -112,7 +112,7 @@ export function getFormControl(field: Field, opts: FormControlOpts) {
         variant: "outlined",
         checked: opts.value,
         on: { checkboxChange: [opts.setValue(`not ${opts.value}`)] },
-        label: stringLiteral(field.name.displayName),
+        label: stringLiteral(field.displayName),
       });
     default:
       // throw new Error(

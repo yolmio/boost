@@ -5,8 +5,6 @@ import { DataGridStyles, Node } from "../../nodeTypes.js";
 import {
   block,
   commitTransaction,
-  debugExpr,
-  debugQuery,
   forEachQuery,
   forEachTable,
   if_,
@@ -18,7 +16,7 @@ import {
   table,
   while_,
 } from "../../procHelpers.js";
-import { config, model } from "../../singleton.js";
+import { model } from "../../singleton.js";
 import { ident, stringLiteral } from "../../utils/sqlHelpers.js";
 import {
   BaseStatement,
@@ -65,7 +63,8 @@ export function baseDatagrid(opts: BaseDatagridOpts) {
   if (opts.enableViews) {
     addViewTables();
     model.enums.datagrid_view_name.values[opts.datagridName] = {
-      name: config.createNameObject(opts.datagridName),
+      name: opts.datagridName,
+      displayName: model.displayNameConfig.default(opts.datagridName),
     };
   }
   addDgFilterOp();

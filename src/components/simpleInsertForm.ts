@@ -73,7 +73,7 @@ export function simpleInsertForm(opts: InsertFormOpts) {
                 return element("div", {
                   styles: p.styles,
                   children: checkbox({
-                    label: stringLiteral(field.name.displayName),
+                    label: stringLiteral(field.displayName),
                     variant: "outlined",
                     checked: formState.fields.get(p.field),
                     on: {
@@ -105,7 +105,7 @@ export function simpleInsertForm(opts: InsertFormOpts) {
                 children: [
                   formLabel({
                     props: { htmlFor: id },
-                    children: stringLiteral(field.name.displayName),
+                    children: stringLiteral(field.displayName),
                   }),
                   control,
                 ],
@@ -134,7 +134,7 @@ export function simpleInsertForm(opts: InsertFormOpts) {
             children: button({
               variant: "solid",
               color: "primary",
-              children: `'Add ${tableModel.name.displayName}'`,
+              children: `'Add ${tableModel.displayName}'`,
             }),
           }),
         ],

@@ -1,7 +1,7 @@
 import { checkbox } from "../../components/checkbox.js";
 import { recordSelectDialog } from "../../components/searchDialog.js";
 import { selectIcon } from "../../components/select.js";
-import { getUniqueUiId, mergeElEventHandlers } from "../../components/utils.js";
+import { mergeElEventHandlers } from "../../components/utils.js";
 import {
   Authorization,
   BoolField,
@@ -15,30 +15,22 @@ import {
 } from "../../modelTypes.js";
 import { element, ifNode, state } from "../../nodeHelpers.js";
 import {
-  addImage,
   commitUiChanges,
-  debugExpr,
   delay,
   exit,
   if_,
-  joinTasks,
   modify,
   preventDefault,
   scalar,
   serviceProc,
   setScalar,
   spawn,
-  throwError,
   try_,
 } from "../../procHelpers.js";
-import { model, theme } from "../../singleton.js";
-import {
-  createStyles,
-  displayNoneStyles,
-  visuallyHiddenStyles,
-} from "../../styleUtils.js";
+import { model } from "../../singleton.js";
+import { createStyles, visuallyHiddenStyles } from "../../styleUtils.js";
 import { enumLikeDisplayName } from "../../utils/enumLike.js";
-import { ident, stringLiteral } from "../../utils/sqlHelpers.js";
+import { stringLiteral } from "../../utils/sqlHelpers.js";
 import { doEdit } from "./editHelper.js";
 import { Cell, triggerQueryRefresh } from "./baseDatagrid.js";
 import { fieldEditor, fieldEditorEventHandlers } from "./editHelper.js";
@@ -46,9 +38,6 @@ import { styles as sharedStyles } from "./styles.js";
 import { ClientProcStatement, ServiceProcStatement } from "../../yom.js";
 import { button } from "../../components/button.js";
 import { materialIcon } from "../../components/materialIcon.js";
-import { modal, modalDialog } from "../../components/modal.js";
-import { iconButton } from "../../components/iconButton.js";
-import { divider } from "../../components/divider.js";
 import { imageDalog } from "../../components/imageDialog.js";
 import { getUploadStatements } from "../../utils/image.js";
 
@@ -89,7 +78,7 @@ const styles = createStyles({
     display: "flex",
   },
   uploadButton: () => {
-    return { mx: "auto", "&:focus-within": theme.focus.default };
+    return { mx: "auto", "&:focus-within": model.theme.focus.default };
   },
 });
 
@@ -104,11 +93,11 @@ export function foreignKeyCell(
   if (!toTable.searchConfig) {
     throw new Error(
       "No search config for table " +
-        toTable.name.name +
+        toTable.name +
         " in trying to make datagrid cell for foreign key field " +
         opts.tableName +
         "." +
-        field.name.name +
+        field.name +
         "."
     );
   }
@@ -125,7 +114,7 @@ export function foreignKeyCell(
         procedure: [
           scalar(
             `text`,
-            `(select ${nameExpr} from db.${toTable.name.name} as r where id = try_cast(${props.value} as bigint))`
+            `(select ${nameExpr} from db.${toTable.name} as r where id = try_cast(${props.value} as bigint))`
           ),
         ],
         children: [
@@ -147,7 +136,7 @@ export function foreignKeyCell(
                     ...doEdit({
                       tableName: opts.tableName,
                       dbValue: id,
-                      fieldName: field.name.name,
+                      fieldName: field.name,
                       recordId: props.recordId,
                       resetValue: [],
                       beforeTransaction: opts.beforeEditTransaction,
@@ -161,7 +150,7 @@ export function foreignKeyCell(
                 modify(`update ui.editing_state set is_editing = false`),
                 modify(`update ui.focus_state set should_focus = true`),
               ],
-              table: toTable.name.name,
+              table: toTable.name,
             })
           ),
         ],
@@ -175,7 +164,7 @@ export function enumCell(opts: BaseFieldCellOpts, field: EnumField): Cell {
     const enumModel = model.enums[field.enum];
     const handlers = fieldEditorEventHandlers({
       tableName: opts.tableName,
-      fieldName: field.name.name,
+      fieldName: field.name,
       dbValue: `ui.value`,
       recordId: props.recordId,
       value: props.value,
@@ -192,7 +181,7 @@ export function enumCell(opts: BaseFieldCellOpts, field: EnumField): Cell {
         procedure: [
           scalar(
             `value`,
-            `try_cast(${props.value} as enums.${enumModel.name.name})`
+            `try_cast(${props.value} as enums.${enumModel.name})`
           ),
         ],
         children: element("div", {
@@ -203,8 +192,8 @@ export function enumCell(opts: BaseFieldCellOpts, field: EnumField): Cell {
               props: { value: `value`, yolmFocusKey: `true` },
               children: Object.values(enumModel.values).map((v) =>
                 element("option", {
-                  children: stringLiteral(v.name.displayName),
-                  props: { value: stringLiteral(v.name.name) },
+                  children: stringLiteral(v.displayName),
+                  props: { value: stringLiteral(v.name) },
                 })
               ),
               on: {
@@ -212,7 +201,7 @@ export function enumCell(opts: BaseFieldCellOpts, field: EnumField): Cell {
                 input: [
                   setScalar(
                     `ui.value`,
-                    `cast(target_value as enums.${enumModel.name.name}))`
+                    `cast(target_value as enums.${enumModel.name}))`
                   ),
                 ],
               },
@@ -227,7 +216,7 @@ export function enumCell(opts: BaseFieldCellOpts, field: EnumField): Cell {
       element("span", {
         styles: sharedStyles.ellipsisSpan,
         children: enumModel.getDisplayName!(
-          `try_cast(${props.value} as enums.${enumModel.name.name})`
+          `try_cast(${props.value} as enums.${enumModel.name})`
         ),
       })
     );
@@ -241,7 +230,7 @@ export function dateCell(opts: BaseFieldCellOpts, field: DateField): Cell {
       props.editing,
       fieldEditor({
         cellProps: props,
-        fieldName: field.name.name,
+        fieldName: field.name,
         tableName: opts.tableName,
         inputType: "'date'",
         beforeEditTransaction: opts.beforeEditTransaction,
@@ -265,7 +254,7 @@ export function stringCell(opts: BaseFieldCellOpts, field: StringField): Cell {
       props.editing,
       fieldEditor({
         cellProps: props,
-        fieldName: field.name.name,
+        fieldName: field.name,
         tableName: opts.tableName,
         beforeEditTransaction: opts.beforeEditTransaction,
       }),
@@ -282,7 +271,7 @@ export function boolCell(opts: BaseFieldCellOpts, field: BoolField): Cell {
     return (props) => {
       const handlers = fieldEditorEventHandlers({
         tableName: opts.tableName,
-        fieldName: field.name.name,
+        fieldName: field.name,
         dbValue: `try_cast(ui.value as bool)`,
         recordId: props.recordId,
         value: props.value,
@@ -362,7 +351,7 @@ export function boolCell(opts: BaseFieldCellOpts, field: BoolField): Cell {
             ),
             ...doEdit({
               tableName: opts.tableName,
-              fieldName: field.name.name,
+              fieldName: field.name,
               dbValue: opts.stringified
                 ? `cast(${props.value} as bool)`
                 : props.value,
@@ -385,7 +374,7 @@ export function durationCell(
     return (props) => {
       const handlers = fieldEditorEventHandlers({
         tableName: opts.tableName,
-        fieldName: field.name.name,
+        fieldName: field.name,
         dbValue: `sfn.parse_minutes_duration(ui.input_value)`,
         recordId: props.recordId,
         value: props.value,

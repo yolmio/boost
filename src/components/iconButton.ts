@@ -1,4 +1,4 @@
-import { theme } from "../singleton.js";
+import { model } from "../singleton.js";
 import type { ElementNode, Node } from "../nodeTypes.js";
 import type { Style, StyleObject } from "../styleTypes.js";
 import { Variant } from "../theme.js";
@@ -40,7 +40,7 @@ export const styles = createStyles({
       position: "relative",
       transition:
         "background-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, border-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms",
-      "&:focus-visible": theme.focus.default,
+      "&:focus-visible": model.theme.focus.default,
     };
     switch (size) {
       case "sm":

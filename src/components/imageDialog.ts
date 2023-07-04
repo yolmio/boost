@@ -9,14 +9,10 @@ import {
   setScalar,
   try_,
 } from "../procHelpers.js";
-import { model, theme } from "../singleton.js";
-import {
-  createStyles,
-  displayNoneStyles,
-  visuallyHiddenStyles,
-} from "../styleUtils.js";
+import { model } from "../singleton.js";
+import { createStyles, visuallyHiddenStyles } from "../styleUtils.js";
 import { getUploadStatements, getVariantFromImageSet } from "../utils/image.js";
-import { ident, stringLiteral } from "../utils/sqlHelpers.js";
+import { ident } from "../utils/sqlHelpers.js";
 import { ClientProcStatement, ServiceProcStatement } from "../yom.js";
 import { alert } from "./alert.js";
 import { button } from "./button.js";
@@ -24,7 +20,6 @@ import { divider } from "./divider.js";
 import { iconButton } from "./iconButton.js";
 import { materialIcon } from "./materialIcon.js";
 import { modal, modalDialog } from "./modal.js";
-import { getUniqueUiId } from "./utils.js";
 
 export interface ImageDialogOptions {
   tableName: string;
@@ -58,7 +53,7 @@ const styles = createStyles({
   closeButton: {
     alignSelf: "flex-end",
   },
-  replaceButton: () => ({ "&:focus-within": theme.focus.default }),
+  replaceButton: () => ({ "&:focus-within": model.theme.focus.default }),
 });
 
 export function imageDalog(opts: ImageDialogOptions) {
@@ -91,7 +86,7 @@ export function imageDalog(opts: ImageDialogOptions) {
             scalar(
               `full_img`,
               `(select ${fullImageFieldName} from db.${ident(
-                table.name.name
+                table.name
               )} where id = ${opts.recordId})`
             ),
             scalar(`uploading`, `false`),
@@ -176,7 +171,7 @@ export function imageDalog(opts: ImageDialogOptions) {
                             serviceProc([
                               modify(
                                 `update db.${ident(
-                                  table.name.name
+                                  table.name
                                 )} set ${setFieldsToNull} where id = ${
                                   opts.recordId
                                 }`

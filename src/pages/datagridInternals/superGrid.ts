@@ -513,7 +513,7 @@ export function superGrid(config: SuperGridConfig) {
   const superDts = addSupergridDatagridDts(config.datagridName, config.columns);
   const dts = addDatagridDts(config.datagridName, baseColumns);
   const content = baseDatagrid({
-    source: "db." + ident(config.tableModel.name.name),
+    source: "db." + ident(config.tableModel.name),
     children: (dg) => [
       toolbar(
         config.toolbar,

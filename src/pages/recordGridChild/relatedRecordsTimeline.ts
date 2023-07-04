@@ -182,7 +182,7 @@ const addButtonId = stringLiteral(getUniqueUiId());
 export function content(opts: Opts, ctx: RecordGridContext) {
   const query = createRelatedUnionQuery({
     foreignKeyExpr: ctx.recordId,
-    foreignKeyTable: ctx.table.name.name,
+    foreignKeyTable: ctx.table.name,
     limit: `row_count`,
     orderBy: "date desc, event_type, id desc",
     orderByFields: ["date"],
@@ -192,7 +192,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
       const exprs = t.exprs ?? [];
       for (const field of Object.values(tableModel.fields)) {
         if (field.type === "ForeignKey") {
-          if (field.table === ctx.table.name.name) {
+          if (field.table === ctx.table.name) {
             continue;
           }
           const otherTable = model.database.tables[field.table];
@@ -201,13 +201,13 @@ export function content(opts: Opts, ctx: RecordGridContext) {
               ...otherTable.recordDisplayName.fields.map((f) => `record.${f}`)
             );
             exprs.push({
-              name: `${field.name.name}_name`,
-              expr: `(select ${nameExpr} from db.${otherTable.name.name} as record where record.id = ${tableModel.name.name}.${field.name.name})`,
+              name: `${field.name}_name`,
+              expr: `(select ${nameExpr} from db.${otherTable.name} as record where record.id = ${tableModel.name}.${field.name})`,
               type: { type: "String" },
             });
           }
         }
-        fields.push(field.name.name);
+        fields.push(field.name);
       }
       return {
         table: t.table,
@@ -320,7 +320,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                           const field = tableModel.fields[f];
                           if (!field) {
                             throw new Error(
-                              `Field ${f} does not exist in table ${tableModel.name.name}}`
+                              `Field ${f} does not exist in table ${tableModel.name}}`
                             );
                           }
                           if (field.type === "Bool") {
@@ -330,7 +330,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                                 variant: "soft",
                                 color: "neutral",
                                 size: "sm",
-                                children: stringLiteral(field.name.displayName),
+                                children: stringLiteral(field.displayName),
                               })
                             );
                           }
@@ -385,7 +385,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                               element("p", {
                                 styles: styles.itemValue,
                                 children: `${stringLiteral(
-                                  field.name.displayName
+                                  field.displayName
                                 )} || ':'`,
                               }),
                               valueNode,
@@ -448,15 +448,15 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                 for (const field of Object.values(tableModel.fields)) {
                   if (
                     field.type === "ForeignKey" &&
-                    field.table === ctx.table.name.name
+                    field.table === ctx.table.name
                   ) {
-                    ignoreFields.push(field.name.name);
+                    ignoreFields.push(field.name);
                     continue;
                   }
                   const override: AutoLabelOnLeftFieldOverride = {
-                    initialValue: recordHelper.field(field.name.name),
+                    initialValue: recordHelper.field(field.name),
                   };
-                  fieldOverrides[field.name.name] = override;
+                  fieldOverrides[field.name] = override;
                 }
                 return {
                   condition: `record.event_type = ${i}`,
@@ -514,7 +514,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                   .map((t, i) => {
                     const table = model.database.tables[t.table];
                     return `when record.event_type = ${i} then ${stringLiteral(
-                      table.name.displayName.toLowerCase()
+                      table.displayName.toLowerCase()
                     )}`;
                   })
                   .join(" ") +
@@ -598,7 +598,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                           children:
                             `'Add ' || ` +
                             stringLiteral(
-                              model.database.tables[t.table].name.displayName
+                              model.database.tables[t.table].displayName
                             ),
                           onClick: [setScalar(`ui.adding_${i}`, `true`)],
                         })),
@@ -612,8 +612,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                         tableModel.fields
                       ).find(
                         (f) =>
-                          f.type === "ForeignKey" &&
-                          f.table === ctx.table.name.name
+                          f.type === "ForeignKey" && f.table === ctx.table.name
                       );
                       const overrides: Record<
                         string,
@@ -624,10 +623,10 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                         },
                       };
                       if (foreignKeyField) {
-                        overrides[foreignKeyField.name.name] = {
+                        overrides[foreignKeyField.name] = {
                           initialValue: ctx.recordId,
                         };
-                        withValues[foreignKeyField.name.name] = ctx.recordId;
+                        withValues[foreignKeyField.name] = ctx.recordId;
                       }
                       const ignoreFields = Object.keys(withValues);
                       return insertDialog({

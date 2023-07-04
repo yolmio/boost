@@ -1,4 +1,4 @@
-import { model, theme } from "./singleton.js";
+import { model } from "./singleton.js";
 import { StyleSerializer, transformNode } from "./nodeTransform.js";
 import { addRootStyles } from "./rootStyles.js";
 import type * as yom from "./yom.js";
@@ -13,14 +13,14 @@ import { Node, RouteNode, RoutesNode } from "./nodeTypes.js";
 
 function generateDecisionTable(dt: DecisionTable): yom.DecisionTable {
   return {
-    name: dt.name.name,
+    name: dt.name,
     outputs: Object.values(dt.outputs).map((o) => ({
-      name: o.name.name,
+      name: o.name,
       type: o.type,
       collation: o.collation,
     })),
     parameters: Object.values(dt.inputs).map((i) => ({
-      name: i.name.name,
+      name: i.name,
       type: i.type,
       notNull: i.notNull,
     })),
@@ -31,9 +31,9 @@ function generateDecisionTable(dt: DecisionTable): yom.DecisionTable {
 
 function generateScalarFunction(f: ScalarFunction): yom.ScalarFunction {
   return {
-    name: f.name.name,
+    name: f.name,
     parameters: Object.values(f.inputs).map((i) => ({
-      name: i.name.name,
+      name: i.name,
       type: i.type,
       notNull: i.notNull,
     })),
@@ -46,10 +46,10 @@ function generateTable(t: Table): yom.Table {
   const checks = t.checks.map((c) => c.check(c.fields));
   const fields = Object.values(t.fields).map((f): yom.TableField => {
     for (const check of f.checks) {
-      checks.push(check.check(f.name.name));
+      checks.push(check.check(f.name));
     }
     const base = {
-      name: f.name.name,
+      name: f.name,
       renameFrom: f.renameFrom,
       description: f.description,
       notNull: f.notNull,
@@ -117,7 +117,7 @@ function generateTable(t: Table): yom.Table {
   });
   return {
     primaryKeyFieldName: t.primaryKeyFieldName,
-    name: t.name.name,
+    name: t.name,
     renameFrom: t.renameFrom,
     uniqueConstraints: t.uniqueConstraints,
     checks,
@@ -192,7 +192,7 @@ function getTransformedUi(): [yom.Node, string] {
     };
   }
   const serializer = new StyleSerializer();
-  addRootStyles(serializer, theme);
+  addRootStyles(serializer, model.theme);
   const node = transformNode(rootNode, (styles, dynamicStyle) => {
     if (!styles) {
       return;
@@ -235,11 +235,11 @@ export function generateYom(): yom.Model {
       generateScalarFunction
     ),
     enums: Object.values(model.enums).map((e) => ({
-      name: e.name.name,
+      name: e.name,
       renameFrom: e.renameFrom,
       description: e.description,
       values: Object.values(e.values).map((v) => ({
-        name: v.name.name,
+        name: v.name,
         renameFrom: v.renameFrom,
         description: v.description,
       })),

@@ -1,4 +1,4 @@
-import { theme } from "../../singleton.js";
+import { model } from "../../singleton.js";
 import { createStyles } from "../../styleUtils.js";
 
 export const styles = createStyles({
@@ -18,7 +18,7 @@ export const styles = createStyles({
     return {
       "&:focus-within": {
         "--focus-outline-offset": -1,
-        ...theme.focus.default,
+        ...model.theme.focus.default,
       },
       display: "flex",
       alignItems: "center",
@@ -34,7 +34,7 @@ export const styles = createStyles({
     return {
       "&:focus-within": {
         "--focus-outline-offset": -1,
-        ...theme.focus.default,
+        ...model.theme.focus.default,
       },
       display: "flex",
       alignItems: "center",

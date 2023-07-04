@@ -178,11 +178,11 @@ function getColumns(
   columns.push(idColumn(tableModel, columns.length, startFixedColumns));
   let dynamicFieldCount = 1;
   for (const field of Object.values(tableModel.fields)) {
-    if (ignoreFields?.includes(field.name.name)) {
+    if (ignoreFields?.includes(field.name)) {
       continue;
     }
     const column = columnFromField(
-      tableModel.name.name,
+      tableModel.name,
       field,
       dynamicFieldCount,
       columns.length,
@@ -196,7 +196,7 @@ function getColumns(
   for (const virtual of Object.values(tableModel.virtualFields)) {
     columns.push(
       columnFromVirtual(
-        tableModel.name.name,
+        tableModel.name,
         virtual,
         columns.length,
         startFixedColumns

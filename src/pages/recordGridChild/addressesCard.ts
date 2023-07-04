@@ -75,7 +75,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
           record(
             "record",
             `select ${allSelectFields} from db.${ident(
-              ctx.table.name.name
+              ctx.table.name
             )} where id = ${ctx.recordId}`
           ),
         ],

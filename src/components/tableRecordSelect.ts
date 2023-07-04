@@ -8,7 +8,7 @@ import {
   setScalar,
   table,
 } from "../procHelpers.js";
-import { config, model } from "../singleton.js";
+import { model } from "../singleton.js";
 import { circularProgress } from "./circularProgress.js";
 import { queryCombobox } from "./searchSelect.js";
 import { select } from "./select.js";
@@ -34,7 +34,7 @@ export function getTableRecordSelect(
         ...tableModel.recordDisplayName.fields.map((f) => `record.${f}`)
       );
       const selectPart = `select ${nameExpr} as label, rank() over () - 1 as index, id `;
-      let emptyQuery = `${selectPart} from db.${tableModel.name.name} as record limit 10 order by id desc`;
+      let emptyQuery = `${selectPart} from db.${tableModel.name} as record limit 10 order by id desc`;
       if (opts.emptyQuery) {
         emptyQuery = `${selectPart} ${opts.emptyQuery}`;
       }
@@ -44,7 +44,7 @@ export function getTableRecordSelect(
           if_(opts.value + ` is not null`, [
             setScalar(
               `initial_text`,
-              `(select ${nameExpr} from db.${tableModel.name.name} as record where id = ${opts.value})`
+              `(select ${nameExpr} from db.${tableModel.name} as record where id = ${opts.value})`
             ),
           ]),
         ],
@@ -64,12 +64,15 @@ export function getTableRecordSelect(
                       splitter: { type: "Alphanumeric" },
                       filters: [{ type: "Lowercase" }],
                     },
-                    style: { type: "Fuzzy", ...config.defaultFuzzyConfig },
+                    style: {
+                      type: "Fuzzy",
+                      ...model.searchConfig.defaultFuzzyConfig,
+                    },
                     tables: [searchConfig],
                   },
                 }),
                 modify(
-                  `insert into ${resultTable} ${selectPart} from tmp_result join db.${tableModel.name.name} as record on record_id = id`
+                  `insert into ${resultTable} ${selectPart} from tmp_result join db.${tableModel.name} as record on record_id = id`
                 ),
               ]
             ),
@@ -106,7 +109,7 @@ export function getTableRecordSelect(
         ...tableModel.recordDisplayName.fields.map((f) => `record.${f}`)
       );
       const selectPart = `select ${nameExpr} as label, id `;
-      const emptyQuery = `${selectPart} from db.${tableModel.name.name} as record order by id desc`;
+      const emptyQuery = `${selectPart} from db.${tableModel.name} as record order by id desc`;
       return state({
         procedure: [table(`record`, emptyQuery)],
         statusScalar: `select_query_status`,

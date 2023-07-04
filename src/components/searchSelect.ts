@@ -4,16 +4,14 @@ import {
   exit,
   getBoundingClientRect,
   if_,
-  modify,
   preventDefault,
   record,
   scalar,
   setScalar,
   table,
 } from "../procHelpers.js";
-import { theme } from "../singleton.js";
 import { Style, StyleObject } from "../styleTypes.js";
-import { createStyles, cssVar, visibilityHidden } from "../styleUtils.js";
+import { createStyles, cssVar } from "../styleUtils.js";
 import { ClientProcStatement, StateStatement } from "../yom.js";
 import {
   getUniqueUiId,
@@ -64,7 +62,7 @@ const styles = createStyles({
       "--list-radius": cssVar(`radius-sm`),
       "--list-item-sticky-top":
         "calc(var(--list-padding, var(--list-divider-gap)) * -1)", // negative amount of the List's padding block
-      boxShadow: theme.shadow.md,
+      boxShadow: "md",
       overflow: "auto",
       maxHeight: "40vh",
       width: "100%",

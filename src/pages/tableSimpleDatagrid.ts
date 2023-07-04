@@ -110,11 +110,11 @@ function getColumns(
     try {
       columns.push(
         simpleColumnFromField({
-          table: tableModel.name.name,
+          table: tableModel.name,
           field,
           idField,
           beforeEditTransaction:
-            fieldConfigs?.[field.name.name]?.beforeEditTransaction,
+            fieldConfigs?.[field.name]?.beforeEditTransaction,
         })
       );
       dynamicFieldCount += 1;
@@ -125,7 +125,7 @@ function getColumns(
   for (const virtual of Object.values(tableModel.virtualFields)) {
     columns.push(
       simpleColumnFromVirtual(
-        tableModel.name.name,
+        tableModel.name,
         virtual,
         columns.length,
         startFixedColumns
@@ -147,7 +147,7 @@ export function tableSimpleGrid(opts: DatagridPageOpts) {
     ? ident(tableModel.primaryKeyFieldName)
     : `id`;
   const toolbarConfig: ToolbarConfig = {
-    header: stringLiteral(pluralize(tableModel.name.displayName)),
+    header: stringLiteral(pluralize(tableModel.displayName)),
     delete: opts.toolbar?.delete ?? false,
     export: opts.toolbar?.export ?? false,
   };

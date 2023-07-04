@@ -12,8 +12,6 @@ import {
 import { Node } from "../nodeTypes.js";
 import {
   block,
-  debugExpr,
-  debugQuery,
   exit,
   getBoundingClientRect,
   if_,
@@ -28,7 +26,7 @@ import {
   stopPropagation,
   table,
 } from "../procHelpers.js";
-import { config, model, theme } from "../singleton.js";
+import { model } from "../singleton.js";
 import { createStyles, cssVar } from "../styleUtils.js";
 import { SequentialIDGenerator } from "../utils/SequentialIdGenerator.js";
 import { normalizeCase, pluralize, upcaseFirst } from "../utils/inflectors.js";
@@ -45,7 +43,7 @@ import { chip } from "./chip.js";
 import { divider } from "./divider.js";
 import { iconButton } from "./iconButton.js";
 import { inlineFieldDisplay } from "./internal/fieldInlineDisplay.js";
-import { materialIcon, MaterialIconOpts } from "./materialIcon.js";
+import { materialIcon } from "./materialIcon.js";
 import { IconName } from "./materialIconNames.js";
 import { modal } from "./modal.js";
 import { typography } from "./typography.js";
@@ -79,7 +77,7 @@ const styles = createStyles({
   dialog: () => {
     return {
       boxSizing: "border-box",
-      boxShadow: theme.shadow.md,
+      boxShadow: "md",
       fontFamily: cssVar(`font-family-body`),
       lineHeight: cssVar(`line-height-md`),
       padding: 0,
@@ -242,7 +240,7 @@ function prepareDisplayValue(
     return {
       expr: (record) => `${record}.${value}`,
       name: value,
-      label: field.name.displayName,
+      label: field.displayName,
       type,
       display: (value) => inlineFieldDisplay(field, value),
     };
@@ -385,7 +383,7 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
   }
   const searchConfig = tableModel.searchConfig;
   if (!searchConfig) {
-    throw new Error(`Table ${tableModel.name.name} does not have searchConfig`);
+    throw new Error(`Table ${tableModel.name} does not have searchConfig`);
   }
   function scrollToItem(alignToTop: boolean) {
     return block([
@@ -470,7 +468,7 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
                         },
                         style: {
                           type: "Fuzzy",
-                          ...config.defaultFuzzyConfig,
+                          ...model.searchConfig.defaultFuzzyConfig,
                         },
                         tables: [searchConfig],
                       },
@@ -758,13 +756,11 @@ function calcMultiTable(tables: PreparedMultiTableSearchDialogTable[]) {
     if (!tableModel.getHrefToRecord) {
       throw new Error(
         "multiTableSearchDialog expects getHrefToRecord to exist, missing on " +
-          tableModel.name.name
+          tableModel.name
       );
     }
     if (!tableModel.searchConfig) {
-      throw new Error(
-        `Table ${tableModel.name.name} does not have searchConfig`
-      );
+      throw new Error(`Table ${tableModel.name} does not have searchConfig`);
     }
     if (table.displayValues) {
       displayValueNames[table.name] = [];
@@ -960,7 +956,7 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
                         },
                         style: {
                           type: "Fuzzy",
-                          ...config.defaultFuzzyConfig,
+                          ...model.searchConfig.defaultFuzzyConfig,
                         },
                         tables: tableConfigs,
                       },
@@ -1141,7 +1137,7 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
                               checked: `not ${t.name}_disabled`,
                               label: stringLiteral(
                                 pluralize(
-                                  model.database.tables[t.name].name.displayName
+                                  model.database.tables[t.name].displayName
                                 )
                               ),
                               color: "neutral",
@@ -1349,7 +1345,7 @@ export function recordSelectDialog(opts: RecordSelectDialog) {
   }
   const searchConfig = tableModel.searchConfig;
   if (!searchConfig) {
-    throw new Error(`Table ${tableModel.name.name} does not have searchConfig`);
+    throw new Error(`Table ${tableModel.name} does not have searchConfig`);
   }
   function scrollToItem(alignToTop: boolean) {
     return block([
@@ -1410,7 +1406,7 @@ export function recordSelectDialog(opts: RecordSelectDialog) {
                       },
                       style: {
                         type: "Fuzzy",
-                        ...config.defaultFuzzyConfig,
+                        ...model.searchConfig.defaultFuzzyConfig,
                       },
                       tables: [searchConfig],
                     },

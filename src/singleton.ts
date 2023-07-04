@@ -1,12 +1,34 @@
 import type { Authorization, BoostModel } from "./modelTypes.js";
-import type { BoostConfig } from "./config.js";
-import type { Theme } from "./theme.js";
 import { createTheme } from "./createTheme.js";
 import { normalizeCase, upcaseFirst } from "./utils/inflectors.js";
 import { ident, stringLiteral } from "./utils/sqlHelpers.js";
 
 export const model: BoostModel = {
   name: "please-rename",
+  theme: createTheme(),
+  displayNameConfig: {
+    default: defaultGetDisplayName,
+    table: defaultGetDisplayName,
+    field: defaultGetDisplayName,
+    virtual: defaultGetDisplayName,
+    enum: defaultGetDisplayName,
+    enumValue: defaultGetDisplayName,
+  },
+  searchConfig: {
+    defaultFuzzyConfig: {
+      prefix: "Last",
+      transpositionCostOne: true,
+      tolerance: [
+        { min: 8, tolerance: 2 },
+        { min: 4, tolerance: 1 },
+        { min: 0, tolerance: 0 },
+      ],
+    },
+    defaultTokenizer: {
+      splitter: { type: "Alphanumeric" },
+      filters: [{ type: "Lowercase" }],
+    },
+  },
   pwaConfig: {
     name: "Temporary name",
     display: "minimal-ui",
@@ -23,13 +45,13 @@ export const model: BoostModel = {
       const roleField = ident(
         Object.values(table.fields).find(
           (f) => f.type === "Enum" && f.enum == model.database.roleEnumName
-        )!.name.name
+        )!.name
       );
       const userField = ident(
         Object.values(table.fields).find(
           (f) =>
             f.type === "ForeignKey" && f.table == model.database.userTableName
-        )!.name.name
+        )!.name
       );
       let whereExpr = "true";
       if ("allow" in auth) {
@@ -50,7 +72,7 @@ export const model: BoostModel = {
         }
       }
       return `exists (select id from db.${ident(
-        table.name.name
+        table.name
       )} where ${userField} = ${user} and ${whereExpr})`;
     },
     autoTrim: "Both",
@@ -77,43 +99,6 @@ export const model: BoostModel = {
   pages: [],
 };
 
-export const config: BoostConfig = {
-  createNameObject: (name) => {
-    if (typeof name === "string") {
-      return {
-        name,
-        displayName: upcaseFirst(normalizeCase(name).join(" ")),
-        ext: {},
-      };
-    }
-    return {
-      displayName: upcaseFirst(normalizeCase(name.name).join(" ")),
-      ext: {},
-      ...name,
-    };
-  },
-  defaultFuzzyConfig: {
-    prefix: "Last",
-    transpositionCostOne: true,
-    tolerance: [
-      { min: 8, tolerance: 2 },
-      { min: 4, tolerance: 1 },
-      { min: 0, tolerance: 0 },
-    ],
-  },
-  defaultTokenizer: {
-    splitter: { type: "Alphanumeric" },
-    filters: [{ type: "Lowercase" }],
-  },
-};
-
-export const theme = createTheme();
-
-export function setTheme(newTheme: Theme) {
-  for (const key of Object.keys(theme)) {
-    delete (theme as any)[key];
-  }
-  for (const key of Object.keys(newTheme)) {
-    (theme as any)[key] = (newTheme as any)[key];
-  }
+function defaultGetDisplayName(sqlName: string) {
+  return upcaseFirst(normalizeCase(sqlName).join(" "));
 }

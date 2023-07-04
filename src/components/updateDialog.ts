@@ -64,9 +64,7 @@ export function updateDialog(opts: EditDialogOpts) {
               props: {
                 id: titleId,
               },
-              children: `'Update ' || ${stringLiteral(
-                tableModel.name.displayName
-              )}`,
+              children: `'Update ' || ${stringLiteral(tableModel.displayName)}`,
             }),
             divider({ styles: styles.divider }),
             withUpdateFormState({

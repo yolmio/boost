@@ -140,7 +140,7 @@ export function getFieldCellWidth(field: Field, table: string): number {
   const charSize = 10;
   const headerBuffer = 46;
   const cellBuffer = 20;
-  const headerLength = field.name.displayName.length * charSize + headerBuffer;
+  const headerLength = field.displayName.length * charSize + headerBuffer;
   if (field.type === "Uuid" && field.group) {
     const tableModel = model.database.tables[table];
     const group = tableModel.fieldGroups[field.group];
@@ -168,7 +168,7 @@ export function getFieldCellWidth(field: Field, table: string): number {
   if (field.type === "Enum") {
     const enum_ = model.enums[field.enum];
     const maxVariant = Math.max(
-      ...Object.values(enum_.values).map((v) => v.name.displayName.length)
+      ...Object.values(enum_.values).map((v) => v.displayName.length)
     );
     const maxVariantTotal = maxVariant * charSize + headerBuffer;
     return Math.max(maxVariantTotal, headerLength);
@@ -293,7 +293,7 @@ export function columnFromField(
   let keydownHandler: ClientProcStatement[] = [];
   let noFilter = false;
   let noSort = false;
-  let displayName = field.name.displayName;
+  let displayName = field.displayName;
   switch (field.type) {
     case "BigInt":
     case "BigUint":
@@ -320,7 +320,7 @@ export function columnFromField(
         const tableModel = model.database.tables[table];
         const group = tableModel.fieldGroups[field.group];
         if (group.type === "Image") {
-          if (group.variants[field.name.name].usage !== "square_thumbnail") {
+          if (group.variants[field.name].usage !== "square_thumbnail") {
             return;
           }
           noFilter = true;
@@ -333,14 +333,14 @@ export function columnFromField(
     case "Bool":
       keydownHandler = field.enumLike
         ? opaqueCellKeydownHandler
-        : dynamicBooleanCellKeydownHandler(dynIndex, field.name.name, table);
+        : dynamicBooleanCellKeydownHandler(dynIndex, field.name, table);
       break;
     default:
       throw new Error(
         "Haven't implemented field type " +
           field.type +
           " on " +
-          field.name.name +
+          field.name +
           " yet"
       );
   }
@@ -392,11 +392,11 @@ export function columnFromField(
       seperator(columnIndex, 50),
     ],
     queryGeneration: {
-      expr: `record.${ident(field.name.name)}`,
-      sqlName: field.name.name,
+      expr: `record.${ident(field.name)}`,
+      sqlName: field.name,
       alwaysGenerate: true,
     },
-    viewStorageName: field.name.name,
+    viewStorageName: field.name,
   };
 }
 
@@ -425,7 +425,7 @@ export function columnFromVirtual(
       break;
   }
   return {
-    displayName: virtual.name.displayName,
+    displayName: virtual.displayName,
     filter: {
       type: filterTypeFromVirtual(virtual.type),
       notNull: false,
@@ -437,17 +437,17 @@ export function columnFromVirtual(
     header: [
       element("span", {
         styles: sharedStyles.headerText,
-        children: stringLiteral(virtual.name.displayName),
+        children: stringLiteral(virtual.displayName),
       }),
       columnPopover(columnIndex, startFixedColumns, sort),
       seperator(columnIndex, 50),
     ],
     queryGeneration: {
       expr: virtual.expr(...virtual.fields.map((f) => `record.${ident(f)}`)),
-      sqlName: virtual.name.name,
+      sqlName: virtual.name,
       alwaysGenerate: false,
     },
-    viewStorageName: virtual.name.name,
+    viewStorageName: virtual.name,
   };
 }
 
@@ -521,13 +521,13 @@ export function simpleColumnFromField({
     case "Bool":
       keydownHandler = field.enumLike
         ? opaqueCellKeydownHandler
-        : simpleBooleanCellKeydownHandler(field.name.name, idField, table);
+        : simpleBooleanCellKeydownHandler(field.name, idField, table);
       break;
     default:
       throw new Error("Todo");
   }
   return {
-    displayName: field.name.displayName,
+    displayName: field.displayName,
     keydownCellHandler: keydownHandler,
     cell: fieldCell({
       tableName: table,
@@ -538,11 +538,11 @@ export function simpleColumnFromField({
     width: getFieldCellWidth(field, table),
     header: element("span", {
       styles: sharedStyles.headerText,
-      children: stringLiteral(field.name.displayName),
+      children: stringLiteral(field.displayName),
     }),
     queryGeneration: {
-      expr: `record.${ident(field.name.name)}`,
-      sqlName: field.name.name,
+      expr: `record.${ident(field.name)}`,
+      sqlName: field.name,
       alwaysGenerate: true,
       procFieldType: getFieldProcFieldType(field),
     },
@@ -556,19 +556,19 @@ export function simpleColumnFromVirtual(
   startFixedColumns: number
 ): SimpleColumn {
   return {
-    displayName: virtual.name.displayName,
+    displayName: virtual.displayName,
     cell: ({ value }) => value,
     width: 250,
     header: [
       element("span", {
         styles: sharedStyles.headerText,
-        children: stringLiteral(virtual.name.displayName),
+        children: stringLiteral(virtual.displayName),
       }),
       seperator(columnIndex, 50),
     ],
     queryGeneration: {
       expr: virtual.expr(...virtual.fields.map((f) => `record.${ident(f)}`)),
-      sqlName: virtual.name.name,
+      sqlName: virtual.name,
       alwaysGenerate: false,
       procFieldType: getVirtualProcFieldType(virtual),
     },

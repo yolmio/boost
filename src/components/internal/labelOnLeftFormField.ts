@@ -33,7 +33,7 @@ export function labelOnLeftFormField(opts: LabelOnLeftFormFieldOpts): Node {
       children: [
         formLabel({
           props: { htmlFor: opts.id },
-          children: opts.label ?? stringLiteral(opts.field.name.displayName),
+          children: opts.label ?? stringLiteral(opts.field.displayName),
         }),
         checkbox({
           variant: "outlined",
@@ -63,7 +63,7 @@ export function labelOnLeftFormField(opts: LabelOnLeftFormFieldOpts): Node {
     children: [
       formLabel({
         props: { htmlFor: opts.id },
-        children: opts.label ?? stringLiteral(opts.field.name.displayName),
+        children: opts.label ?? stringLiteral(opts.field.displayName),
       }),
       control,
     ],

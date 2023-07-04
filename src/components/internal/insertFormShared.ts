@@ -202,7 +202,7 @@ function gridPart(
     return element("div", {
       styles: part.styles,
       children: checkbox({
-        label: stringLiteral(field.name.displayName),
+        label: stringLiteral(field.displayName),
         variant: "outlined",
         checked: formState.fields.get(part.field),
         props: { id },
@@ -233,7 +233,7 @@ function gridPart(
     children: [
       formLabel({
         props: { htmlFor: id },
-        children: stringLiteral(part.label ?? field.name.displayName),
+        children: stringLiteral(part.label ?? field.displayName),
       }),
       fieldValue,
     ],
@@ -245,7 +245,7 @@ function twoColumnSectionedInsertFormContent(
   { table, formState, onSubmit, cancel }: InsertFormContentOpts
 ): Node {
   const header = stringLiteral(
-    content.header ?? downcaseFirst(table.name.displayName)
+    content.header ?? downcaseFirst(table.displayName)
   );
   const sections: Node[] = [
     element("h1", {
@@ -261,7 +261,7 @@ function twoColumnSectionedInsertFormContent(
       sectionBody = element("div", {
         styles: twoColumnFormStyles.cardRelation,
         children: [
-          formState.each(relationTable.name.name, (cursor) =>
+          formState.each(relationTable.name, (cursor) =>
             card({
               styles: multiCardInsertStyles.relationCard,
               variant: "outlined",
@@ -275,7 +275,7 @@ function twoColumnSectionedInsertFormContent(
                   return labelOnLeftFormField({
                     field,
                     id,
-                    fieldHelper: cursor.field(field.name.name),
+                    fieldHelper: cursor.field(field.name),
                     onChange: normalizedFieldOpts.onChange?.(formState, cursor),
                   });
                 }),
@@ -299,13 +299,11 @@ function twoColumnSectionedInsertFormContent(
               children: typography({
                 startDecorator: materialIcon("Add"),
                 children: `'Add ' || ${stringLiteral(
-                  downcaseFirst(relationTable.name.displayName)
+                  downcaseFirst(relationTable.displayName)
                 )}`,
               }),
               on: {
-                click: [
-                  ...formState.addRecordToTable(relationTable.name.name, {}),
-                ],
+                click: [...formState.addRecordToTable(relationTable.name, {})],
               },
             }),
           }),

@@ -755,8 +755,8 @@ function enumSelect(filterTerm: string, columns: SuperGridColumn[]) {
       ...Object.entries(columnsByEnum).map(([enumName, columns]) => {
         const opts = Object.values(model.enums[enumName].values).map((v) =>
           element("option", {
-            children: stringLiteral(v.name.displayName),
-            props: { value: stringLiteral(v.name.name) },
+            children: stringLiteral(v.displayName),
+            props: { value: stringLiteral(v.name) },
           })
         );
         return [`${filterTerm}.column_id in (${columns.join(",")})`, opts] as [

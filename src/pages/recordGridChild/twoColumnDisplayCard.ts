@@ -61,17 +61,15 @@ export function content(opts: Opts, ctx: RecordGridContext) {
     if (typeof cell === "string") {
       const field = ctx.table.fields[cell];
       if (!field) {
-        throw new Error(
-          `Field ${cell} not found in table ${ctx.table.name.name}`
-        );
+        throw new Error(`Field ${cell} not found in table ${ctx.table.name}`);
       }
-      selectFields += `record.${field.name.name} as ${field.name.name}`;
+      selectFields += `record.${field.name} as ${field.name}`;
     } else {
       selectFields += `${cell.expr} as e_${i}`;
     }
   }
   const query = `select id${selectFields} from db.${ident(
-    ctx.table.name.name
+    ctx.table.name
   )} as record where id = ${ctx.recordId}`;
   return card({
     variant: "outlined",
@@ -86,8 +84,8 @@ export function content(opts: Opts, ctx: RecordGridContext) {
           let value: Node;
           if (typeof row === "string") {
             const field = ctx.table.fields[row];
-            label = stringLiteral(field.name.displayName);
-            value = inlineFieldDisplay(field, `record.${field.name.name}`);
+            label = stringLiteral(field.displayName);
+            value = inlineFieldDisplay(field, `record.${field.name}`);
           } else {
             label = row.label;
             const expr = `record.e_${i}`;

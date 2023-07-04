@@ -1,4 +1,4 @@
-import { element, ifNode, portal, state } from "../nodeHelpers.js";
+import { ifNode, portal, state } from "../nodeHelpers.js";
 import { Node } from "../nodeTypes.js";
 import {
   exit,
@@ -6,14 +6,11 @@ import {
   preventDefault,
   scalar,
   setScalar,
-  stopPropagation,
 } from "../procHelpers.js";
-import { theme } from "../singleton.js";
-import { Style, StyleObject } from "../styleTypes.js";
+import { StyleObject } from "../styleTypes.js";
 import { createStyles, cssVar } from "../styleUtils.js";
-import { ColorPaletteProp, Variant } from "../theme.js";
+import { Variant } from "../theme.js";
 import { deepmerge } from "../utils/deepmerge.js";
-import { memoize } from "../utils/memoize.js";
 import { ClientProcStatement, ElementProps, FloatingOpts } from "../yom.js";
 import { listItemButton, ListOpts, styles as listStyles } from "./list.js";
 import { Color, Size } from "./types.js";
@@ -38,7 +35,7 @@ const styles = createStyles({
       "--list-radius": cssVar(`radius-sm`),
       "--list-item-sticky-top":
         "calc(var(--list-padding, var(--list-divider-gap)) * -1)", // negative amount of the List's padding block
-      boxShadow: theme.shadow.md,
+      boxShadow: "md",
       overflow: "auto",
       zIndex: 1300, // the same value as Material UI Menu. TODO: revisit the appropriate value later.
     });

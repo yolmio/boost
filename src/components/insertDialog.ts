@@ -74,8 +74,7 @@ export function insertDialog(opts: InsertDialogOpts) {
               props: {
                 id: titleId,
               },
-              children:
-                opts.title ?? `'Add a new ${tableModel.name.displayName}'`,
+              children: opts.title ?? `'Add a new ${tableModel.displayName}'`,
             }),
             divider({ styles: styles.divider }),
             withInsertFormState({

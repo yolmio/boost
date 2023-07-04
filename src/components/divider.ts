@@ -1,7 +1,7 @@
 import { memoize } from "../utils/memoize.js";
 import { stringLiteral } from "../utils/sqlHelpers.js";
 import { ElementEventHandlers, ElementProps } from "../yom.js";
-import { theme } from "../singleton.js";
+import { model } from "../singleton.js";
 import { element } from "../nodeHelpers.js";
 import type { ElementNode, Node } from "../nodeTypes.js";
 import { Style } from "../styleTypes.js";
@@ -48,7 +48,7 @@ const getDividerStyles = memoize(
     }
     if (hasChildren) {
       Object.assign(styles, {
-        "--divider-gap": theme.spacing(1),
+        "--divider-gap": model.theme.spacing(1),
         "--divider-child-position": "50%",
         display: "flex",
         flexDirection: orientation === "vertical" ? "column" : "row",

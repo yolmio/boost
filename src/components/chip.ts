@@ -1,5 +1,5 @@
 import { lazy } from "../utils/memoize.js";
-import { theme } from "../singleton.js";
+import { model } from "../singleton.js";
 import { element } from "../nodeHelpers.js";
 import type { Node } from "../nodeTypes.js";
 import { StyleObject } from "../styleTypes.js";
@@ -174,7 +174,7 @@ const styles = createStyles({
       backgroundColor: "initial",
       textDecoration: "none",
       borderRadius: "inherit",
-      "&:focus": theme.focus.default,
+      "&:focus": model.theme.focus.default,
       ...getVariantStyle(variant, color),
       "&:hover": getVariantStyle(variant, color, "hover"),
       "&:active": getVariantStyle(variant, color, "active"),
@@ -242,7 +242,7 @@ const styles = createStyles({
       border: "none", // reset user agent stylesheet
       background: "none", // reset user agent stylesheet
       padding: "0px", // reset user agent stylesheet
-      "&:focus-visible": theme.focus.default,
+      "&:focus-visible": model.theme.focus.default,
       ...getVariantStyle(variant, color),
       "&:hover": getVariantStyle(variant, color, "hover"),
       "&:active": getVariantStyle(variant, color, "active"),

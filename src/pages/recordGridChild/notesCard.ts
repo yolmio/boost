@@ -90,7 +90,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
           procedure: [
             scalar(
               `note`,
-              `(select notes from db.${ident(ctx.table.name.name)} where id = ${
+              `(select notes from db.${ident(ctx.table.name)} where id = ${
                 ctx.recordId
               })`
             ),
@@ -145,7 +145,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                               serviceProc([
                                 modify(
                                   `update db.${ident(
-                                    ctx.table.name.name
+                                    ctx.table.name
                                   )} set notes = ui.editing_note where id = ${
                                     ctx.recordId
                                   }`

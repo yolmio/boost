@@ -218,7 +218,7 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
           typography({
             level: "h5",
             children: `'Add your ${downcaseFirst(
-              pluralize(table.name.displayName)
+              pluralize(table.displayName)
             )}'`,
           }),
           element("div", {
@@ -236,7 +236,7 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
                       return labelOnLeftFormField({
                         field,
                         id,
-                        fieldHelper: cursor.field(field.name.name),
+                        fieldHelper: cursor.field(field.name),
                         onChange: f.onChange?.(formState, cursor),
                         comboboxEmptyQuery: f.emptyComboboxQuery?.(
                           formState,
@@ -262,7 +262,7 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
                                     ),
                                   ],
                                 },
-                                label: stringLiteral(field.name.displayName),
+                                label: stringLiteral(field.displayName),
                               });
                             }
                             throw new Error(
@@ -291,7 +291,7 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
                   children: typography({
                     startDecorator: materialIcon("Add"),
                     children: `'Add another ' || ${stringLiteral(
-                      downcaseFirst(table.name.displayName)
+                      downcaseFirst(table.displayName)
                     )}`,
                   }),
                   on: {
@@ -326,7 +326,7 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
                 size: "lg",
                 loading: formState.submitting,
                 children: `'Confirm new ${downcaseFirst(
-                  pluralize(table.name.displayName)
+                  pluralize(table.displayName)
                 )}'`,
               }),
             ],
@@ -345,7 +345,7 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
     });
   }
   addPage({
-    path: opts.path ?? "/" + getTableBaseUrl(table.name.name) + "/add",
+    path: opts.path ?? "/" + getTableBaseUrl(table.name) + "/add",
     content,
   });
 }

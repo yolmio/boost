@@ -1,6 +1,6 @@
-import { if_, scalar, setScalar } from "../procHelpers.js";
+import { scalar, setScalar } from "../procHelpers.js";
 import { createHarmonizeVars, createStyles, cssVar } from "../styleUtils.js";
-import { element, eventHandlers, state } from "../nodeHelpers.js";
+import { element, state } from "../nodeHelpers.js";
 import type { ColorPaletteProp } from "../theme.js";
 import { getVariantStyle } from "../styleUtils.js";
 import {
@@ -14,7 +14,7 @@ import { materialIcon } from "../components/materialIcon.js";
 import { setShell } from "../modelHelpers.js";
 import { upcaseFirst } from "../utils/inflectors.js";
 import { stringLiteral } from "../utils/sqlHelpers.js";
-import { theme } from "../singleton.js";
+import { model } from "../singleton.js";
 import { typography } from "../components/typography.js";
 import { divider } from "../components/divider.js";
 import { Authorization } from "../modelTypes.js";
@@ -79,7 +79,7 @@ const styles = createStyles({
       fontFamily: cssVar(`font-family-body`),
       fontWeight: cssVar(`font-weight-md`),
       lineHeight: 1,
-      "&:focus-visible": theme.focus.default,
+      "&:focus-visible": model.theme.focus.default,
       "&:hover": getVariantStyle("soft", "harmonize", "hover"),
       "&:active": getVariantStyle("soft", "harmonize", "active"),
       ...getVariantStyle("soft", "harmonize"),

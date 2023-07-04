@@ -13,7 +13,7 @@ import {
   spawn,
   try_,
 } from "../../procHelpers.js";
-import { theme } from "../../singleton.js";
+import { model } from "../../singleton.js";
 import { createStyles, visuallyHiddenStyles } from "../../styleUtils.js";
 import {
   getUploadStatements,
@@ -63,7 +63,7 @@ const styles = createStyles({
     justifyContent: "center",
     alignItems: "center",
     cursor: "pointer",
-    "&:focus-within": theme.focus.default,
+    "&:focus-within": model.theme.focus.default,
   }),
   imgWrapper: {
     width: 128,
@@ -75,7 +75,7 @@ const styles = createStyles({
     height: 128,
     borderRadius: "xl",
     cursor: "pointer",
-    "&:focus": theme.focus.default,
+    "&:focus": model.theme.focus.default,
   }),
   subHeader: {
     fontSize: "lg",
@@ -107,7 +107,7 @@ function imagePart(
   ctx: RecordGridContext
 ) {
   const { spawnUploadTasks, joinUploadTasks, updateImagesInDb } =
-    getUploadStatements(ctx.table.name.name, ctx.recordId, imageFieldGroup);
+    getUploadStatements(ctx.table.name, ctx.recordId, imageFieldGroup);
   return state({
     procedure: [
       scalar(`uploading`, `false`),
@@ -176,7 +176,7 @@ function imagePart(
             group: "image",
             onClose: [setScalar(`dialog_open`, `false`)],
             recordId: `ui.record_id`,
-            tableName: ctx.table.name.name,
+            tableName: ctx.table.name,
             afterReplace: [ctx.triggerRefresh],
             afterRemove: [ctx.triggerRefresh],
           }),
@@ -273,7 +273,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
     procedure: [
       record(
         `record`,
-        `select ${nameExpr} as name${selectFields} from db.${tableModel.name.name} as record where id = ${recordId}`
+        `select ${nameExpr} as name${selectFields} from db.${tableModel.name} as record where id = ${recordId}`
       ),
     ],
     children: element("div", {
@@ -312,7 +312,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                         variant: "soft",
                         color: "neutral",
                         size: "sm",
-                        children: stringLiteral(field.name.displayName),
+                        children: stringLiteral(field.displayName),
                       })
                     );
                   }),
@@ -337,7 +337,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
               )} || '/' || ui.record_id || '/edit'`,
             }),
             recordDeleteButton({
-              table: tableModel.name.name,
+              table: tableModel.name,
               recordId: `ui.record_id`,
               dialogConfirmDescription: `'Are you sure you want to delete ' || record.name || '?'`,
               size: "sm",

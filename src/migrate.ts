@@ -45,12 +45,12 @@ export function createMigrationScript(opts: MigrationScriptOpts) {
   const tableImports: ScriptStatement[] = [];
   const graph: [string, string][] = [];
   for (const t of Object.values(model.database.tables)) {
-    if (opts.ignoreTables?.includes(t.name.name)) {
+    if (opts.ignoreTables?.includes(t.name)) {
       continue;
     }
     for (const f of Object.values(t.fields)) {
       if (f.type === "ForeignKey") {
-        graph.push([t.name.name, f.table]);
+        graph.push([t.name, f.table]);
       }
     }
   }
@@ -58,34 +58,34 @@ export function createMigrationScript(opts: MigrationScriptOpts) {
   sortedTables.reverse();
   for (const tableName of sortedTables) {
     const t = model.database.tables[tableName];
-    const tableOpts = opts.tables?.[t.name.name] ?? {};
-    const scriptDbTableName = opts.transformTableName?.(t.name.name) ?? t.name;
+    const tableOpts = opts.tables?.[t.name] ?? {};
+    const scriptDbTableName = opts.transformTableName?.(t.name) ?? t.name;
     const fields = Object.values(t.fields)
       .filter((f) => {
-        return !tableOpts.ignoreFields?.includes(f.name.name);
+        return !tableOpts.ignoreFields?.includes(f.name);
       })
       .map((f) => {
-        const fieldName = opts.transformFieldName?.(f.name.name) ?? f.name.name;
-        if (tableOpts.fieldOverrides?.[f.name.name]) {
-          return tableOpts.fieldOverrides[f.name.name] + " as " + f.name.name;
+        const fieldName = opts.transformFieldName?.(f.name) ?? f.name;
+        if (tableOpts.fieldOverrides?.[f.name]) {
+          return tableOpts.fieldOverrides[f.name] + " as " + f.name;
         }
         if (f.type === "ForeignKey") {
-          return `(select new_id from ${f.table}_mapping where record.${fieldName} = old_id) as ${f.name.name}`;
+          return `(select new_id from ${f.table}_mapping where record.${fieldName} = old_id) as ${f.name}`;
         }
         if (f.type == "Enum") {
-          return `cast(cast(record.${fieldName} as string) as enums.${f.enum}) as ${f.name.name}`;
+          return `cast(cast(record.${fieldName} as string) as enums.${f.enum}) as ${f.name}`;
         }
-        return `record.${fieldName} as ${f.name.name}`;
+        return `record.${fieldName} as ${f.name}`;
       });
-    let insertSql = `insert into db.${t.name.name} select ${fields} from ${scriptDbName}.${scriptDbTableName} as record`;
+    let insertSql = `insert into db.${t.name} select ${fields} from ${scriptDbName}.${scriptDbTableName} as record`;
     if (tableOpts.where) {
       insertSql += ` where ${tableOpts.where}`;
     }
     tableImports.push(modify(insertSql));
-    if (isTableReferencedByOthers(t.name.name)) {
+    if (isTableReferencedByOthers(t.name)) {
       tableImports.push(
         table(
-          `${t.name.name}_mapping`,
+          `${t.name}_mapping`,
           [
             {
               name: "old_id",

@@ -10,7 +10,7 @@ import { materialIcon } from "../../components/materialIcon.js";
 import { typography } from "../../components/typography.js";
 import { element, state, switchNode } from "../../nodeHelpers.js";
 import { logOut, scalar, setScalar } from "../../procHelpers.js";
-import { model, theme } from "../../singleton.js";
+import { model } from "../../singleton.js";
 import { createStyles, cssVar } from "../../styleUtils.js";
 import { ClientProcStatement } from "../../yom.js";
 
@@ -57,7 +57,7 @@ const styles = createStyles({
       fontFamily: cssVar(`font-family-body`),
       fontWeight: "md",
       lineHeight: 1,
-      "&:focus-visible": theme.focus.default,
+      "&:focus-visible": model.theme.focus.default,
       "--icon-font-size": "1.25rem",
       minHeight: "2rem",
       fontSize: cssVar("font-size-md"),

@@ -153,7 +153,7 @@ export function createRelatedUnionQuery(opts: RelatedUnionOpts): Union {
               "Please specify a foreignKeyField when multiple fields could be used"
             );
           }
-          foreignKeyField = f.name.name;
+          foreignKeyField = f.name;
         }
       }
     }

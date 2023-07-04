@@ -651,30 +651,27 @@ export function withMultiInsertFormState(
         name: opts.table,
         fields: fields.map((f) => ({
           initialValue: f.initialValue,
-          name: f.field.name.name,
+          name: f.field.name,
           type: formFieldType(f.field),
         })),
       },
     ],
     fields: sharedFields.map((f) => ({
       initialValue: f.initialValue,
-      name: f.field.name.name,
+      name: f.field.name,
       type: formFieldType(f.field),
     })),
     initializeFormState: opts.initializeFormState,
     children: (formState) => {
       const checkSharedFields = sharedFields
         .map((f) => {
-          return defaultValidate(
-            f.field,
-            formState.fieldHelper(f.field.name.name)
-          );
+          return defaultValidate(f.field, formState.fieldHelper(f.field.name));
         })
         .flat();
       const tableErrors = formState.iterTable(opts.table, (cursor) => {
         const checkFields = fields
           .map((f) => {
-            return defaultValidate(f.field, cursor.field(f.field.name.name));
+            return defaultValidate(f.field, cursor.field(f.field.name));
           })
           .flat();
         const checkTables = table.checks.map((check) => {
@@ -685,11 +682,9 @@ export function withMultiInsertFormState(
                 return value[1];
               }
             }
-            const sharedField = sharedFields.find(
-              (sf) => sf.field.name.name === f
-            );
+            const sharedField = sharedFields.find((sf) => sf.field.name === f);
             if (sharedField) {
-              return formState.fields.get(sharedField.field.name.name);
+              return formState.fields.get(sharedField.field.name);
             }
             return getNormalizedValue(table.fields[f], cursor.field(f).value);
           });
@@ -713,10 +708,10 @@ export function withMultiInsertFormState(
             body: [
               serviceProc([
                 startTransaction(),
-                formState.iterTable(table.name.name, (cursor) => {
+                formState.iterTable(table.name, (cursor) => {
                   const insertFields = [
-                    ...sharedFields.map((f) => f.field.name.name),
-                    ...fields.map((f) => f.field.name.name),
+                    ...sharedFields.map((f) => f.field.name),
+                    ...fields.map((f) => f.field.name),
                     ...(opts.sharedStaticValues
                       ? opts.sharedStaticValues.map(([col]) => col)
                       : []),
@@ -725,13 +720,13 @@ export function withMultiInsertFormState(
                     ...sharedFields.map((f) =>
                       getNormalizedValue(
                         f.field,
-                        formState.fields.get(f.field.name.name)
+                        formState.fields.get(f.field.name)
                       )
                     ),
                     ...fields.map((f) =>
                       getNormalizedValue(
                         f.field,
-                        cursor.field(f.field.name.name).value
+                        cursor.field(f.field.name).value
                       )
                     ),
                     ...(opts.sharedStaticValues
@@ -739,7 +734,7 @@ export function withMultiInsertFormState(
                       : []),
                   ].join(",");
                   return modify(
-                    `insert into db.${table.name.name} (${insertFields}) values (${insertValues})`
+                    `insert into db.${table.name} (${insertFields}) values (${insertValues})`
                   );
                 }),
                 commitTransaction(),
@@ -808,7 +803,7 @@ export function withInsertFormState(opts: WithInsertFormStateOpts): StateNode {
     if (!fieldModel) {
       throw new Error(`Field ${fieldConfig.field} not found`);
     }
-    const formStateName = fieldModel.name.name;
+    const formStateName = fieldModel.name;
     formFields.push({
       initialValue:
         fieldConfig.initialValue ??
@@ -836,7 +831,7 @@ export function withInsertFormState(opts: WithInsertFormStateOpts): StateNode {
       if (relation.sharedFields) {
         for (const fieldConfig of relation.sharedFields) {
           const fieldModel = relationTable.fields[fieldConfig.field];
-          const formStateName = fieldModel.name.name;
+          const formStateName = fieldModel.name;
           formFields.push({
             initialValue:
               fieldConfig.initialValue ??
@@ -852,7 +847,7 @@ export function withInsertFormState(opts: WithInsertFormStateOpts): StateNode {
       const fields: ComputedField[] = [];
       for (const fieldConfig of relation.fields) {
         const fieldModel = relationTable.fields[fieldConfig.field];
-        const formStateName = fieldModel.name.name;
+        const formStateName = fieldModel.name;
         relationFormFields.push({
           initialValue:
             fieldConfig.initialValue ??
@@ -865,7 +860,7 @@ export function withInsertFormState(opts: WithInsertFormStateOpts): StateNode {
       }
       const foreignKeyField = Object.values(relationTable.fields).find(
         (f) => f.type === "ForeignKey" && f.table === opts.table
-      )!.name.name;
+      )!.name;
       relations.push({
         fields,
         formFields: relationFormFields,
@@ -878,12 +873,12 @@ export function withInsertFormState(opts: WithInsertFormStateOpts): StateNode {
   return withFormState({
     fields: formFields,
     tables: relations.map((r) => ({
-      name: r.tableModel.name.name,
+      name: r.tableModel.name,
       fields: r.formFields,
     })),
     children: (formState) => {
       const insertCols = [
-        ...fields.map((f) => f.fieldModel.name.name),
+        ...fields.map((f) => f.fieldModel.name),
         ...(opts.withValues ? Object.keys(opts.withValues) : []),
       ].join(",");
       const insertValues = [
@@ -916,10 +911,10 @@ export function withInsertFormState(opts: WithInsertFormStateOpts): StateNode {
       const insertRelations = [];
       for (const relation of relations) {
         insertRelations.push(
-          formState.iterTable(relation.tableModel.name.name, (cursor) => {
+          formState.iterTable(relation.tableModel.name, (cursor) => {
             const insertFields = [
-              ...relation.sharedFields.map((f) => f.fieldModel.name.name),
-              ...relation.fields.map((f) => f.fieldModel.name.name),
+              ...relation.sharedFields.map((f) => f.fieldModel.name),
+              ...relation.fields.map((f) => f.fieldModel.name),
               ...(opts.withValues ? Object.keys(opts.withValues) : []),
             ].join(",");
             const insertValues = [
@@ -939,7 +934,7 @@ export function withInsertFormState(opts: WithInsertFormStateOpts): StateNode {
             ].join(",");
             return modify(
               `insert into db.${ident(
-                relation.tableModel.name.name
+                relation.tableModel.name
               )} (${insertFields}, ${
                 relation.foreignKeyField
               }) values (${insertValues}, last_record_id(db.${ident(
@@ -953,7 +948,7 @@ export function withInsertFormState(opts: WithInsertFormStateOpts): StateNode {
         ...(opts.beforeTransaction?.(formState) ?? []),
         startTransaction(),
         modify(
-          `insert into db.${table.name.name} (${insertCols}) values (${insertValues})`
+          `insert into db.${table.name} (${insertCols}) values (${insertValues})`
         ),
         ...insertRelations,
         ...(opts.postInsert?.(formState) ?? []),
@@ -992,7 +987,7 @@ export function withInsertFormState(opts: WithInsertFormStateOpts): StateNode {
                 [
                   formState.setFormError(
                     `'Cannot add duplicate ' || ${stringLiteral(
-                      table.name.displayName.toLowerCase()
+                      table.displayName.toLowerCase()
                     )}`
                   ),
                 ],
@@ -1024,9 +1019,7 @@ export function defaultInitialValue(field: Field) {
       if (field.notNull) {
         const enum_ = model.enums[field.enum];
         const firstValue = Object.values(enum_.values)[0];
-        return `cast(${stringLiteral(firstValue.name.name)} as enums.${
-          enum_.name.name
-        })`;
+        return `cast(${stringLiteral(firstValue.name)} as enums.${enum_.name})`;
       }
       return `null`;
     default:
@@ -1162,7 +1155,7 @@ export function withUpdateFormState(opts: WithUpdateFormStateOpts) {
   return withFormState({
     fields: fields.map((f) => ({
       initialValue: f.initialValue,
-      name: f.field.name.name,
+      name: f.field.name,
       type: formFieldType(f.field),
     })),
     children: (formState) => {
@@ -1170,25 +1163,25 @@ export function withUpdateFormState(opts: WithUpdateFormStateOpts) {
         .map((f) => {
           const value = getNormalizedValue(
             f.field,
-            formState.fields.get(f.field.name.name)
+            formState.fields.get(f.field.name)
           );
-          return `${f.field.name.name} = ${value}`;
+          return `${f.field.name} = ${value}`;
         })
         .join(" , ");
       const checkFields = fields
         .map((f) => {
           const props = {
             setError: (err: string) =>
-              formState.fields.setError(f.field.name.name, err),
-            value: formState.fields.get(f.field.name.name),
-            error: formState.fields.error(f.field.name.name),
+              formState.fields.setError(f.field.name, err),
+            value: formState.fields.get(f.field.name),
+            error: formState.fields.error(f.field.name),
           };
           return defaultValidate(f.field, props);
         })
         .flat();
       const checkTables = table.checks.map((check) => {
         const fieldExprs = check.fields.map((f) => {
-          if (fields.some((field) => field.field.name.name === f)) {
+          if (fields.some((field) => field.field.name === f)) {
             return getNormalizedValue(table.fields[f], formState.fields.get(f));
           }
           if (!opts.initialRecord) {
@@ -1228,7 +1221,7 @@ export function withUpdateFormState(opts: WithUpdateFormStateOpts) {
               serviceProc([
                 startTransaction(),
                 modify(
-                  `update db.${table.name.name} set ${setValues} where id = ${recordId}`
+                  `update db.${table.name} set ${setValues} where id = ${recordId}`
                 ),
                 commitTransaction(),
                 ...(opts.afterSubmitService?.(formState) ?? []),

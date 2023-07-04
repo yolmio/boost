@@ -324,7 +324,7 @@ export function toolbar(
                                 dynamicQuery({
                                   query: makeCountQuery(
                                     baseDts,
-                                    `db.` + ident(tableModel.name.name),
+                                    `db.` + ident(tableModel.name),
                                     matchConfig
                                   ),
                                   columnCount: 1,
@@ -347,7 +347,7 @@ export function toolbar(
                               dynamicQuery({
                                 query: makeIdsQuery(
                                   baseDts,
-                                  `db.` + ident(tableModel.name.name),
+                                  `db.` + ident(tableModel.name),
                                   matchConfig
                                 ),
                                 columnCount: 1,
@@ -355,14 +355,14 @@ export function toolbar(
                               }),
                               modify(
                                 `delete from db.${ident(
-                                  tableModel.name.name
+                                  tableModel.name
                                 )} where id in (select cast(field_0 as bigint) from ids)`
                               ),
                             ],
                             [
                               modify(
                                 `delete from db.${ident(
-                                  tableModel.name.name
+                                  tableModel.name
                                 )} where id in (select id from ui.selected_row)`
                               ),
                             ]
@@ -405,7 +405,7 @@ export function toolbar(
                     props: {
                       value: "quick_search_query",
                       placeholder: `'Search ${downcaseFirst(
-                        pluralize(tableModel.name.displayName)
+                        pluralize(tableModel.displayName)
                       )}'`,
                     },
                   },

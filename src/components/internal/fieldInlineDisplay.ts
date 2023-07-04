@@ -17,7 +17,7 @@ export function inlineFieldDisplay(field: Field, expr: string) {
   switch (field.type) {
     case "Date": {
       const formatString = stringLiteral(field.formatString ?? "%-d %b %Y");
-      return `format.date(record.${field.name.name}, ${formatString})`;
+      return `format.date(record.${field.name}, ${formatString})`;
     }
     case "ForeignKey": {
       const toTable = model.database.tables[field.table];
@@ -37,7 +37,7 @@ export function inlineFieldDisplay(field: Field, expr: string) {
         innerDisplay = element("a", {
           styles: styles.link,
           props: {
-            href: toTable.getHrefToRecord(`record.${field.name.name}`),
+            href: toTable.getHrefToRecord(`record.${field.name}`),
           },
           children: `name`,
         });

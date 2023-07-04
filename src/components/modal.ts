@@ -2,7 +2,7 @@ import { portal } from "../nodeHelpers.js";
 import { registerKeyframes } from "../nodeTransform.js";
 import { Node } from "../nodeTypes.js";
 import { if_, stopPropagation } from "../procHelpers.js";
-import { theme } from "../singleton.js";
+import { model } from "../singleton.js";
 import { createStyles, cssVar } from "../styleUtils.js";
 import { Variant } from "../theme.js";
 import { lazy } from "../utils/memoize.js";
@@ -83,25 +83,25 @@ const styles = createStyles({
       "--modal-close-radius":
         "max((var(--modal-dialog-radius) - var(--variant-border-width, 0px)) - var(--modal-close-inset), min(var(--modal-close-inset) / 2, (var(--modal-dialog-radius) - var(--variant-borderWidth, 0px)) / 2))",
       ...(size === "sm" && {
-        "--modal-dialog-padding": theme.spacing(1.25),
+        "--modal-dialog-padding": model.theme.spacing(1.25),
         "--modal-dialog-radius": cssVar(`radius-sm`),
-        "--modal-close-inset": theme.spacing(0.75),
+        "--modal-close-inset": model.theme.spacing(0.75),
         fontSize: cssVar(`font-size-sm`),
       }),
       ...(size === "md" && {
-        "--modal-dialog-padding": theme.spacing(2),
+        "--modal-dialog-padding": model.theme.spacing(2),
         "--modal-dialog-radius": cssVar(`radius-md`),
-        "--modal-close-inset": theme.spacing(1),
+        "--modal-close-inset": model.theme.spacing(1),
         fontSize: cssVar(`font-size-md`),
       }),
       ...(size === "lg" && {
-        "--modal-dialog-padding": theme.spacing(3),
+        "--modal-dialog-padding": model.theme.spacing(3),
         "--modal-dialog-radius": cssVar(`radius-md`),
-        "--modal-close-inset": theme.spacing(1.5),
+        "--modal-close-inset": model.theme.spacing(1.5),
         fontSize: cssVar(`font-size-md`),
       }),
       boxSizing: "border-box",
-      boxShadow: theme.shadow.md,
+      boxShadow: "md",
       borderRadius: "var(--modal-dialog-radius)",
       fontFamily: cssVar(`font-family-body`),
       lineHeight: cssVar(`line-height-md`),

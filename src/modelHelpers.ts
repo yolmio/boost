@@ -14,7 +14,6 @@ import type {
   FieldBase,
   FieldCheck,
   FieldGroup,
-  Names,
   NumericFields,
   Page,
   Parameter,
@@ -26,9 +25,8 @@ import type {
   VirtualField,
   VirtualType,
 } from "./modelTypes.js";
-import type { BoostConfig, HelperName } from "./config.js";
 import type * as yom from "./yom.js";
-import { config, model } from "./singleton.js";
+import { model } from "./singleton.js";
 import { stringLiteral } from "./utils/sqlHelpers.js";
 import type { Node } from "./nodeTypes.js";
 import { getTableBaseUrl } from "./utils/url.js";
@@ -50,83 +48,92 @@ export class TableBuilder {
   #createDefaultNameMatch = false;
   #getHrefToRecord?: (id: string) => string;
   #formControl?: TableControl;
+  #displayName: string;
 
-  constructor(private name: Names) {}
+  constructor(private name: string) {
+    this.#displayName = model.displayNameConfig.table(name);
+  }
+
+  displayName(name: string) {
+    this.#displayName = name;
+    return this;
+  }
 
   renameFrom(name: string) {
     this.#renameFrom = name;
+    return this;
   }
 
-  bool(name: HelperName) {
+  bool(name: string) {
     return new BoolFieldBuilder(name, this);
   }
 
-  ordering(name: HelperName) {
+  ordering(name: string) {
     return new OrderingFieldBuilder(name, this);
   }
 
-  date(name: HelperName) {
+  date(name: string) {
     return new DateFieldBuilder(name, this);
   }
 
-  time(name: HelperName) {
+  time(name: string) {
     return new TimeFieldBuilder(name, this);
   }
 
-  timestamp(name: HelperName) {
+  timestamp(name: string) {
     return new TimestampFieldBuilder(name, this);
   }
 
-  tx(name: HelperName) {
+  tx(name: string) {
     return new TxFieldBuilder(name, this);
   }
 
-  tinyInt(name: HelperName) {
+  tinyInt(name: string) {
     return new TinyIntFieldBuilder(name, this);
   }
 
-  smallInt(name: HelperName) {
+  smallInt(name: string) {
     return new SmallIntFieldBuilder(name, this);
   }
 
-  int(name: HelperName) {
+  int(name: string) {
     return new IntFieldBuilder(name, this);
   }
 
-  bigInt(name: HelperName) {
+  bigInt(name: string) {
     return new BigIntFieldBuilder(name, this);
   }
 
-  tinyUint(name: HelperName) {
+  tinyUint(name: string) {
     return new TinyUintFieldBuilder(name, this);
   }
 
-  smallUint(name: HelperName) {
+  smallUint(name: string) {
     return new SmallUintFieldBuilder(name, this);
   }
 
-  uint(name: HelperName) {
+  uint(name: string) {
     return new UintFieldBuilder(name, this);
   }
 
-  bigUint(name: HelperName) {
+  bigUint(name: string) {
     return new BigUintFieldBuilder(name, this);
   }
 
-  real(name: HelperName) {
+  real(name: string) {
     return new RealFieldBuilder(name, this);
   }
 
-  double(name: HelperName) {
+  double(name: string) {
     return new DoubleFieldBuilder(name, this);
   }
 
-  uuid(name: HelperName) {
+  uuid(name: string) {
     return new UuidFieldBuilder(name, this);
   }
 
   money(
-    name: HelperName,
+    name: string,
     opts: {
       precision: number;
       scale: number;
@@ -144,7 +151,7 @@ export class TableBuilder {
   }
 
   percentage(
-    name: HelperName,
+    name: string,
     opts: {
       precision: number;
       scale: number;
@@ -162,7 +169,7 @@ export class TableBuilder {
   }
 
   decimal(
-    name: HelperName,
+    name: string,
     opts: {
       precision: number;
       scale: number;
@@ -179,19 +186,19 @@ export class TableBuilder {
     );
   }
 
-  string(name: HelperName, maxLength: number) {
+  string(name: string, maxLength: number) {
     return new StringFieldBuilder(name, maxLength, this);
   }
 
-  secondsDuration(name: HelperName, backing: yom.FieldIntegerTypes) {
+  secondsDuration(name: string, backing: yom.FieldIntegerTypes) {
     return new DurationFieldBuilder(name, this, backing, "seconds");
   }
 
-  minutesDuration(name: HelperName, backing: yom.FieldIntegerTypes) {
+  minutesDuration(name: string, backing: yom.FieldIntegerTypes) {
     return new DurationFieldBuilder(name, this, backing, "minutes");
   }
 
-  hoursDuration(name: HelperName, backing: yom.FieldIntegerTypes) {
+  hoursDuration(name: string, backing: yom.FieldIntegerTypes) {
     return new DurationFieldBuilder(name, this, backing, "hours");
   }
 
@@ -200,20 +207,12 @@ export class TableBuilder {
   //   // return new FieldBuilder(name, { type: "Email" }, this);
   // }
 
-  fk(name: HelperName, table?: string) {
-    return new ForeignKeyFieldBuilder(
-      name,
-      this,
-      table ?? (typeof name === "string" ? name : name.name)
-    );
+  fk(name: string, table?: string) {
+    return new ForeignKeyFieldBuilder(name, this, table ?? name);
   }
 
-  enum(name: HelperName, enumName?: string) {
-    return new EnumFieldBuilder(
-      name,
-      this,
-      enumName ?? (typeof name === "string" ? name : name.name)
-    );
+  enum(name: string, enumName?: string) {
+    return new EnumFieldBuilder(name, this, enumName ?? name);
   }
 
   unique(
@@ -254,9 +253,9 @@ export class TableBuilder {
   }
 
   virtualField(virtual: VirtualFieldHelper): TableBuilder {
-    const name = config.createNameObject(virtual.name);
-    this.#virtualFields[name.name] = {
-      name,
+    this.#virtualFields[virtual.name] = {
+      name: virtual.name,
+      displayName: model.displayNameConfig.virtual(virtual.name),
       fields: virtual.fields,
       expr: virtual.expr,
       type:
@@ -291,7 +290,7 @@ export class TableBuilder {
   }
 
   searchConfig(config: Omit<yom.RankedSearchTable, "table">) {
-    this.#searchConfig = { table: this.name.name, ...config };
+    this.#searchConfig = { table: this.name, ...config };
     return this;
   }
 
@@ -299,9 +298,7 @@ export class TableBuilder {
     this.#getHrefToRecord =
       f ??
       ((id) =>
-        `'/' || ${stringLiteral(
-          getTableBaseUrl(this.name.name)
-        )} || '/' || ${id}`);
+        `'/' || ${stringLiteral(getTableBaseUrl(this.name))} || '/' || ${id}`);
     return this;
   }
 
@@ -318,7 +315,7 @@ export class TableBuilder {
     const fields: { [s: string]: Field } = {};
     for (const f of this.#fields) {
       const field = f.finish();
-      fields[field.name.name] = field;
+      fields[field.name] = field;
     }
     let recordDisplayName = this.#recordDisplayName;
     if (fields.first_name && fields.last_name) {
@@ -356,20 +353,20 @@ export class TableBuilder {
         fields: [],
         expr: () => {
           throw new Error(
-            `recordDisplayName not provided for table ${this.name.name}`
+            `recordDisplayName not provided for table ${this.name}`
           );
         },
       };
     }
-    const tableName = this.name.name;
+    const tableName = this.name;
     if (this.#createDefaultNameMatch) {
       if (fields.first_name && fields.last_name) {
         addSearchMatch({
           name: tableName + "_name",
           table: tableName,
-          tokenizer: config.defaultTokenizer,
+          tokenizer: model.searchConfig.defaultTokenizer,
           style: {
-            ...config.defaultFuzzyConfig,
+            ...model.searchConfig.defaultFuzzyConfig,
             type: "Fuzzy",
           },
           fieldGroups: [
@@ -382,9 +379,9 @@ export class TableBuilder {
         addSearchMatch({
           name: tableName + "_name",
           table: tableName,
-          tokenizer: config.defaultTokenizer,
+          tokenizer: model.searchConfig.defaultTokenizer,
           style: {
-            ...config.defaultFuzzyConfig,
+            ...model.searchConfig.defaultFuzzyConfig,
             type: "Fuzzy",
           },
           fields: [`name`],
@@ -411,6 +408,7 @@ export class TableBuilder {
     }
     return {
       name: this.name,
+      displayName: this.#displayName,
       renameFrom: this.#renameFrom,
       checks: this.#checks,
       fields,
@@ -428,7 +426,8 @@ export class TableBuilder {
 }
 
 export interface VirtualFieldHelper {
-  name: HelperName;
+  name: string;
+  displayName?: string;
   fields: string[];
   expr: (...fields: string[]) => string;
   type: VirtualType | yom.SimpleScalarTypes;
@@ -439,15 +438,22 @@ abstract class BaseFieldBuilder {
   protected _renameFrom?: string;
   protected _description?: string;
   protected _unique = false;
-  protected _name: Names;
+  protected _name: string;
+  protected _displayName: string;
   protected _checks: FieldCheck[] = [];
   protected _indexed?: boolean;
   protected _default?: string;
   protected _group?: string;
 
-  constructor(name: HelperName, protected table: TableBuilder) {
-    this._name = config.createNameObject(name);
+  constructor(name: string, protected table: TableBuilder) {
+    this._name = name;
+    this._displayName = model.displayNameConfig.field(name);
     table.addField(this);
+  }
+
+  displayName(name: string) {
+    this._displayName = name;
+    return this;
   }
 
   renameFrom(name: string) {
@@ -476,7 +482,7 @@ abstract class BaseFieldBuilder {
   }
 
   unique() {
-    this.table.unique([this._name.name]);
+    this.table.unique([this._name]);
     this._unique = true;
     return this;
   }
@@ -496,6 +502,7 @@ abstract class BaseFieldBuilder {
   finishBase() {
     return {
       name: this._name,
+      displayName: this._displayName,
       renameFrom: this._renameFrom,
       notNull: this._notNull ?? false,
       checks: [],
@@ -515,7 +522,7 @@ abstract class BaseNumericBuilder extends BaseFieldBuilder {
   #min?: string;
   #displayText?: (num: string) => string;
 
-  constructor(name: HelperName, table: TableBuilder) {
+  constructor(name: string, table: TableBuilder) {
     super(name, table);
   }
 
@@ -545,7 +552,7 @@ abstract class BaseNumericBuilder extends BaseFieldBuilder {
 }
 
 interface SimpleNumericFieldBuilder {
-  new (name: HelperName, table: TableBuilder): BaseNumericBuilder;
+  new (name: string, table: TableBuilder): BaseNumericBuilder;
 }
 
 function createSimpleNumericBuilder(
@@ -577,7 +584,7 @@ class DecimalFieldBuilder extends BaseFieldBuilder {
   #usage?: DecimalUsage;
 
   constructor(
-    name: HelperName,
+    name: string,
     table: TableBuilder,
     precision: number,
     scale: number,
@@ -608,7 +615,7 @@ class DurationFieldBuilder extends BaseFieldBuilder {
   #size: DurationSize;
 
   constructor(
-    name: HelperName,
+    name: string,
     table: TableBuilder,
     backing: yom.FieldIntegerTypes,
     size: DurationSize
@@ -685,7 +692,7 @@ class StringFieldBuilder extends BaseFieldBuilder {
   #autoTrim?: yom.AutoTrim;
   #multiline?: boolean;
 
-  constructor(name: HelperName, maxLength: number, table: TableBuilder) {
+  constructor(name: string, maxLength: number, table: TableBuilder) {
     super(name, table);
     this.#maxLength = maxLength;
   }
@@ -733,7 +740,7 @@ class ForeignKeyFieldBuilder extends BaseFieldBuilder {
   #table: string;
   #onDelete: yom.OnDeleteBehavior = "Cascade";
 
-  constructor(name: HelperName, table: TableBuilder, tableName: string) {
+  constructor(name: string, table: TableBuilder, tableName: string) {
     super(name, table);
     this.#table = tableName;
   }
@@ -756,7 +763,7 @@ class ForeignKeyFieldBuilder extends BaseFieldBuilder {
 class EnumFieldBuilder extends BaseFieldBuilder {
   #enum: string;
 
-  constructor(name: HelperName, table: TableBuilder, enumName: string) {
+  constructor(name: string, table: TableBuilder, enumName: string) {
     super(name, table);
     this.#enum = enumName;
   }
@@ -776,25 +783,23 @@ export function addSearchMatch(index: yom.SearchMatchConfig) {
 
 let inScriptDb: ScriptDbDefinition | undefined;
 
-export function addTable(name: HelperName, f: (table: TableBuilder) => void) {
-  const nameObj = config.createNameObject(name);
-  const builder = new TableBuilder(nameObj);
+export function addTable(name: string, f: (table: TableBuilder) => void) {
+  const builder = new TableBuilder(name);
   f(builder);
   if (inScriptDb) {
-    inScriptDb.tables[nameObj.name] = builder.finish();
+    inScriptDb.tables[name] = builder.finish();
   } else {
-    model.database.tables[nameObj.name] = builder.finish();
+    model.database.tables[name] = builder.finish();
   }
 }
 
 export function addDeviceDatabaseTable(
-  name: HelperName,
+  name: string,
   f: (table: TableBuilder) => void
 ) {
-  const nameObj = config.createNameObject(name);
-  const builder = new TableBuilder(nameObj);
+  const builder = new TableBuilder(name);
   f(builder);
-  model.deviceDb.tables[nameObj.name] = builder.finish();
+  model.deviceDb.tables[name] = builder.finish();
 }
 
 export interface SimpleDt {
@@ -819,12 +824,18 @@ export type BoolDt =
     };
 
 export interface HelperEnum {
-  name: HelperName;
+  name: string;
+  displayName?: string;
   renameFrom?: string;
   description?: string;
   values: (
     | string
-    | (HelperName & { renameFrom?: string; description?: string })
+    | {
+        name: string;
+        displayName?: string;
+        renameFrom?: string;
+        description?: string;
+      }
   )[];
   withSimpleDts?: SimpleDt[];
   withBoolDts?: BoolDt[];
@@ -832,27 +843,22 @@ export interface HelperEnum {
 }
 
 export function addEnum(enum_: HelperEnum) {
-  const enumName = config.createNameObject(enum_.name);
+  const displayName = model.displayNameConfig.enum(enum_.name);
   const values = enum_.values.map((v) => {
     if (typeof v === "string") {
-      return { name: config.createNameObject(v) };
+      return { name: v, displayName: model.displayNameConfig.enumValue(v) };
     }
-    const { description, renameFrom, ...rest } = v;
     return {
-      name: config.createNameObject(rest),
-      renameFrom,
-      description,
+      displayName: model.displayNameConfig.enumValue(v.name),
+      ...v,
     };
   });
   if (enum_.withDisplayDt) {
     enum_.withSimpleDts = enum_.withSimpleDts ?? [];
     enum_.withSimpleDts.push({
-      name: "display_" + enumName.name,
+      name: "display_" + enum_.name,
       outputType: "String",
-      fields: values.map((n) => [
-        n.name.name,
-        stringLiteral(n.name.displayName),
-      ]),
+      fields: values.map((n) => [n.name, stringLiteral(n.displayName)]),
     });
   }
   if (Array.isArray(enum_.withBoolDts)) {
@@ -877,7 +883,7 @@ export function addEnum(enum_: HelperEnum) {
         parameters: [
           {
             name: "value",
-            type: { type: "Enum", enum: enumName.name },
+            type: { type: "Enum", enum: enum_.name },
           },
         ],
         output: { name: "output", type: dt.outputType },
@@ -890,29 +896,30 @@ export function addEnum(enum_: HelperEnum) {
   }
   const valuesObject: Record<string, EnumValue> = {};
   for (const v of values) {
-    valuesObject[v.name.name] = v;
+    valuesObject[v.name] = v;
   }
   const modelEnum: Enum = {
-    name: enumName,
+    name: enum_.name,
+    displayName,
     renameFrom: enum_.renameFrom,
     description: enum_.description,
     values: valuesObject,
   };
-  model.enums[enumName.name] = modelEnum;
+  model.enums[enum_.name] = modelEnum;
   if (enum_.withDisplayDt) {
-    modelEnum.getDisplayName = (v) => `dt.display_${enumName.name}(${v})`;
+    modelEnum.getDisplayName = (v) => `dt.display_${enum_.name}(${v})`;
   }
 }
 
 interface HelperDecisionTableInput {
-  name: HelperName;
+  name: string;
   notNull?: boolean;
   collation?: yom.Collation;
   type: HelperFieldType;
 }
 
 interface HelperDecisionTableOutput {
-  name: HelperName;
+  name: string;
   collation?: yom.Collation;
   type:
     | yom.ScalarType
@@ -923,7 +930,7 @@ interface HelperDecisionTableOutput {
 
 interface HelperDecisionTable {
   bound: boolean;
-  name: HelperName;
+  name: string;
   description?: string;
   setup?: yom.BasicStatement[];
   parameters?: HelperDecisionTableInput[];
@@ -935,7 +942,7 @@ interface HelperDecisionTable {
 
 interface HelperScalarFunction {
   bound: boolean;
-  name: HelperName;
+  name: string;
   description?: string;
   parameters: HelperDecisionTableInput[];
   procedure: yom.BasicStatement[];
@@ -953,13 +960,11 @@ function fieldTypeFromHelper(ty: HelperFieldType): yom.FieldType {
 }
 
 export function addDecisionTable(dt: HelperDecisionTable) {
-  const tableName = config.createNameObject(dt.name);
   const inputs: { [name: string]: Parameter } = {};
   const outputs: { [name: string]: DecisionTableOutput } = {};
   if (dt.output) {
-    const name = config.createNameObject(dt.output.name);
-    outputs[name.name] = {
-      name: name,
+    outputs[dt.output.name] = {
+      name: dt.output.name,
       type:
         typeof dt.output.type === "string"
           ? { type: dt.output.type }
@@ -969,9 +974,8 @@ export function addDecisionTable(dt: HelperDecisionTable) {
   }
   if (dt.outputs) {
     for (const output of dt.outputs) {
-      const name = config.createNameObject(output.name);
-      outputs[name.name] = {
-        name: name,
+      outputs[output.name] = {
+        name: output.name,
         type:
           typeof output.type === "string" ? { type: output.type } : output.type,
         collation: output.collation,
@@ -980,16 +984,15 @@ export function addDecisionTable(dt: HelperDecisionTable) {
   }
   if (dt.parameters) {
     for (const input of dt.parameters) {
-      const name = config.createNameObject(input.name);
-      inputs[name.name] = {
-        name: name,
+      inputs[input.name] = {
+        name: input.name,
         type: fieldTypeFromHelper(input.type),
         notNull: input.notNull,
       };
     }
   }
   const newDt: DecisionTable = {
-    name: tableName,
+    name: dt.name,
     description: dt.description,
     csv: dt.csv,
     outputs,
@@ -997,25 +1000,23 @@ export function addDecisionTable(dt: HelperDecisionTable) {
     setup: dt.setup,
   };
   if (dt.bound) {
-    model.database.decisionTables[tableName.name] = newDt;
+    model.database.decisionTables[dt.name] = newDt;
   } else {
-    model.decisionTables[tableName.name] = newDt;
+    model.decisionTables[dt.name] = newDt;
   }
 }
 
 export function addScalarFunction(f: HelperScalarFunction) {
-  const tableName = config.createNameObject(f.name);
   const inputs: { [name: string]: Parameter } = {};
   for (const input of f.parameters) {
-    const name = config.createNameObject(input.name);
-    inputs[name.name] = {
-      name: name,
+    inputs[input.name] = {
+      name: input.name,
       type: typeof input.type === "string" ? { type: input.type } : input.type,
       notNull: input.notNull,
     };
   }
   const newDt: ScalarFunction = {
-    name: tableName,
+    name: f.name,
     description: f.description,
     inputs,
     procedure: f.procedure,
@@ -1023,9 +1024,9 @@ export function addScalarFunction(f: HelperScalarFunction) {
       typeof f.returnType === "string" ? { type: f.returnType } : f.returnType,
   };
   if (f.bound) {
-    model.database.scalarFunctions[tableName.name] = newDt;
+    model.database.scalarFunctions[f.name] = newDt;
   } else {
-    model.scalarFunctions[tableName.name] = newDt;
+    model.scalarFunctions[f.name] = newDt;
   }
 }
 

@@ -47,7 +47,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
         )} || '/' || ui.record_id || '/edit'`,
       }),
       recordDeleteButton({
-        table: ctx.table.name.name,
+        table: ctx.table.name,
         recordId: ctx.recordId,
         size: "sm",
         afterDeleteService: [navigate(stringLiteral(ctx.pathBase))],

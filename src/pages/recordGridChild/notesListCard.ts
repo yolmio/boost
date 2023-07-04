@@ -101,21 +101,21 @@ const styles = createStyles({
 
 export function content(opts: Opts, ctx: RecordGridContext) {
   let foreignKeyField = opts.foreignKeyField;
-  const notesTable = opts.notesTable ?? ctx.table.name.name + "_note";
+  const notesTable = opts.notesTable ?? ctx.table.name + "_note";
   if (!foreignKeyField) {
     const notesTableModel = model.database.tables[notesTable];
     if (!notesTableModel) {
       throw new Error(`No notes table found for ${notesTable}`);
     }
     const fkField = Object.values(notesTableModel.fields).find(
-      (f) => f.type === "ForeignKey" && f.table === ctx.table.name.name
+      (f) => f.type === "ForeignKey" && f.table === ctx.table.name
     );
     if (!fkField) {
       throw new Error(
-        `No foreign key field found for ${notesTable} to ${ctx.table.name.name}`
+        `No foreign key field found for ${notesTable} to ${ctx.table.name}`
       );
     }
-    foreignKeyField = fkField.name.name;
+    foreignKeyField = fkField.name;
   }
   return sourceMap(
     "notesListCard",

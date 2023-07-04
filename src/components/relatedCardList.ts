@@ -55,7 +55,7 @@ export function relatedCardList(opts: RelatedCardOpts) {
       procedure: [
         table(
           "record",
-          `select id ${selectFields} from db.${tableModel.name.name} as record where ${foreignKeyField.name.name} = ${opts.foreignKeyId}`
+          `select id ${selectFields} from db.${tableModel.name} as record where ${foreignKeyField.name} = ${opts.foreignKeyId}`
         ),
       ],
       children: element("div", {
@@ -76,9 +76,7 @@ export function relatedCardList(opts: RelatedCardOpts) {
             },
             children: [
               typography({
-                children: `${stringLiteral(
-                  pluralize(tableModel.name.displayName)
-                )}`,
+                children: `${stringLiteral(pluralize(tableModel.displayName))}`,
               }),
               button({
                 children: `'Add'`,
@@ -112,7 +110,7 @@ export function relatedCardList(opts: RelatedCardOpts) {
                               color: "text-secondary",
                             },
                             children: `${stringLiteral(
-                              field.name.displayName
+                              field.displayName
                             )} || ': '`,
                           }),
                           inlineFieldDisplay(

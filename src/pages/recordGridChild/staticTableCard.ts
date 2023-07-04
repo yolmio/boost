@@ -52,16 +52,14 @@ export function content(opts: Opts, ctx: RecordGridContext) {
     if (typeof row === "string") {
       const field = ctx.table.fields[row];
       if (!field) {
-        throw new Error(
-          `Field ${row} not found in table ${ctx.table.name.name}`
-        );
+        throw new Error(`Field ${row} not found in table ${ctx.table.name}`);
       }
-      selectFields += `record.${field.name.name} as ${field.name.name}`;
+      selectFields += `record.${field.name} as ${field.name}`;
     } else {
       selectFields += `${row.expr} as e_${i}`;
     }
   }
-  const query = `select id${selectFields} from db.${ctx.table.name.name} as record where id = ${ctx.recordId}`;
+  const query = `select id${selectFields} from db.${ctx.table.name} as record where id = ${ctx.recordId}`;
   return card({
     variant: "outlined",
     styles: opts.styles,
@@ -73,16 +71,13 @@ export function content(opts: Opts, ctx: RecordGridContext) {
           children: opts.rows.map((row, i) => {
             if (typeof row === "string") {
               const field = ctx.table.fields[row];
-              const value = inlineFieldDisplay(
-                field,
-                `record.${field.name.name}`
-              );
+              const value = inlineFieldDisplay(field, `record.${field.name}`);
               return element("tr", {
                 children: [
                   element("th", {
                     styles: i === 0 ? styles.header : styles.headerWithDivider,
                     props: { scope: "'row'" },
-                    children: stringLiteral(field.name.displayName),
+                    children: stringLiteral(field.displayName),
                   }),
                   element("td", {
                     styles: i === 0 ? {} : styles.cell,

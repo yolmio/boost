@@ -81,9 +81,7 @@ export function recordGridPage(opts: RecordGridPageOpts) {
       children.push(childFnMap[child.type](child as any, props));
     }
   }
-  const tableLowercase = stringLiteral(
-    tableModel.name.displayName.toLowerCase()
-  );
+  const tableLowercase = stringLiteral(tableModel.displayName.toLowerCase());
   const content = state({
     procedure: [
       // If we update this on the service proc and not on the client proc, it will run the new state
@@ -146,7 +144,7 @@ export function recordGridPage(opts: RecordGridPageOpts) {
       ],
       content: {
         type: "AutoLabelOnLeft",
-        header: `Edit ` + tableModel.name.displayName,
+        header: `Edit ` + tableModel.displayName,
       },
     });
   }

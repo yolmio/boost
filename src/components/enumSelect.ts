@@ -14,8 +14,8 @@ const getEnumOptions = memoize((enumName: string, emptyOption?: string) => {
   const enum_ = model.enums[enumName];
   const options = Object.values(enum_.values).map((v) =>
     element("option", {
-      children: stringLiteral(v.name.displayName),
-      props: { value: stringLiteral(v.name.name) },
+      children: stringLiteral(v.displayName),
+      props: { value: stringLiteral(v.name) },
     })
   );
   if (emptyOption) {

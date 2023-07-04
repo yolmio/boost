@@ -60,11 +60,11 @@ const styles = createStyles({
 export function content(opts: Opts, ctx: RecordGridContext) {
   const tableModel = model.database.tables[opts.table];
   const foreignKeyField = Object.values(tableModel.fields).find(
-    (f) => f.type === "ForeignKey" && f.table === ctx.table.name.name
+    (f) => f.type === "ForeignKey" && f.table === ctx.table.name
   );
   if (!foreignKeyField) {
     throw new Error(
-      `No foreign key field found for ${ctx.table.name.name} to ${opts.table}`
+      `No foreign key field found for ${ctx.table.name} to ${opts.table}`
     );
   }
   let selectFields = "";
@@ -86,7 +86,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
           "record",
           `select id ${selectFields} from db.${ident(
             opts.table
-          )} as record where ${foreignKeyField.name.name} = ${ctx.recordId}`
+          )} as record where ${foreignKeyField.name} = ${ctx.recordId}`
         ),
       ],
       children: element("div", {
@@ -108,7 +108,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                         const fieldModel = tableModel.fields[field];
                         return element("th", {
                           styles: styles.header,
-                          children: stringLiteral(fieldModel.name.displayName),
+                          children: stringLiteral(fieldModel.displayName),
                         });
                       } else {
                         return element("th", {
@@ -176,7 +176,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                           updateDialog({
                             content: {
                               type: "AutoLabelOnLeft",
-                              ignoreFields: [foreignKeyField.name.name],
+                              ignoreFields: [foreignKeyField.name],
                             },
                             onClose: [setScalar(`editing`, `false`)],
                             open: `editing`,
@@ -198,7 +198,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                           deleteRecordDialog({
                             onClose: [setScalar(`deleting`, `false`)],
                             open: `deleting`,
-                            table: ctx.table.name.name,
+                            table: ctx.table.name,
                             recordId: `record.id`,
                             afterDeleteService: [ctx.triggerRefresh],
                           }),
@@ -219,7 +219,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                   size: "sm",
                   variant: "outlined",
                   startDecorator: materialIcon("Add"),
-                  children: `'Add ${ctx.table.name.displayName}…'`,
+                  children: `'Add ${ctx.table.displayName}…'`,
                   on: { click: [setScalar(`adding`, `true`)] },
                 }),
               }),
@@ -227,11 +227,11 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                 content: deepmerge(
                   {
                     type: "AutoLabelOnLeft",
-                    ignoreFields: [foreignKeyField.name.name],
+                    ignoreFields: [foreignKeyField.name],
                   },
                   opts.insertDialog
                 ),
-                withValues: { [foreignKeyField.name.name]: ctx.recordId },
+                withValues: { [foreignKeyField.name]: ctx.recordId },
                 onClose: [setScalar(`adding`, `false`)],
                 open: `adding`,
                 table: opts.table,
