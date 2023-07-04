@@ -144,7 +144,10 @@ export function recordGridPage(opts: RecordGridPageOpts) {
       afterSubmitService: () => [
         navigate(`${stringLiteral(pathBase)} || '/' || ui.record_id`),
       ],
-      content: { type: "AutoLabelOnLeft" },
+      content: {
+        type: "AutoLabelOnLeft",
+        header: `Edit ` + tableModel.name.displayName,
+      },
     });
   }
   addPage({

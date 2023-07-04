@@ -1,10 +1,9 @@
 import { FormState, withInsertFormState } from "../formState.js";
 import { addPage } from "../modelHelpers.js";
-import { element, ifNode } from "../nodeHelpers.js";
+import { element } from "../nodeHelpers.js";
 import { Node } from "../nodeTypes.js";
 import { model } from "../singleton.js";
 import { containerStyles, createStyles } from "../styleUtils.js";
-import { pluralize } from "../utils/inflectors.js";
 import { stringLiteral } from "../utils/sqlHelpers.js";
 import { ClientProcStatement, ServiceProcStatement } from "../yom.js";
 import {
@@ -12,6 +11,7 @@ import {
   InsertFormContent,
   insertFormContent,
 } from "../components/internal/insertFormShared.js";
+import { getTableBaseUrl } from "../utils/url.js";
 
 export interface SectionedInsertFormPageOpts {
   table: string;
@@ -32,17 +32,11 @@ const styles = createStyles({
       flexDirection: "column",
     },
   ],
-  formError: {
-    alignItems: "flex-start",
-    my: 1.5,
-  },
 });
 
 export function insertFormPage(opts: SectionedInsertFormPageOpts) {
   const table = model.database.tables[opts.table];
-  const pathBase = pluralize(opts.table.split("_").join(" "))
-    .split(" ")
-    .join("-");
+  const pathBase = getTableBaseUrl(opts.table);
   const path = opts.path ?? pathBase + `/add`;
   const { fields, relations } = getFieldsAndRelationsFromInsertFormContent(
     opts.content,

@@ -1,22 +1,26 @@
 import { FormState, UpdateFormField } from "../../formState.js";
 import { Table } from "../../modelTypes.js";
-import { element, ifNode } from "../../nodeHelpers.js";
+import { element } from "../../nodeHelpers.js";
 import { Node } from "../../nodeTypes.js";
 import { Style } from "../../styleTypes.js";
 import { baseGridStyles, createStyles } from "../../styleUtils.js";
+import { downcaseFirst } from "../../utils/inflectors.js";
 import { stringLiteral } from "../../utils/sqlHelpers.js";
 import { ClientProcStatement, EventHandler } from "../../yom.js";
-import { alert } from "../alert.js";
 import { button } from "../button.js";
 import { checkbox } from "../checkbox.js";
 import { divider } from "../divider.js";
 import { formControl } from "../formControl.js";
 import { formLabel } from "../formLabel.js";
-import { materialIcon } from "../materialIcon.js";
 import { typography } from "../typography.js";
 import { getUniqueUiId } from "../utils.js";
 import { fieldFormControl } from "./fieldFormControl.js";
 import { labelOnLeftFormField } from "./labelOnLeftFormField.js";
+import {
+  genericFormStyles,
+  labelOnLeftStyles,
+  twoColumnFormStyles,
+} from "./sharedFormStyles.js";
 
 export interface UpdateGridFormPart {
   styles?: Style;
@@ -25,12 +29,17 @@ export interface UpdateGridFormPart {
   label?: string;
 }
 
-export interface UpdateGridSection {
+export interface TwoColumnSectionedSection {
   styles?: Style;
-  divider?: boolean;
-  header?: string;
+  header: string;
   description?: string;
-  parts?: UpdateGridFormPart[];
+  parts: UpdateGridFormPart[];
+}
+
+export interface TwoColumnSectionedUpdateFormContent {
+  type: "TwoColumnSectioned";
+  header?: string;
+  sections: TwoColumnSectionedSection[];
 }
 
 export interface LabelOnLeftPart {
@@ -39,23 +48,9 @@ export interface LabelOnLeftPart {
   label?: string;
 }
 
-export interface GridUpdateFormContent {
-  type: "Grid";
-  parts: UpdateGridFormPart[];
-}
-
-export interface AutoGridUpdateFormContent {
-  type: "AutoGrid";
-  ignoreFields?: string[];
-}
-
-export interface SectionedGridUpdateFormContent {
-  type: "SectionedGrid";
-  sections: UpdateGridSection[];
-}
-
 export interface LabelOnLeftUpdateFormContent {
   type: "LabelOnLeft";
+  header?: string;
   parts: LabelOnLeftPart[];
 }
 
@@ -65,14 +60,13 @@ export type AutoLabelOnLeftFieldOverride = Partial<
 
 export interface AutoLabelOnLeftUpdateFormContent {
   type: "AutoLabelOnLeft";
+  header?: string;
   ignoreFields?: string[];
   fieldOverrides?: Record<string, AutoLabelOnLeftFieldOverride>;
 }
 
 export type UpdateFormContent =
-  | GridUpdateFormContent
-  | AutoGridUpdateFormContent
-  | SectionedGridUpdateFormContent
+  | TwoColumnSectionedUpdateFormContent
   | LabelOnLeftUpdateFormContent
   | AutoLabelOnLeftUpdateFormContent;
 
@@ -94,11 +88,7 @@ export function getFieldsFromUpdateFormContent(
 ) {
   const fields: UpdateFormField[] = [];
   switch (content.type) {
-    case "Grid":
-      throw new Error("TODO");
-    case "AutoGrid":
-      throw new Error("TODO");
-    case "SectionedGrid": {
+    case "TwoColumnSectioned": {
       for (const section of content.sections) {
         if (!section.parts) {
           continue;
@@ -135,47 +125,21 @@ export function updateFormContent(
   opts: UpdateFormContentOpts
 ): Node {
   switch (content.type) {
-    case "Grid":
-      throw gridUpdateFormContent(content, opts);
-    case "AutoGrid":
-      throw new Error("TODO");
-    case "SectionedGrid":
-      return sectionedGridFormContent(content, opts);
+    case "TwoColumnSectioned":
+      return twoColumnSectionedUpdateFormContent(content, opts);
     case "LabelOnLeft":
       return labelOnLeftUpdateFormContent(content, opts);
     case "AutoLabelOnLeft": {
       const parts = Object.keys(opts.table.fields)
         .filter((f) => !content.ignoreFields?.includes(f))
         .map((f) => ({ field: f }));
-      return labelOnLeftUpdateFormContent({ type: "LabelOnLeft", parts }, opts);
+      return labelOnLeftUpdateFormContent(
+        { type: "LabelOnLeft", parts, header: content.header },
+        opts
+      );
     }
   }
 }
-
-const styles = createStyles({
-  header: {
-    mb: 2,
-  },
-  divider: {
-    mb: 2,
-    mt: 3,
-  },
-  grid: {
-    ...baseGridStyles,
-    gap: 2,
-  },
-  buttons: {
-    mt: 1.5,
-    display: "flex",
-    justifyContent: "flex-end",
-    gap: 1,
-  },
-  baseGridSection: {
-    ...baseGridStyles,
-    gap: 2,
-  },
-  formError: { alignItems: "flex-start" },
-});
 
 function gridPart(
   part: UpdateGridFormPart,
@@ -228,62 +192,63 @@ function gridPart(
   });
 }
 
-export function sectionedGridFormContent(
-  content: SectionedGridUpdateFormContent,
+function twoColumnSectionedUpdateFormContent(
+  content: TwoColumnSectionedUpdateFormContent,
   { table, formState, onSubmit, cancel }: UpdateFormContentOpts
 ): Node {
-  const sections = content.sections.map((section, i): Node => {
-    const parts: Node[] = [];
-    if (i !== 0 && (section.divider ?? true)) {
-      parts.push(
-        divider({
-          styles: styles.divider,
-        })
-      );
-    }
-    if (section.header) {
-      parts.push(
-        typography({
-          level: "h4",
-          styles: styles.header,
-          children: stringLiteral(section.header),
-        })
-      );
-    }
-    if (section.description) {
-      parts.push(
-        typography({
-          level: "h6",
-          styles: styles.header,
-          children: stringLiteral(section.description),
-        })
-      );
-    }
-    if (section.parts) {
-      parts.push(
-        element("div", {
-          styles: section.styles
-            ? [styles.baseGridSection, section.styles]
-            : styles.baseGridSection,
-          children: section.parts.map((p) => gridPart(p, formState, table)),
-        })
-      );
-    }
-    return parts;
-  });
+  const header = stringLiteral(
+    content.header ?? downcaseFirst(table.name.displayName)
+  );
+  const sections: Node[] = [
+    element("h1", {
+      styles: genericFormStyles.pageHeader,
+      children: `'Edit ' || ${header}`,
+    }),
+  ];
+  for (const section of content.sections) {
+    sections.push(divider());
+    sections.push(
+      element("div", {
+        styles: twoColumnFormStyles.section,
+        children: [
+          element("div", {
+            children: [
+              typography({
+                level: "h2",
+                styles: twoColumnFormStyles.header,
+                children: stringLiteral(section.header),
+              }),
+              section.description
+                ? element("p", {
+                    styles: twoColumnFormStyles.description,
+                    children: stringLiteral(section.description),
+                  })
+                : undefined,
+            ],
+          }),
+          element("div", {
+            styles: section.styles
+              ? [twoColumnFormStyles.partsWrapper, section.styles]
+              : twoColumnFormStyles.partsWrapper,
+            children: section.parts.map((p) => gridPart(p, formState, table)),
+          }),
+        ],
+      })
+    );
+  }
   sections.push(
     element("div", {
-      styles: styles.buttons,
+      styles: genericFormStyles.actionButtons,
       children: [
         button({
-          variant: "soft",
+          variant: "plain",
           color: "neutral",
           children: `'Cancel'`,
           href: cancel.type === "Href" ? cancel.href : undefined,
           on: cancel.type === "Proc" ? { click: cancel.proc } : undefined,
         }),
         button({
-          children: `'Confirm changes'`,
+          children: `'Save'`,
           on: {
             click: onSubmit,
           },
@@ -291,103 +256,26 @@ export function sectionedGridFormContent(
       ],
     })
   );
-  return sections;
+  return element("div", {
+    styles: twoColumnFormStyles.root,
+    children: sections,
+  });
 }
 
-export function gridUpdateFormContent(
-  content: GridUpdateFormContent,
-  { table, formState, onSubmit, cancel }: UpdateFormContentOpts
-) {
-  return [
-    element("div", {
-      styles: styles.grid,
-      children: content.parts.map((p) => {
-        if (!p.field) {
-          return element("div", { styles: p.styles });
-        }
-        const field = table.fields[p.field];
-
-        const id = stringLiteral(getUniqueUiId());
-        if (field.type === "Bool" && !field.enumLike) {
-          return element("div", {
-            styles: p.styles,
-            children: checkbox({
-              label: stringLiteral(field.name.displayName),
-              variant: "outlined",
-              checked: formState.fields.get(p.field),
-              on: {
-                checkboxChange: [
-                  formState.fields.set(
-                    p.field,
-                    `coalesce(not ` + formState.fields.get(p.field) + `, true)`
-                  ),
-                ],
-              },
-            }),
-          });
-        }
-        const control = fieldFormControl({
-          field,
-          id,
-          fieldHelper: formState.fieldHelper(p.field),
-        });
-        if (!control) {
-          throw new Error(
-            "Edit dialog does not support field of type " + field.type
-          );
-        }
-        return formControl({
-          styles: p.styles,
-          children: [
-            formLabel({
-              props: { htmlFor: id },
-              children: stringLiteral(field.name.displayName),
-            }),
-            control,
-          ],
-        });
-      }),
-    }),
-    ifNode(
-      formState.getFormError + " is not null",
-      alert({
-        styles: styles.formError,
-        variant: "soft",
-        color: "danger",
-        startDecorator: materialIcon("Warning"),
-        children: typography({
-          color: "danger",
-          children: `'an error'`,
-        }),
-      })
-    ),
-    element("div", {
-      styles: styles.buttons,
-      children: [
-        button({
-          variant: "plain",
-          color: "neutral",
-          props: { type: "'button'" },
-          href: cancel.type === "Href" ? cancel.href : undefined,
-          on: cancel.type === "Proc" ? { click: cancel.proc } : undefined,
-          children: "'Cancel'",
-        }),
-        button({
-          variant: "solid",
-          color: "primary",
-          children: "'Confirm changes'",
-          on: { click: onSubmit },
-        }),
-      ],
-    }),
-  ];
-}
-
-export function labelOnLeftUpdateFormContent(
+function labelOnLeftUpdateFormContent(
   content: LabelOnLeftUpdateFormContent,
   { table, formState, onSubmit, cancel }: UpdateFormContentOpts
 ) {
   const fields: Node[] = [];
+  if (content.header) {
+    fields.push(
+      element("h1", {
+        styles: genericFormStyles.pageHeader,
+        children: stringLiteral(content.header),
+      }),
+      divider()
+    );
+  }
   for (const part of content.parts) {
     fields.push(
       labelOnLeftFormField({
@@ -399,7 +287,7 @@ export function labelOnLeftUpdateFormContent(
   }
   fields.push(
     element("div", {
-      styles: styles.buttons,
+      styles: genericFormStyles.actionButtons,
       children: [
         button({
           variant: "plain",
@@ -412,12 +300,15 @@ export function labelOnLeftUpdateFormContent(
         button({
           variant: "solid",
           color: "primary",
-          children: "'Confirm changes'",
+          children: "'Save'",
           loading: formState.submitting,
           on: { click: onSubmit },
         }),
       ],
     })
   );
-  return fields;
+  return element("div", {
+    styles: labelOnLeftStyles.root,
+    children: fields,
+  });
 }

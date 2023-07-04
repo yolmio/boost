@@ -2,6 +2,7 @@ import { addEnum, addTable } from "@yolm/boost/modelHelpers";
 import { navbarShell } from "@yolm/boost/shells/navbar";
 import {
   commitUiChanges,
+  debugExpr,
   if_,
   modify,
   navigate,
@@ -519,10 +520,10 @@ const orderFormPartStyles = { gridColumnSpan: 12, lg: { gridColumnSpan: 3 } };
 insertFormPage({
   table: "order",
   content: {
-    type: "SectionedGrid",
+    type: "TwoColumnSectioned",
     sections: [
       {
-        header: "Add Order",
+        header: "General Information",
         parts: [
           {
             field: "customer",
@@ -593,6 +594,8 @@ insertFormPage({
       },
       {
         header: "Shipping Information",
+        description:
+          "Auto-populated when you choose a customer, make changes if needed.",
         parts: [
           { field: "ship_name", styles: orderFormPartStyles },
           { field: "ship_address", styles: orderFormPartStyles },
@@ -604,6 +607,7 @@ insertFormPage({
       },
       {
         header: "Order Details",
+        description: "Add products to the order.",
         relation: {
           type: "Card",
           table: "order_detail",

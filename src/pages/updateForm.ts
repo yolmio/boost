@@ -5,7 +5,6 @@ import { Node } from "../nodeTypes.js";
 import { record } from "../procHelpers.js";
 import { model } from "../singleton.js";
 import { containerStyles, createStyles } from "../styleUtils.js";
-import { pluralize } from "../utils/inflectors.js";
 import { stringLiteral } from "../utils/sqlHelpers.js";
 import { ClientProcStatement, ServiceProcStatement } from "../yom.js";
 import {
@@ -13,6 +12,7 @@ import {
   UpdateFormContent,
   updateFormContent,
 } from "../components/internal/updateFormShared.js";
+import { getTableBaseUrl } from "../utils/url.js";
 
 export interface EditFormPage {
   table: string;
@@ -37,9 +37,7 @@ const styles = createStyles({
 
 export function updateFormPage(opts: EditFormPage) {
   const table = model.database.tables[opts.table];
-  const pathBase = pluralize(opts.table.split("_").join(" "))
-    .split(" ")
-    .join("-");
+  const pathBase = getTableBaseUrl(opts.table);
   const path = opts.path ?? pathBase + `/{record_id:id}/edit`;
   let content: Node = withUpdateFormState({
     table: opts.table,

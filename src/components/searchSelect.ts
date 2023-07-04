@@ -129,7 +129,7 @@ function withComboboxState(opts: QueryComboboxOpts, children: Node) {
         { type: "String", maxLength: 2000 },
         opts.initialInputText ? `null` : `''`
       ),
-      scalar(`combobox_width`, { type: "BigInt" }),
+      scalar(`combobox_width`, "0"),
     ],
     children: state({
       watch: opts.initialInputText

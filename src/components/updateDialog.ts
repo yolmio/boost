@@ -12,7 +12,7 @@ import {
   UpdateFormContent,
   updateFormContent,
 } from "./internal/updateFormShared.js";
-import { element, sourceMap } from "../nodeHelpers.js";
+import { sourceMap } from "../nodeHelpers.js";
 
 export interface EditDialogOpts {
   open: string;
@@ -38,11 +38,6 @@ const styles = createStyles({
   modalDialog: {
     backgroundColor: "background-body",
     "--modal-dialog-min-width": "600px",
-  },
-  contentWrapper: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 2,
   },
 });
 
@@ -85,14 +80,11 @@ export function updateDialog(opts: EditDialogOpts) {
                 ...closeModal,
               ],
               children: ({ formState, onSubmit }) =>
-                element("div", {
-                  styles: styles.contentWrapper,
-                  children: updateFormContent(opts.content, {
-                    formState,
-                    onSubmit,
-                    table: tableModel,
-                    cancel: { type: "Proc", proc: closeModal },
-                  }),
+                updateFormContent(opts.content, {
+                  formState,
+                  onSubmit,
+                  table: tableModel,
+                  cancel: { type: "Proc", proc: closeModal },
                 }),
             }),
           ],

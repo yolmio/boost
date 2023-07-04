@@ -1,5 +1,5 @@
 import { FormState, withInsertFormState } from "../formState.js";
-import { element, sourceMap } from "../nodeHelpers.js";
+import { sourceMap } from "../nodeHelpers.js";
 import { model } from "../singleton.js";
 import { createStyles } from "../styleUtils.js";
 import { stringLiteral } from "../utils/sqlHelpers.js";
@@ -42,11 +42,6 @@ const styles = createStyles({
   modalDialog: {
     backgroundColor: "background-body",
     "--modal-dialog-min-width": "600px",
-  },
-  contentWrapper: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 2,
   },
 });
 
@@ -98,14 +93,11 @@ export function insertDialog(opts: InsertDialogOpts) {
               beforeSubmitClient: opts.beforeSubmitClient,
               beforeTransaction: opts.beforeTransaction,
               children: ({ formState, onSubmit }) =>
-                element("div", {
-                  styles: styles.contentWrapper,
-                  children: insertFormContent(opts.content, {
-                    formState,
-                    onSubmit,
-                    table: tableModel,
-                    cancel: { type: "Proc", proc: closeModal },
-                  }),
+                insertFormContent(opts.content, {
+                  formState,
+                  onSubmit,
+                  table: tableModel,
+                  cancel: { type: "Proc", proc: closeModal },
                 }),
             }),
           ],
