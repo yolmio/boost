@@ -28,7 +28,7 @@ import {
   Style,
   StyleObject,
 } from "../../styleTypes.js";
-import { cssVar } from "../../styleUtils.js";
+import { createStyles, cssVar } from "../../styleUtils.js";
 import { stringLiteral } from "../../utils/sqlHelpers.js";
 import {
   createRelatedUnionQuery,
@@ -98,11 +98,86 @@ export interface Opts {
   }[];
 }
 
-const rootStyles = {
-  display: "flex",
-  flexDirection: "column",
-  gridColumnSpan: "full",
-};
+const styles = createStyles({
+  root: {
+    display: "flex",
+    flexDirection: "column",
+    gridColumnSpan: "full",
+  },
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "baseline",
+    pt: 2,
+    px: 1,
+  },
+  addButtonWrapper: {
+    position: "relative",
+  },
+  addPopover: {
+    width: 240,
+  },
+  editPopover: {
+    width: 120,
+  },
+  item: {
+    display: "flex",
+    minHeight: 80,
+  },
+  date: {
+    display: "flex",
+    flexDirection: "column",
+    mx: 1,
+    mt: 1,
+    color: cssVar(`palette-text-secondary`),
+    alignItems: "center",
+    fontSize: "sm",
+    minWidth: 60,
+  },
+  iconWrapper: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+  },
+  line: {
+    width: 2,
+    backgroundColor: cssVar(`palette-neutral-100`),
+    flexGrow: 1,
+  },
+  itemContent: {
+    ml: 2,
+    flexGrow: 1,
+    display: "flex",
+    alignItems: "start",
+  },
+  itemLeft: {
+    display: "flex",
+    flexDirection: "column",
+    flexGrow: 1,
+  },
+  itemValues: {
+    display: "flex",
+    gap: 1,
+    flexWrap: "wrap",
+    mb: 2,
+  },
+  itemValueWrapper: {
+    display: "flex",
+  },
+  itemValue: {
+    mr: 0.5,
+    color: "text-secondary",
+    my: 0,
+    fontSize: "sm",
+    alignSelf: "flex-end",
+  },
+  multilineValue: {
+    whiteSpace: "pre-wrap",
+    my: 0,
+  },
+});
+
+const addButtonId = stringLiteral(getUniqueUiId());
 
 export function content(opts: Opts, ctx: RecordGridContext) {
   const query = createRelatedUnionQuery({
@@ -156,19 +231,10 @@ export function content(opts: Opts, ctx: RecordGridContext) {
   }
   const basePopoverMenuId = stringLiteral(getUniqueUiId());
   const item = element("div", {
-    styles: { display: "flex", minHeight: 80 },
+    styles: styles.item,
     children: [
       element("div", {
-        styles: {
-          display: "flex",
-          flexDirection: "column",
-          mx: 1,
-          mt: 1,
-          color: cssVar(`palette-text-secondary`),
-          alignItems: "center",
-          fontSize: "sm",
-          minWidth: 60,
-        },
+        styles: styles.date,
         children: [
           element("span", {
             children: `format.date(record.date, '%-d %b')`,
@@ -179,11 +245,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
         ],
       }),
       element("div", {
-        styles: {
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-        },
+        styles: styles.iconWrapper,
         children: [
           element("span", {
             styles: {
@@ -205,31 +267,21 @@ export function content(opts: Opts, ctx: RecordGridContext) {
               })),
             },
           }),
-          element("span", {
-            styles: {
-              width: 2,
-              backgroundColor: cssVar(`palette-neutral-100`),
-              flexGrow: 1,
-            },
-          }),
+          ifNode(
+            `record.iteration_index != (select count(*) from result) - 1`,
+            element("span", {
+              styles: styles.line,
+            })
+          ),
         ],
       }),
       state({
         procedure: [scalar(`editing`, `false`), scalar(`deleting`, `false`)],
         children: element("div", {
-          styles: {
-            ml: 2,
-            flexGrow: 1,
-            display: "flex",
-            alignItems: "start",
-          },
+          styles: styles.itemContent,
           children: [
             element("div", {
-              styles: {
-                display: "flex",
-                flexDirection: "column",
-                flexGrow: 1,
-              },
+              styles: styles.itemLeft,
               children: [
                 typography({
                   level: "h6",
@@ -249,12 +301,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                     " end",
                 }),
                 element("div", {
-                  styles: {
-                    display: "flex",
-                    gap: 1,
-                    flexWrap: "wrap",
-                    mb: 2,
-                  },
+                  styles: styles.itemValues,
                   children: {
                     t: "Switch",
                     cases: opts.tables.map((t, i) => {
@@ -292,10 +339,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                             case "String":
                               if (field.multiline) {
                                 valueNode = element("p", {
-                                  styles: {
-                                    whiteSpace: "pre-wrap",
-                                    my: 0,
-                                  },
+                                  styles: styles.multilineValue,
                                   children: recordHelper.field(f),
                                 });
                               } else {
@@ -336,16 +380,10 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                               break;
                           }
                           let content = element("div", {
-                            styles: { display: "flex" },
+                            styles: styles.itemValueWrapper,
                             children: [
                               element("p", {
-                                styles: {
-                                  mr: 0.5,
-                                  color: "text-secondary",
-                                  my: 0,
-                                  fontSize: "sm",
-                                  alignSelf: "flex-end",
-                                },
+                                styles: styles.itemValue,
                                 children: `${stringLiteral(
                                   field.name.displayName
                                 )} || ':'`,
@@ -369,7 +407,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
             }),
             popoverMenu({
               menuListOpts: {
-                styles: { width: 120 },
+                styles: styles.editPopover,
                 floating: {
                   placement: `'bottom-end'`,
                 },
@@ -500,7 +538,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
         ],
         statusScalar: `status`,
         children: element("div", {
-          styles: opts.styles ? [rootStyles, opts.styles] : rootStyles,
+          styles: opts.styles ? [styles.root, opts.styles] : styles.root,
           children: [
             eventHandlers({
               document: {
@@ -524,13 +562,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
             }),
             divider(),
             element("div", {
-              styles: {
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "baseline",
-                pt: 2,
-                px: 1,
-              },
+              styles: styles.header,
               children: [
                 typography({ level: "h5", children: opts.timelineHeader }),
                 state({
@@ -539,10 +571,10 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                   ),
                   children: [
                     element("div", {
-                      styles: { position: "relative" },
+                      styles: styles.addButtonWrapper,
                       children: popoverMenu({
                         menuListOpts: {
-                          styles: { width: 240 },
+                          styles: styles.addPopover,
                           floating: {
                             strategy: "'fixed'",
                             placement: `'bottom-end'`,
@@ -550,7 +582,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                             shift: { mainAxis: "false", crossAxis: "false" },
                           },
                         },
-                        id: `'add-related-record'`,
+                        id: addButtonId,
                         button: ({ buttonProps, onButtonClick }) =>
                           button({
                             variant: "soft",
