@@ -366,7 +366,20 @@ export function columnFromField(
         sort = stringSortConfig;
         break;
       case "Bool":
-        sort = checkboxSortConfig();
+        if (field.enumLike) {
+          const high = field.enumLike.true;
+          const low = field.enumLike.false;
+          const ascText = `${low} → ${high}`;
+          const descText = `${high} → ${low}`;
+          sort = {
+            ascText,
+            descText,
+            ascNode: stringLiteral(ascText),
+            descNode: stringLiteral(descText),
+          };
+        } else {
+          sort = checkboxSortConfig();
+        }
         break;
     }
   }

@@ -126,7 +126,7 @@ function getColumns(
           variant: "outlined",
           size: "sm",
           checked: `selected_all or exists (select id from selected_row where id = cast(record.field_0 as bigint))`,
-          slots: { checkbox: { props: { tabIndex: "-1" } } },
+          slots: { input: { props: { tabIndex: "-1" } } },
           on: {
             click: [toggleRowSelection(`cast(record.field_0 as bigint)`)],
           },
@@ -135,7 +135,7 @@ function getColumns(
         variant: "outlined",
         size: "sm",
         checked: `selected_all`,
-        slots: { checkbox: { props: { tabIndex: "-1" } } },
+        slots: { input: { props: { tabIndex: "-1" } } },
         on: {
           click: [
             setScalar(`selected_all`, `not selected_all`),
@@ -144,15 +144,19 @@ function getColumns(
         },
       }),
       keydownCellHandler: [
-        scalar(
-          `row_id`,
-          `(select field_0 from ui.dg_table limit 1 offset cell.row - 1)`
-        ),
-        toggleRowSelection(`cast(row_id as bigint)`),
+        if_(`event.key = 'Enter' or event.key = ' '`, [
+          scalar(
+            `row_id`,
+            `(select field_0 from ui.dg_table limit 1 offset cell.row - 1)`
+          ),
+          toggleRowSelection(`cast(row_id as bigint)`),
+        ]),
       ],
       keydownHeaderHandler: [
-        setScalar(`selected_all`, `not selected_all`),
-        modify(`delete from selected_row`),
+        if_(`event.key = 'Enter' or event.key = ' '`, [
+          setScalar(`selected_all`, `not selected_all`),
+          modify(`delete from selected_row`),
+        ]),
       ],
       viewStorageName: "dg_checkbox_col",
     });
