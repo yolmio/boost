@@ -272,7 +272,7 @@ const orderTableColumns = [
     cell: (row) =>
       button({
         href: `'/orders/' || ${row}.order_id`,
-        color: "info",
+        color: "primary",
         size: "sm",
         variant: "soft",
         children: `'View'`,

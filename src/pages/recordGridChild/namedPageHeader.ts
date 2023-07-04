@@ -327,9 +327,9 @@ export function content(opts: Opts, ctx: RecordGridContext) {
           styles: { display: "flex", gap: 1 },
           children: [
             button({
-              color: "info",
+              color: "primary",
               size: "sm",
-              variant: "outlined",
+              variant: "soft",
               startDecorator: materialIcon("Edit"),
               children: `'Edit'`,
               href: `${stringLiteral(

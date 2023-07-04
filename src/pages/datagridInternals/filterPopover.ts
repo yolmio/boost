@@ -3,7 +3,6 @@ import { Node } from "../../nodeTypes.js";
 import {
   abortTask,
   commitUiChanges,
-  debugExpr,
   delay,
   exit,
   if_,
@@ -1034,7 +1033,7 @@ export function filterPopover(columns: SuperGridColumn[], dts: SuperGridDts) {
       children: [
         button({
           variant: "outlined",
-          color: "info",
+          color: "primary",
           size: "sm",
           children: "'Add condition'",
           on: {
@@ -1043,7 +1042,7 @@ export function filterPopover(columns: SuperGridColumn[], dts: SuperGridDts) {
         }),
         button({
           variant: "outlined",
-          color: "info",
+          color: "primary",
           size: "sm",
           children: "'Add condition group'",
           on: {

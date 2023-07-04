@@ -134,7 +134,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
               }),
               iconButton({
                 variant: "plain",
-                color: "info",
+                color: "primary",
                 size: "sm",
                 children: ifNode(
                   `adding`,

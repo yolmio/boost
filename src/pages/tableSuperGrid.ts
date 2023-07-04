@@ -167,7 +167,7 @@ function getColumns(
       cell: () =>
         button({
           variant: "soft",
-          color: "info",
+          color: "primary",
           size: "sm",
           children: `'View'`,
           href: viewButtonUrl(`record.field_0`),
