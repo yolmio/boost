@@ -421,10 +421,7 @@ export interface DeviceDb {
  */
 export interface BoostModel {
   name: string;
-  displayName: string;
-  description: string;
-  pwaThemeColor: string;
-  pwaBackgroundColor: string;
+  pwaConfig: yom.PwaConfig;
   dbRunMode: yom.DbExecutionMode;
   collation: yom.Collation;
   autoTrim: yom.AutoTrim;

@@ -221,10 +221,7 @@ export function generateYom(): yom.Model {
     dbExecutionMode: model.dbRunMode,
     collation: model.collation,
     autoTrim: model.autoTrim,
-    description: model.description,
-    pwaBackgroundColor: model.pwaBackgroundColor,
-    pwaThemeColor: model.pwaThemeColor,
-    displayName: model.displayName,
+    pwaConfig: model.pwaConfig,
     textCast: {
       date: "%F",
       timestamp: "%+",
