@@ -1032,17 +1032,19 @@ export function defaultInitialValue(field: Field) {
 
 export function defaultValidate(
   field: Field,
-  {
-    value,
-    error,
-    setError,
-  }: {
-    value: string;
-    error: string;
-    setError: (error: string) => BaseStatement;
-  }
+  { error, value, setError }: FormStateFieldHelper
 ) {
   const statements: ClientProcStatement[] = [];
+  if (field.checks) {
+    for (const check of field.checks) {
+      statements.push(
+        if_(
+          `${error} is null and not (${check.check(value)})`,
+          setError(check.errorMessage(value))
+        )
+      );
+    }
+  }
   switch (field.type) {
     case "String":
       if (field.notNull) {
@@ -1170,13 +1172,7 @@ export function withUpdateFormState(opts: WithUpdateFormStateOpts) {
         .join(" , ");
       const checkFields = fields
         .map((f) => {
-          const props = {
-            setError: (err: string) =>
-              formState.fields.setError(f.field.name, err),
-            value: formState.fields.get(f.field.name),
-            error: formState.fields.error(f.field.name),
-          };
-          return defaultValidate(f.field, props);
+          return defaultValidate(f.field, formState.fieldHelper(f.field.name));
         })
         .flat();
       const checkTables = table.checks.map((check) => {
@@ -1237,6 +1233,7 @@ export function withUpdateFormState(opts: WithUpdateFormStateOpts) {
               exit(),
             ],
           }),
+          ...formState.debugFormState(),
           formState.setSubmitting(`false`),
           ...(opts.afterSubmitClient?.(formState) ?? []),
         ],

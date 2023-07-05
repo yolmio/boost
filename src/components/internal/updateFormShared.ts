@@ -1,17 +1,20 @@
 import { FormState, UpdateFormField } from "../../formState.js";
 import { Table } from "../../modelTypes.js";
-import { element } from "../../nodeHelpers.js";
+import { element, ifNode } from "../../nodeHelpers.js";
 import { Node } from "../../nodeTypes.js";
 import { Style } from "../../styleTypes.js";
 import { baseGridStyles, createStyles } from "../../styleUtils.js";
 import { downcaseFirst } from "../../utils/inflectors.js";
 import { stringLiteral } from "../../utils/sqlHelpers.js";
 import { ClientProcStatement, EventHandler } from "../../yom.js";
+import { alert } from "../alert.js";
 import { button } from "../button.js";
 import { checkbox } from "../checkbox.js";
 import { divider } from "../divider.js";
 import { formControl } from "../formControl.js";
+import { formHelperText } from "../formHelperText.js";
 import { formLabel } from "../formLabel.js";
+import { materialIcon } from "../materialIcon.js";
 import { typography } from "../typography.js";
 import { getUniqueUiId } from "../utils.js";
 import { fieldFormControl } from "./fieldFormControl.js";
@@ -151,29 +154,40 @@ function gridPart(
   }
   const field = table.fields[part.field];
   const id = stringLiteral(getUniqueUiId());
+  const fieldHelper = formState.fieldHelper(part.field);
   if (field.type === "Bool" && !field.enumLike) {
     return element("div", {
       styles: part.styles,
-      children: checkbox({
-        label: stringLiteral(field.displayName),
-        variant: "outlined",
-        checked: formState.fields.get(part.field),
-        props: { id },
-        on: {
-          checkboxChange: [
-            formState.fields.set(
-              part.field,
-              `coalesce(not ` + formState.fields.get(part.field) + `, true)`
-            ),
-          ],
-        },
-      }),
+      children: [
+        checkbox({
+          error: fieldHelper.hasError,
+          label: stringLiteral(field.displayName),
+          variant: "outlined",
+          checked: fieldHelper.value,
+          props: { id },
+          on: {
+            checkboxChange: [
+              formState.fields.set(
+                part.field,
+                `coalesce(not ` + fieldHelper.value + `, true)`
+              ),
+            ],
+          },
+        }),
+        ifNode(
+          fieldHelper.hasError,
+          element("div", {
+            styles: genericFormStyles.errorText,
+            children: fieldHelper.error,
+          })
+        ),
+      ],
     });
   }
   const fieldValue = fieldFormControl({
     id,
     field,
-    fieldHelper: formState.fieldHelper(part.field),
+    fieldHelper,
   });
   if (!fieldValue) {
     throw new Error(
@@ -181,6 +195,7 @@ function gridPart(
     );
   }
   return formControl({
+    error: fieldHelper.hasError,
     styles: part.styles,
     children: [
       formLabel({
@@ -188,6 +203,10 @@ function gridPart(
         children: stringLiteral(field.displayName),
       }),
       fieldValue,
+      ifNode(
+        fieldHelper.hasError,
+        formHelperText({ children: fieldHelper.error })
+      ),
     ],
   });
 }
@@ -237,6 +256,17 @@ function twoColumnSectionedUpdateFormContent(
     );
   }
   sections.push(
+    ifNode(
+      formState.hasFormError,
+      alert({
+        color: "danger",
+        size: "lg",
+        children: formState.getFormError,
+        startDecorator: materialIcon("Error"),
+      })
+    )
+  );
+  sections.push(
     element("div", {
       styles: genericFormStyles.actionButtons,
       children: [
@@ -285,6 +315,17 @@ function labelOnLeftUpdateFormContent(
       })
     );
   }
+  fields.push(
+    ifNode(
+      formState.hasFormError,
+      alert({
+        color: "danger",
+        size: "lg",
+        children: formState.getFormError,
+        startDecorator: materialIcon("Error"),
+      })
+    )
+  );
   fields.push(
     element("div", {
       styles: genericFormStyles.actionButtons,

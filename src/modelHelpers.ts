@@ -505,7 +505,7 @@ abstract class BaseFieldBuilder {
       displayName: this._displayName,
       renameFrom: this._renameFrom,
       notNull: this._notNull ?? false,
-      checks: [],
+      checks: this._checks,
       description: this._description,
       unique: this._unique,
       default: this._default,
