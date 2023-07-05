@@ -1212,6 +1212,7 @@ export function withUpdateFormState(opts: WithUpdateFormStateOpts) {
           ...checkTables,
           if_(formState.hasAnyError, [exit()]),
           formState.setSubmitting(`true`),
+          commitUiChanges(),
           try_<ClientProcStatement>({
             body: [
               serviceProc([

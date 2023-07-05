@@ -387,6 +387,7 @@ function twoColumnSectionedInsertFormContent(
         }),
         button({
           children: `'Add new ' || ${header}`,
+          loading: formState.submitting,
           on: {
             click: onSubmit,
           },

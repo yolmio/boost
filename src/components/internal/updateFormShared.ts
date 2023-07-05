@@ -279,6 +279,7 @@ function twoColumnSectionedUpdateFormContent(
         }),
         button({
           children: `'Save'`,
+          loading: formState.submitting,
           on: {
             click: onSubmit,
           },
