@@ -51,11 +51,6 @@ export function sortPopover(columns: SuperGridColumn[]) {
     });
   }
   return [
-    typography({
-      level: "body2",
-      children: `'Sort by'`,
-    }),
-    divider({ styles: sharedStyles.popoverDivider }),
     each({
       table: "column",
       key: "id",

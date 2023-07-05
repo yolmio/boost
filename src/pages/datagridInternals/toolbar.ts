@@ -174,7 +174,11 @@ export function toolbar(
                             size: "sm",
                             props: { id: filterButtonId },
                             startDecorator: materialIcon("FilterAltOutlined"),
-                            children: "'Filter'",
+                            children: `case
+                              when (select count(column_id) from filter_term) = 0 then 'Filter'
+                              when (select count(distinct column_id) from filter_term) = 1 then 'Filtered by 1 field'
+                              else 'Filtered by ' || (select count(distinct column_id) from filter_term) || ' fields'
+                            end`,
                             on: {
                               click: [
                                 setScalar(`ui.columns_dialog_open`, `false`),

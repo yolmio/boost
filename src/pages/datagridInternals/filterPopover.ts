@@ -30,8 +30,6 @@ import { triggerQueryRefresh } from "./baseDatagrid.js";
 import { checkbox } from "../../components/checkbox.js";
 import { durationInput } from "../../components/durationInput.js";
 import { createStyles, flexGrowStyles } from "../../styleUtils.js";
-import { divider } from "../../components/divider.js";
-import { typography } from "../../components/typography.js";
 import { styles as sharedStyles } from "./styles.js";
 import { getUniqueUiId } from "../../components/utils.js";
 import { SuperGridColumn, SuperGridDts } from "./superGrid.js";
@@ -95,6 +93,12 @@ const styles = createStyles({
     gap: 1,
     display: "flex",
     flexDirection: "column",
+  },
+  noTermsText: {
+    mt: 0,
+    mb: 1,
+    color: "text-secondary",
+    fontSize: "sm",
   },
 });
 
@@ -1001,33 +1005,35 @@ export function filterPopover(columns: SuperGridColumn[], dts: SuperGridDts) {
     ],
   });
   return [
-    typography({
-      level: "body2",
-      children: `'Filter'`,
-    }),
-    divider({ styles: sharedStyles.popoverDivider }),
-    element("div", {
-      styles: styles.termsWrapper,
-      children: each({
-        table: "filter_term",
-        where: "group is null",
-        key: "id",
-        recordName: "root_filter_term",
-        orderBy: "ordering",
-        children: termWrapper([
-          isAnySelector({
-            isAny: `ui.root_filter_is_any`,
-            iterIdx: `root_filter_term.iteration_index`,
-            setIsAny: (v) => setScalar(`ui.root_filter_is_any`, v),
-          }),
-          ifNode(
-            `root_filter_term.is_any is not null`,
-            rootGroup,
-            columnFilter(`root_filter_term`, columns, dts)
-          ),
-        ]),
+    ifNode(
+      `exists (select 1 from ui.filter_term)`,
+      element("div", {
+        styles: styles.termsWrapper,
+        children: each({
+          table: "filter_term",
+          where: "group is null",
+          key: "id",
+          recordName: "root_filter_term",
+          orderBy: "ordering",
+          children: termWrapper([
+            isAnySelector({
+              isAny: `ui.root_filter_is_any`,
+              iterIdx: `root_filter_term.iteration_index`,
+              setIsAny: (v) => setScalar(`ui.root_filter_is_any`, v),
+            }),
+            ifNode(
+              `root_filter_term.is_any is not null`,
+              rootGroup,
+              columnFilter(`root_filter_term`, columns, dts)
+            ),
+          ]),
+        }),
       }),
-    }),
+      element("p", {
+        styles: styles.noTermsText,
+        children: "'No filters'",
+      })
+    ),
     element("div", {
       styles: sharedStyles.popoverButtons,
       children: [

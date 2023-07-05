@@ -259,6 +259,20 @@ export function columnPopover(
   function getColumnN(n: number) {
     return `(select ordering from ui.column order by ordering offset ${n} limit 1)`;
   }
+  function setColumnSort(asc: boolean) {
+    return if_(
+      `exists (select 1 from ui.column where sort_index is not null and id = ${i})`,
+      [modify(`update ui.column set sort_asc = ${asc} where id = ${i}`)],
+      [
+        modify(
+          `update ui.column set sort_index = sort_index + 1 where sort_index is not null`
+        ),
+        modify(
+          `update ui.column set sort_index = 0, sort_asc = ${asc} where id = ${i}`
+        ),
+      ]
+    );
+  }
   return state({
     procedure: [scalar("dialog_open", "false")],
     children: [
@@ -304,15 +318,7 @@ export function columnPopover(
               ? [
                   listItem({
                     on: {
-                      click: [
-                        modify(
-                          `update ui.column set
-                      sort_index = case when sort_index is null then (select count(*) from ui.column where sort_index is not null) else sort_index end,
-                      sort_asc = true
-                    where id = ${i}`
-                        ),
-                        triggerQueryRefresh(),
-                      ],
+                      click: [setColumnSort(true), triggerQueryRefresh()],
                     },
                     children: listItemButton({
                       variant: "plain",
@@ -322,15 +328,7 @@ export function columnPopover(
                   }),
                   listItem({
                     on: {
-                      click: [
-                        modify(
-                          `update ui.column set
-                      sort_index = case when sort_index is null then (select count(*) from ui.column where sort_index is not null) else sort_index end,
-                      sort_asc = false
-                    where id = ${i}`
-                        ),
-                        triggerQueryRefresh(),
-                      ],
+                      click: [setColumnSort(false), triggerQueryRefresh()],
                     },
                     children: listItemButton({
                       variant: "plain",
