@@ -136,6 +136,8 @@ export interface FieldBase extends ExtensibleObject {
   group?: string;
 }
 
+export type StringUsage = { type: "Email" } | { type: "PhoneNumber" };
+
 export interface StringField extends FieldBase {
   type: "String";
   maxLength: number;
@@ -144,6 +146,7 @@ export interface StringField extends FieldBase {
   maxBytesPerChar?: number;
   autoTrim?: yom.AutoTrim;
   multiline?: boolean;
+  usage?: StringUsage;
 }
 
 interface NumericFieldBase extends FieldBase {

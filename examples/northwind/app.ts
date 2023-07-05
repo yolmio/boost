@@ -45,7 +45,7 @@ addTable("employee", (table) => {
     type: "address",
     createFields: { street1: "address" },
   });
-  table.string("home_phone", 24);
+  table.phoneNumber("home_phone");
   table.string("Extension", 4);
   table.fieldGroupFromCatalog({ type: "simpleImageSet" });
   table.string("notes", 2000);
@@ -88,8 +88,8 @@ addTable("customer", (table) => {
     type: "address",
     createFields: { street1: "address" },
   });
-  table.string("phone", 24);
-  table.string("fax", 24);
+  table.phoneNumber("phone");
+  table.phoneNumber("fax");
 
   table.recordDisplayName(["company_name"], (name) => name);
   table.linkable();
@@ -119,7 +119,7 @@ addTable("supplier", (table) => {
     type: "address",
     createFields: { street1: "address" },
   });
-  table.string("phone", 24);
+  table.phoneNumber("phone");
   table.string("fax", 24);
   table.string("home_page", 2000);
 
