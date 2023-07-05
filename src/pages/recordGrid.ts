@@ -121,7 +121,12 @@ export function recordGridPage(opts: RecordGridPageOpts) {
           `not record_exists`,
           element("div", {
             styles: styles.notContentWrapper,
-            children: `'No ' || ${tableLowercase} || ' with id'`,
+            children: alert({
+              color: "danger",
+              startDecorator: materialIcon("Report"),
+              size: "lg",
+              children: `'Unable to get ' || ${tableLowercase}`,
+            }),
           }),
         ],
         [

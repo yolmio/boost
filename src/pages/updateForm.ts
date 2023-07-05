@@ -13,6 +13,9 @@ import {
   updateFormContent,
 } from "../components/internal/updateFormShared.js";
 import { getTableBaseUrl } from "../utils/url.js";
+import { circularProgress } from "../components/circularProgress.js";
+import { alert } from "../components/alert.js";
+import { materialIcon } from "../components/materialIcon.js";
 
 export interface EditFormPage {
   table: string;
@@ -33,6 +36,11 @@ const styles = createStyles({
       flexDirection: "column",
     },
   ],
+  notContentWrapper: {
+    display: "flex",
+    justifyContent: "center",
+    mt: 8,
+  },
 });
 
 export function updateFormPage(opts: EditFormPage) {
@@ -69,12 +77,39 @@ export function updateFormPage(opts: EditFormPage) {
       statusScalar: `status`,
       children: switchNode(
         [`status = 'received' and record.id is not null`, content],
-        [`status = 'received' and record.id is null`, `'404 oh uh'`],
+        [
+          `status = 'received' and record.id is null`,
+          element("div", {
+            styles: styles.notContentWrapper,
+            children: alert({
+              color: "danger",
+              startDecorator: materialIcon("Report"),
+              size: "lg",
+              children: `'No ' || ${stringLiteral(
+                table.displayName.toLowerCase()
+              )} || ' with id'`,
+            }),
+          }),
+        ],
         [
           `status = 'requested' or status = 'fallback_triggered'`,
-          `'loading very cool'`,
+          element("div", {
+            styles: styles.notContentWrapper,
+            children: circularProgress({ size: "lg" }),
+          }),
         ],
-        [`status = 'failed'`, `'Failed uh oh'`]
+        [
+          `status = 'failed'`,
+          element("div", {
+            styles: styles.notContentWrapper,
+            children: alert({
+              color: "danger",
+              startDecorator: materialIcon("Report"),
+              size: "lg",
+              children: `'Unable to load page'`,
+            }),
+          }),
+        ]
       ),
     }),
   });
