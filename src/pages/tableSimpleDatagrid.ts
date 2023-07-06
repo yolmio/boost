@@ -17,6 +17,7 @@ import {
 import { checkbox } from "../components/checkbox.js";
 import { BeforeEditTransaction } from "./datagridInternals/editHelper.js";
 import { Authorization } from "../modelTypes.js";
+import { button } from "../components/button.js";
 
 export interface ToolbarOpts {
   delete?: boolean;
@@ -38,6 +39,7 @@ export interface DatagridPageOpts {
   useDynamicQuery?: boolean;
   fields?: FieldConfigs;
   extraColumns?: SimpleColumn[];
+  viewButton?: boolean | { getLink: (id: string) => string };
 }
 
 type FieldConfigs = Record<string, FieldConfig>;
@@ -58,6 +60,7 @@ function toggleRowSelection(id: string) {
 function getColumns(
   tableName: string,
   selectable: boolean,
+  viewButtonUrl?: (id: string) => string,
   fieldConfigs?: FieldConfigs
 ): SimpleColumn[] {
   const tableModel = model.database.tables[tableName];
@@ -100,6 +103,21 @@ function getColumns(
       ],
     });
   }
+  if (viewButtonUrl) {
+    columns.push({
+      width: 76,
+      cell: () =>
+        button({
+          variant: "soft",
+          color: "primary",
+          size: "sm",
+          children: `'View'`,
+          href: viewButtonUrl(`record.id`),
+          props: { tabIndex: "-1" },
+        }),
+      header: `'View'`,
+    });
+  }
   const idField = tableModel.primaryKeyFieldName
     ? ident(tableModel.primaryKeyFieldName)
     : `id`;
@@ -139,7 +157,24 @@ export function tableSimpleGrid(opts: DatagridPageOpts) {
   const tableModel = model.database.tables[opts.table];
   const path = getTableBaseUrl(opts.table);
   const selectable = opts.selectable ?? true;
-  const columns = getColumns(opts.table, selectable, opts.fields);
+  let getViewButtonUrl: ((id: string) => string) | undefined;
+  if (opts.viewButton === true) {
+    if (!tableModel.getHrefToRecord) {
+      throw new Error(
+        "viewButton is true but table has no getHrefToRecord for datagrid of table " +
+          opts.table
+      );
+    }
+    getViewButtonUrl = tableModel.getHrefToRecord;
+  } else if (typeof opts.viewButton === "function") {
+    getViewButtonUrl = opts.viewButton;
+  }
+  const columns = getColumns(
+    opts.table,
+    selectable,
+    getViewButtonUrl,
+    opts.fields
+  );
   if (opts.extraColumns) {
     columns.push(...opts.extraColumns);
   }

@@ -41,7 +41,7 @@ export interface ToolbarOpts {
   add?:
     | "dialog"
     | "href"
-    | { type: "dialog"; opts: Partial<InsertDialogOpts> }
+    | { type: "dialog"; opts?: Partial<InsertDialogOpts> }
     | { type: "href"; href: string };
 }
 
@@ -50,7 +50,7 @@ export interface DatagridPageOpts {
   table: string;
   datagridName?: string;
   path?: string;
-  viewButtonUrl?: (id: string) => string;
+  viewButton?: boolean | { getLink: (id: string) => string };
   selectable?: boolean;
   toolbar?: ToolbarOpts;
   ignoreFields?: string[];
@@ -214,10 +214,22 @@ export function tableSuperGrid(opts: DatagridPageOpts) {
   const tableModel = model.database.tables[opts.table];
   const path = getTableBaseUrl(opts.table);
   const selectable = opts.selectable ?? true;
+  let getViewButtonUrl: ((id: string) => string) | undefined;
+  if (opts.viewButton === true) {
+    if (!tableModel.getHrefToRecord) {
+      throw new Error(
+        "viewButton is true but table has no getHrefToRecord, on datagrid for table " +
+          opts.table
+      );
+    }
+    getViewButtonUrl = tableModel.getHrefToRecord;
+  } else if (typeof opts.viewButton === "function") {
+    getViewButtonUrl = opts.viewButton;
+  }
   const columns = getColumns(
     opts.table,
     selectable,
-    opts.viewButtonUrl,
+    getViewButtonUrl,
     opts.ignoreFields
   );
   const toolbarConfig: ToolbarConfig = {
@@ -249,7 +261,7 @@ export function tableSuperGrid(opts: DatagridPageOpts) {
   if (opts.defaultView) {
     opts.defaultView = { ...opts.defaultView };
     if (opts.defaultView.columnOrder) {
-      if (opts.viewButtonUrl) {
+      if (getViewButtonUrl) {
         opts.defaultView.columnOrder.unshift("dg_view_button_col");
       }
       if (selectable) {

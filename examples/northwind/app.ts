@@ -76,7 +76,6 @@ model.database.userRoleTableName = "employee_role";
 addTable("category", (table) => {
   table.string("name", 15).notNull();
   table.string("description", 2000);
-  table.uuid("picture");
   table.setFormControl("Select");
 });
 
@@ -153,6 +152,7 @@ addTable("order", (table) => {
     prefix: "ship_",
     createFields: { street1: "ship_address", name: "ship_name" },
   });
+  table.linkable();
 });
 
 addTable("product", (table) => {
@@ -468,7 +468,7 @@ tableSuperGrid({
     export: true,
     delete: true,
   },
-  viewButtonUrl: (id) => `'/employees/' || ${id}`,
+  viewButton: true,
   ignoreFields: ["global_id"],
 });
 
@@ -512,7 +512,7 @@ tableSuperGrid({
     delete: true,
     add: { type: "href", href: `/orders/add` },
   },
-  viewButtonUrl: (id) => `'/orders/' || ${id}`,
+  viewButton: true,
 });
 
 const orderFormPartStyles = { gridColumnSpan: 12, lg: { gridColumnSpan: 3 } };
@@ -761,8 +761,9 @@ tableSuperGrid({
   toolbar: {
     export: true,
     delete: true,
+    add: { type: "dialog" },
   },
-  viewButtonUrl: (id) => `'/customers/' || ${id}`,
+  viewButton: true,
 });
 
 recordGridPage({
@@ -792,7 +793,12 @@ tableSimpleGrid({
   },
 });
 
-tableSimpleGrid({ table: "supplier" });
+tableSimpleGrid({
+  table: "supplier",
+  toolbar: {
+    add: { type: "dialog" },
+  },
+});
 
 recordGridPage({
   table: "supplier",
@@ -841,7 +847,10 @@ recordGridPage({
   ],
 });
 
-tableSimpleGrid({ table: "category" });
+tableSimpleGrid({
+  table: "category",
+  toolbar: { add: { type: "dialog" } },
+});
 
 const reportsPage = new SimpleReportsPageBuilder();
 

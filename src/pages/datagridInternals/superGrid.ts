@@ -41,7 +41,7 @@ export interface ToolbarConfig {
   export: boolean;
   search?: { matchConfig: string };
   add?:
-    | { type: "dialog"; opts: Partial<InsertDialogOpts> }
+    | { type: "dialog"; opts?: Partial<InsertDialogOpts> }
     | { type: "href"; href: string };
 }
 
