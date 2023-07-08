@@ -36,9 +36,12 @@ export interface PwaConfig {
 }
 
 export interface PwaIcon {
-  assetName: string;
+  /**
+   * Relative Path from assets folder, e.g. assets/myfolder/myimage.png -> myfolder/myimage.png
+   */
+  src: string;
   sizes: string;
-  iconType: string;
+  //iconType: string | undefined;
 }
 
 export type Locale = "en_us";
@@ -399,9 +402,9 @@ export interface Table {
 export type UniqueConstraintField =
   | string
   | {
-      field: string;
-      distinctNulls?: boolean;
-    };
+    field: string;
+    distinctNulls?: boolean;
+  };
 
 export interface UniqueConstraint {
   fields: UniqueConstraintField[];
@@ -1952,19 +1955,19 @@ export type ElementEventHandlers = Partial<
 export interface FloatingOpts {
   anchorEl: SqlExpression;
   placement:
-    | "'top'"
-    | "'top-start'"
-    | "'top-end'"
-    | "'right'"
-    | "'right-start'"
-    | "'right-end'"
-    | "'bottom'"
-    | "'bottom-start'"
-    | "'bottom-end'"
-    | "'left'"
-    | "'left-start'"
-    | "'left-end'"
-    | SqlExpression;
+  | "'top'"
+  | "'top-start'"
+  | "'top-end'"
+  | "'right'"
+  | "'right-start'"
+  | "'right-end'"
+  | "'bottom'"
+  | "'bottom-start'"
+  | "'bottom-end'"
+  | "'left'"
+  | "'left-start'"
+  | "'left-end'"
+  | SqlExpression;
   strategy: "'absolute'" | "'fixed'" | SqlExpression;
   offset?: {
     mainAxis: SqlExpression;
