@@ -172,8 +172,8 @@ export type DoubleField = SimpleNumericField<"Double">;
 export type DecimalUsage =
   | { type: "Money"; currency: "USD" }
   | {
-      type: "Percentage";
-    };
+    type: "Percentage";
+  };
 
 export interface DecimalField extends FieldBase {
   type: "Decimal";
@@ -349,21 +349,21 @@ export interface Enum {
 
 export type Authorization =
   | {
-      /**
-       * Allow only users with one of these roles to do some action.
-       *
-       * These are not sql expressions, just string values of the user_role enum.
-       */
-      allow: string[] | string;
-    }
+    /**
+     * Allow only users with one of these roles to do some action.
+     *
+     * These are not sql expressions, just string values of the user_role enum.
+     */
+    allow: string[] | string;
+  }
   | {
-      /**
-       * Deny any users with one of these roles to do some action. Anyone without one of these roles will be allowed.
-       *
-       * These are not sql expressions, just string values of the user_role enum.
-       */
-      deny: string[] | string;
-    };
+    /**
+     * Deny any users with one of these roles to do some action. Anyone without one of these roles will be allowed.
+     *
+     * These are not sql expressions, just string values of the user_role enum.
+     */
+    deny: string[] | string;
+  };
 
 export interface Database {
   userTableName: string;
@@ -434,6 +434,7 @@ export interface SearchConfig {
  */
 export interface BoostModel {
   name: string;
+  title: string;
   theme: Theme;
   displayNameConfig: DisplayNameConfig;
   searchConfig: SearchConfig;

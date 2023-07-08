@@ -3,6 +3,7 @@ import { addEnum, addPage, addTable } from "@yolm/boost/modelHelpers";
 import { model } from "@yolm/boost/singleton";
 
 model.name = "hello_world";
+model.title = "Hello World";
 model.dbRunMode = "BrowserSync";
 
 // db

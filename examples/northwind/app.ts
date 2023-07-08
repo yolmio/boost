@@ -27,6 +27,7 @@ import {
 } from "@yolm/boost/pages/simpleReportPage";
 
 model.name = "northwind";
+model.title = "Northwind Traders";
 
 //
 // DATABASE
@@ -628,14 +629,13 @@ insertFormPage({
                       serviceProc([
                         setScalar(
                           "product_unit_price",
-                          `(select unit_price from db.product where id = ${
-                            cursor.field("product").value
+                          `(select unit_price from db.product where id = ${cursor.field("product").value
                           })`
                         ),
                       ]),
                       if_(
                         `product_unit_price is not null and not ` +
-                          cursor.field("unit_price").touched,
+                        cursor.field("unit_price").touched,
                         [
                           cursor
                             .field("unit_price")
@@ -734,7 +734,7 @@ recordGridPage({
                     ]),
                     if_(
                       `product_unit_price is not null and not ` +
-                        state.fields.touched("unit_price"),
+                      state.fields.touched("unit_price"),
                       [
                         state.fields.set(
                           "unit_price",

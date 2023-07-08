@@ -153,21 +153,21 @@ function getTransformedUi(): [yom.Node, string] {
     .filter((p) => !p.ignoreShell)
     .map(
       (p) =>
-        ({
-          t: "Route",
-          path: p.path,
-          children: p.content,
-        } as RouteNode)
+      ({
+        t: "Route",
+        path: p.path,
+        children: p.content,
+      } as RouteNode)
     );
   const pagesWithoutShell = model.pages
     .filter((p) => p.ignoreShell)
     .map(
       (p) =>
-        ({
-          t: "Route",
-          path: p.path,
-          children: p.content,
-        } as RouteNode)
+      ({
+        t: "Route",
+        path: p.path,
+        children: p.content,
+      } as RouteNode)
     );
   let rootNode: Node;
   if (model.shell) {
@@ -179,12 +179,12 @@ function getTransformedUi(): [yom.Node, string] {
       pagesWithoutShell.length === 0
         ? shell
         : ({
-            t: "Routes",
-            children: [
-              ...pagesWithoutShell,
-              { t: "Route", path: "*", children: shell },
-            ],
-          } as RoutesNode);
+          t: "Routes",
+          children: [
+            ...pagesWithoutShell,
+            { t: "Route", path: "*", children: shell },
+          ],
+        } as RoutesNode);
   } else {
     rootNode = {
       t: "Routes",
@@ -218,6 +218,7 @@ export function generateYom(): yom.Model {
     // todo make this part of the model
     locale: "en_us",
     name: model.name,
+    title: model.title,
     dbExecutionMode: model.dbRunMode,
     collation: model.collation,
     autoTrim: model.autoTrim,

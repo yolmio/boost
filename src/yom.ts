@@ -4,6 +4,7 @@
 export interface Model {
   locale: Locale;
   name: string;
+  title: string,
   pwaConfig: PwaConfig;
   /** Where and how queries and transactions run against the database */
   dbExecutionMode: DbExecutionMode;
