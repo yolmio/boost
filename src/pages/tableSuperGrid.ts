@@ -21,7 +21,7 @@ import {
 } from "./datagridInternals/fromModel.js";
 import {
   columnPopover,
-  seperator,
+  resizeableSeperator,
   superGrid,
   SuperGridColumn,
   ToolbarConfig,
@@ -89,7 +89,12 @@ function idColumn(
         children: stringLiteral(idDisplayName),
       }),
       columnPopover(index, startFixedColumns, sortConfig),
-      seperator(index, 50),
+      resizeableSeperator({
+        minWidth: 50,
+        setWidth: (width) =>
+          modify(`update ui.column set width = ${width} where id = ${index}`),
+        width: `(select width from ui.column where id = ${index})`,
+      }),
     ],
     cell: ({ value }) => value,
     queryGeneration: {

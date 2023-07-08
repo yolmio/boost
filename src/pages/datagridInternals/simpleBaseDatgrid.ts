@@ -2,6 +2,8 @@ import { Authorization } from "../../modelTypes.js";
 import { sourceMap, state } from "../../nodeHelpers.js";
 import { DataGridStyles, Node } from "../../nodeTypes.js";
 import {
+  debugExpr,
+  debugQuery,
   exit,
   if_,
   modify,
@@ -21,9 +23,10 @@ import {
 } from "../../yom.js";
 import {
   Cell,
+  ColumnEventHandlers,
+  colHeaderClickHandlers,
   colKeydownHandlers,
   editFocusState,
-  triggerQueryRefresh,
 } from "./baseDatagrid.js";
 
 export interface SimpleBaseDatagridOpts {
@@ -40,13 +43,11 @@ export interface SimpleBaseDatagridOpts {
   auth?: Authorization;
 }
 
-export interface SimpleBaseColumn {
+export interface SimpleBaseColumn extends ColumnEventHandlers {
   queryGeneration?: SimpleBaseColumnQueryGeneration;
-  width: number;
+  initialWidth: number;
   cell: Cell;
   header: Node;
-  keydownCellHandler?: ClientProcStatement[];
-  keydownHeaderHandler?: ClientProcStatement[];
 }
 
 export interface SimpleBaseColumnQueryGeneration {
@@ -80,11 +81,18 @@ export function simpleBaseDatagrid(opts: SimpleBaseDatagridOpts) {
     shouldFocusCell: "focus_state.should_focus",
     styles: datagridStyles,
     on: {
-      changeFocusedCell: [
+      keyboardNavigation: [
         modify(
           `update ui.focus_state set column = cell.column, row = cell.row, should_focus = true`
         ),
         modify(`update ui.editing_state set is_editing = false`),
+      ],
+      cellClick: [
+        modify(
+          `update ui.focus_state set column = cell.column, row = cell.row, should_focus = true`
+        ),
+        modify(`update ui.editing_state set is_editing = false`),
+        ...colHeaderClickHandlers(columns),
       ],
       cellDoubleClick: [
         modify(
@@ -135,7 +143,7 @@ export function simpleBaseDatagrid(opts: SimpleBaseDatagridOpts) {
           })
         ),
         header: col.header,
-        width: col.width.toString(),
+        width: `(select width from column_width where col = ${i})`,
       };
     }),
   });
@@ -160,6 +168,18 @@ export function simpleBaseDatagrid(opts: SimpleBaseDatagridOpts) {
   if (opts.quickSearchMatchConfig) {
     mainStateProc.push(scalar(`quick_search_query`, `''`));
   }
+  mainStateProc.push(
+    record(`column_width`, [
+      { name: "col", type: { type: "Uint" } },
+      { name: "width", type: { type: "Uint" } },
+    ])
+  );
+  let insertValues = columns
+    .map((col, i) => `(${i}, ${col.initialWidth})`)
+    .join(", ");
+  mainStateProc.push(
+    modify(`insert into column_width (col, width) values ${insertValues}`)
+  );
   mainStateProc.push(
     record(`sort_info`, [
       { name: "col", type: { type: "SmallUint" } },
@@ -221,12 +241,12 @@ function getQuery(
         `sort_info.ascending`,
         [
           modify(
-            `insert into dg_table ${queryBase} order by ${col.queryGeneration.sqlName}`
+            `insert into dg_table ${queryBase} order by ${col.queryGeneration.sqlName} nulls last`
           ),
         ],
         [
           modify(
-            `insert into dg_table ${queryBase} order by ${col.queryGeneration.sqlName} desc`
+            `insert into dg_table ${queryBase} order by ${col.queryGeneration.sqlName} desc nulls last`
           ),
         ]
       ),
@@ -235,4 +255,12 @@ function getQuery(
     leafIf = ifBranch;
   }
   return [table("dg_table", tableFields), rootIf];
+}
+
+export function getCountQuery(source: string) {
+  return `select count(*) from ${source}`;
+}
+
+export function triggerQueryRefresh() {
+  return setScalar(`ui.refresh_key`, `ui.refresh_key + 1`);
 }

@@ -13,7 +13,6 @@ import * as dns from "dns";
 import { Request } from "node-fetch";
 import * as fs from "fs";
 import { createProfiles } from "../profile.js";
-import * as which from "which";
 import { hasBun } from "./transpileUtils.js";
 
 dns.setDefaultResultOrder("ipv4first");

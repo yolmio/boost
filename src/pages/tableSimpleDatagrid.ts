@@ -1,5 +1,12 @@
 import { InsertDialogOpts } from "../components/insertDialog.js";
-import { if_, modify, scalar, setScalar, table } from "../procHelpers.js";
+import {
+  debugExpr,
+  if_,
+  modify,
+  scalar,
+  setScalar,
+  table,
+} from "../procHelpers.js";
 import { model } from "../singleton.js";
 import { pluralize } from "../utils/inflectors.js";
 import { ident, stringLiteral } from "../utils/sqlHelpers.js";
@@ -133,6 +140,7 @@ function getColumns(
           idField,
           beforeEditTransaction:
             fieldConfigs?.[field.name]?.beforeEditTransaction,
+          columnIndex: columns.length,
         })
       );
       dynamicFieldCount += 1;
@@ -183,7 +191,7 @@ export function tableSimpleGrid(opts: DatagridPageOpts) {
     : `id`;
   const toolbarConfig: ToolbarConfig = {
     header: stringLiteral(pluralize(tableModel.displayName)),
-    delete: opts.toolbar?.delete ?? false,
+    delete: opts.toolbar?.delete ?? true,
     export: opts.toolbar?.export ?? false,
   };
   if (opts.toolbar?.search === true) {

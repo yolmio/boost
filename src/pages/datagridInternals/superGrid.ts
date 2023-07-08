@@ -8,6 +8,8 @@ import { BoolEnumLikeConfig, DurationSize, Table } from "../../modelTypes.js";
 import { element, eventHandlers, ifNode, state } from "../../nodeHelpers.js";
 import { Node } from "../../nodeTypes.js";
 import {
+  commitUiChanges,
+  debugExpr,
   debugQuery,
   delay,
   exit,
@@ -15,10 +17,15 @@ import {
   modify,
   scalar,
   setScalar,
+  spawn,
 } from "../../procHelpers.js";
 import { createStyles } from "../../styleUtils.js";
 import { ident, stringLiteral } from "../../utils/sqlHelpers.js";
-import { ClientProcStatement, StateStatement } from "../../yom.js";
+import {
+  BaseStatement,
+  ClientProcStatement,
+  StateStatement,
+} from "../../yom.js";
 import {
   addDatagridDts,
   BaseColumn,
@@ -187,7 +194,17 @@ const styles = createStyles({
   },
 });
 
-export function seperator(idx: number, minWidth?: number) {
+export interface ResizeableSeperatorOpts {
+  minWidth?: number;
+  width: string;
+  setWidth: (width: string) => BaseStatement;
+}
+
+export function resizeableSeperator({
+  minWidth,
+  setWidth,
+  width,
+}: ResizeableSeperatorOpts) {
   let newValue = "start_width + (event.client_x - start_x)";
   if (typeof minWidth === "number") {
     newValue = `case when ${newValue} < ${minWidth} then ${minWidth} else ${newValue} end`;
@@ -209,10 +226,7 @@ export function seperator(idx: number, minWidth?: number) {
       ],
       on: {
         mouseDown: [
-          setScalar(
-            "start_width",
-            `(select width from ui.column where id = ${idx})`
-          ),
+          setScalar("start_width", width),
           setScalar(`start_x`, `event.client_x`),
         ],
       },
@@ -227,12 +241,16 @@ export function seperator(idx: number, minWidth?: number) {
               mouseMove: [
                 setScalar(`pending_width`, newValue),
                 if_(`not waiting`, [
-                  setScalar(`waiting`, `true`),
-                  delay(`16`),
-                  modify(
-                    `update ui.column set width = pending_width where id = ${idx} `
-                  ),
-                  setScalar(`waiting`, `false`),
+                  spawn({
+                    detached: true,
+                    statements: [
+                      setScalar(`waiting`, `true`),
+                      delay(`16`),
+                      setWidth(`pending_width`),
+                      setScalar(`waiting`, `false`),
+                      commitUiChanges(),
+                    ],
+                  }),
                 ]),
               ],
               mouseUp: [setScalar(`start_width`, `null`)],

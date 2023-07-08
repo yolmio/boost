@@ -1,7 +1,8 @@
 import { Field, VirtualField, VirtualType } from "../../modelTypes.js";
-import { element } from "../../nodeHelpers.js";
+import { element, switchNode } from "../../nodeHelpers.js";
 import {
   commitUiChanges,
+  debugExpr,
   if_,
   modify,
   scalar,
@@ -15,7 +16,7 @@ import { BeforeEditTransaction, doEdit } from "./editHelper.js";
 import {
   columnPopover,
   FilterType,
-  seperator,
+  resizeableSeperator,
   SortConfig,
   SuperGridColumn,
 } from "./superGrid.js";
@@ -26,6 +27,7 @@ import { lazy } from "../../utils/memoize.js";
 import { materialIcon } from "../../components/materialIcon.js";
 import { Styles } from "../../styleUtils.js";
 import { Style } from "../../styleTypes.js";
+import { triggerQueryRefresh as simpleTriggerQueryRefresh } from "./simpleBaseDatgrid.js";
 
 export function filterTypeFromField(type: Field): FilterType {
   switch (type.type) {
@@ -402,7 +404,14 @@ export function columnFromField(
         children: stringLiteral(displayName),
       }),
       columnPopover(columnIndex, startFixedColumns, sort),
-      seperator(columnIndex, 50),
+      resizeableSeperator({
+        minWidth: 50,
+        setWidth: (width) =>
+          modify(
+            `update ui.column set width = ${width} where id = ${columnIndex}`
+          ),
+        width: `(select width from ui.column where id = ${columnIndex})`,
+      }),
     ],
     queryGeneration: {
       expr: `record.${ident(field.name)}`,
@@ -453,7 +462,14 @@ export function columnFromVirtual(
         children: stringLiteral(virtual.displayName),
       }),
       columnPopover(columnIndex, startFixedColumns, sort),
-      seperator(columnIndex, 50),
+      resizeableSeperator({
+        minWidth: 50,
+        setWidth: (width) =>
+          modify(
+            `update ui.column set width = ${width} where id = ${columnIndex}`
+          ),
+        width: `(select width from ui.column where id = ${columnIndex})`,
+      }),
     ],
     queryGeneration: {
       expr: virtual.expr(...virtual.fields.map((f) => `record.${ident(f)}`)),
@@ -500,6 +516,7 @@ export interface SimpleColumnFieldOpts {
   table: string;
   field: Field;
   idField: string;
+  columnIndex: number;
   beforeEditTransaction?: BeforeEditTransaction;
 }
 
@@ -508,6 +525,7 @@ export function simpleColumnFromField({
   table,
   idField,
   beforeEditTransaction,
+  columnIndex,
 }: SimpleColumnFieldOpts): SimpleColumn {
   let keydownHandler: ClientProcStatement[] = [];
   switch (field.type) {
@@ -539,6 +557,17 @@ export function simpleColumnFromField({
     default:
       throw new Error("Todo");
   }
+  const toggleColumnSort = if_<ClientProcStatement>(
+    `sort_info.col = ${columnIndex}`,
+    [
+      if_(
+        `sort_info.ascending`,
+        [modify(`update sort_info set ascending = false`)],
+        [modify(`update sort_info set col = null`)]
+      ),
+    ],
+    [modify(`update sort_info set col = ${columnIndex}, ascending = true`)]
+  );
   return {
     displayName: field.displayName,
     keydownCellHandler: keydownHandler,
@@ -549,10 +578,37 @@ export function simpleColumnFromField({
       beforeEditTransaction,
     }),
     width: getFieldCellWidth(field, table),
-    header: element("span", {
-      styles: sharedStyles.headerText,
-      children: stringLiteral(field.displayName),
-    }),
+    header: [
+      element("span", {
+        styles: sharedStyles.headerText,
+        children: stringLiteral(field.displayName),
+      }),
+      switchNode(
+        [
+          `sort_info.col = ${columnIndex} and sort_info.ascending`,
+          materialIcon("ArrowUpward"),
+        ],
+        [
+          `sort_info.col = ${columnIndex} and not sort_info.ascending`,
+          materialIcon("ArrowDownward"),
+        ]
+      ),
+      resizeableSeperator({
+        minWidth: 50,
+        setWidth: (width) =>
+          modify(
+            `update ui.column_width set width = ${width} where col = ${columnIndex}`
+          ),
+        width: `(select width from ui.column_width where col = ${columnIndex})`,
+      }),
+    ],
+    keydownHeaderHandler: [
+      if_(`event.key = 'Enter'`, [
+        toggleColumnSort,
+        simpleTriggerQueryRefresh(),
+      ]),
+    ],
+    headerClickHandler: [toggleColumnSort, simpleTriggerQueryRefresh()],
     queryGeneration: {
       expr: `record.${ident(field.name)}`,
       sqlName: field.name,
@@ -577,7 +633,7 @@ export function simpleColumnFromVirtual(
         styles: sharedStyles.headerText,
         children: stringLiteral(virtual.displayName),
       }),
-      seperator(columnIndex, 50),
+      // resizeableSeperator(columnIndex, 50),
     ],
     queryGeneration: {
       expr: virtual.expr(...virtual.fields.map((f) => `record.${ident(f)}`)),
