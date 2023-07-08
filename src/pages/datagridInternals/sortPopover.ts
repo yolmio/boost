@@ -1,4 +1,4 @@
-import { each, element, ifNode, state, switchNode } from "../../nodeHelpers.js";
+import { each, element, ifNode, state } from "../../nodeHelpers.js";
 import { if_, modify, scalar, setScalar } from "../../procHelpers.js";
 import { stringLiteral } from "../../utils/sqlHelpers.js";
 import { button } from "../../components/button.js";
@@ -51,11 +51,6 @@ export function sortPopover(columns: SuperGridColumn[]) {
     });
   }
   return [
-    typography({
-      level: "body2",
-      children: `'Sort by'`,
-    }),
-    divider({ styles: sharedStyles.popoverDivider }),
     each({
       table: "column",
       key: "id",
@@ -67,7 +62,7 @@ export function sortPopover(columns: SuperGridColumn[]) {
         children: [
           select({
             variant: "outlined",
-            color: "info",
+            color: "primary",
             size: "sm",
             on: {
               input: [
@@ -88,7 +83,7 @@ export function sortPopover(columns: SuperGridColumn[]) {
           }),
           select({
             variant: "outlined",
-            color: "info",
+            color: "primary",
             size: "sm",
             on: {
               input: [
@@ -119,7 +114,7 @@ export function sortPopover(columns: SuperGridColumn[]) {
           }),
           iconButton({
             variant: "plain",
-            color: "info",
+            color: "primary",
             size: "sm",
             children: materialIcon("Close"),
             on: {
@@ -140,7 +135,7 @@ export function sortPopover(columns: SuperGridColumn[]) {
         "adding or not exists (select id from column where sort_index is not null)",
         select({
           variant: "outlined",
-          color: "info",
+          color: "primary",
           size: "sm",
           on: {
             input: [
@@ -165,7 +160,7 @@ export function sortPopover(columns: SuperGridColumn[]) {
         }),
         button({
           variant: "outlined",
-          color: "info",
+          color: "primary",
           size: "sm",
           startDecorator: materialIcon("Add"),
           on: {

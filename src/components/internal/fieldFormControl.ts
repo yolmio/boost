@@ -5,6 +5,7 @@ import { ClientProcStatement } from "../../yom.js";
 import { durationInput } from "../durationInput.js";
 import { enumLikeSelect, enumSelect } from "../enumSelect.js";
 import { input } from "../input.js";
+import { materialIcon } from "../materialIcon.js";
 import { getTableRecordSelect } from "../tableRecordSelect.js";
 import { textarea } from "../textarea.js";
 
@@ -126,14 +127,28 @@ export function fieldFormControl(opts: FieldFormControlOpts): Node | undefined {
           },
         });
       } else {
+        let inputMode: string | undefined;
+        let startDecorator: Node | undefined;
+        switch (field.usage?.type) {
+          case "Email":
+            inputMode = "'email'";
+            startDecorator = materialIcon("Mail");
+            break;
+          case "PhoneNumber":
+            inputMode = "'tel'";
+            startDecorator = materialIcon("Phone");
+            break;
+        }
         return input({
           error: opts.fieldHelper.hasError,
+          startDecorator,
           slots: {
             input: {
               props: {
                 value: fieldHelper.value,
                 id,
                 maxLength: field.maxLength.toString(),
+                inputMode,
               },
               on: {
                 input: [fieldHelper.setValue("target_value")],

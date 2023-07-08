@@ -1,4 +1,5 @@
 import { alert } from "../../components/alert.js";
+import { confirmDangerDialog } from "../../components/confirmDangerDialog.js";
 import { iconButton } from "../../components/iconButton.js";
 import {
   insertDialog,
@@ -10,15 +11,25 @@ import { addPage } from "../../modelHelpers.js";
 import { Authorization, Table } from "../../modelTypes.js";
 import { element, ifNode, sourceMap, state } from "../../nodeHelpers.js";
 import { Node } from "../../nodeTypes.js";
-import { scalar, setScalar } from "../../procHelpers.js";
+import {
+  commitTransaction,
+  if_,
+  modify,
+  scalar,
+  serviceProc,
+  setScalar,
+  startTransaction,
+} from "../../procHelpers.js";
 import { createStyles, flexGrowStyles } from "../../styleUtils.js";
 import { ident, stringLiteral } from "../../utils/sqlHelpers.js";
-import { ClientProcStatement, StateStatement } from "../../yom.js";
-import { Cell } from "./baseDatagrid.js";
+import { StateStatement } from "../../yom.js";
+import { Cell, ColumnEventHandlers } from "./baseDatagrid.js";
 import {
+  getCountQuery,
   SimpleBaseColumn,
   SimpleBaseColumnQueryGeneration,
   simpleBaseDatagrid,
+  triggerQueryRefresh,
 } from "./simpleBaseDatgrid.js";
 import { styles as sharedStyles } from "./styles.js";
 
@@ -32,13 +43,11 @@ export interface ToolbarConfig {
     | { type: "href"; href: string };
 }
 
-export interface SimpleColumn {
+export interface SimpleColumn extends ColumnEventHandlers {
   queryGeneration?: SimpleBaseColumnQueryGeneration;
   displayName?: string;
   width: number;
   header: Node;
-  keydownCellHandler?: ClientProcStatement[];
-  keydownHeaderHandler?: ClientProcStatement[];
   cell: Cell;
 }
 
@@ -60,6 +69,8 @@ const styles = createStyles({
     display: "flex",
     px: 2,
     py: 1,
+    gap: 1,
+    alignItems: "baseline",
   },
 });
 
@@ -70,8 +81,9 @@ export function simpleDatagrid(config: SimpleGridConfig) {
       header: c.header,
       keydownCellHandler: c.keydownCellHandler,
       keydownHeaderHandler: c.keydownHeaderHandler,
+      headerClickHandler: c.headerClickHandler,
       queryGeneration: c.queryGeneration,
-      width: c.width,
+      initialWidth: c.width,
     })
   );
   let addButton: Node | undefined;
@@ -135,6 +147,72 @@ export function simpleDatagrid(config: SimpleGridConfig) {
                 children: config.toolbar.header,
               }),
               element("div", { styles: flexGrowStyles }),
+              config.toolbar.delete
+                ? state({
+                    procedure: [scalar(`deleting`, `false`)],
+                    children: [
+                      iconButton({
+                        size: "sm",
+                        color: "danger",
+                        variant: "soft",
+                        children: materialIcon("DeleteOutlined"),
+                        on: { click: [setScalar(`deleting`, `true`)] },
+                      }),
+                      confirmDangerDialog({
+                        open: `deleting`,
+                        onClose: [setScalar(`deleting`, `false`)],
+                        description: element("span", {
+                          children: [
+                            `'Are you sure you want to delete '`,
+                            ifNode(
+                              `selected_all`,
+                              state({
+                                procedure: [
+                                  scalar(
+                                    `count`,
+                                    "(" +
+                                      getCountQuery(
+                                        "db." + config.tableModel.name
+                                      ) +
+                                      ")"
+                                  ),
+                                ],
+                                children: `count`,
+                              }),
+                              `(select count(*) from selected_row)`
+                            ),
+                            `' records?'`,
+                          ],
+                        }),
+                        onConfirm: (closeModal) => [
+                          serviceProc([
+                            startTransaction(),
+                            if_(
+                              `selected_all`,
+                              [
+                                modify(
+                                  `delete from db.${ident(
+                                    config.tableModel.name
+                                  )}`
+                                ),
+                              ],
+                              [
+                                modify(
+                                  `delete from db.${ident(
+                                    config.tableModel.name
+                                  )} where id in (select id from ui.selected_row)`
+                                ),
+                              ]
+                            ),
+                            commitTransaction(),
+                            triggerQueryRefresh(),
+                          ]),
+                          ...closeModal,
+                        ],
+                      }),
+                    ],
+                  })
+                : null,
               addButton,
             ],
           }),

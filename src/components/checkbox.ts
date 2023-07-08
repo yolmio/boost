@@ -7,6 +7,7 @@ import { StyleObject } from "../styleTypes.js";
 import { svgIcon } from "./svgIcon.js";
 import { Color, ComponentOpts, Size } from "./types.js";
 import { createSlotsFn, SlottedComponentWithSlotNames } from "./utils.js";
+import { DynamicClass } from "../yom.js";
 
 export interface CheckedVariation {
   variant: Variant;
@@ -19,6 +20,8 @@ export interface CheckboxOpts
   fullWidth?: boolean;
   overlay?: boolean;
   disableIcon?: boolean;
+
+  error?: string;
 
   checkedVariation?: CheckedVariation;
 
@@ -68,6 +71,10 @@ const styles = createStyles({
             checkedVariation.color
           ) as any
         ).color,
+      };
+      styles["&.error"] = {
+        color: (getVariantStyle(checkedVariation.variant, "danger") as any)
+          .color,
       };
     }
     return styles;
@@ -123,6 +130,11 @@ const styles = createStyles({
         "&:hover": getVariantStyle(variant, color, "hover"),
         "&:active": getVariantStyle(variant, color, "active"),
       });
+      styles[".error &"] = {
+        ...getVariantStyle(variant, "danger"),
+        "&:hover": getVariantStyle(variant, "danger", "hover"),
+        "&:active": getVariantStyle(variant, "danger", "active"),
+      };
       if (checkedVariation) {
         styles[".checked &"] = {
           ...getVariantStyle(checkedVariation.variant, checkedVariation.color),
@@ -160,36 +172,28 @@ const styles = createStyles({
       transition:
         "background-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms",
     };
-    if (!disableIcon) {
-      Object.assign(styles, {
+    function variation(variant: Variant, color: Color): StyleObject {
+      const variationStyles: StyleObject = {
         ...getVariantStyle(variant, color),
         "&:hover": getVariantStyle(variant, color, "hover"),
         "&:active": getVariantStyle(variant, color, "active"),
-      });
+      };
       if (variant === "outlined" || variant === "plain") {
-        (styles as any).backgroundColor = cssVar(`palette-background-surface`);
+        (variationStyles as any).backgroundColor = cssVar(
+          `palette-background-surface`
+        );
       }
+      return variationStyles;
+    }
+    if (!disableIcon) {
+      Object.assign(styles, variation(variant, color));
       if (checkedVariation) {
-        const variationStyles: StyleObject = {
-          ...getVariantStyle(checkedVariation.variant, checkedVariation.color),
-          "&:hover": getVariantStyle(
-            checkedVariation.variant,
-            checkedVariation.color,
-            "hover"
-          ),
-          "&:active": getVariantStyle(
-            checkedVariation.variant,
-            checkedVariation.color,
-            "active"
-          ),
-        };
-        if (variant === "outlined" || variant === "plain") {
-          (styles as any).backgroundColor = cssVar(
-            `palette-background-surface`
-          );
-        }
-        (styles as any)[".checked &"] = variationStyles;
+        (styles as any)[".checked &"] = variation(
+          checkedVariation.variant,
+          checkedVariation.color
+        );
       }
+      (styles as any)[".error &"] = variation(variant, "danger");
     }
     return styles;
   },
@@ -212,6 +216,13 @@ export function checkbox(opts: CheckboxOpts) {
   const color = opts.color ?? "primary";
   const overlay = opts.overlay ?? false;
   const disableIcon = opts.disableIcon ?? false;
+  const dynamicClasses: DynamicClass[] = [];
+  if (opts.checkedVariation) {
+    dynamicClasses.push({ classes: "checked", condition: opts.checked });
+  }
+  if (opts.error) {
+    dynamicClasses.push({ classes: "error", condition: opts.error });
+  }
   return slot("root", {
     tag: "span",
     styles: styles.root(
@@ -222,9 +233,7 @@ export function checkbox(opts: CheckboxOpts) {
       disableIcon,
       opts.checkedVariation
     ),
-    dynamicClasses: opts.checkedVariation
-      ? [{ classes: "checked", condition: opts.checked }]
-      : [],
+    dynamicClasses,
     children: [
       slot("checkbox", {
         tag: "span",

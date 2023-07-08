@@ -11,6 +11,14 @@ export const genericFormStyles = createStyles({
     fontWeight: "lg",
     my: 0,
   },
+  errorText: {
+    display: "flex",
+    alignItems: "center",
+    fontSize: "sm",
+    lineHeight: "sm",
+    color: "danger-500",
+    marginTop: 0.375,
+  },
 });
 
 export const multiCardInsertStyles = createStyles({

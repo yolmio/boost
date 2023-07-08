@@ -173,7 +173,7 @@ export function viewDrawer(datagridName: string, dts: DatagridDts) {
                 checkbox({
                   checked: `personal`,
                   variant: "outlined",
-                  color: "info",
+                  color: "primary",
                   label: `'Personal'`,
                   size: "sm",
                   on: {

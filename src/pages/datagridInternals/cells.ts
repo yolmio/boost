@@ -80,6 +80,20 @@ const styles = createStyles({
   uploadButton: () => {
     return { mx: "auto", "&:focus-within": model.theme.focus.default };
   },
+  checkbox: {
+    mx: "auto",
+  },
+  imgWrapper: {
+    width: "100%",
+    height: "100%",
+    py: 0.5,
+  },
+  img: {
+    objectFit: "contain",
+    width: "100%",
+    height: "100%",
+    cursor: "pointer",
+  },
 });
 
 export function foreignKeyCell(
@@ -334,11 +348,11 @@ export function boolCell(opts: BaseFieldCellOpts, field: BoolField): Cell {
   }
   return (props) =>
     checkbox({
-      styles: { mx: "auto" },
+      styles: styles.checkbox,
       checked: opts.stringified ? props.value + " = 'true'" : props.value,
       variant: "outlined",
       color: "neutral",
-      slots: { checkbox: { props: { tabIndex: "-1" } } },
+      slots: { input: { props: { tabIndex: "-1" } } },
       on: {
         checkboxChange: {
           detachedFromNode: true,
@@ -499,14 +513,9 @@ export function imageCell(
         procedure: [scalar(`open`, `false`)],
         children: [
           element("div", {
-            styles: { width: "100%", height: "100%", py: 0.5 },
+            styles: styles.imgWrapper,
             children: element("img", {
-              styles: {
-                objectFit: "contain",
-                width: "100%",
-                height: "100%",
-                cursor: "pointer",
-              },
+              styles: styles.img,
               props: {
                 src: `'/_a/file/' || sys.account || '/' || sys.app || '/' || ${value}`,
               },

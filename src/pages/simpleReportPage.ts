@@ -505,7 +505,7 @@ export class SimpleReportsPageBuilder {
           opts.download
             ? button({
                 variant: "outlined",
-                color: "info",
+                color: "primary",
                 size: "sm",
                 styles: styles.downloadButtonWraper,
                 startDecorator: materialIcon("Download"),
@@ -544,7 +544,7 @@ export class SimpleReportsPageBuilder {
     if (opts.left.download) {
       const downloadButton = button({
         variant: "outlined",
-        color: "info",
+        color: "primary",
         size: "sm",
         startDecorator: materialIcon("Download"),
         on: {
@@ -574,7 +574,7 @@ export class SimpleReportsPageBuilder {
     if (opts.right.download) {
       const downloadButton = button({
         variant: "outlined",
-        color: "info",
+        color: "primary",
         size: "sm",
         startDecorator: materialIcon("Download"),
         on: {

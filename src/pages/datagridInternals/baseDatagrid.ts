@@ -101,7 +101,13 @@ export function baseDatagrid(opts: BaseDatagridOpts) {
     shouldFocusCell: "focus_state.should_focus",
     styles: datagridStyles,
     on: {
-      changeFocusedCell: [
+      keyboardNavigation: [
+        modify(
+          `update ui.focus_state set column = cell.column, row = cell.row, should_focus = true`
+        ),
+        modify(`update ui.editing_state set is_editing = false`),
+      ],
+      cellClick: [
         modify(
           `update ui.focus_state set column = cell.column, row = cell.row, should_focus = true`
         ),
@@ -402,6 +408,7 @@ export interface BaseColumn extends ColumnEventHandlers {
 export interface ColumnEventHandlers {
   keydownCellHandler?: ClientProcStatement[];
   keydownHeaderHandler?: ClientProcStatement[];
+  headerClickHandler?: ClientProcStatement[];
 }
 
 export interface DatagridDts {
@@ -512,6 +519,20 @@ export function colKeydownHandlers(columns: ColumnEventHandlers[]) {
     }
   }
   return statements;
+}
+
+export function colHeaderClickHandlers(columns: ColumnEventHandlers[]) {
+  const statements: ClientProcStatement[] = [];
+  for (let i = 0; i < columns.length; i++) {
+    const column = columns[i];
+    if (column.headerClickHandler) {
+      statements.push(if_(`cell.column = ${i}`, column.headerClickHandler));
+    }
+  }
+  if (statements.length === 0) {
+    return [];
+  }
+  return [if_(`cell.row = 0`, statements)];
 }
 
 export function triggerQueryRefresh() {

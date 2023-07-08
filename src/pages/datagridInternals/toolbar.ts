@@ -32,6 +32,8 @@ import { SuperGridColumn, SuperGridDts, ToolbarConfig } from "./superGrid.js";
 import { DatagridDts, makeCountQuery, makeIdsQuery } from "./baseDatagrid.js";
 import { Table } from "../../modelTypes.js";
 import { select } from "../../components/select.js";
+import { Node } from "../../nodeTypes.js";
+import { insertDialog } from "../../components/insertDialog.js";
 
 const columnsButtonId = stringLiteral(getUniqueUiId());
 const sortButtonId = stringLiteral(getUniqueUiId());
@@ -83,6 +85,45 @@ export function toolbar(
   tableModel: Table,
   matchConfig: string | undefined
 ) {
+  let addButton: Node | undefined;
+  if (toolbar.add?.type === "href") {
+    addButton = iconButton({
+      variant: "soft",
+      color: "primary",
+      size: "sm",
+      children: materialIcon("Add"),
+      href: stringLiteral(toolbar.add.href),
+    });
+  } else if (toolbar.add?.type === "dialog") {
+    const withValues: Record<string, string> =
+      toolbar.add.opts?.withValues ?? {};
+    addButton = state({
+      procedure: [scalar(`adding`, `false`)],
+      children: [
+        iconButton({
+          variant: "soft",
+          color: "primary",
+          size: "sm",
+          children: materialIcon("Add"),
+          on: { click: [setScalar(`adding`, `true`)] },
+        }),
+        insertDialog({
+          ...toolbar.add.opts,
+          table: tableModel.name,
+          open: `adding`,
+          onClose: [setScalar(`adding`, `false`)],
+          content: {
+            type: "AutoLabelOnLeft",
+            ignoreFields: Object.keys(withValues),
+          },
+          afterSubmitService: (state) => [
+            ...((toolbar.add as any).opts?.afterSubmitService?.(state) ?? []),
+            setScalar(`ui.refresh_key`, `ui.refresh_key + 1`),
+          ],
+        }),
+      ],
+    });
+  }
   return element("div", {
     styles: styles.toolbarWrapper,
     children: element("div", {
@@ -174,7 +215,11 @@ export function toolbar(
                             size: "sm",
                             props: { id: filterButtonId },
                             startDecorator: materialIcon("FilterAltOutlined"),
-                            children: "'Filter'",
+                            children: `case
+                              when (select count(column_id) from filter_term) = 0 then 'Filter'
+                              when (select count(distinct column_id) from filter_term) = 1 then 'Filtered by 1 field'
+                              else 'Filtered by ' || (select count(distinct column_id) from filter_term) || ' fields'
+                            end`,
                             on: {
                               click: [
                                 setScalar(`ui.columns_dialog_open`, `false`),
@@ -417,20 +462,7 @@ export function toolbar(
                   ],
                 },
               }),
-            toolbar.add?.type === "href"
-              ? iconButton({
-                  variant: "soft",
-                  color: "primary",
-                  size: "sm",
-                  children: materialIcon("Add"),
-                  href: stringLiteral(toolbar.add.href),
-                })
-              : null,
-            // insertFormDialog({
-            //   setOpen: (open) => setScalar(`ui.add_dialog_open`, open),
-            //   open: `add_dialog_open`,
-            //   table: config.tableName,
-            // }),
+            addButton,
           ]
         ),
       ],

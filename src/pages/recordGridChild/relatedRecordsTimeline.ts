@@ -586,8 +586,9 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                         button: ({ buttonProps, onButtonClick }) =>
                           button({
                             variant: "soft",
-                            color: "info",
-                            children: `'Add...'`,
+                            size: "sm",
+                            color: "primary",
+                            children: `'Add'`,
                             startDecorator: materialIcon("Add"),
                             props: buttonProps,
                             on: {

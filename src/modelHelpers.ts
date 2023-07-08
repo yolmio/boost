@@ -20,6 +20,7 @@ import type {
   RecordDisplayName,
   ScalarFunction,
   ScriptDbDefinition,
+  StringUsage,
   Table,
   TableControl,
   VirtualField,
@@ -202,10 +203,13 @@ export class TableBuilder {
     return new DurationFieldBuilder(name, this, backing, "hours");
   }
 
-  // email(name: HelperName) {
-  //   throw new Error("todo");
-  //   // return new FieldBuilder(name, { type: "Email" }, this);
-  // }
+  email(name: string) {
+    return new StringFieldBuilder(name, 254, this, { type: "Email" });
+  }
+
+  phoneNumber(name: string) {
+    return new StringFieldBuilder(name, 50, this, { type: "PhoneNumber" });
+  }
 
   fk(name: string, table?: string) {
     return new ForeignKeyFieldBuilder(name, this, table ?? name);
@@ -505,7 +509,7 @@ abstract class BaseFieldBuilder {
       displayName: this._displayName,
       renameFrom: this._renameFrom,
       notNull: this._notNull ?? false,
-      checks: [],
+      checks: this._checks,
       description: this._description,
       unique: this._unique,
       default: this._default,
@@ -691,10 +695,22 @@ class StringFieldBuilder extends BaseFieldBuilder {
   #maxBytesPerChar?: number;
   #autoTrim?: yom.AutoTrim;
   #multiline?: boolean;
+  #usage?: StringUsage;
 
-  constructor(name: string, maxLength: number, table: TableBuilder) {
+  constructor(
+    name: string,
+    maxLength: number,
+    table: TableBuilder,
+    usage?: StringUsage
+  ) {
     super(name, table);
     this.#maxLength = maxLength;
+    this.#usage = usage;
+  }
+
+  maxLength(maxLength: number) {
+    this.#maxLength = maxLength;
+    return this;
   }
 
   collation(collation: yom.Collation) {
@@ -726,6 +742,7 @@ class StringFieldBuilder extends BaseFieldBuilder {
     return {
       type: "String",
       ...this.finishBase(),
+      usage: this.#usage,
       maxLength: this.#maxLength,
       minLength: this.#minLength,
       collation: this.#collation,

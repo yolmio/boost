@@ -21,7 +21,7 @@ import {
 } from "./datagridInternals/fromModel.js";
 import {
   columnPopover,
-  seperator,
+  resizeableSeperator,
   superGrid,
   SuperGridColumn,
   ToolbarConfig,
@@ -41,7 +41,7 @@ export interface ToolbarOpts {
   add?:
     | "dialog"
     | "href"
-    | { type: "dialog"; opts: Partial<InsertDialogOpts> }
+    | { type: "dialog"; opts?: Partial<InsertDialogOpts> }
     | { type: "href"; href: string };
 }
 
@@ -50,7 +50,7 @@ export interface DatagridPageOpts {
   table: string;
   datagridName?: string;
   path?: string;
-  viewButtonUrl?: (id: string) => string;
+  viewButton?: boolean | { getLink: (id: string) => string };
   selectable?: boolean;
   toolbar?: ToolbarOpts;
   ignoreFields?: string[];
@@ -89,7 +89,12 @@ function idColumn(
         children: stringLiteral(idDisplayName),
       }),
       columnPopover(index, startFixedColumns, sortConfig),
-      seperator(index, 50),
+      resizeableSeperator({
+        minWidth: 50,
+        setWidth: (width) =>
+          modify(`update ui.column set width = ${width} where id = ${index}`),
+        width: `(select width from ui.column where id = ${index})`,
+      }),
     ],
     cell: ({ value }) => value,
     queryGeneration: {
@@ -126,7 +131,7 @@ function getColumns(
           variant: "outlined",
           size: "sm",
           checked: `selected_all or exists (select id from selected_row where id = cast(record.field_0 as bigint))`,
-          slots: { checkbox: { props: { tabIndex: "-1" } } },
+          slots: { input: { props: { tabIndex: "-1" } } },
           on: {
             click: [toggleRowSelection(`cast(record.field_0 as bigint)`)],
           },
@@ -135,7 +140,7 @@ function getColumns(
         variant: "outlined",
         size: "sm",
         checked: `selected_all`,
-        slots: { checkbox: { props: { tabIndex: "-1" } } },
+        slots: { input: { props: { tabIndex: "-1" } } },
         on: {
           click: [
             setScalar(`selected_all`, `not selected_all`),
@@ -144,15 +149,19 @@ function getColumns(
         },
       }),
       keydownCellHandler: [
-        scalar(
-          `row_id`,
-          `(select field_0 from ui.dg_table limit 1 offset cell.row - 1)`
-        ),
-        toggleRowSelection(`cast(row_id as bigint)`),
+        if_(`event.key = 'Enter' or event.key = ' '`, [
+          scalar(
+            `row_id`,
+            `(select field_0 from ui.dg_table limit 1 offset cell.row - 1)`
+          ),
+          toggleRowSelection(`cast(row_id as bigint)`),
+        ]),
       ],
       keydownHeaderHandler: [
-        setScalar(`selected_all`, `not selected_all`),
-        modify(`delete from selected_row`),
+        if_(`event.key = 'Enter' or event.key = ' '`, [
+          setScalar(`selected_all`, `not selected_all`),
+          modify(`delete from selected_row`),
+        ]),
       ],
       viewStorageName: "dg_checkbox_col",
     });
@@ -163,7 +172,7 @@ function getColumns(
       cell: () =>
         button({
           variant: "soft",
-          color: "info",
+          color: "primary",
           size: "sm",
           children: `'View'`,
           href: viewButtonUrl(`record.field_0`),
@@ -210,10 +219,22 @@ export function tableSuperGrid(opts: DatagridPageOpts) {
   const tableModel = model.database.tables[opts.table];
   const path = getTableBaseUrl(opts.table);
   const selectable = opts.selectable ?? true;
+  let getViewButtonUrl: ((id: string) => string) | undefined;
+  if (opts.viewButton === true) {
+    if (!tableModel.getHrefToRecord) {
+      throw new Error(
+        "viewButton is true but table has no getHrefToRecord, on datagrid for table " +
+          opts.table
+      );
+    }
+    getViewButtonUrl = tableModel.getHrefToRecord;
+  } else if (typeof opts.viewButton === "function") {
+    getViewButtonUrl = opts.viewButton;
+  }
   const columns = getColumns(
     opts.table,
     selectable,
-    opts.viewButtonUrl,
+    getViewButtonUrl,
     opts.ignoreFields
   );
   const toolbarConfig: ToolbarConfig = {
@@ -245,7 +266,7 @@ export function tableSuperGrid(opts: DatagridPageOpts) {
   if (opts.defaultView) {
     opts.defaultView = { ...opts.defaultView };
     if (opts.defaultView.columnOrder) {
-      if (opts.viewButtonUrl) {
+      if (getViewButtonUrl) {
         opts.defaultView.columnOrder.unshift("dg_view_button_col");
       }
       if (selectable) {

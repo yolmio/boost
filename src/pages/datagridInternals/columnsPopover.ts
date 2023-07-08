@@ -25,7 +25,7 @@ export function columnsPopover(dts: SuperGridDts) {
     children: [
       input({
         variant: "outlined",
-        color: "info",
+        color: "neutral",
         size: "sm",
         slots: {
           input: {
@@ -48,7 +48,7 @@ export function columnsPopover(dts: SuperGridDts) {
           children: checkbox({
             variant: "soft",
             size: "sm",
-            color: "info",
+            color: "primary",
             checked: `column_record.displaying`,
             label: `dt.${dts.idToDisplayName}(column_record.id)`,
             on: {
@@ -71,7 +71,7 @@ export function columnsPopover(dts: SuperGridDts) {
         children: [
           button({
             variant: "outlined",
-            color: "info",
+            color: "primary",
             children: "'Show all'",
             on: {
               click: [
@@ -82,7 +82,7 @@ export function columnsPopover(dts: SuperGridDts) {
           }),
           button({
             variant: "outlined",
-            color: "info",
+            color: "primary",
             children: "'Show none'",
             on: {
               click: [

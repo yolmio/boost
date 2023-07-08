@@ -8,6 +8,8 @@ import { BoolEnumLikeConfig, DurationSize, Table } from "../../modelTypes.js";
 import { element, eventHandlers, ifNode, state } from "../../nodeHelpers.js";
 import { Node } from "../../nodeTypes.js";
 import {
+  commitUiChanges,
+  debugExpr,
   debugQuery,
   delay,
   exit,
@@ -15,10 +17,15 @@ import {
   modify,
   scalar,
   setScalar,
+  spawn,
 } from "../../procHelpers.js";
 import { createStyles } from "../../styleUtils.js";
 import { ident, stringLiteral } from "../../utils/sqlHelpers.js";
-import { ClientProcStatement, StateStatement } from "../../yom.js";
+import {
+  BaseStatement,
+  ClientProcStatement,
+  StateStatement,
+} from "../../yom.js";
 import {
   addDatagridDts,
   BaseColumn,
@@ -41,7 +48,7 @@ export interface ToolbarConfig {
   export: boolean;
   search?: { matchConfig: string };
   add?:
-    | { type: "dialog"; opts: Partial<InsertDialogOpts> }
+    | { type: "dialog"; opts?: Partial<InsertDialogOpts> }
     | { type: "href"; href: string };
 }
 
@@ -187,7 +194,17 @@ const styles = createStyles({
   },
 });
 
-export function seperator(idx: number, minWidth?: number) {
+export interface ResizeableSeperatorOpts {
+  minWidth?: number;
+  width: string;
+  setWidth: (width: string) => BaseStatement;
+}
+
+export function resizeableSeperator({
+  minWidth,
+  setWidth,
+  width,
+}: ResizeableSeperatorOpts) {
   let newValue = "start_width + (event.client_x - start_x)";
   if (typeof minWidth === "number") {
     newValue = `case when ${newValue} < ${minWidth} then ${minWidth} else ${newValue} end`;
@@ -209,10 +226,7 @@ export function seperator(idx: number, minWidth?: number) {
       ],
       on: {
         mouseDown: [
-          setScalar(
-            "start_width",
-            `(select width from ui.column where id = ${idx})`
-          ),
+          setScalar("start_width", width),
           setScalar(`start_x`, `event.client_x`),
         ],
       },
@@ -227,12 +241,16 @@ export function seperator(idx: number, minWidth?: number) {
               mouseMove: [
                 setScalar(`pending_width`, newValue),
                 if_(`not waiting`, [
-                  setScalar(`waiting`, `true`),
-                  delay(`16`),
-                  modify(
-                    `update ui.column set width = pending_width where id = ${idx} `
-                  ),
-                  setScalar(`waiting`, `false`),
+                  spawn({
+                    detached: true,
+                    statements: [
+                      setScalar(`waiting`, `true`),
+                      delay(`16`),
+                      setWidth(`pending_width`),
+                      setScalar(`waiting`, `false`),
+                      commitUiChanges(),
+                    ],
+                  }),
                 ]),
               ],
               mouseUp: [setScalar(`start_width`, `null`)],
@@ -258,6 +276,20 @@ export function columnPopover(
   }
   function getColumnN(n: number) {
     return `(select ordering from ui.column order by ordering offset ${n} limit 1)`;
+  }
+  function setColumnSort(asc: boolean) {
+    return if_(
+      `exists (select 1 from ui.column where sort_index is not null and id = ${i})`,
+      [modify(`update ui.column set sort_asc = ${asc} where id = ${i}`)],
+      [
+        modify(
+          `update ui.column set sort_index = sort_index + 1 where sort_index is not null`
+        ),
+        modify(
+          `update ui.column set sort_index = 0, sort_asc = ${asc} where id = ${i}`
+        ),
+      ]
+    );
   }
   return state({
     procedure: [scalar("dialog_open", "false")],
@@ -304,15 +336,7 @@ export function columnPopover(
               ? [
                   listItem({
                     on: {
-                      click: [
-                        modify(
-                          `update ui.column set
-                      sort_index = case when sort_index is null then (select count(*) from ui.column where sort_index is not null) else sort_index end,
-                      sort_asc = true
-                    where id = ${i}`
-                        ),
-                        triggerQueryRefresh(),
-                      ],
+                      click: [setColumnSort(true), triggerQueryRefresh()],
                     },
                     children: listItemButton({
                       variant: "plain",
@@ -322,15 +346,7 @@ export function columnPopover(
                   }),
                   listItem({
                     on: {
-                      click: [
-                        modify(
-                          `update ui.column set
-                      sort_index = case when sort_index is null then (select count(*) from ui.column where sort_index is not null) else sort_index end,
-                      sort_asc = false
-                    where id = ${i}`
-                        ),
-                        triggerQueryRefresh(),
-                      ],
+                      click: [setColumnSort(false), triggerQueryRefresh()],
                     },
                     children: listItemButton({
                       variant: "plain",

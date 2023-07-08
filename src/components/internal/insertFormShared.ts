@@ -5,18 +5,20 @@ import {
   InsertFormRelation,
 } from "../../formState.js";
 import { Table } from "../../modelTypes.js";
-import { element } from "../../nodeHelpers.js";
+import { element, ifNode } from "../../nodeHelpers.js";
 import { Node } from "../../nodeTypes.js";
 import { model } from "../../singleton.js";
 import { Style } from "../../styleTypes.js";
 import { downcaseFirst } from "../../utils/inflectors.js";
 import { stringLiteral } from "../../utils/sqlHelpers.js";
 import { ClientProcStatement, EventHandler } from "../../yom.js";
+import { alert } from "../alert.js";
 import { button } from "../button.js";
 import { card } from "../card.js";
 import { checkbox } from "../checkbox.js";
 import { divider } from "../divider.js";
 import { formControl } from "../formControl.js";
+import { formHelperText } from "../formHelperText.js";
 import { formLabel } from "../formLabel.js";
 import { iconButton } from "../iconButton.js";
 import { materialIcon } from "../materialIcon.js";
@@ -198,29 +200,40 @@ function gridPart(
   }
   const field = table.fields[part.field];
   const id = stringLiteral(getUniqueUiId());
+  const fieldHelper = formState.fieldHelper(part.field);
   if (field.type === "Bool" && !field.enumLike) {
     return element("div", {
       styles: part.styles,
-      children: checkbox({
-        label: stringLiteral(field.displayName),
-        variant: "outlined",
-        checked: formState.fields.get(part.field),
-        props: { id },
-        on: {
-          checkboxChange: [
-            formState.fields.set(
-              part.field,
-              `coalesce(not ` + formState.fields.get(part.field) + `, true)`
-            ),
-          ],
-        },
-      }),
+      children: [
+        checkbox({
+          error: fieldHelper.hasError,
+          label: stringLiteral(field.displayName),
+          variant: "outlined",
+          checked: formState.fields.get(part.field),
+          props: { id },
+          on: {
+            checkboxChange: [
+              formState.fields.set(
+                part.field,
+                `coalesce(not ` + formState.fields.get(part.field) + `, true)`
+              ),
+            ],
+          },
+        }),
+        ifNode(
+          fieldHelper.hasError,
+          element("div", {
+            styles: genericFormStyles.errorText,
+            children: fieldHelper.error,
+          })
+        ),
+      ],
     });
   }
   const fieldValue = fieldFormControl({
     id,
     field,
-    fieldHelper: formState.fieldHelper(part.field),
+    fieldHelper,
     onChange: part.onChange?.(formState),
   });
   if (!fieldValue) {
@@ -229,6 +242,7 @@ function gridPart(
     );
   }
   return formControl({
+    error: fieldHelper.hasError,
     styles: part.styles,
     children: [
       formLabel({
@@ -236,6 +250,10 @@ function gridPart(
         children: stringLiteral(part.label ?? field.displayName),
       }),
       fieldValue,
+      ifNode(
+        fieldHelper.hasError,
+        formHelperText({ children: fieldHelper.error })
+      ),
     ],
   });
 }
@@ -346,6 +364,17 @@ function twoColumnSectionedInsertFormContent(
     );
   }
   sections.push(
+    ifNode(
+      formState.hasFormError,
+      alert({
+        color: "danger",
+        size: "lg",
+        children: formState.getFormError,
+        startDecorator: materialIcon("Error"),
+      })
+    )
+  );
+  sections.push(
     element("div", {
       styles: genericFormStyles.actionButtons,
       children: [
@@ -358,6 +387,7 @@ function twoColumnSectionedInsertFormContent(
         }),
         button({
           children: `'Add new ' || ${header}`,
+          loading: formState.submitting,
           on: {
             click: onSubmit,
           },
@@ -416,6 +446,17 @@ export function labelOnLeftInsertFormContent(
         }),
       ],
     })
+  );
+  fields.push(
+    ifNode(
+      formState.hasFormError,
+      alert({
+        color: "danger",
+        size: "lg",
+        children: formState.getFormError,
+        startDecorator: materialIcon("Error"),
+      })
+    )
   );
   return element("div", {
     styles: labelOnLeftStyles.root,

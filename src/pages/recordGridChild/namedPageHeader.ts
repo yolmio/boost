@@ -29,6 +29,7 @@ import { materialIcon } from "../../components/materialIcon.js";
 import { recordDeleteButton } from "../../components/recordDeleteButton.js";
 import { typography } from "../../components/typography.js";
 import { RecordGridContext } from "./shared.js";
+import { circularProgress } from "../../components/circularProgress.js";
 
 export const name = "namedHeader";
 
@@ -149,7 +150,7 @@ function imagePart(
                 ],
               },
             }),
-            materialIcon("Person"),
+            ifNode(`uploading`, circularProgress(), materialIcon("Person")),
           ],
         }),
         [
@@ -327,9 +328,9 @@ export function content(opts: Opts, ctx: RecordGridContext) {
           styles: { display: "flex", gap: 1 },
           children: [
             button({
-              color: "info",
+              color: "primary",
               size: "sm",
-              variant: "outlined",
+              variant: "soft",
               startDecorator: materialIcon("Edit"),
               children: `'Edit'`,
               href: `${stringLiteral(

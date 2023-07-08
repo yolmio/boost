@@ -1916,7 +1916,8 @@ export interface DataGridClasses {
 }
 
 export interface DataGridEventHandlers {
-  changeFocusedCell: EventHandler;
+  keyboardNavigation: EventHandler;
+  cellClick: EventHandler;
   cellDoubleClick?: EventHandler;
   cellKeydown?: EventHandler;
   fetchMore?: EventHandler;
