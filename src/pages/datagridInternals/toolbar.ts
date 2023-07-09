@@ -22,7 +22,7 @@ import { typography } from "../../components/typography.js";
 import { columnsPopover as columnsPopover } from "./columnsPopover.js";
 import { filterPopover } from "./filterPopover.js";
 import { sortPopover as sortPopover } from "./sortPopover.js";
-import { triggerQueryRefresh } from "./baseDatagrid.js";
+import { triggerQueryRefresh } from "./shared.js";
 import { toolbarPopover } from "./toolbarPopover.js";
 import { confirmDangerDialog } from "../../components/confirmDangerDialog.js";
 import { ident, stringLiteral } from "../../utils/sqlHelpers.js";
@@ -118,7 +118,7 @@ export function toolbar(
           },
           afterSubmitService: (state) => [
             ...((toolbar.add as any).opts?.afterSubmitService?.(state) ?? []),
-            setScalar(`ui.refresh_key`, `ui.refresh_key + 1`),
+            triggerQueryRefresh(),
           ],
         }),
       ],
@@ -147,7 +147,7 @@ export function toolbar(
             ]
           : null,
         ifNode(
-          `(status = 'requested' or status = 'fallback_triggered') and refresh_key = 0`,
+          `(status = 'requested' or status = 'fallback_triggered') dg_and refresh_key = 0`,
           [
             element("div", {
               styles: styles.skeletonLeft,
@@ -305,7 +305,7 @@ export function toolbar(
               color: "neutral",
             }),
             ifNode(
-              `status = 'fallback_triggered' and refresh_key != 0`,
+              `status = 'fallback_triggered' and dg_refresh_key != 0`,
               typography({
                 startDecorator: circularProgress({ size: "sm" }),
                 level: "body2",

@@ -2,14 +2,7 @@ import { button } from "../components/button.js";
 import { InsertDialogOpts } from "../components/insertDialog.js";
 import { Table } from "../modelTypes.js";
 import { element } from "../nodeHelpers.js";
-import {
-  delay,
-  if_,
-  modify,
-  scalar,
-  setScalar,
-  table,
-} from "../procHelpers.js";
+import { if_, modify, scalar, setScalar, table } from "../procHelpers.js";
 import { model } from "../singleton.js";
 import { upcaseFirst } from "../utils/inflectors.js";
 import { ident, stringLiteral } from "../utils/sqlHelpers.js";
@@ -21,7 +14,6 @@ import {
 } from "./datagridInternals/fromModel.js";
 import {
   columnPopover,
-  resizeableSeperator,
   superGrid,
   SuperGridColumn,
   ToolbarConfig,
@@ -29,6 +21,8 @@ import {
 import { styles as sharedStyles } from "./datagridInternals/styles.js";
 import { checkbox } from "../components/checkbox.js";
 import { DefaultView } from "./datagridInternals/baseDatagrid.js";
+import { resizeableSeperator } from "./datagridInternals/shared.js";
+import { BeforeEditTransaction } from "./datagridInternals/editHelper.js";
 
 export interface ToolbarOpts {
   views?: boolean;
@@ -55,6 +49,16 @@ export interface DatagridPageOpts {
   toolbar?: ToolbarOpts;
   ignoreFields?: string[];
   defaultView?: DefaultView;
+  fields?: FieldConfigs;
+}
+
+type FieldConfigs = Record<string, FieldConfig>;
+
+export interface FieldConfig {
+  immutable?: boolean;
+  beforeEditTransaction?: BeforeEditTransaction;
+  afterEditTransaction?: BeforeEditTransaction;
+  displayName?: string;
 }
 
 function idColumn(
@@ -117,8 +121,8 @@ function toggleRowSelection(id: string) {
 function getColumns(
   tableName: string,
   selectable: boolean,
-  viewButtonUrl?: (id: string) => string,
-  ignoreFields?: string[]
+  viewButtonUrl: ((id: string) => string) | undefined,
+  opts: DatagridPageOpts
 ): SuperGridColumn[] {
   const tableModel = model.database.tables[tableName];
   const columns: SuperGridColumn[] = [];
@@ -187,16 +191,19 @@ function getColumns(
   columns.push(idColumn(tableModel, columns.length, startFixedColumns));
   let dynamicFieldCount = 1;
   for (const field of Object.values(tableModel.fields)) {
-    if (ignoreFields?.includes(field.name)) {
+    if (opts.ignoreFields?.includes(field.name)) {
       continue;
     }
-    const column = columnFromField(
-      tableModel.name,
+    const fieldConfig = opts.fields?.[field.name];
+    const column = columnFromField({
+      table: tableModel.name,
       field,
-      dynamicFieldCount,
-      columns.length,
-      startFixedColumns
-    );
+      dynIndex: dynamicFieldCount,
+      columnIndex: columns.length,
+      startFixedColumns,
+      beforeEditTransaction: fieldConfig?.beforeEditTransaction,
+      immutable: fieldConfig?.immutable,
+    });
     if (column) {
       columns.push(column);
       dynamicFieldCount += 1;
@@ -231,12 +238,7 @@ export function tableSuperGrid(opts: DatagridPageOpts) {
   } else if (typeof opts.viewButton === "function") {
     getViewButtonUrl = opts.viewButton;
   }
-  const columns = getColumns(
-    opts.table,
-    selectable,
-    getViewButtonUrl,
-    opts.ignoreFields
-  );
+  const columns = getColumns(opts.table, selectable, getViewButtonUrl, opts);
   const toolbarConfig: ToolbarConfig = {
     views: opts.toolbar?.views ?? true,
     hideColumns: opts.toolbar?.hideColumns ?? true,

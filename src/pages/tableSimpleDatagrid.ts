@@ -25,6 +25,7 @@ import { checkbox } from "../components/checkbox.js";
 import { BeforeEditTransaction } from "./datagridInternals/editHelper.js";
 import { Authorization } from "../modelTypes.js";
 import { button } from "../components/button.js";
+import { RowHeight } from "./datagridInternals/types.js";
 
 export interface ToolbarOpts {
   delete?: boolean;
@@ -43,10 +44,12 @@ export interface DatagridPageOpts {
   path?: string;
   selectable?: boolean;
   toolbar?: ToolbarOpts;
-  useDynamicQuery?: boolean;
   fields?: FieldConfigs;
   extraColumns?: SimpleColumn[];
+  fieldOrder?: string[];
+  ignoreFields?: string[];
   viewButton?: boolean | { getLink: (id: string) => string };
+  rowHeight?: RowHeight;
 }
 
 type FieldConfigs = Record<string, FieldConfig>;
@@ -67,8 +70,8 @@ function toggleRowSelection(id: string) {
 function getColumns(
   tableName: string,
   selectable: boolean,
-  viewButtonUrl?: (id: string) => string,
-  fieldConfigs?: FieldConfigs
+  viewButtonUrl: ((id: string) => string) | undefined,
+  opts: DatagridPageOpts
 ): SimpleColumn[] {
   const tableModel = model.database.tables[tableName];
   const columns: SimpleColumn[] = [];
@@ -81,22 +84,24 @@ function getColumns(
           size: "sm",
           checked: `selected_all or exists (select id from selected_row where id = record.id)`,
           slots: { checkbox: { props: { tabIndex: "-1" } } },
-          on: {
-            click: [toggleRowSelection(`record.id`)],
-          },
         }),
       header: checkbox({
         variant: "outlined",
         size: "sm",
         checked: `selected_all`,
         slots: { checkbox: { props: { tabIndex: "-1" } } },
-        on: {
-          click: [
-            setScalar(`selected_all`, `not selected_all`),
-            modify(`delete from selected_row`),
-          ],
-        },
       }),
+      cellClickHandler: [
+        scalar(
+          `row_id`,
+          `(select id from ui.dg_table limit 1 offset cell.row - 1)`
+        ),
+        toggleRowSelection(`row_id`),
+      ],
+      headerClickHandler: [
+        setScalar(`selected_all`, `not selected_all`),
+        modify(`delete from selected_row`),
+      ],
       keydownCellHandler: [
         scalar(
           `row_id`,
@@ -130,22 +135,24 @@ function getColumns(
     : `id`;
   const startFixedColumns = columns.length;
   // columns.push(idColumn(tableModel));
-  let dynamicFieldCount = 1;
-  for (const field of Object.values(tableModel.fields)) {
-    try {
-      columns.push(
-        simpleColumnFromField({
-          table: tableModel.name,
-          field,
-          idField,
-          beforeEditTransaction:
-            fieldConfigs?.[field.name]?.beforeEditTransaction,
-          columnIndex: columns.length,
-        })
-      );
-      dynamicFieldCount += 1;
-    } catch (e) {
-      // console.log(field, e);
+  const fields = opts.fieldOrder ?? [];
+  for (const fieldName of Object.keys(tableModel.fields)) {
+    if (opts.ignoreFields?.includes(fieldName) || fields.includes(fieldName)) {
+      continue;
+    }
+    fields.push(fieldName);
+  }
+  for (const fieldName of fields) {
+    const field = tableModel.fields[fieldName];
+    const column = simpleColumnFromField({
+      table: tableModel.name,
+      field,
+      idField,
+      beforeEditTransaction: opts.fields?.[field.name]?.beforeEditTransaction,
+      columnIndex: columns.length,
+    });
+    if (column) {
+      columns.push(column);
     }
   }
   for (const virtual of Object.values(tableModel.virtualFields)) {
@@ -177,12 +184,7 @@ export function tableSimpleGrid(opts: DatagridPageOpts) {
   } else if (typeof opts.viewButton === "function") {
     getViewButtonUrl = opts.viewButton;
   }
-  const columns = getColumns(
-    opts.table,
-    selectable,
-    getViewButtonUrl,
-    opts.fields
-  );
+  const columns = getColumns(opts.table, selectable, getViewButtonUrl, opts);
   if (opts.extraColumns) {
     columns.push(...opts.extraColumns);
   }
@@ -222,12 +224,12 @@ export function tableSimpleGrid(opts: DatagridPageOpts) {
   return simpleDatagrid({
     columns,
     auth: opts.auth,
-    idField: opts.useDynamicQuery ? `field_0` : idSqlName,
+    idField: idSqlName,
     path,
     tableModel: tableModel,
     toolbar: toolbarConfig,
     extraState,
-    useDynamicQuery: opts.useDynamicQuery ?? false,
     sourceMapName: `tableSimpleGrid(${opts.table})`,
+    rowHeight: opts.rowHeight,
   });
 }

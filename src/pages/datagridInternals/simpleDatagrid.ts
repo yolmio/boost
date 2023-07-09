@@ -23,15 +23,15 @@ import {
 import { createStyles, flexGrowStyles } from "../../styleUtils.js";
 import { ident, stringLiteral } from "../../utils/sqlHelpers.js";
 import { StateStatement } from "../../yom.js";
-import { Cell, ColumnEventHandlers } from "./baseDatagrid.js";
 import {
   getCountQuery,
   SimpleBaseColumn,
   SimpleBaseColumnQueryGeneration,
   simpleBaseDatagrid,
-  triggerQueryRefresh,
 } from "./simpleBaseDatgrid.js";
 import { styles as sharedStyles } from "./styles.js";
+import { triggerQueryRefresh } from "./shared.js";
+import { Cell, ColumnEventHandlers, RowHeight } from "./types.js";
 
 export interface ToolbarConfig {
   header: Node;
@@ -45,7 +45,6 @@ export interface ToolbarConfig {
 
 export interface SimpleColumn extends ColumnEventHandlers {
   queryGeneration?: SimpleBaseColumnQueryGeneration;
-  displayName?: string;
   width: number;
   header: Node;
   cell: Cell;
@@ -59,9 +58,9 @@ export interface SimpleGridConfig {
   idField: string;
   pageSize?: number;
   extraState?: StateStatement[];
-  useDynamicQuery: boolean;
   auth?: Authorization;
   sourceMapName?: string;
+  rowHeight?: RowHeight;
 }
 
 const styles = createStyles({
@@ -82,6 +81,7 @@ export function simpleDatagrid(config: SimpleGridConfig) {
       keydownCellHandler: c.keydownCellHandler,
       keydownHeaderHandler: c.keydownHeaderHandler,
       headerClickHandler: c.headerClickHandler,
+      cellClickHandler: c.cellClickHandler,
       queryGeneration: c.queryGeneration,
       initialWidth: c.width,
     })
@@ -120,7 +120,7 @@ export function simpleDatagrid(config: SimpleGridConfig) {
           afterSubmitService: (state) => [
             ...((config.toolbar.add as any).opts?.afterSubmitService?.(state) ??
               []),
-            setScalar(`ui.refresh_key`, `ui.refresh_key + 1`),
+            triggerQueryRefresh(),
           ],
         }),
       ],
@@ -217,7 +217,7 @@ export function simpleDatagrid(config: SimpleGridConfig) {
             ],
           }),
           ifNode(
-            `(status = 'requested' or status = 'fallback_triggered') and refresh_key = 0`,
+            `(status = 'requested' or status = 'fallback_triggered') and dg_refresh_key = 0`,
             element("div", {
               styles: sharedStyles.emptyGrid,
             }),
@@ -235,10 +235,9 @@ export function simpleDatagrid(config: SimpleGridConfig) {
       header: sharedStyles.header,
     },
     pageSize: config.pageSize,
-    quickSearchMatchConfig: config.toolbar.search?.matchConfig,
     extraState: config.extraState,
-    useDynamicQuery: config.useDynamicQuery,
     auth: config.auth,
+    rowHeight: config.rowHeight ?? "medium",
   });
   if (config.sourceMapName) {
     content = sourceMap(config.sourceMapName, content);

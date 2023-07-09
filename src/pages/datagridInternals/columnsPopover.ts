@@ -3,7 +3,7 @@ import { exit, if_, modify, scalar, setScalar } from "../../procHelpers.js";
 import { button } from "../../components/button.js";
 import { checkbox } from "../../components/checkbox.js";
 import { input } from "../../components/input.js";
-import { triggerQueryRefresh } from "./baseDatagrid.js";
+import { triggerQueryRefresh } from "./shared.js";
 import { createStyles } from "../../styleUtils.js";
 import { divider } from "../../components/divider.js";
 import { styles as sharedStyles } from "./styles.js";

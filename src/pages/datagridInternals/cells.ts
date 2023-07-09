@@ -32,7 +32,7 @@ import { createStyles, visuallyHiddenStyles } from "../../styleUtils.js";
 import { enumLikeDisplayName } from "../../utils/enumLike.js";
 import { stringLiteral } from "../../utils/sqlHelpers.js";
 import { doEdit } from "./editHelper.js";
-import { Cell, triggerQueryRefresh } from "./baseDatagrid.js";
+import { triggerQueryRefresh } from "./shared.js";
 import { fieldEditor, fieldEditorEventHandlers } from "./editHelper.js";
 import { styles as sharedStyles } from "./styles.js";
 import { ClientProcStatement, ServiceProcStatement } from "../../yom.js";
@@ -40,6 +40,7 @@ import { button } from "../../components/button.js";
 import { materialIcon } from "../../components/materialIcon.js";
 import { imageDalog } from "../../components/imageDialog.js";
 import { getUploadStatements } from "../../utils/image.js";
+import { Cell } from "./types.js";
 
 const styles = createStyles({
   select: {
@@ -239,6 +240,7 @@ export function enumCell(opts: BaseFieldCellOpts, field: EnumField): Cell {
 
 export function dateCell(opts: BaseFieldCellOpts, field: DateField): Cell {
   return (props) => {
+    return props.value;
     const formatString = field.formatString ?? "%-d %b %Y";
     return ifNode(
       props.editing,

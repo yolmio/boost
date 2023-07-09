@@ -462,7 +462,7 @@ dashboardGridPage({
 
 adminPage();
 
-tableSuperGrid({
+tableSimpleGrid({
   table: "employee",
   selectable: true,
   toolbar: {
@@ -471,6 +471,9 @@ tableSuperGrid({
   },
   viewButton: true,
   ignoreFields: ["global_id"],
+  fields: { email: { immutable: true } },
+  rowHeight: "tall",
+  fieldOrder: ["image_thumb", "first_name", "last_name", "title"],
 });
 
 recordGridPage({

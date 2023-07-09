@@ -26,7 +26,7 @@ import {
   eqFilterType,
   FilterType,
 } from "./superGrid.js";
-import { triggerQueryRefresh } from "./baseDatagrid.js";
+import { triggerQueryRefresh } from "./shared.js";
 import { checkbox } from "../../components/checkbox.js";
 import { durationInput } from "../../components/durationInput.js";
 import { createStyles, flexGrowStyles } from "../../styleUtils.js";

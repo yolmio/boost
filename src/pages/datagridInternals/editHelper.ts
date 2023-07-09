@@ -23,8 +23,9 @@ import {
   ElementEventHandlers,
   ServiceProcStatement,
 } from "../../yom.js";
-import { CellProps, triggerQueryRefresh } from "./baseDatagrid.js";
+import { triggerQueryRefresh } from "./shared.js";
 import { styles } from "./styles.js";
+import { CellProps } from "./types.js";
 
 export type BeforeEditTransaction = (
   newValue: string,

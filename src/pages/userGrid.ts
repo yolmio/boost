@@ -62,7 +62,7 @@ export function userGridPage(opts: UserGridOpts = {}) {
             ),
             scalar(`new_global_id`, `(select global_id from added_user)`),
           ],
-          withValues: { global_id: "new_global_id" },
+          withValues: { global_id: "new_global_id", disabled: "false" },
         },
       },
     },

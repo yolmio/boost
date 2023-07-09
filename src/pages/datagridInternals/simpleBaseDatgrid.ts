@@ -2,44 +2,36 @@ import { Authorization } from "../../modelTypes.js";
 import { sourceMap, state } from "../../nodeHelpers.js";
 import { DataGridStyles, Node } from "../../nodeTypes.js";
 import {
-  debugExpr,
-  debugQuery,
-  exit,
   if_,
   modify,
   record,
   scalar,
   setScalar,
   table,
-  throwError,
 } from "../../procHelpers.js";
 import { expectCurrentUserAuthorized } from "../../utils/auth.js";
-import { ident, stringLiteral } from "../../utils/sqlHelpers.js";
+import { ident } from "../../utils/sqlHelpers.js";
+import { FieldType, ProcTableField, StateStatement } from "../../yom.js";
 import {
-  ClientProcStatement,
-  FieldType,
-  ProcTableField,
-  StateStatement,
-} from "../../yom.js";
-import {
-  Cell,
-  ColumnEventHandlers,
-  colHeaderClickHandlers,
+  colClickHandlers,
   colKeydownHandlers,
   editFocusState,
-} from "./baseDatagrid.js";
+  refreshKeyState,
+  rowHeightInPixels,
+  triggerQueryRefresh,
+} from "./shared.js";
+import { Cell, ColumnEventHandlers, RowHeight } from "./types.js";
 
 export interface SimpleBaseDatagridOpts {
   datagridStyles: DataGridStyles;
   children: (dgNode: Node) => Node;
-  quickSearchMatchConfig?: string;
   columns: SimpleBaseColumn[];
   extraState?: StateStatement[];
   idField: string;
   source: string;
   idFieldSource: string;
+  rowHeight: RowHeight;
   pageSize?: number;
-  useDynamicQuery?: boolean;
   auth?: Authorization;
 }
 
@@ -69,12 +61,13 @@ export function simpleBaseDatagrid(opts: SimpleBaseDatagridOpts) {
       typeof opts.pageSize === "number"
     ),
   ];
+  const rowHeight = rowHeightInPixels(opts.rowHeight);
   let children = opts.children({
     t: "DataGrid",
     table: "dg_table",
     tableKey: opts.idField,
     recordName: "record",
-    rowHeight: "44",
+    rowHeight: rowHeight.toString(),
     headerHeight: "44",
     focusedColumn: "focus_state.column",
     focusedRow: "focus_state.row",
@@ -92,7 +85,7 @@ export function simpleBaseDatagrid(opts: SimpleBaseDatagridOpts) {
           `update ui.focus_state set column = cell.column, row = cell.row, should_focus = true`
         ),
         modify(`update ui.editing_state set is_editing = false`),
-        ...colHeaderClickHandlers(columns),
+        ...colClickHandlers(columns),
       ],
       cellDoubleClick: [
         modify(
@@ -148,25 +141,19 @@ export function simpleBaseDatagrid(opts: SimpleBaseDatagridOpts) {
     }),
   });
   children = state({
-    watch: ["refresh_key"],
+    watch: ["dg_refresh_key"],
     procedure: getResultsProc,
     statusScalar: "status",
     errorRecord: "dg_error",
     children,
   });
   children = state({
-    procedure: [
-      // instead of intelligently recomputing, we just imperatively increment this whenever a change is made
-      scalar("refresh_key", { type: "Int" }, "0"),
-    ],
+    procedure: refreshKeyState(),
     children,
   });
   const mainStateProc = editFocusState();
   if (typeof opts.pageSize === "number") {
     mainStateProc.push(scalar(`row_count`, opts.pageSize.toString()));
-  }
-  if (opts.quickSearchMatchConfig) {
-    mainStateProc.push(scalar(`quick_search_query`, `''`));
   }
   mainStateProc.push(
     record(`column_width`, [
@@ -259,8 +246,4 @@ function getQuery(
 
 export function getCountQuery(source: string) {
   return `select count(*) from ${source}`;
-}
-
-export function triggerQueryRefresh() {
-  return setScalar(`ui.refresh_key`, `ui.refresh_key + 1`);
 }

@@ -1,5 +1,4 @@
 import { addDecisionTable, addEnum, addTable } from "../../modelHelpers.js";
-import { Authorization } from "../../modelTypes.js";
 import { queryParams, state } from "../../nodeHelpers.js";
 import { DataGridStyles, Node } from "../../nodeTypes.js";
 import {
@@ -18,12 +17,16 @@ import {
 } from "../../procHelpers.js";
 import { model } from "../../singleton.js";
 import { ident, stringLiteral } from "../../utils/sqlHelpers.js";
+import { ServiceProcStatement, StateStatement } from "../../yom.js";
 import {
-  BaseStatement,
-  ClientProcStatement,
-  ServiceProcStatement,
-  StateStatement,
-} from "../../yom.js";
+  colClickHandlers,
+  colKeydownHandlers,
+  editFocusState,
+  refreshKeyState,
+  rowHeightInPixels,
+  triggerQueryRefresh,
+} from "./shared.js";
+import { Cell, ColumnEventHandlers, RowHeight } from "./types.js";
 
 export interface DefaultView {
   columnOrder?: string[];
@@ -41,7 +44,7 @@ export interface BaseDatagridOpts {
   enableFiltering?: boolean;
   enableViews: boolean;
   pageSize?: number;
-  defaultRowHeight?: number;
+  defaultRowHeight?: RowHeight;
   extraState?: StateStatement[];
   idField: string;
   source: string;
@@ -112,6 +115,7 @@ export function baseDatagrid(opts: BaseDatagridOpts) {
           `update ui.focus_state set column = cell.column, row = cell.row, should_focus = true`
         ),
         modify(`update ui.editing_state set is_editing = false`),
+        ...colClickHandlers(columns),
       ],
       cellDoubleClick: [
         modify(
@@ -163,8 +167,8 @@ export function baseDatagrid(opts: BaseDatagridOpts) {
   });
   children = state({
     watch: opts.enableViews
-      ? ["refresh_key", "view", "reset_key"]
-      : ["refresh_key"],
+      ? ["dg_refresh_key", "view", "reset_key"]
+      : ["dg_refresh_key"],
     procedure: getResultsProc,
     statusScalar: "status",
     errorRecord: "dg_error",
@@ -172,10 +176,7 @@ export function baseDatagrid(opts: BaseDatagridOpts) {
   });
   children = state({
     watch: opts.enableViews ? ["view", "reset_key"] : [],
-    procedure: [
-      // instead of intelligently recomputing, we just imperatively increment this whenever a change is made
-      scalar("refresh_key", { type: "Int" }, "0"),
-    ],
+    procedure: refreshKeyState(),
     children,
   });
   const mainStateProc = editFocusState();
@@ -201,7 +202,10 @@ export function baseDatagrid(opts: BaseDatagridOpts) {
     modify(
       `insert into column (id, width, displaying, ordering, always_generate) values ${initialColumnInsertValues}`
     ),
-    scalar(`row_height`, (opts.defaultRowHeight ?? 56).toString())
+    scalar(
+      `row_height`,
+      rowHeightInPixels(opts.defaultRowHeight ?? "medium").toString()
+    )
   );
   if (opts.enableFiltering) {
     mainStateProc.push(
@@ -376,20 +380,6 @@ export function baseDatagrid(opts: BaseDatagridOpts) {
   return children;
 }
 
-export interface CellProps {
-  value: string;
-  editing: string;
-  recordId: string;
-  row: string;
-  column: string;
-  setValue: (v: string) => BaseStatement[];
-  nextCol: string;
-  stopEditing: BaseStatement[];
-  auth?: Authorization;
-}
-
-export type Cell = (props: CellProps) => Node;
-
 export interface BaseColumnQueryGeneration {
   expr: string;
   sqlName: string;
@@ -403,12 +393,6 @@ export interface BaseColumn extends ColumnEventHandlers {
   cell: Cell;
   header: Node;
   initiallyDisplaying: boolean;
-}
-
-export interface ColumnEventHandlers {
-  keydownCellHandler?: ClientProcStatement[];
-  keydownHeaderHandler?: ClientProcStatement[];
-  headerClickHandler?: ClientProcStatement[];
 }
 
 export interface DatagridDts {
@@ -485,58 +469,6 @@ export function addDatagridDts(
     storageNameToId: storageNameToIdDt,
     idToStorageName,
   };
-}
-
-export function editFocusState(): StateStatement[] {
-  return [
-    record(
-      "focus_state",
-      "select 0 as column, 0 as row, false as should_focus"
-    ),
-    record(
-      "editing_state",
-      "select 0 as column, 0 as row, false as is_editing"
-    ),
-    scalar(`start_edit_with_char`, { type: "String", maxLength: 1 }),
-    scalar("saving_edit_count", "0"),
-    scalar(`display_edit_failure`, `false`),
-  ];
-}
-
-export function colKeydownHandlers(columns: ColumnEventHandlers[]) {
-  const statements: ClientProcStatement[] = [];
-  for (let i = 0; i < columns.length; i++) {
-    const column = columns[i];
-    if (column.keydownHeaderHandler) {
-      statements.push(
-        if_(`cell.row = 0 and cell.column = ${i}`, column.keydownHeaderHandler)
-      );
-    }
-    if (column.keydownCellHandler) {
-      statements.push(
-        if_(`cell.row != 0 and cell.column = ${i}`, column.keydownCellHandler)
-      );
-    }
-  }
-  return statements;
-}
-
-export function colHeaderClickHandlers(columns: ColumnEventHandlers[]) {
-  const statements: ClientProcStatement[] = [];
-  for (let i = 0; i < columns.length; i++) {
-    const column = columns[i];
-    if (column.headerClickHandler) {
-      statements.push(if_(`cell.column = ${i}`, column.headerClickHandler));
-    }
-  }
-  if (statements.length === 0) {
-    return [];
-  }
-  return [if_(`cell.row = 0`, statements)];
-}
-
-export function triggerQueryRefresh() {
-  return setScalar(`ui.refresh_key`, `ui.refresh_key + 1`);
 }
 
 function insertViewColumnsAndFilters(dts: DatagridDts, viewId: string) {

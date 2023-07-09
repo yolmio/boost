@@ -2,7 +2,6 @@ import { Field, VirtualField, VirtualType } from "../../modelTypes.js";
 import { element, switchNode } from "../../nodeHelpers.js";
 import {
   commitUiChanges,
-  debugExpr,
   if_,
   modify,
   scalar,
@@ -16,7 +15,6 @@ import { BeforeEditTransaction, doEdit } from "./editHelper.js";
 import {
   columnPopover,
   FilterType,
-  resizeableSeperator,
   SortConfig,
   SuperGridColumn,
 } from "./superGrid.js";
@@ -25,9 +23,8 @@ import { SimpleColumn } from "./simpleDatagrid.js";
 import { normalizeCase, upcaseFirst } from "../../utils/inflectors.js";
 import { lazy } from "../../utils/memoize.js";
 import { materialIcon } from "../../components/materialIcon.js";
-import { Styles } from "../../styleUtils.js";
 import { Style } from "../../styleTypes.js";
-import { triggerQueryRefresh as simpleTriggerQueryRefresh } from "./simpleBaseDatgrid.js";
+import { triggerQueryRefresh, resizeableSeperator } from "./shared.js";
 
 export function filterTypeFromField(type: Field): FilterType {
   switch (type.type) {
@@ -87,7 +84,9 @@ export function filterTypeFromVirtual(type: VirtualType): FilterType {
       return { type: "bool" };
 
     default:
-      throw new Error("Todo");
+      throw new Error(
+        "haven't implemented filter type for virtual of " + type.type
+      );
   }
 }
 
@@ -113,8 +112,19 @@ export function getFieldProcFieldType(field: Field): FieldType {
       return { type: field.backing };
     case "String":
       return { type: "String", maxLength: field.maxLength };
+    case "Uuid":
+      return { type: "Uuid" };
+    case "Decimal":
+      return {
+        type: "Decimal",
+        precision: field.precision,
+        scale: field.scale,
+        signed: field.signed,
+      };
     default:
-      throw new Error("todo");
+      throw new Error(
+        "haven't implemented get field proc field type for " + field.type
+      );
   }
 }
 
@@ -134,7 +144,10 @@ export function getVirtualProcFieldType(virtual: VirtualField): FieldType {
     case "String":
       return { type: "String", maxLength: 65_000 };
     default:
-      throw new Error("todo");
+      throw new Error(
+        "haven't implemented get virtual proc field type for " +
+          virtual.type.type
+      );
   }
 }
 
@@ -285,66 +298,82 @@ const checkboxSortConfig = lazy((): SortConfig => {
   };
 });
 
-export function columnFromField(
-  table: string,
-  field: Field,
-  dynIndex: number,
-  columnIndex: number,
-  startFixedColumns: number
-): SuperGridColumn | undefined {
+export interface SuperColumnFieldOpts {
+  table: string;
+  field: Field;
+  dynIndex: number;
+  columnIndex: number;
+  startFixedColumns: number;
+  immutable?: boolean;
+  beforeEditTransaction?: BeforeEditTransaction;
+}
+
+export function columnFromField({
+  table,
+  field,
+  dynIndex,
+  columnIndex,
+  startFixedColumns,
+  immutable,
+  beforeEditTransaction,
+}: SuperColumnFieldOpts): SuperGridColumn | undefined {
   let keydownHandler: ClientProcStatement[] = [];
   let noFilter = false;
   let noSort = false;
   let displayName = field.displayName;
-  switch (field.type) {
-    case "BigInt":
-    case "BigUint":
-    case "Int":
-    case "Uint":
-    case "SmallInt":
-    case "SmallUint":
-    case "TinyInt":
-    case "TinyUint":
-    case "Double":
-    case "Real":
-    case "Decimal":
-    case "String":
-    case "Duration":
-    case "ForeignKey":
-    case "Date":
-      keydownHandler = editWithCharCellKeydownHandler;
-      break;
-    case "Enum":
-      keydownHandler = opaqueCellKeydownHandler;
-      break;
-    case "Uuid":
-      if (field.group) {
-        const tableModel = model.database.tables[table];
-        const group = tableModel.fieldGroups[field.group];
-        if (group.type === "Image") {
-          if (group.variants[field.name].usage !== "square_thumbnail") {
-            return;
+  if (!immutable) {
+    switch (field.type) {
+      case "BigInt":
+      case "BigUint":
+      case "Int":
+      case "Uint":
+      case "SmallInt":
+      case "SmallUint":
+      case "TinyInt":
+      case "TinyUint":
+      case "Double":
+      case "Real":
+      case "Decimal":
+      case "String":
+      case "Duration":
+      case "ForeignKey":
+      case "Date":
+        keydownHandler = editWithCharCellKeydownHandler;
+        break;
+      case "Enum":
+        keydownHandler = opaqueCellKeydownHandler;
+        break;
+      case "Uuid":
+        if (field.group) {
+          const tableModel = model.database.tables[table];
+          const group = tableModel.fieldGroups[field.group];
+          if (group.type === "Image") {
+            if (group.variants[field.name].usage !== "square_thumbnail") {
+              return;
+            }
+            noFilter = true;
+            noSort = true;
+            displayName = upcaseFirst(normalizeCase(field.group).join(" "));
           }
-          noFilter = true;
-          noSort = true;
-          displayName = upcaseFirst(normalizeCase(field.group).join(" "));
         }
-      }
-      keydownHandler = opaqueCellKeydownHandler;
-      break;
-    case "Bool":
-      keydownHandler = field.enumLike
-        ? opaqueCellKeydownHandler
-        : dynamicBooleanCellKeydownHandler(dynIndex, field.name, table);
-      break;
-    default:
-      throw new Error(
-        "Haven't implemented field type " +
-          field.type +
-          " on " +
-          field.name +
-          " yet"
-      );
+        keydownHandler = opaqueCellKeydownHandler;
+        break;
+      case "Bool":
+        keydownHandler = field.enumLike
+          ? opaqueCellKeydownHandler
+          : dynamicBooleanCellKeydownHandler(dynIndex, field.name, table);
+        break;
+      case "Ordering":
+        return;
+      default:
+        throw new Error(
+          "Haven't implemented field type " +
+            field.type +
+            " on " +
+            field.name +
+            " yet"
+        );
+    }
   }
   let sort: SortConfig | undefined;
   if (!noSort) {
@@ -395,7 +424,12 @@ export function columnFromField(
         }
       : undefined,
     sort,
-    cell: fieldCell({ tableName: table, field, stringified: true }),
+    cell: fieldCell({
+      tableName: table,
+      field,
+      stringified: true,
+      beforeEditTransaction,
+    }),
     initiallyDisplaying: true,
     initialWidth: getFieldCellWidth(field, table),
     header: [
@@ -517,6 +551,7 @@ export interface SimpleColumnFieldOpts {
   field: Field;
   idField: string;
   columnIndex: number;
+  immutable?: boolean;
   beforeEditTransaction?: BeforeEditTransaction;
 }
 
@@ -526,36 +561,59 @@ export function simpleColumnFromField({
   idField,
   beforeEditTransaction,
   columnIndex,
-}: SimpleColumnFieldOpts): SimpleColumn {
+  immutable,
+}: SimpleColumnFieldOpts): SimpleColumn | undefined {
   let keydownHandler: ClientProcStatement[] = [];
-  switch (field.type) {
-    case "BigInt":
-    case "BigUint":
-    case "Int":
-    case "Uint":
-    case "SmallInt":
-    case "SmallUint":
-    case "TinyInt":
-    case "TinyUint":
-    case "Double":
-    case "Real":
-    case "Decimal":
-    case "String":
-    case "Duration":
-    case "ForeignKey":
-    case "Date":
-      keydownHandler = editWithCharCellKeydownHandler;
-      break;
-    case "Enum":
-      keydownHandler = opaqueCellKeydownHandler;
-      break;
-    case "Bool":
-      keydownHandler = field.enumLike
-        ? opaqueCellKeydownHandler
-        : simpleBooleanCellKeydownHandler(field.name, idField, table);
-      break;
-    default:
-      throw new Error("Todo");
+  let displayName = field.displayName;
+  if (!immutable) {
+    switch (field.type) {
+      case "BigInt":
+      case "BigUint":
+      case "Int":
+      case "Uint":
+      case "SmallInt":
+      case "SmallUint":
+      case "TinyInt":
+      case "TinyUint":
+      case "Double":
+      case "Real":
+      case "Decimal":
+      case "String":
+      case "Duration":
+      case "ForeignKey":
+      case "Date":
+        keydownHandler = editWithCharCellKeydownHandler;
+        break;
+      case "Enum":
+        keydownHandler = opaqueCellKeydownHandler;
+        break;
+      case "Bool":
+        keydownHandler = field.enumLike
+          ? opaqueCellKeydownHandler
+          : simpleBooleanCellKeydownHandler(field.name, idField, table);
+        break;
+      case "Uuid":
+        if (field.group) {
+          const tableModel = model.database.tables[table];
+          const group = tableModel.fieldGroups[field.group];
+          if (group.type === "Image") {
+            if (group.variants[field.name].usage !== "square_thumbnail") {
+              return;
+            }
+            displayName = upcaseFirst(normalizeCase(field.group).join(" "));
+          }
+        }
+        keydownHandler = opaqueCellKeydownHandler;
+        break;
+      default:
+        throw new Error(
+          "Haven't implemented field type " +
+            field.type +
+            " on " +
+            field.name +
+            " yet"
+        );
+    }
   }
   const toggleColumnSort = if_<ClientProcStatement>(
     `sort_info.col = ${columnIndex}`,
@@ -569,7 +627,6 @@ export function simpleColumnFromField({
     [modify(`update sort_info set col = ${columnIndex}, ascending = true`)]
   );
   return {
-    displayName: field.displayName,
     keydownCellHandler: keydownHandler,
     cell: fieldCell({
       tableName: table,
@@ -581,7 +638,7 @@ export function simpleColumnFromField({
     header: [
       element("span", {
         styles: sharedStyles.headerText,
-        children: stringLiteral(field.displayName),
+        children: stringLiteral(displayName),
       }),
       switchNode(
         [
@@ -603,12 +660,9 @@ export function simpleColumnFromField({
       }),
     ],
     keydownHeaderHandler: [
-      if_(`event.key = 'Enter'`, [
-        toggleColumnSort,
-        simpleTriggerQueryRefresh(),
-      ]),
+      if_(`event.key = 'Enter'`, [toggleColumnSort, triggerQueryRefresh()]),
     ],
-    headerClickHandler: [toggleColumnSort, simpleTriggerQueryRefresh()],
+    headerClickHandler: [toggleColumnSort, triggerQueryRefresh()],
     queryGeneration: {
       expr: `record.${ident(field.name)}`,
       sqlName: field.name,
@@ -625,7 +679,6 @@ export function simpleColumnFromVirtual(
   startFixedColumns: number
 ): SimpleColumn {
   return {
-    displayName: virtual.displayName,
     cell: ({ value }) => value,
     width: 250,
     header: [

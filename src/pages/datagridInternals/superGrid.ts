@@ -7,37 +7,22 @@ import { addDecisionTable, addPage } from "../../modelHelpers.js";
 import { BoolEnumLikeConfig, DurationSize, Table } from "../../modelTypes.js";
 import { element, eventHandlers, ifNode, state } from "../../nodeHelpers.js";
 import { Node } from "../../nodeTypes.js";
-import {
-  commitUiChanges,
-  debugExpr,
-  debugQuery,
-  delay,
-  exit,
-  if_,
-  modify,
-  scalar,
-  setScalar,
-  spawn,
-} from "../../procHelpers.js";
+import { exit, if_, modify, scalar, setScalar } from "../../procHelpers.js";
 import { createStyles } from "../../styleUtils.js";
 import { ident, stringLiteral } from "../../utils/sqlHelpers.js";
-import {
-  BaseStatement,
-  ClientProcStatement,
-  StateStatement,
-} from "../../yom.js";
+import { StateStatement } from "../../yom.js";
 import {
   addDatagridDts,
   BaseColumn,
   BaseColumnQueryGeneration,
   baseDatagrid,
-  Cell,
   DefaultView,
-  triggerQueryRefresh,
 } from "./baseDatagrid.js";
 import { styles as sharedStyles } from "./styles.js";
 import { toolbar } from "./toolbar.js";
+import { Cell, ColumnEventHandlers } from "./types.js";
 import { viewDrawer } from "./viewDrawer.js";
+import { triggerQueryRefresh } from "./shared.js";
 
 export interface ToolbarConfig {
   views: boolean;
@@ -59,20 +44,20 @@ export interface SortConfig {
   descText: string;
 }
 
-export interface SuperGridColumn {
+export interface FilterConfig {
+  type: FilterType;
+  notNull: boolean;
+}
+
+export interface SuperGridColumn extends ColumnEventHandlers {
   queryGeneration?: BaseColumnQueryGeneration;
   viewStorageName: string;
   displayName?: string;
   initialWidth: number;
   initiallyDisplaying: boolean;
   header: Node;
-  filter?: {
-    type: FilterType;
-    notNull: boolean;
-  };
+  filter?: FilterConfig;
   sort?: SortConfig;
-  keydownCellHandler?: ClientProcStatement[];
-  keydownHeaderHandler?: ClientProcStatement[];
   cell: Cell;
 }
 
@@ -193,74 +178,6 @@ const styles = createStyles({
     p: 2,
   },
 });
-
-export interface ResizeableSeperatorOpts {
-  minWidth?: number;
-  width: string;
-  setWidth: (width: string) => BaseStatement;
-}
-
-export function resizeableSeperator({
-  minWidth,
-  setWidth,
-  width,
-}: ResizeableSeperatorOpts) {
-  let newValue = "start_width + (event.client_x - start_x)";
-  if (typeof minWidth === "number") {
-    newValue = `case when ${newValue} < ${minWidth} then ${minWidth} else ${newValue} end`;
-  }
-  return state({
-    procedure: [
-      scalar("start_width", { type: "BigInt" }),
-      scalar(`start_x`, { type: "BigInt" }),
-      scalar(`pending_width`, { type: "BigInt" }),
-      scalar(`waiting`, `false`),
-    ],
-    children: element("div", {
-      styles: styles.seperatorWrapper,
-      dynamicClasses: [
-        {
-          classes: "active",
-          condition: "start_width is not null",
-        },
-      ],
-      on: {
-        mouseDown: [
-          setScalar("start_width", width),
-          setScalar(`start_x`, `event.client_x`),
-        ],
-      },
-      children: [
-        element("div", {
-          styles: styles.seperator,
-        }),
-        ifNode(
-          `start_width is not null`,
-          eventHandlers({
-            document: {
-              mouseMove: [
-                setScalar(`pending_width`, newValue),
-                if_(`not waiting`, [
-                  spawn({
-                    detached: true,
-                    statements: [
-                      setScalar(`waiting`, `true`),
-                      delay(`16`),
-                      setWidth(`pending_width`),
-                      setScalar(`waiting`, `false`),
-                      commitUiChanges(),
-                    ],
-                  }),
-                ]),
-              ],
-              mouseUp: [setScalar(`start_width`, `null`)],
-            },
-          })
-        ),
-      ],
-    }),
-  });
-}
 
 const popoverId = stringLiteral(getUniqueUiId());
 
@@ -572,7 +489,7 @@ export function superGrid(config: SuperGridConfig) {
         children: [
           viewDrawer(config.datagridName, dts),
           ifNode(
-            `(status = 'requested' or status = 'fallback_triggered') and refresh_key = 0`,
+            `(status = 'requested' or status = 'fallback_triggered') and dg_refresh_key = 0`,
             element("div", {
               styles: sharedStyles.emptyGrid,
             }),
