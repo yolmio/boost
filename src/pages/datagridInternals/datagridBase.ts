@@ -34,7 +34,7 @@ export interface DefaultView {
   filter?: { column: string; op: string; value_1: string }[];
 }
 
-export interface BaseDatagridOpts {
+export interface DatagridBaseOpts {
   datagridStyles: DataGridStyles;
   children: (dgNode: Node) => Node;
   dts: DatagridDts;
@@ -61,7 +61,7 @@ export interface BaseDatagridOpts {
  *
  * This is used as the base for higher level functions.
  */
-export function baseDatagrid(opts: BaseDatagridOpts) {
+export function datagridBase(opts: DatagridBaseOpts) {
   const { columns, datagridStyles, dts } = opts;
   if (opts.enableViews) {
     addViewTables();

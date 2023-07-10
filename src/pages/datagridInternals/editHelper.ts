@@ -27,36 +27,41 @@ import { triggerQueryRefresh } from "./shared.js";
 import { styles } from "./styles.js";
 import { CellProps } from "./types.js";
 
-export type BeforeEditTransaction = (
+export type FieldEditStatements = (
   newValue: string,
   recordId: string
 ) => ServiceProcStatement[];
 
-interface FieldEditorOpts {
+export interface FieldEditProcConfig {
+  beforeEditTransaction?: FieldEditStatements;
+  beforeEdit?: FieldEditStatements;
+  afterEdit?: FieldEditStatements;
+  afterEditTransaction?: FieldEditStatements;
+}
+
+interface FieldEditorOpts extends FieldEditProcConfig {
   tableName: string;
   fieldName: string;
   inputType?: string;
   transformValue?: (s: string) => string;
   isValid?: (s: string) => string;
   cellProps: CellProps;
-  beforeEditTransaction?: BeforeEditTransaction;
   auth?: Authorization;
 }
 
-interface DoEditOpts {
+interface DoEditOpts extends FieldEditProcConfig {
   tableName: string;
   fieldName: string;
   dbValue: string;
   recordId: string;
   resetValue: ClientProcStatement[];
-  beforeTransaction?: BeforeEditTransaction;
   auth?: Authorization;
 }
 
 export function doEdit(opts: DoEditOpts) {
   const beforeTx: ServiceProcStatement[] = [];
-  if (opts.beforeTransaction) {
-    beforeTx.push(...opts.beforeTransaction(opts.dbValue, opts.recordId));
+  if (opts.beforeEditTransaction) {
+    beforeTx.push(...opts.beforeEditTransaction(opts.dbValue, opts.recordId));
   }
   return [
     setScalar(`ui.saving_edit_count`, `ui.saving_edit_count + 1`),
@@ -66,14 +71,17 @@ export function doEdit(opts: DoEditOpts) {
       body: [
         serviceProc([
           expectCurrentUserAuthorized(opts.auth),
-          ...beforeTx,
+          ...(opts.beforeEditTransaction?.(opts.dbValue, opts.recordId) ?? []),
           startTransaction(),
+          ...(opts.beforeEdit?.(opts.dbValue, opts.recordId) ?? []),
           modify(
             `update db.${ident(opts.tableName)} set ${ident(
               opts.fieldName
             )} = ${opts.dbValue} where id = ${opts.recordId}`
           ),
+          ...(opts.afterEdit?.(opts.dbValue, opts.recordId) ?? []),
           commitTransaction(),
+          ...(opts.afterEditTransaction?.(opts.dbValue, opts.recordId) ?? []),
           triggerQueryRefresh(),
         ]),
       ],
@@ -92,7 +100,16 @@ export function doEdit(opts: DoEditOpts) {
   ];
 }
 
-export interface FieldEditorHelpersOpts {
+export type FieldEditType =
+  | { type: "text" }
+  | {
+      type: "textWithTransform";
+      transform: (s: string) => string;
+      validate: (s: string) => string;
+    }
+  | { type: "opaque" };
+
+export interface FieldEditorHelpersOpts extends FieldEditProcConfig {
   tableName: string;
   fieldName: string;
   dbValue: string;
@@ -103,10 +120,6 @@ export interface FieldEditorHelpersOpts {
   validUiValue: string;
   changedUiValue: string;
   nextCol: string;
-  beforeEditTransaction?: (
-    newValue: string,
-    recordId: string
-  ) => ServiceProcStatement[];
   auth?: Authorization;
 }
 
@@ -118,7 +131,6 @@ export function fieldEditorEventHandlers(
     ...opts.setValue(opts.newUiValue ?? `ui.value`),
     ...doEdit({
       ...opts,
-      beforeTransaction: opts.beforeEditTransaction,
       resetValue: opts.setValue(`prev_value`),
     }),
   ];
@@ -161,33 +173,4 @@ export function fieldEditorEventHandlers(
       ],
     },
   };
-}
-
-export function fieldEditor(opts: FieldEditorOpts) {
-  const { value, recordId, setValue, nextCol } = opts.cellProps;
-  const dbValue = opts.transformValue?.(value) ?? value;
-  const handlers = fieldEditorEventHandlers({
-    tableName: opts.tableName,
-    fieldName: opts.fieldName,
-    dbValue,
-    recordId,
-    value,
-    setValue,
-    validUiValue: opts.isValid?.(`ui.value`) ?? `true`,
-    changedUiValue: `(${value} is null and trim(ui.value) != '') or ui.value != ${value}`,
-    nextCol,
-    beforeEditTransaction: opts.beforeEditTransaction,
-    auth: opts.auth,
-  });
-  return state({
-    procedure: [scalar(`value`, `coalesce(start_edit_with_char, ${value})`)],
-    children: element("input", {
-      styles: styles.cellInput,
-      props: { value: `value`, yolmFocusKey: `true`, type: opts.inputType },
-      on: {
-        ...handlers,
-        input: [setScalar(`ui.value`, `target_value`)],
-      },
-    }),
-  });
 }

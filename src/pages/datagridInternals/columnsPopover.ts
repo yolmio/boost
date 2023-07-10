@@ -7,7 +7,7 @@ import { triggerQueryRefresh } from "./shared.js";
 import { createStyles } from "../../styleUtils.js";
 import { divider } from "../../components/divider.js";
 import { styles as sharedStyles } from "./styles.js";
-import { SuperGridDts } from "./superGrid.js";
+import { SuperGridDts } from "./styledDatagrid.js";
 
 const styles = createStyles({
   columnsWrapper: {

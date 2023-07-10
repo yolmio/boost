@@ -7,7 +7,6 @@ import {
 } from "../../components/insertDialog.js";
 import { materialIcon } from "../../components/materialIcon.js";
 import { typography } from "../../components/typography.js";
-import { addPage } from "../../modelHelpers.js";
 import { Authorization, Table } from "../../modelTypes.js";
 import { element, ifNode, sourceMap, state } from "../../nodeHelpers.js";
 import { Node } from "../../nodeTypes.js";
@@ -27,8 +26,8 @@ import {
   getCountQuery,
   SimpleBaseColumn,
   SimpleBaseColumnQueryGeneration,
-  simpleBaseDatagrid,
-} from "./simpleBaseDatgrid.js";
+  simplDatagridBase,
+} from "./simpleDatgridBase.js";
 import { styles as sharedStyles } from "./styles.js";
 import { triggerQueryRefresh } from "./shared.js";
 import { Cell, ColumnEventHandlers, RowHeight } from "./types.js";
@@ -50,10 +49,9 @@ export interface SimpleColumn extends ColumnEventHandlers {
   cell: Cell;
 }
 
-export interface SimpleGridConfig {
+export interface StyledSimpleGridConfig {
   tableModel: Table;
   toolbar: ToolbarConfig;
-  path: string;
   columns: SimpleColumn[];
   idField: string;
   pageSize?: number;
@@ -73,7 +71,7 @@ const styles = createStyles({
   },
 });
 
-export function simpleDatagrid(config: SimpleGridConfig) {
+export function styledSimpleDatagrid(config: StyledSimpleGridConfig) {
   const baseColumns = config.columns.map(
     (c): SimpleBaseColumn => ({
       cell: c.cell,
@@ -126,7 +124,7 @@ export function simpleDatagrid(config: SimpleGridConfig) {
       ],
     });
   }
-  let content: Node = simpleBaseDatagrid({
+  let content: Node = simplDatagridBase({
     source: "db." + ident(config.tableModel.name),
     idFieldSource: config.tableModel.primaryKeyFieldName
       ? ident(config.tableModel.primaryKeyFieldName)
@@ -242,8 +240,5 @@ export function simpleDatagrid(config: SimpleGridConfig) {
   if (config.sourceMapName) {
     content = sourceMap(config.sourceMapName, content);
   }
-  addPage({
-    path: config.path,
-    content,
-  });
+  return content;
 }

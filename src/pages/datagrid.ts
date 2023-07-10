@@ -14,15 +14,16 @@ import {
 } from "./datagridInternals/fromModel.js";
 import {
   columnPopover,
-  superGrid,
+  styledDatagrid,
   SuperGridColumn,
   ToolbarConfig,
-} from "./datagridInternals/superGrid.js";
+} from "./datagridInternals/styledDatagrid.js";
 import { styles as sharedStyles } from "./datagridInternals/styles.js";
 import { checkbox } from "../components/checkbox.js";
-import { DefaultView } from "./datagridInternals/baseDatagrid.js";
+import { DefaultView } from "./datagridInternals/datagridBase.js";
 import { resizeableSeperator } from "./datagridInternals/shared.js";
-import { BeforeEditTransaction } from "./datagridInternals/editHelper.js";
+import { FieldEditProcConfig } from "./datagridInternals/editHelper.js";
+import { addPage } from "../modelHelpers.js";
 
 export interface ToolbarOpts {
   views?: boolean;
@@ -47,6 +48,7 @@ export interface DatagridPageOpts {
   viewButton?: boolean | { getLink: (id: string) => string };
   selectable?: boolean;
   toolbar?: ToolbarOpts;
+  extraColumns?: SuperGridColumn[];
   ignoreFields?: string[];
   defaultView?: DefaultView;
   fields?: FieldConfigs;
@@ -54,10 +56,8 @@ export interface DatagridPageOpts {
 
 type FieldConfigs = Record<string, FieldConfig>;
 
-export interface FieldConfig {
+export interface FieldConfig extends FieldEditProcConfig {
   immutable?: boolean;
-  beforeEditTransaction?: BeforeEditTransaction;
-  afterEditTransaction?: BeforeEditTransaction;
   displayName?: string;
 }
 
@@ -202,6 +202,9 @@ function getColumns(
       columnIndex: columns.length,
       startFixedColumns,
       beforeEditTransaction: fieldConfig?.beforeEditTransaction,
+      beforeEdit: fieldConfig?.beforeEdit,
+      afterEditTransaction: fieldConfig?.afterEditTransaction,
+      afterEdit: fieldConfig?.afterEdit,
       immutable: fieldConfig?.immutable,
     });
     if (column) {
@@ -222,7 +225,7 @@ function getColumns(
   return columns;
 }
 
-export function tableSuperGrid(opts: DatagridPageOpts) {
+export function datagridPage(opts: DatagridPageOpts) {
   const tableModel = model.database.tables[opts.table];
   const path = getTableBaseUrl(opts.table);
   const selectable = opts.selectable ?? true;
@@ -239,6 +242,9 @@ export function tableSuperGrid(opts: DatagridPageOpts) {
     getViewButtonUrl = opts.viewButton;
   }
   const columns = getColumns(opts.table, selectable, getViewButtonUrl, opts);
+  if (opts.extraColumns) {
+    columns.push(...opts.extraColumns);
+  }
   const toolbarConfig: ToolbarConfig = {
     views: opts.toolbar?.views ?? true,
     hideColumns: opts.toolbar?.hideColumns ?? true,
@@ -283,15 +289,18 @@ export function tableSuperGrid(opts: DatagridPageOpts) {
       table(`selected_row`, [{ name: "id", type: { type: "BigInt" } }])
     );
   }
-  return superGrid({
+  const content = styledDatagrid({
     columns,
     datagridName: opts.datagridName ?? opts.table,
     idField: `field_0`,
     pageSize: 100,
-    path,
     tableModel: tableModel,
     toolbar: toolbarConfig,
     extraState,
     defaultView: opts.defaultView,
+  });
+  addPage({
+    path,
+    content,
   });
 }

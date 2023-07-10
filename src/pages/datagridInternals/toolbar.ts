@@ -28,8 +28,12 @@ import { confirmDangerDialog } from "../../components/confirmDangerDialog.js";
 import { ident, stringLiteral } from "../../utils/sqlHelpers.js";
 import { getUniqueUiId } from "../../components/utils.js";
 import { createStyles, flexGrowStyles } from "../../styleUtils.js";
-import { SuperGridColumn, SuperGridDts, ToolbarConfig } from "./superGrid.js";
-import { DatagridDts, makeCountQuery, makeIdsQuery } from "./baseDatagrid.js";
+import {
+  SuperGridColumn,
+  SuperGridDts,
+  ToolbarConfig,
+} from "./styledDatagrid.js";
+import { DatagridDts, makeCountQuery, makeIdsQuery } from "./datagridBase.js";
 import { Table } from "../../modelTypes.js";
 import { select } from "../../components/select.js";
 import { Node } from "../../nodeTypes.js";

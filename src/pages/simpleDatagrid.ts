@@ -18,14 +18,15 @@ import {
 } from "./datagridInternals/fromModel.js";
 import {
   SimpleColumn,
-  simpleDatagrid,
+  styledSimpleDatagrid,
   ToolbarConfig,
-} from "./datagridInternals/simpleDatagrid.js";
+} from "./datagridInternals/styledSimpleDatagrid.js";
 import { checkbox } from "../components/checkbox.js";
-import { BeforeEditTransaction } from "./datagridInternals/editHelper.js";
+import { FieldEditProcConfig } from "./datagridInternals/editHelper.js";
 import { Authorization } from "../modelTypes.js";
 import { button } from "../components/button.js";
 import { RowHeight } from "./datagridInternals/types.js";
+import { addPage } from "../modelHelpers.js";
 
 export interface ToolbarOpts {
   delete?: boolean;
@@ -54,9 +55,9 @@ export interface DatagridPageOpts {
 
 type FieldConfigs = Record<string, FieldConfig>;
 
-export interface FieldConfig {
+export interface FieldConfig extends FieldEditProcConfig {
   immutable?: boolean;
-  beforeEditTransaction?: BeforeEditTransaction;
+  header?: string;
 }
 
 function toggleRowSelection(id: string) {
@@ -144,11 +145,15 @@ function getColumns(
   }
   for (const fieldName of fields) {
     const field = tableModel.fields[fieldName];
+    const fieldConfig = opts.fields?.[field.name];
     const column = simpleColumnFromField({
       table: tableModel.name,
       field,
       idField,
-      beforeEditTransaction: opts.fields?.[field.name]?.beforeEditTransaction,
+      beforeEdit: fieldConfig?.beforeEdit,
+      afterEditTransaction: fieldConfig?.afterEditTransaction,
+      afterEdit: fieldConfig?.afterEdit,
+      immutable: fieldConfig?.immutable,
       columnIndex: columns.length,
     });
     if (column) {
@@ -168,7 +173,7 @@ function getColumns(
   return columns;
 }
 
-export function tableSimpleGrid(opts: DatagridPageOpts) {
+export function simpleDatagridPage(opts: DatagridPageOpts) {
   const tableModel = model.database.tables[opts.table];
   const path = getTableBaseUrl(opts.table);
   const selectable = opts.selectable ?? true;
@@ -221,15 +226,18 @@ export function tableSimpleGrid(opts: DatagridPageOpts) {
       table(`selected_row`, [{ name: "id", type: { type: "BigInt" } }])
     );
   }
-  return simpleDatagrid({
+  const content = styledSimpleDatagrid({
     columns,
     auth: opts.auth,
     idField: idSqlName,
-    path,
     tableModel: tableModel,
     toolbar: toolbarConfig,
     extraState,
     sourceMapName: `tableSimpleGrid(${opts.table})`,
     rowHeight: opts.rowHeight,
+  });
+  addPage({
+    path,
+    content,
   });
 }

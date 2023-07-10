@@ -15,7 +15,7 @@ import {
   table,
 } from "../procHelpers.js";
 import { ServiceProcStatement } from "../yom.js";
-import { tableSimpleGrid } from "./tableSimpleDatagrid.js";
+import { simpleDatagridPage } from "./simpleDatagrid.js";
 
 export interface UserGridOpts {
   auth?: Authorization;
@@ -46,7 +46,7 @@ export function userGridPage(opts: UserGridOpts = {}) {
     }),
   });
 
-  tableSimpleGrid({
+  simpleDatagridPage({
     table: "user",
     path: opts.path,
     auth: opts.auth,

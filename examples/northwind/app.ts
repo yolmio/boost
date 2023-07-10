@@ -13,10 +13,10 @@ import {
   spawn,
   table,
 } from "@yolm/boost/procHelpers";
-import { tableSuperGrid } from "@yolm/boost/pages/tableSuperGrid";
+import { datagridPage } from "@yolm/boost/pages/datagrid";
 import { adminPage } from "@yolm/boost/pages/admin";
 import { recordGridPage } from "@yolm/boost/pages/recordGrid";
-import { tableSimpleGrid } from "@yolm/boost/pages/tableSimpleDatagrid";
+import { simpleDatagridPage } from "@yolm/boost/pages/simpleDatagrid";
 import { insertFormPage } from "@yolm/boost/pages/insertForm";
 import { dashboardGridPage } from "@yolm/boost/pages/dashboardGrid";
 import { model } from "@yolm/boost/singleton";
@@ -462,7 +462,7 @@ dashboardGridPage({
 
 adminPage();
 
-tableSimpleGrid({
+simpleDatagridPage({
   table: "employee",
   selectable: true,
   toolbar: {
@@ -508,7 +508,7 @@ recordGridPage({
   ],
 });
 
-tableSuperGrid({
+datagridPage({
   table: "order",
   selectable: true,
   toolbar: {
@@ -632,13 +632,14 @@ insertFormPage({
                       serviceProc([
                         setScalar(
                           "product_unit_price",
-                          `(select unit_price from db.product where id = ${cursor.field("product").value
+                          `(select unit_price from db.product where id = ${
+                            cursor.field("product").value
                           })`
                         ),
                       ]),
                       if_(
                         `product_unit_price is not null and not ` +
-                        cursor.field("unit_price").touched,
+                          cursor.field("unit_price").touched,
                         [
                           cursor
                             .field("unit_price")
@@ -737,7 +738,7 @@ recordGridPage({
                     ]),
                     if_(
                       `product_unit_price is not null and not ` +
-                      state.fields.touched("unit_price"),
+                        state.fields.touched("unit_price"),
                       [
                         state.fields.set(
                           "unit_price",
@@ -758,7 +759,7 @@ recordGridPage({
   createUpdatePage: true,
 });
 
-tableSuperGrid({
+datagridPage({
   table: "customer",
   selectable: true,
   toolbar: {
@@ -789,14 +790,14 @@ recordGridPage({
   ],
 });
 
-tableSimpleGrid({
+simpleDatagridPage({
   table: "shipper",
   toolbar: {
     add: { type: "dialog" },
   },
 });
 
-tableSimpleGrid({
+simpleDatagridPage({
   table: "supplier",
   toolbar: {
     add: { type: "dialog" },
@@ -823,11 +824,12 @@ recordGridPage({
   ],
 });
 
-tableSimpleGrid({
+simpleDatagridPage({
   table: "product",
   toolbar: {
     add: { type: "dialog" },
   },
+  fields: { discontinued: { immutable: true } },
 });
 
 recordGridPage({
@@ -850,7 +852,7 @@ recordGridPage({
   ],
 });
 
-tableSimpleGrid({
+simpleDatagridPage({
   table: "category",
   toolbar: { add: { type: "dialog" } },
 });

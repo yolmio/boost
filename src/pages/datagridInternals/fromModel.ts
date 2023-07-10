@@ -11,22 +11,26 @@ import { model } from "../../singleton.js";
 import { ident, stringLiteral } from "../../utils/sqlHelpers.js";
 import { ClientProcStatement, FieldType } from "../../yom.js";
 import { fieldCell } from "./cells.js";
-import { BeforeEditTransaction, doEdit } from "./editHelper.js";
+import {
+  FieldEditProcConfig,
+  FieldEditStatements,
+  doEdit,
+} from "./editHelper.js";
 import {
   columnPopover,
   FilterType,
   SortConfig,
   SuperGridColumn,
-} from "./superGrid.js";
+} from "./styledDatagrid.js";
 import { styles as sharedStyles } from "./styles.js";
-import { SimpleColumn } from "./simpleDatagrid.js";
+import { SimpleColumn } from "./styledSimpleDatagrid.js";
 import { normalizeCase, upcaseFirst } from "../../utils/inflectors.js";
 import { lazy } from "../../utils/memoize.js";
 import { materialIcon } from "../../components/materialIcon.js";
 import { Style } from "../../styleTypes.js";
 import { triggerQueryRefresh, resizeableSeperator } from "./shared.js";
 
-export function filterTypeFromField(type: Field): FilterType {
+function filterTypeFromField(type: Field): FilterType {
   switch (type.type) {
     case "BigInt":
     case "BigUint":
@@ -39,6 +43,7 @@ export function filterTypeFromField(type: Field): FilterType {
     case "Double":
     case "Real":
     case "Decimal":
+    case "Tx":
       return { type: "number" };
     case "Duration":
       if (type.size !== "minutes") {
@@ -46,23 +51,26 @@ export function filterTypeFromField(type: Field): FilterType {
       }
       return { type: "duration", size: "minutes" };
     case "String":
+    case "Uuid":
       return { type: "string" };
     case "Enum":
       return { type: "enum", enum: type.enum };
     case "ForeignKey":
       return { type: "table", table: type.table };
+    case "Timestamp":
     case "Date":
       return { type: "date" };
     case "Bool":
       return type.enumLike
         ? { type: "enum_like_bool", config: type.enumLike }
         : { type: "bool" };
-    default:
-      throw new Error("Todo filter type for " + type.type);
+    case "Time":
+    case "Ordering":
+      throw new Error("Filter not supported for type: " + type.type);
   }
 }
 
-export function filterTypeFromVirtual(type: VirtualType): FilterType {
+function filterTypeFromVirtual(type: VirtualType): FilterType {
   switch (type.type) {
     case "BigInt":
     case "Int":
@@ -72,25 +80,24 @@ export function filterTypeFromVirtual(type: VirtualType): FilterType {
     case "Decimal":
       return { type: "number" };
     case "String":
+    case "Uuid":
       return { type: "string" };
     case "Enum":
       return { type: "enum", enum: type.enum };
     case "ForeignKey":
       return { type: "table", table: type.table };
+    case "Timestamp":
     case "Date":
-      // case "Timestamp":
       return { type: "date" };
     case "Bool":
       return { type: "bool" };
-
-    default:
-      throw new Error(
-        "haven't implemented filter type for virtual of " + type.type
-      );
+    case "Time":
+    case "Ordering":
+      throw new Error("Ordering fields should not be used in filters");
   }
 }
 
-export function getFieldProcFieldType(field: Field): FieldType {
+function getFieldProcFieldType(field: Field): FieldType {
   switch (field.type) {
     case "TinyInt":
     case "SmallInt":
@@ -102,8 +109,14 @@ export function getFieldProcFieldType(field: Field): FieldType {
     case "BigUint":
     case "Bool":
     case "Date":
-    case "Date":
+    case "Double":
+    case "Ordering":
+    case "Real":
+    case "Time":
+    case "Timestamp":
+    case "Uuid":
       return { type: field.type };
+    case "Tx":
     case "ForeignKey":
       return { type: "BigUint" };
     case "Enum":
@@ -112,8 +125,6 @@ export function getFieldProcFieldType(field: Field): FieldType {
       return { type: field.backing };
     case "String":
       return { type: "String", maxLength: field.maxLength };
-    case "Uuid":
-      return { type: "Uuid" };
     case "Decimal":
       return {
         type: "Decimal",
@@ -121,14 +132,10 @@ export function getFieldProcFieldType(field: Field): FieldType {
         scale: field.scale,
         signed: field.signed,
       };
-    default:
-      throw new Error(
-        "haven't implemented get field proc field type for " + field.type
-      );
   }
 }
 
-export function getVirtualProcFieldType(virtual: VirtualField): FieldType {
+function getVirtualProcFieldType(virtual: VirtualField): FieldType {
   switch (virtual.type.type) {
     case "SmallInt":
     case "Int":
@@ -136,6 +143,12 @@ export function getVirtualProcFieldType(virtual: VirtualField): FieldType {
     case "Bool":
     case "Date":
     case "Date":
+    case "Double":
+    case "Real":
+    case "Time":
+    case "Timestamp":
+    case "Ordering":
+    case "Uuid":
       return { type: virtual.type.type };
     case "ForeignKey":
       return { type: "BigUint" };
@@ -143,17 +156,22 @@ export function getVirtualProcFieldType(virtual: VirtualField): FieldType {
       return { type: "Enum", enum: virtual.type.enum };
     case "String":
       return { type: "String", maxLength: 65_000 };
-    default:
-      throw new Error(
-        "haven't implemented get virtual proc field type for " +
-          virtual.type.type
-      );
+    case "Decimal":
+      return {
+        type: "Decimal",
+        precision: virtual.type.precision,
+        scale: virtual.type.scale,
+        signed: true,
+      };
   }
 }
 
-export function getFieldCellWidth(field: Field, table: string): number {
+function getFieldCellWidth(
+  field: Field,
+  table: string,
+  headerBuffer: number
+): number {
   const charSize = 10;
-  const headerBuffer = 46;
   const cellBuffer = 20;
   const headerLength = field.displayName.length * charSize + headerBuffer;
   if (field.type === "Uuid" && field.group) {
@@ -298,14 +316,13 @@ const checkboxSortConfig = lazy((): SortConfig => {
   };
 });
 
-export interface SuperColumnFieldOpts {
+export interface SuperColumnFieldOpts extends FieldEditProcConfig {
   table: string;
   field: Field;
   dynIndex: number;
   columnIndex: number;
   startFixedColumns: number;
   immutable?: boolean;
-  beforeEditTransaction?: BeforeEditTransaction;
 }
 
 export function columnFromField({
@@ -315,7 +332,7 @@ export function columnFromField({
   columnIndex,
   startFixedColumns,
   immutable,
-  beforeEditTransaction,
+  ...restOpts
 }: SuperColumnFieldOpts): SuperGridColumn | undefined {
   let keydownHandler: ClientProcStatement[] = [];
   let noFilter = false;
@@ -337,9 +354,12 @@ export function columnFromField({
       case "String":
       case "Duration":
       case "ForeignKey":
-      case "Date":
+      case "Tx":
         keydownHandler = editWithCharCellKeydownHandler;
         break;
+      case "Time":
+      case "Timestamp":
+      case "Date":
       case "Enum":
         keydownHandler = opaqueCellKeydownHandler;
         break;
@@ -365,14 +385,6 @@ export function columnFromField({
         break;
       case "Ordering":
         return;
-      default:
-        throw new Error(
-          "Haven't implemented field type " +
-            field.type +
-            " on " +
-            field.name +
-            " yet"
-        );
     }
   }
   let sort: SortConfig | undefined;
@@ -391,6 +403,8 @@ export function columnFromField({
       case "Double":
       case "Real":
       case "Decimal":
+      case "Time":
+      case "Timestamp":
         sort = numberSortConfig;
         break;
       case "String":
@@ -425,13 +439,14 @@ export function columnFromField({
       : undefined,
     sort,
     cell: fieldCell({
+      ...restOpts,
+      immutable,
       tableName: table,
       field,
       stringified: true,
-      beforeEditTransaction,
     }),
     initiallyDisplaying: true,
-    initialWidth: getFieldCellWidth(field, table),
+    initialWidth: getFieldCellWidth(field, table, 46),
     header: [
       element("span", {
         styles: sharedStyles.headerText,
@@ -546,22 +561,21 @@ export const simpleBooleanCellKeydownHandler = (
   ]),
 ];
 
-export interface SimpleColumnFieldOpts {
+export interface SimpleColumnFieldOpts extends FieldEditProcConfig {
   table: string;
   field: Field;
   idField: string;
   columnIndex: number;
   immutable?: boolean;
-  beforeEditTransaction?: BeforeEditTransaction;
 }
 
 export function simpleColumnFromField({
   field,
   table,
   idField,
-  beforeEditTransaction,
   columnIndex,
   immutable,
+  ...restOpts
 }: SimpleColumnFieldOpts): SimpleColumn | undefined {
   let keydownHandler: ClientProcStatement[] = [];
   let displayName = field.displayName;
@@ -629,12 +643,13 @@ export function simpleColumnFromField({
   return {
     keydownCellHandler: keydownHandler,
     cell: fieldCell({
+      ...restOpts,
       tableName: table,
       field,
       stringified: false,
-      beforeEditTransaction,
+      immutable,
     }),
-    width: getFieldCellWidth(field, table),
+    width: getFieldCellWidth(field, table, 10),
     header: [
       element("span", {
         styles: sharedStyles.headerText,

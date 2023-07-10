@@ -231,8 +231,6 @@ function prepareDisplayValue(
       case "Duration":
         type = { type: field.backing };
         break;
-      case "Custom":
-        throw new Error("Custom fields are not supported in tableSearchDialog");
       default:
         type = { type: field.type as any };
         break;

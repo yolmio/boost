@@ -15,9 +15,9 @@ import {
   addDatagridDts,
   BaseColumn,
   BaseColumnQueryGeneration,
-  baseDatagrid,
+  datagridBase,
   DefaultView,
-} from "./baseDatagrid.js";
+} from "./datagridBase.js";
 import { styles as sharedStyles } from "./styles.js";
 import { toolbar } from "./toolbar.js";
 import { Cell, ColumnEventHandlers } from "./types.js";
@@ -418,11 +418,10 @@ function addSupergridDatagridDts(
   return { idToDefaultOp, idToDisplayName };
 }
 
-export interface SuperGridConfig {
+export interface StyledDatagridConfig {
   datagridName: string;
   tableModel: Table;
   toolbar: ToolbarConfig;
-  path: string;
   columns: SuperGridColumn[];
   idField: string;
   pageSize: number;
@@ -430,7 +429,7 @@ export interface SuperGridConfig {
   defaultView?: DefaultView;
 }
 
-export function superGrid(config: SuperGridConfig) {
+export function styledDatagrid(config: StyledDatagridConfig) {
   const baseColumns = config.columns.map(
     (c): BaseColumn => ({
       cell: c.cell,
@@ -445,7 +444,7 @@ export function superGrid(config: SuperGridConfig) {
   );
   const superDts = addSupergridDatagridDts(config.datagridName, config.columns);
   const dts = addDatagridDts(config.datagridName, baseColumns);
-  const content = baseDatagrid({
+  return datagridBase({
     source: "db." + ident(config.tableModel.name),
     children: (dg) => [
       toolbar(
@@ -515,9 +514,5 @@ export function superGrid(config: SuperGridConfig) {
     quickSearchMatchConfig: config.toolbar.search?.matchConfig,
     extraState: config.extraState,
     defaultView: config.defaultView,
-  });
-  addPage({
-    path: config.path,
-    content,
   });
 }

@@ -7,7 +7,7 @@ import { materialIcon } from "../../components/materialIcon.js";
 import { select } from "../../components/select.js";
 import { triggerQueryRefresh } from "./shared.js";
 import { createStyles } from "../../styleUtils.js";
-import { SortConfig, SuperGridColumn } from "./superGrid.js";
+import { SortConfig, SuperGridColumn } from "./styledDatagrid.js";
 import { Node, SwitchNodeCase } from "../../nodeTypes.js";
 
 const styles = createStyles({

@@ -32,7 +32,7 @@ import {
   duplicateView,
   saveAsNewView,
   saveToExistingView,
-} from "./baseDatagrid.js";
+} from "./datagridBase.js";
 import { alert } from "../../components/alert.js";
 import { checkbox } from "../../components/checkbox.js";
 

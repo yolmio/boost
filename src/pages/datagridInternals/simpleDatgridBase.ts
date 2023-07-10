@@ -22,7 +22,7 @@ import {
 } from "./shared.js";
 import { Cell, ColumnEventHandlers, RowHeight } from "./types.js";
 
-export interface SimpleBaseDatagridOpts {
+export interface SimpleDatagridBaseOpts {
   datagridStyles: DataGridStyles;
   children: (dgNode: Node) => Node;
   columns: SimpleBaseColumn[];
@@ -49,7 +49,7 @@ export interface SimpleBaseColumnQueryGeneration {
   procFieldType: FieldType;
 }
 
-export function simpleBaseDatagrid(opts: SimpleBaseDatagridOpts) {
+export function simplDatagridBase(opts: SimpleDatagridBaseOpts) {
   const { columns, datagridStyles, auth: requiredRole } = opts;
   const getResultsProc: StateStatement[] = [
     expectCurrentUserAuthorized(requiredRole),

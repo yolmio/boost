@@ -25,14 +25,14 @@ import {
   defaultOpForFieldType,
   eqFilterType,
   FilterType,
-} from "./superGrid.js";
+} from "./styledDatagrid.js";
 import { triggerQueryRefresh } from "./shared.js";
 import { checkbox } from "../../components/checkbox.js";
 import { durationInput } from "../../components/durationInput.js";
 import { createStyles, flexGrowStyles } from "../../styleUtils.js";
 import { styles as sharedStyles } from "./styles.js";
 import { getUniqueUiId } from "../../components/utils.js";
-import { SuperGridColumn, SuperGridDts } from "./superGrid.js";
+import { SuperGridColumn, SuperGridDts } from "./styledDatagrid.js";
 
 const styles = createStyles({
   checkboxWrapper: {
