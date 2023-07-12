@@ -1,6 +1,7 @@
 import { element, ifNode, state } from "../../nodeHelpers.js";
 import {
   commitTransaction,
+  debugExpr,
   dynamicQuery,
   if_,
   modify,
@@ -151,7 +152,7 @@ export function toolbar(
             ]
           : null,
         ifNode(
-          `(status = 'requested' or status = 'fallback_triggered') dg_and refresh_key = 0`,
+          `(status = 'requested' or status = 'fallback_triggered') and dg_refresh_key = 0`,
           [
             element("div", {
               styles: styles.skeletonLeft,
@@ -321,7 +322,7 @@ export function toolbar(
               })
             ),
             ifNode(
-              `saving_edit_count > 0`,
+              `saving_edit`,
               typography({
                 startDecorator: circularProgress({ size: "sm" }),
                 level: "body2",
@@ -329,13 +330,13 @@ export function toolbar(
               })
             ),
             ifNode(
-              `display_edit_failure`,
+              `display_error_message is not null`,
               alert({
                 startDecorator: materialIcon("Report"),
                 size: "sm",
                 color: "danger",
                 variant: "solid",
-                children: `'Failed to save edit'`,
+                children: `display_error_message`,
               })
             ),
             ifNode(
@@ -345,7 +346,7 @@ export function toolbar(
                 size: "sm",
                 color: "danger",
                 variant: "solid",
-                children: `'Failed load data'`,
+                children: `'Failed to load data'`,
               })
             ),
             element("div", { styles: flexGrowStyles }),

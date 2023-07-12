@@ -251,7 +251,11 @@ export function navbarShell(opts: NavbarProps) {
             }),
             divider({ styles: styles.linksDivider }),
             opts.primaryActionButton
-              ? button({ ...opts.primaryActionButton, color: color })
+              ? button({
+                  ...opts.primaryActionButton,
+                  color: color,
+                  on: { click: closeDrawer },
+                })
               : undefined,
             button({
               startDecorator: materialIcon("Home"),

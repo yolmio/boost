@@ -227,7 +227,7 @@ function getColumns(
 
 export function datagridPage(opts: DatagridPageOpts) {
   const tableModel = model.database.tables[opts.table];
-  const path = getTableBaseUrl(opts.table);
+  const path = opts.path ?? getTableBaseUrl(opts.table);
   const selectable = opts.selectable ?? true;
   let getViewButtonUrl: ((id: string) => string) | undefined;
   if (opts.viewButton === true) {

@@ -62,7 +62,7 @@ export interface SuperGridColumn extends ColumnEventHandlers {
 }
 
 export type FilterType =
-  | { type: "string" | "number" | "date" | "bool" }
+  | { type: "string" | "number" | "date" | "bool" | "timestamp" }
   | {
       type: "table";
       table: string;
@@ -101,6 +101,8 @@ export function defaultOpForFieldType(type: FilterType) {
       return "str_eq";
     case "date":
       return "date_eq";
+    case "timestamp":
+      return "timestamp_eq";
     case "enum":
       return "enum_eq";
     case "table":

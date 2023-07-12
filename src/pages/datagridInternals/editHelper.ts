@@ -1,9 +1,10 @@
 import { Authorization } from "../../modelTypes.js";
-import { element, state } from "../../nodeHelpers.js";
 import {
   commitTransaction,
   commitUiChanges,
+  debugExpr,
   delay,
+  exit,
   if_,
   modify,
   preventDefault,
@@ -16,7 +17,7 @@ import {
   try_,
 } from "../../procHelpers.js";
 import { expectCurrentUserAuthorized } from "../../utils/auth.js";
-import { ident } from "../../utils/sqlHelpers.js";
+import { ident, parenWrap, stringLiteral } from "../../utils/sqlHelpers.js";
 import {
   BaseStatement,
   ClientProcStatement,
@@ -24,8 +25,6 @@ import {
   ServiceProcStatement,
 } from "../../yom.js";
 import { triggerQueryRefresh } from "./shared.js";
-import { styles } from "./styles.js";
-import { CellProps } from "./types.js";
 
 export type FieldEditStatements = (
   newValue: string,
@@ -39,16 +38,6 @@ export interface FieldEditProcConfig {
   afterEditTransaction?: FieldEditStatements;
 }
 
-interface FieldEditorOpts extends FieldEditProcConfig {
-  tableName: string;
-  fieldName: string;
-  inputType?: string;
-  transformValue?: (s: string) => string;
-  isValid?: (s: string) => string;
-  cellProps: CellProps;
-  auth?: Authorization;
-}
-
 interface DoEditOpts extends FieldEditProcConfig {
   tableName: string;
   fieldName: string;
@@ -58,14 +47,24 @@ interface DoEditOpts extends FieldEditProcConfig {
   auth?: Authorization;
 }
 
-export function doEdit(opts: DoEditOpts) {
-  const beforeTx: ServiceProcStatement[] = [];
-  if (opts.beforeEditTransaction) {
-    beforeTx.push(...opts.beforeEditTransaction(opts.dbValue, opts.recordId));
-  }
+export function displayEditError(message: string) {
   return [
-    setScalar(`ui.saving_edit_count`, `ui.saving_edit_count + 1`),
-    setScalar(`ui.display_edit_failure`, `false`),
+    setScalar(`ui.display_error_message`, stringLiteral(message)),
+    spawn({
+      detached: true,
+      statements: [
+        delay(`4000`),
+        setScalar(`ui.display_error_message`, `null`),
+        commitUiChanges(),
+      ],
+    }),
+  ];
+}
+
+export function doEdit(opts: DoEditOpts) {
+  return [
+    setScalar(`ui.saving_edit`, `true`),
+    setScalar(`ui.display_error_message`, `null`),
     commitUiChanges(),
     try_<ClientProcStatement>({
       body: [
@@ -86,16 +85,8 @@ export function doEdit(opts: DoEditOpts) {
         ]),
       ],
       errorName: `err`,
-      catch: [
-        ...opts.resetValue,
-        setScalar(`ui.display_edit_failure`, `true`),
-        spawn([
-          delay(`4000`),
-          setScalar(`ui.display_edit_failure`, `false`),
-          commitUiChanges(),
-        ]),
-      ],
-      finally: [setScalar(`ui.saving_edit_count`, `ui.saving_edit_count - 1`)],
+      catch: [...opts.resetValue, ...displayEditError(`Error saving edit`)],
+      finally: [setScalar(`ui.saving_edit`, `false`)],
     }),
   ];
 }
@@ -143,10 +134,11 @@ export function fieldEditorEventHandlers(
         if_(`event.key = 'Enter'`, [
           modify(`update ui.editing_state set is_editing = false`),
           modify(`update ui.focus_state set should_focus = true`),
-          if_(
-            `${opts.changedUiValue} and ${opts.validUiValue}`,
-            editStatements
-          ),
+          if_(`not ${parenWrap(opts.validUiValue)}`, [
+            ...displayEditError(`Invalid value`),
+            exit(),
+          ]),
+          if_(opts.changedUiValue, editStatements),
         ]),
         if_(`event.key = 'Escape'`, [
           modify(`update ui.editing_state set is_editing = false`),
@@ -159,17 +151,24 @@ export function fieldEditorEventHandlers(
           modify(
             `update ui.focus_state set should_focus = true, column = next_col`
           ),
-          if_(
-            `next_col is not null and ${opts.changedUiValue} and ${opts.validUiValue}`,
-            editStatements
-          ),
+          if_(`next_col is null`, [exit()]),
+          if_(`not ${parenWrap(opts.validUiValue)}`, [
+            ...displayEditError(`Invalid value`),
+            exit(),
+          ]),
+          if_(opts.changedUiValue, editStatements),
         ]),
       ],
     },
     blur: {
       detachedFromNode: true,
       procedure: [
-        if_(`${opts.changedUiValue} and ${opts.validUiValue}`, editStatements),
+        modify(`update ui.editing_state set is_editing = false`),
+        if_(`not ${parenWrap(opts.validUiValue)}`, [
+          ...displayEditError(`Invalid value`),
+          exit(),
+        ]),
+        if_(opts.changedUiValue, editStatements),
       ],
     },
   };

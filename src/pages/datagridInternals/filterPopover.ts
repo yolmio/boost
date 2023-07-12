@@ -215,6 +215,34 @@ function typeSpecificOps(columns: SuperGridColumn[], filterTerm: string): Node {
           })
         );
         break;
+      case "timestamp":
+        opts.push(
+          element("option", {
+            props: { value: "'timestamp_eq'" },
+            children: "'is'",
+          }),
+          element("option", {
+            props: { value: "'timestamp_ne'" },
+            children: "'is not'",
+          }),
+          element("option", {
+            props: { value: "'timestamp_lt'" },
+            children: "'is before'",
+          }),
+          element("option", {
+            props: { value: "'timestamp_lte'" },
+            children: "'is on or before'",
+          }),
+          element("option", {
+            props: { value: "'timestamp_gt'" },
+            children: "'is after'",
+          }),
+          element("option", {
+            props: { value: "'timestamp_gte'" },
+            children: "'is on or after'",
+          })
+        );
+        break;
       case "enum":
         opts.push(
           element("option", {
@@ -471,6 +499,89 @@ function columnFilter(
   if (columns.some((col) => col.filter?.type?.type === "date")) {
     switchCases.push([
       `dt.is_date_filter_op(${filterTerm}.op)`,
+      [
+        select({
+          size: "sm",
+          on: {
+            input: [
+              if_(
+                `${filterTerm}.value_1 is null or ${filterTerm}.value_1 != target_value`,
+                [
+                  scalar(
+                    `new_value_2`,
+                    `case
+                          when ${filterTerm}.value_1 = 'exact date' or target_value = 'exact date' then null
+                          when (${filterTerm}.value_1 like 'number%') != (target_value like 'number%') then null
+                          else ${filterTerm}.value_2
+                        end`
+                  ),
+                  modify(
+                    `update ui.filter_term set value_1 = target_value, value_2 = new_value_2 where id = ${filterTerm}.id`
+                  ),
+                  triggerQueryRefresh(),
+                ]
+              ),
+            ],
+          },
+          slots: {
+            select: {
+              props: {
+                value: `coalesce(${filterTerm}.value_1, 'exact date')`,
+              },
+            },
+          },
+          children: dateOptions,
+        }),
+        switchNode(
+          [
+            `${filterTerm}.value_1 in ('number of days ago', 'number of days from now')`,
+            input({
+              size: "sm",
+              slots: {
+                input: {
+                  props: { value: `${filterTerm}.value_2` },
+                  on: {
+                    input: [
+                      if_("try_cast(target_value as int) is not null", [
+                        modify(
+                          `update ui.filter_term set value_2 = target_value where id = ${filterTerm}.id`
+                        ),
+                      ]),
+                    ],
+                    blur: [triggerQueryRefresh()],
+                  },
+                },
+              },
+            }),
+          ],
+          [
+            `${filterTerm}.value_1 is null or ${filterTerm}.value_1 = 'exact date'`,
+            input({
+              size: "sm",
+              slots: {
+                input: {
+                  props: { value: `${filterTerm}.value_2`, type: "'date'" },
+                  on: {
+                    input: [
+                      if_("literal.date(target_value) is not null", [
+                        modify(
+                          `update ui.filter_term set value_1 = 'exact date', value_2 = target_value where id = ${filterTerm}.id`
+                        ),
+                      ]),
+                    ],
+                    blur: [triggerQueryRefresh()],
+                  },
+                },
+              },
+            }),
+          ]
+        ),
+      ],
+    ]);
+  }
+  if (columns.some((col) => col.filter?.type?.type === "timestamp")) {
+    switchCases.push([
+      `dt.is_timestamp_filter_op(${filterTerm}.op)`,
       [
         select({
           size: "sm",

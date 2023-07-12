@@ -31,6 +31,7 @@ import {
 import { styles as sharedStyles } from "./styles.js";
 import { triggerQueryRefresh } from "./shared.js";
 import { Cell, ColumnEventHandlers, RowHeight } from "./types.js";
+import { circularProgress } from "../../components/circularProgress.js";
 
 export interface ToolbarConfig {
   header: Node;
@@ -144,6 +145,42 @@ export function styledSimpleDatagrid(config: StyledSimpleGridConfig) {
                 level: "h4",
                 children: config.toolbar.header,
               }),
+              ifNode(
+                `status = 'fallback_triggered' and dg_refresh_key != 0`,
+                typography({
+                  startDecorator: circularProgress({ size: "sm" }),
+                  level: "body2",
+                  children: `'Reloading...'`,
+                })
+              ),
+              ifNode(
+                `saving_edit`,
+                typography({
+                  startDecorator: circularProgress({ size: "sm" }),
+                  level: "body2",
+                  children: `'Saving change...'`,
+                })
+              ),
+              ifNode(
+                `display_error_message is not null`,
+                alert({
+                  startDecorator: materialIcon("Report"),
+                  size: "sm",
+                  color: "danger",
+                  variant: "solid",
+                  children: `display_error_message`,
+                })
+              ),
+              ifNode(
+                `status = 'failed'`,
+                alert({
+                  startDecorator: materialIcon("Report"),
+                  size: "sm",
+                  color: "danger",
+                  variant: "solid",
+                  children: `'Failed to load data'`,
+                })
+              ),
               element("div", { styles: flexGrowStyles }),
               config.toolbar.delete
                 ? state({

@@ -1,6 +1,7 @@
 import { FormStateFieldHelper } from "../../formState.js";
 import { Field } from "../../modelTypes.js";
 import { Node } from "../../nodeTypes.js";
+import { debugExpr } from "../../procHelpers.js";
 import { ClientProcStatement } from "../../yom.js";
 import { durationInput } from "../durationInput.js";
 import { enumLikeSelect, enumSelect } from "../enumSelect.js";
@@ -33,6 +34,42 @@ export function fieldFormControl(opts: FieldFormControlOpts): Node | undefined {
         value: fieldHelper.value,
         emptyQuery: opts.comboboxEmptyQuery,
         error: fieldHelper.hasError,
+      });
+    case "Tx":
+      return input({
+        error: opts.fieldHelper.hasError,
+        slots: {
+          input: {
+            props: {
+              type: "'number'",
+              value: fieldHelper.value,
+              id,
+            },
+            on: {
+              input: [fieldHelper.setValue("target_value")],
+              blur: [fieldHelper.setTouched],
+            },
+          },
+        },
+      });
+    case "Timestamp":
+      return input({
+        error: opts.fieldHelper.error,
+        slots: {
+          input: {
+            props: {
+              type: "'datetime-local'",
+              value: `case when ${fieldHelper.value} is not null then format.date(${fieldHelper.value}, '%Y-%m-%dT%H:%M') else '' end`,
+              id,
+            },
+            on: {
+              input: [
+                fieldHelper.setValue("try_cast(target_value as timestamp)"),
+              ],
+              blur: [fieldHelper.setTouched],
+            },
+          },
+        },
       });
     case "Date":
       return input({
@@ -109,6 +146,23 @@ export function fieldFormControl(opts: FieldFormControlOpts): Node | undefined {
           fieldHelper.setTouched,
           ...(opts.onChange ?? []),
         ],
+      });
+    case "Uuid":
+      return input({
+        error: opts.fieldHelper.hasError,
+        slots: {
+          input: {
+            props: {
+              value: fieldHelper.value,
+              id,
+              maxLength: "36",
+            },
+            on: {
+              input: [fieldHelper.setValue("target_value")],
+              blur: [fieldHelper.setTouched],
+            },
+          },
+        },
       });
     case "String":
       if (field.multiline) {

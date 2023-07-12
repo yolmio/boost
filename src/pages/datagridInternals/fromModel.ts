@@ -58,6 +58,7 @@ function filterTypeFromField(type: Field): FilterType {
     case "ForeignKey":
       return { type: "table", table: type.table };
     case "Timestamp":
+      return { type: "timestamp" };
     case "Date":
       return { type: "date" };
     case "Bool":
@@ -87,6 +88,7 @@ function filterTypeFromVirtual(type: VirtualType): FilterType {
     case "ForeignKey":
       return { type: "table", table: type.table };
     case "Timestamp":
+      return { type: "timestamp" };
     case "Date":
       return { type: "date" };
     case "Bool":
@@ -338,6 +340,9 @@ export function columnFromField({
   let noFilter = false;
   let noSort = false;
   let displayName = field.displayName;
+  if (field.type === "Ordering" || field.type === "Time") {
+    return;
+  }
   if (!immutable) {
     switch (field.type) {
       case "BigInt":
@@ -357,7 +362,6 @@ export function columnFromField({
       case "Tx":
         keydownHandler = editWithCharCellKeydownHandler;
         break;
-      case "Time":
       case "Timestamp":
       case "Date":
       case "Enum":
@@ -383,8 +387,6 @@ export function columnFromField({
           ? opaqueCellKeydownHandler
           : dynamicBooleanCellKeydownHandler(dynIndex, field.name, table);
         break;
-      case "Ordering":
-        return;
     }
   }
   let sort: SortConfig | undefined;
@@ -403,7 +405,6 @@ export function columnFromField({
       case "Double":
       case "Real":
       case "Decimal":
-      case "Time":
       case "Timestamp":
         sort = numberSortConfig;
         break;
@@ -579,6 +580,9 @@ export function simpleColumnFromField({
 }: SimpleColumnFieldOpts): SimpleColumn | undefined {
   let keydownHandler: ClientProcStatement[] = [];
   let displayName = field.displayName;
+  if (field.type === "Ordering" || field.type === "Time") {
+    return;
+  }
   if (!immutable) {
     switch (field.type) {
       case "BigInt":
@@ -595,9 +599,11 @@ export function simpleColumnFromField({
       case "String":
       case "Duration":
       case "ForeignKey":
-      case "Date":
+      case "Tx":
         keydownHandler = editWithCharCellKeydownHandler;
         break;
+      case "Date":
+      case "Timestamp":
       case "Enum":
         keydownHandler = opaqueCellKeydownHandler;
         break;
@@ -619,14 +625,6 @@ export function simpleColumnFromField({
         }
         keydownHandler = opaqueCellKeydownHandler;
         break;
-      default:
-        throw new Error(
-          "Haven't implemented field type " +
-            field.type +
-            " on " +
-            field.name +
-            " yet"
-        );
     }
   }
   const toggleColumnSort = if_<ClientProcStatement>(

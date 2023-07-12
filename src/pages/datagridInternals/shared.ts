@@ -41,8 +41,9 @@ export function editFocusState(): StateStatement[] {
       "select 0 as column, 0 as row, false as is_editing"
     ),
     scalar(`start_edit_with_char`, { type: "String", maxLength: 1 }),
-    scalar("saving_edit_count", "0"),
-    scalar(`display_edit_failure`, `false`),
+    scalar("saving_edit", "false"),
+    scalar(`display_error_message`, { type: "String", maxLength: 2000 }),
+    scalar(`remove_error_task`, { type: "BigInt" }),
   ];
 }
 

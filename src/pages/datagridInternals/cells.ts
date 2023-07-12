@@ -13,6 +13,7 @@ import {
   DurationField,
   EnumField,
   Field,
+  FieldBase,
   ForeignKeyField,
   ImageSetFieldGroup,
   IntField,
@@ -21,9 +22,11 @@ import {
   SmallUintField,
   StringField,
   TimeField,
+  TimestampField,
   TinyIntField,
   TinyUintField,
   UintField,
+  UuidField,
 } from "../../modelTypes.js";
 import { element, ifNode, state } from "../../nodeHelpers.js";
 import {
@@ -44,7 +47,7 @@ import { model } from "../../singleton.js";
 import { createStyles, visuallyHiddenStyles } from "../../styleUtils.js";
 import { enumLikeDisplayName } from "../../utils/enumLike.js";
 import { stringLiteral } from "../../utils/sqlHelpers.js";
-import { FieldEditProcConfig, doEdit } from "./editHelper.js";
+import { FieldEditProcConfig, displayEditError, doEdit } from "./editHelper.js";
 import { triggerQueryRefresh } from "./shared.js";
 import { fieldEditorEventHandlers } from "./editHelper.js";
 import { ClientProcStatement, ServiceProcStatement } from "../../yom.js";
@@ -52,8 +55,9 @@ import { button } from "../../components/button.js";
 import { materialIcon } from "../../components/materialIcon.js";
 import { imageDalog } from "../../components/imageDialog.js";
 import { getUploadStatements } from "../../utils/image.js";
-import { Cell } from "./types.js";
+import { Cell, CellProps } from "./types.js";
 import { styles as sharedStyles } from "./styles.js";
+import { iconButton } from "../../components/iconButton.js";
 
 const styles = createStyles({
   select: {
@@ -108,6 +112,12 @@ const styles = createStyles({
     height: "100%",
     cursor: "pointer",
   },
+  nullableForeignKeyWrapper: {
+    width: "100%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
 });
 
 function foreignKeyCell(opts: BaseFieldCellOpts, field: ForeignKeyField): Cell {
@@ -143,6 +153,10 @@ function foreignKeyCell(opts: BaseFieldCellOpts, field: ForeignKeyField): Cell {
       );
     }
     const shouldUseEditedText = `did_edit and ((edited_id is null and ${props.value} is null) or edited_id = try_cast(${props.value} as bigint))`;
+    const text = element("span", {
+      styles: sharedStyles.ellipsisSpan,
+      children: `case when ${shouldUseEditedText} then edited_text else text end`,
+    });
     return state({
       procedure: [
         scalar(`edited_text`, { type: "String", maxLength: 1000 }),
@@ -158,10 +172,39 @@ function foreignKeyCell(opts: BaseFieldCellOpts, field: ForeignKeyField): Cell {
           ),
         ],
         children: [
-          element("span", {
-            styles: sharedStyles.ellipsisSpan,
-            children: `case when ${shouldUseEditedText} then edited_text else text end`,
-          }),
+          field.notNull
+            ? text
+            : element("div", {
+                styles: styles.nullableForeignKeyWrapper,
+                children: [
+                  text,
+                  ifNode(
+                    `text is not null`,
+                    iconButton({
+                      size: "sm",
+                      variant: "plain",
+                      color: "neutral",
+                      children: materialIcon("Close"),
+                      on: {
+                        click: {
+                          detachedFromNode: true,
+                          procedure: [
+                            scalar(`prev_id`, props.value),
+                            ...props.setValue(`null`),
+                            ...doEdit({
+                              ...opts,
+                              dbValue: `null`,
+                              fieldName: field.name,
+                              recordId: props.recordId,
+                              resetValue: props.setValue(`prev_id`),
+                            }),
+                          ],
+                        },
+                      },
+                    })
+                  ),
+                ],
+              }),
           ifNode(
             props.editing,
             recordSelectDialog({
@@ -180,6 +223,10 @@ function foreignKeyCell(opts: BaseFieldCellOpts, field: ForeignKeyField): Cell {
                       recordId: props.recordId,
                       resetValue: [],
                     }),
+                  ],
+                  [
+                    modify(`update ui.editing_state set is_editing = false`),
+                    modify(`update ui.focus_state set should_focus = true`),
                   ]
                 ),
               ],
@@ -209,6 +256,20 @@ function enumCell(opts: BaseFieldCellOpts, field: EnumField): Cell {
     if (opts.immutable) {
       return display;
     }
+    const options = Object.values(enumModel.values).map((v) =>
+      element("option", {
+        children: stringLiteral(v.displayName),
+        props: { value: stringLiteral(v.name) },
+      })
+    );
+    if (!field.notNull) {
+      options.unshift(
+        element("option", {
+          children: stringLiteral("No value"),
+          props: { value: stringLiteral("''") },
+        })
+      );
+    }
     const handlers = fieldEditorEventHandlers({
       ...opts,
       fieldName: field.name,
@@ -217,7 +278,10 @@ function enumCell(opts: BaseFieldCellOpts, field: EnumField): Cell {
       value: props.value,
       setValue: props.setValue,
       validUiValue: `true`,
-      changedUiValue: `cast(ui.value as string) != ${props.value}`,
+      changedUiValue: opts.stringified
+        ? `case when ${props.value} is null then value is not null else value is null or try_cast(${props.value} as enums.${enumModel.name}) != value end`
+        : `case when ${props.value} is null then value is not null else value is null or ${props.value} != value end`,
+      newUiValue: opts.stringified ? `cast(value as string)` : `value`,
       nextCol: props.nextCol,
     });
     return ifNode(
@@ -235,18 +299,13 @@ function enumCell(opts: BaseFieldCellOpts, field: EnumField): Cell {
             element("select", {
               styles: styles.select,
               props: { value: `value`, yolmFocusKey: `true` },
-              children: Object.values(enumModel.values).map((v) =>
-                element("option", {
-                  children: stringLiteral(v.displayName),
-                  props: { value: stringLiteral(v.name) },
-                })
-              ),
+              children: options,
               on: {
                 ...handlers,
                 input: [
                   setScalar(
                     `ui.value`,
-                    `cast(target_value as enums.${enumModel.name}))`
+                    `try_cast(target_value as enums.${enumModel.name}))`
                   ),
                 ],
               },
@@ -284,8 +343,8 @@ function dateCell(opts: BaseFieldCellOpts, field: DateField): Cell {
       recordId,
       value,
       setValue,
-      validUiValue: `true`,
-      changedUiValue: `(${dateValue} is null and value is null) or value != ${dateValue}`,
+      validUiValue: field.notNull ? `value is not null` : `true`,
+      changedUiValue: `case when ${dateValue} is null then value is not null else value is null or ${dateValue} != value end`,
       nextCol,
     });
     const editor = state({
@@ -295,7 +354,10 @@ function dateCell(opts: BaseFieldCellOpts, field: DateField): Cell {
         props: { value: `value`, yolmFocusKey: `true`, type: "'date'" },
         on: {
           ...handlers,
-          input: [setScalar(`ui.value`, `try_cast(target_value as date)`)],
+          input: [
+            setScalar(`ui.value`, `try_cast(target_value as date)`),
+            debugExpr(`ui.value`),
+          ],
         },
       }),
     });
@@ -303,15 +365,17 @@ function dateCell(opts: BaseFieldCellOpts, field: DateField): Cell {
   };
 }
 
-function timeCell(opts: BaseFieldCellOpts, field: TimeField): Cell {
+function timestampCell(opts: BaseFieldCellOpts, field: TimestampField): Cell {
   return (props) => {
-    const formatString = field.formatString ?? "%H:%I%p";
-    const timeValue = opts.stringified
-      ? `try_cast(${props.value} as time)`
+    const formatString = field.formatString ?? "%-d %b %Y %l:%M%p";
+    const timestampValue = opts.stringified
+      ? `try_cast(${props.value} as timestamp)`
       : props.value;
     const display = element("span", {
       styles: sharedStyles.ellipsisSpan,
-      children: `format.date(${timeValue}, ${stringLiteral(formatString)})`,
+      children: `format.date(${timestampValue}, ${stringLiteral(
+        formatString
+      )})`,
     });
     if (opts.immutable) {
       return display;
@@ -324,18 +388,22 @@ function timeCell(opts: BaseFieldCellOpts, field: TimeField): Cell {
       recordId,
       value,
       setValue,
-      validUiValue: `true`,
-      changedUiValue: `(${timeValue} is null and value is null) or value != ${timeValue}`,
+      validUiValue: field.notNull ? `value is not null` : `true`,
+      changedUiValue: `case when ${timestampValue} is null then value is not null else value is null or ${timestampValue} != value end`,
       nextCol,
     });
     const editor = state({
-      procedure: [scalar(`value`, timeValue)],
+      procedure: [scalar(`value`, timestampValue)],
       children: element("input", {
         styles: sharedStyles.cellInput,
-        props: { value: `value`, yolmFocusKey: `true`, type: "'time'" },
+        props: {
+          value: `case when value is not null then format.date(value, '%Y-%m-%dT%H:%M') else '' end`,
+          yolmFocusKey: `true`,
+          type: "'datetime-local'",
+        },
         on: {
           ...handlers,
-          input: [setScalar(`ui.value`, `try_cast(target_value as time)`)],
+          input: [setScalar(`ui.value`, `try_cast(target_value as timestamp)`)],
         },
       }),
     });
@@ -405,22 +473,14 @@ function numericField(
     if (opts.immutable) {
       return display;
     }
-    const { value, recordId, setValue, nextCol } = props;
-    const handlers = fieldEditorEventHandlers({
-      fieldName: field.name,
-      tableName: opts.tableName,
-      dbValue: `try_cast(value as ${typeName})`,
-      recordId,
-      value,
-      setValue: (v) => setValue(`try_cast(${v} as ${typeName})`),
-      validUiValue: `try_cast(value as ${typeName}) is not null`,
-      changedUiValue: opts.stringified
-        ? `(${value} is null and value is null) or value != ${value}`
-        : `(cast(${value} as string) is null and value is null) or value != cast(${value} as string)`,
-      nextCol,
-    });
+    const handlers = castEventHandlers(opts, field, props, typeName);
     const editor = state({
-      procedure: [scalar(`value`, `cast(${numberValue} as string)`)],
+      procedure: [
+        scalar(
+          `value`,
+          `coalesce(start_edit_with_char, cast(${props.value} as string))`
+        ),
+      ],
       children: element("input", {
         styles: sharedStyles.cellInput,
         props: {
@@ -451,16 +511,75 @@ function stringCell(opts: BaseFieldCellOpts, field: StringField): Cell {
     const handlers = fieldEditorEventHandlers({
       fieldName: field.name,
       tableName: opts.tableName,
-      dbValue: `value`,
+      dbValue: `case when value = '' then null else value end`,
       recordId,
       value,
       setValue,
-      validUiValue: `true`,
-      changedUiValue: `(${value} is null and trim(ui.value) != '') or ui.value != ${value}`,
+      validUiValue: field.notNull ? `value != ''` : `true`,
+      changedUiValue: `(${value} is null and ui.value != '') or ui.value != ${value}`,
       nextCol,
     });
     const editor = state({
       procedure: [scalar(`value`, `coalesce(start_edit_with_char, ${value})`)],
+      children: element("input", {
+        styles: sharedStyles.cellInput,
+        props: { value: `value`, yolmFocusKey: `true`, type: "'text'" },
+        on: {
+          ...handlers,
+          input: [setScalar(`ui.value`, `target_value`)],
+        },
+      }),
+    });
+    return ifNode(props.editing, editor, display);
+  };
+}
+
+function castEventHandlers(
+  opts: BaseFieldCellOpts,
+  field: FieldBase,
+  props: CellProps,
+  typeName: string
+) {
+  const { value, recordId, setValue, nextCol } = props;
+  return fieldEditorEventHandlers({
+    fieldName: field.name,
+    tableName: opts.tableName,
+    dbValue: field.notNull
+      ? `cast(value as ${typeName})`
+      : `try_cast(value as ${typeName})`,
+    recordId,
+    value,
+    setValue,
+    validUiValue: field.notNull
+      ? `try_cast(value as ${typeName}) is not null`
+      : `value = '' or try_cast(value as ${typeName}) is not null`,
+    changedUiValue: opts.stringified
+      ? `case when ${value} is null then value != '' else ${value} != value end`
+      : `case when ${value} is null then value != '' else cast(${value} as string) != value end`,
+    nextCol,
+    newUiValue: opts.stringified
+      ? `case when value = '' then null else value end`
+      : `try_cast(value as ${typeName})`,
+  });
+}
+
+function uuidCell(opts: BaseFieldCellOpts, field: UuidField): Cell {
+  return (props) => {
+    const display = element("span", {
+      styles: sharedStyles.ellipsisSpan,
+      children: props.value,
+    });
+    if (opts.immutable) {
+      return display;
+    }
+    const handlers = castEventHandlers(opts, field, props, "uuid");
+    const editor = state({
+      procedure: [
+        scalar(
+          `value`,
+          `coalesce(start_edit_with_char, cast(${props.value} as string))`
+        ),
+      ],
       children: element("input", {
         styles: sharedStyles.cellInput,
         props: { value: `value`, yolmFocusKey: `true`, type: "'text'" },
@@ -496,13 +615,25 @@ function boolCell(opts: BaseFieldCellOpts, field: BoolField): Cell {
         value: props.value,
         setValue: props.setValue,
         validUiValue: `true`,
-        changedUiValue: `coalesce(${props.value}, '') != ui.value`,
+        changedUiValue: opts.stringified
+          ? `case when ${props.value} is null then value is not null else ${props.value} != value end`
+          : `case when ${props.value} is null then value is not null else cast(${props.value} as string) != value end`,
         nextCol: props.nextCol,
+        newUiValue: opts.stringified
+          ? `ui.value`
+          : `try_cast(ui.value as bool)`,
       });
       return ifNode(
         props.editing,
         state({
-          procedure: [scalar(`value`, props.value)],
+          procedure: [
+            scalar(
+              `value`,
+              opts.stringified
+                ? props.value
+                : `coalesce(cast(${props.value} as string), '')`
+            ),
+          ],
           children: element("div", {
             styles: styles.selectWrapper,
             children: [
@@ -587,6 +718,9 @@ function boolCell(opts: BaseFieldCellOpts, field: BoolField): Cell {
 function durationCell(opts: BaseFieldCellOpts, field: DurationField): Cell {
   if (field.size === "minutes") {
     return (props) => {
+      const bigintValue = opts.stringified
+        ? `try_cast(${props.value} as bigint)`
+        : props.value;
       const handlers = fieldEditorEventHandlers({
         ...opts,
         fieldName: field.name,
@@ -594,10 +728,16 @@ function durationCell(opts: BaseFieldCellOpts, field: DurationField): Cell {
         recordId: props.recordId,
         value: props.value,
         setValue: props.setValue,
-        validUiValue: `sfn.parse_minutes_duration(ui.input_value) is not null`,
-        changedUiValue: `coalesce(try_cast(${props.value} as bigint), 0) != coalesce(sfn.parse_minutes_duration(ui.input_value), 0)`,
+        validUiValue: field.notNull
+          ? `sfn.parse_minutes_duration(input_value) is not null`
+          : `input_value = '' or sfn.parse_minutes_duration(input_value) is not null`,
+        changedUiValue: field.notNull
+          ? `${bigintValue} != sfn.parse_minutes_duration(input_value)`
+          : `(input_value = '' and ${props.value} is not null) or (input_value != '' and ${props.value} is null) or ${bigintValue} != sfn.parse_minutes_duration(input_value)`,
         nextCol: props.nextCol,
-        newUiValue: `cast(sfn.parse_minutes_duration(ui.input_value) as string)`,
+        newUiValue: opts.stringified
+          ? `cast(sfn.parse_minutes_duration(input_value) as string)`
+          : `sfn.parse_minutes_duration(input_value)`,
       });
       return ifNode(
         props.editing,
@@ -683,14 +823,7 @@ function imageCell(opts: BaseFieldCellOpts, group: ImageSetFieldGroup): Cell {
                           triggerQueryRefresh(),
                         ]),
                       ],
-                      catch: [
-                        setScalar(`ui.display_edit_failure`, `true`),
-                        spawn([
-                          delay(`4000`),
-                          setScalar(`ui.display_edit_failure`, `false`),
-                          commitUiChanges(),
-                        ]),
-                      ],
+                      catch: displayEditError(`Upload failed`),
                     }),
                     setScalar(`uploading`, `false`),
                   ],
@@ -791,21 +924,20 @@ export function fieldCell(opts: FieldCellOpts): Cell {
           return imageCell(opts, group);
         }
       }
-      return ({ value }) =>
-        element("span", {
-          styles: sharedStyles.ellipsisSpan,
-          children: value,
-        });
+      return uuidCell(opts, opts.field);
     case "Ordering":
-      throw new Error("Ordering fields are not supported");
     case "Time":
-      return timeCell(opts, opts.field);
+      throw new Error(`${opts.field.name} fields are not supported`);
     case "Timestamp":
+      return timestampCell(opts, opts.field);
     case "Tx":
-      return ({ value }) =>
-        element("span", {
-          styles: sharedStyles.ellipsisSpan,
-          children: value,
-        });
+      // not ideal validation, but it's fine for now
+      return numericField(opts, {
+        type: "BigUint",
+        name: opts.field.name,
+        displayName: opts.field.displayName,
+        checks: [],
+        ext: {},
+      });
   }
 }

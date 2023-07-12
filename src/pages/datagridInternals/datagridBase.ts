@@ -4,6 +4,7 @@ import { DataGridStyles, Node } from "../../nodeTypes.js";
 import {
   block,
   commitTransaction,
+  debugExpr,
   forEachQuery,
   forEachTable,
   if_,
@@ -875,6 +876,12 @@ function addDgFilterOp() {
         "date_lte",
         "date_gt",
         "date_gte",
+        "timestamp_eq",
+        "timestamp_ne",
+        "timestamp_lt",
+        "timestamp_lte",
+        "timestamp_gt",
+        "timestamp_gte",
         "enum_eq",
         "enum_ne",
         "fk_eq",
@@ -906,6 +913,17 @@ function addDgFilterOp() {
             "date_lte",
             "date_gt",
             "date_gte",
+          ],
+        },
+        {
+          name: "is_timestamp_filter_op",
+          trues: [
+            "timestamp_eq",
+            "timestamp_ne",
+            "timestamp_lt",
+            "timestamp_lte",
+            "timestamp_gt",
+            "timestamp_gte",
           ],
         },
         {
@@ -1069,6 +1087,31 @@ function addDgFilterOp() {
         [
           "'date_gte'",
           `"coalesce(input.col_name || '>=' || dt.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')"`,
+        ],
+        // timestamp
+        [
+          "'timestamp_eq'",
+          `"coalesce('cast(' || input.col_name || ' as date) =' || dt.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')"`,
+        ],
+        [
+          "'timestamp_ne'",
+          `"coalesce('cast(' || input.col_name || ' as date) !=' || dt.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')"`,
+        ],
+        [
+          "'timestamp_lt'",
+          `"coalesce('cast(' || input.col_name || ' as date) <' || dt.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')"`,
+        ],
+        [
+          "'timestamp_lte'",
+          `"coalesce('cast(' || input.col_name || ' as date) <=' || dt.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')"`,
+        ],
+        [
+          "'timestamp_gt'",
+          `"coalesce('cast(' || input.col_name || ' as date) >' || dt.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')"`,
+        ],
+        [
+          "'timestamp_gte'",
+          `"coalesce('cast(' || input.col_name || ' as date) >=' || dt.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')"`,
         ],
         // enum
         [

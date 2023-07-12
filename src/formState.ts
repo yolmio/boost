@@ -12,6 +12,7 @@ import type {
 } from "./yom.js";
 import {
   advanceCursor,
+  block,
   commitTransaction,
   commitUiChanges,
   createQueryCursor,
@@ -490,16 +491,20 @@ export function withFormState(opts: FormStateOpts): StateNode {
 export function getNormalizedValue(field: Field, valueExpr: string): string {
   switch (field.type) {
     case "String":
-      return `case when trim(${valueExpr}) != '' then ${valueExpr} else null end`;
+      return `case when trim(${valueExpr}) != '' then trim(${valueExpr}) end`;
     case "TinyInt":
     case "TinyUint":
     case "SmallInt":
-      return `case when trim(${valueExpr}) != '' then cast(${valueExpr} as smallint) else null end`;
+      return `case when ${valueExpr} != '' then cast(${valueExpr} as smallint) end`;
     case "SmallUint":
     case "Int":
-      return `case when trim(${valueExpr}) != '' then cast(${valueExpr} as int) else null end`;
+      return `case when ${valueExpr} != '' then cast(${valueExpr} as int) end`;
+    case "Uint":
+    case "BigInt":
+    case "BigUint":
+      return `case when ${valueExpr} != '' then cast(${valueExpr} as bigint) end`;
     case "Decimal":
-      return `case when trim(${valueExpr}) != '' then cast(${valueExpr} as decimal(${field.precision}, ${field.scale})) else null end`;
+      return `case when ${valueExpr} != '' then cast(${valueExpr} as decimal(${field.precision}, ${field.scale})) end`;
     case "Duration": {
       switch (field.size) {
         case "minutes":
@@ -507,6 +512,10 @@ export function getNormalizedValue(field: Field, valueExpr: string): string {
           return `sfn.parse_minutes_duration(${valueExpr})`;
       }
     }
+    case "Tx":
+      return `case when ${valueExpr} != '' then cast(${valueExpr} as bigint) end`;
+    case "Uuid":
+      return `case when ${valueExpr} != '' then cast(${valueExpr} as uuid) end`;
 
     default:
       return valueExpr;
@@ -525,7 +534,7 @@ function addMinuteDurationFns() {
     ],
     returnType: { type: "BigInt" },
     procedure: [
-      try_({
+      try_<BasicStatement>({
         body: [
           scalar(`total`, { type: "BigInt" }),
           createQueryCursor(
@@ -540,6 +549,7 @@ function addMinuteDurationFns() {
           if_(`input.value like '-%'`, [setScalar(`total`, `total * -1`)]),
           returnExpr(`total`),
         ],
+        catch: [exit()],
       }),
     ],
   });
@@ -558,34 +568,36 @@ function addMinuteDurationFns() {
 }
 
 export function formFieldType(field: Field): FieldType {
-  if (field.type === "ForeignKey") {
-    return { type: "BigUint" };
+  switch (field.type) {
+    // in the ui procs, we don't want to error on going over max length so we can provide better error messages
+    case "String":
+    case "TinyUint":
+    case "TinyInt":
+    case "Decimal":
+    case "SmallInt":
+    case "SmallUint":
+    case "Int":
+    case "Uint":
+    case "Duration":
+    case "Uuid":
+    case "BigInt":
+    case "Real":
+    case "Double":
+    case "BigUint":
+    case "Tx":
+      return { type: "String", maxLength: 65_000 };
+    case "ForeignKey":
+      return { type: "BigUint" };
+    case "Enum":
+      return { type: "Enum", enum: field.enum };
+    case "Bool":
+    case "Date":
+    case "Timestamp":
+      return { type: field.type };
+    case "Ordering":
+    case "Time":
+      throw new Error(`${field.type} not supported in forms`);
   }
-  // in the ui procs, we don't want to error on going over max length so we can provide better error messages
-  if (
-    field.type === "String" ||
-    field.type === "TinyUint" ||
-    field.type === "TinyInt" ||
-    field.type === "Decimal" ||
-    field.type === "SmallInt" ||
-    field.type === "SmallUint" ||
-    field.type === "Int" ||
-    field.type === "Uint" ||
-    field.type === "Duration"
-  ) {
-    return { type: "String", maxLength: 65_000 };
-  }
-  if (field.type === "Enum") {
-    return { type: "Enum", enum: field.enum };
-  }
-  if (field.type === "Bool") {
-    return { type: "Bool" };
-  }
-  if (field.type === "Date") {
-    return { type: "Date" };
-  }
-  throw new Error("Todo handle field: " + field.type);
-  // return ty;
 }
 
 interface InsertFormState {
@@ -742,6 +754,9 @@ export function withMultiInsertFormState(
               ]),
             ],
             catch: [
+              debugExpr(`err.type`),
+              debugExpr(`err.message`),
+              debugExpr(`err.description`),
               formState.setFormError("'Unable to submit form'"),
               formState.setSubmitting(`false`),
               exit(),
@@ -773,10 +788,6 @@ export interface WithInsertFormStateOpts extends BaseInsertFormStateOpts {
 export interface BaseInsertFormStateOpts {
   defaultInitialValue?: (field: Field) => string;
   defaultPrepare?: (field: Field, value: string) => string;
-  // defaultValidate?: (
-  //   field: Field,
-  //   props: FormValidateProps,
-  // ) => ClientProcStatement[];
 
   withValues?: Record<string, string>;
   afterSubmitClient?: (state: FormState) => ClientProcStatement[];
@@ -982,6 +993,9 @@ export function withInsertFormState(opts: WithInsertFormStateOpts): StateNode {
             ],
             errorName: `err`,
             catch: [
+              debugExpr(`err.type`),
+              debugExpr(`err.message`),
+              debugExpr(`err.description`),
               if_(
                 `err.type = 'unique_violation'`,
                 [
@@ -1006,14 +1020,24 @@ export function withInsertFormState(opts: WithInsertFormStateOpts): StateNode {
   });
 }
 
-export function defaultInitialValue(field: Field) {
+export function defaultInitialValue(field: Field): string {
   switch (field.type) {
-    case "String":
-      return `''`;
     case "Bool":
       return field.notNull ? `false` : `null`;
+    case "String":
     case "TinyUint":
+    case "TinyInt":
     case "Decimal":
+    case "SmallInt":
+    case "SmallUint":
+    case "Int":
+    case "Uint":
+    case "Duration":
+    case "Uuid":
+    case "BigInt":
+    case "Real":
+    case "Double":
+    case "BigUint":
       return `''`;
     case "Enum":
       if (field.notNull) {
@@ -1022,11 +1046,14 @@ export function defaultInitialValue(field: Field) {
         return `cast(${stringLiteral(firstValue.name)} as enums.${enum_.name})`;
       }
       return `null`;
-    default:
-      // if (field.notNull) {
-      //   throw new Error("todo");
-      // }
-      return `null`;
+    case "Date":
+    case "Timestamp":
+    case "ForeignKey":
+    case "Tx":
+      return "null";
+    case "Ordering":
+    case "Time":
+      throw new Error(`${field.type} not implemented for forms`);
   }
 }
 
@@ -1079,29 +1106,161 @@ export function defaultValidate(
         );
       }
       break;
-    // case "Email":
-    //   if (field.notNull) {
-    //     statements.push(
-    //       if_(
-    //         `${value} is null or trim(${value}) = ''`,
-    //         setError(`'Required'`),
-    //       ),
-    //     );
-    //   }
-    //   statements.push(
-    //     if_(
-    //       `${error} is null and ${value} is not null and trim(${value}) != '' and not regex.is_match(${value}, ${sqlEmailRegex})`,
-    //       setError(`'Expected a valid email'`),
-    //     ),
-    //   );
-    //   statements.push(
-    //     if_(
-    //       `${error} is null and ${value} is not null and char_length(${value}) > 254`,
-    //       setError(`'Expected at most 254 characters'`),
-    //     ),
-    //   );
-    //   break;
     case "Bool":
+      break;
+    case "TinyInt":
+    case "TinyUint":
+    case "SmallInt":
+    case "SmallUint":
+    case "Int":
+    case "Uint":
+    case "BigInt":
+    case "BigUint": {
+      let min = field.min;
+      let max = field.max;
+      if (!min) {
+        switch (field.type) {
+          case "TinyUint":
+          case "SmallUint":
+          case "Uint":
+          case "BigUint":
+            min = "0";
+            break;
+          case "TinyInt":
+            min = "-128";
+            break;
+          case "SmallInt":
+            min = "-32768";
+            break;
+          case "Int":
+            min = "-2147483648";
+            break;
+          case "BigInt":
+            min = "-9223372036854775808";
+            break;
+        }
+      }
+      if (!max) {
+        switch (field.type) {
+          case "TinyUint":
+            max = "255";
+            break;
+          case "SmallUint":
+            max = "65535";
+            break;
+          case "Uint":
+            max = "4294967295";
+            break;
+          case "TinyInt":
+            max = "127";
+            break;
+          case "SmallInt":
+            max = "32767";
+            break;
+          case "Int":
+            max = "2147483647";
+            break;
+          case "BigUint":
+          case "BigInt":
+            max = "9223372036854775807";
+            break;
+        }
+      }
+      if (field.notNull) {
+        statements.push(
+          if_(`${value} is null or trim(${value}) = ''`, setError(`'Required'`))
+        );
+      }
+      statements.push(
+        block([
+          scalar(`as_bigint`, `try_cast(${value} as bigint)`),
+          if_(
+            `${error} is null and ${value} is not null and trim(${value}) != '' and as_bigint is null`,
+            setError(`'Not a valid number'`)
+          ),
+          if_(
+            `${error} is null and ${value} is not null and trim(${value}) != '' and as_bigint is not null and as_bigint < ${min}`,
+            setError(`'Must be at least ${min}'`)
+          ),
+          if_(
+            `${error} is null and ${value} is not null and trim(${value}) != '' and as_bigint is not null and as_bigint > ${max}`,
+            setError(`'Must be at most ${min}'`)
+          ),
+        ])
+      );
+    }
+    case "Real":
+      if (field.notNull) {
+        statements.push(
+          if_(`${value} is null or trim(${value}) = ''`, setError(`'Required'`))
+        );
+      }
+      statements.push(
+        if_(
+          `${error} is null and ${value} is not null and trim(${value}) != '' and try_cast(${value} as real) is null`,
+          setError(`'Not a valid number'`)
+        )
+      );
+      break;
+    case "Double":
+      if (field.notNull) {
+        statements.push(
+          if_(`${value} is null or trim(${value}) = ''`, setError(`'Required'`))
+        );
+      }
+      statements.push(
+        if_(
+          `${error} is null and ${value} is not null and trim(${value}) != '' and try_cast(${value} as double) is null`,
+          setError(`'Not a valid number'`)
+        )
+      );
+      break;
+    case "Decimal": {
+      if (field.notNull) {
+        statements.push(
+          if_(`${value} is null or trim(${value}) = ''`, setError(`'Required'`))
+        );
+      }
+      // eventually I should improve the error message here
+      statements.push(
+        block([
+          scalar(
+            `as_decimal`,
+            `try_cast(${value} as decimal(${field.precision}, ${field.scale}))`
+          ),
+          if_(
+            `${error} is null and ${value} is not null and trim(${value}) != '' and as_decimal is null`,
+            setError(`'Not a valid decimal'`)
+          ),
+        ])
+      );
+      break;
+    }
+    case "Uuid":
+      if (field.notNull) {
+        statements.push(
+          if_(`${value} is null or trim(${value}) = ''`, setError(`'Required'`))
+        );
+      }
+      statements.push(
+        if_(
+          `${error} is null and ${value} is not null and trim(${value}) != '' and try_cast(${value} as uuid) is null`,
+          setError(`'Invalid UUID'`)
+        )
+      );
+      break;
+    case "Tx":
+      if (field.notNull) {
+        statements.push(
+          if_(`${value} is null or trim(${value}) = ''`, setError(`'Required'`))
+        );
+      }
+      statements.push(
+        if_(
+          `${error} is null and ${value} is not null and trim(${value}) != '' and try_cast(${value} as bigint) is null`,
+          setError(`'Tx id must be a number'`)
+        )
+      );
       break;
   }
   return statements;
