@@ -138,12 +138,12 @@ addTable("supplier", (table) => {
 });
 
 addTable("order", (table) => {
-  table.fk("customer");
-  table.fk("employee");
+  table.fk("customer").notNull();
+  table.fk("employee").notNull();
   table.date("order_date");
   table.date("required_date");
   table.date("shipped_date");
-  table.fk("ship_via", "shipper");
+  table.fk("ship_via", "shipper").notNull();
   table
     .decimal("freight", { precision: 10, scale: 2, signed: false })
     .default("0");
@@ -158,8 +158,8 @@ addTable("order", (table) => {
 
 addTable("product", (table) => {
   table.string("name", 40).notNull();
-  table.fk("supplier");
-  table.fk("category");
+  table.fk("supplier").notNull();
+  table.fk("category").notNull();
   table.string("quantity_per_unit", 20);
   table.money("unit_price", { precision: 10, scale: 2 }).default("0");
   table.smallUint("units_in_stock").default("0");
@@ -523,6 +523,7 @@ const orderFormPartStyles = { gridColumnSpan: 12, lg: { gridColumnSpan: 3 } };
 
 insertFormPage({
   table: "order",
+  withValues: { employee: "current_user()" },
   content: {
     type: "TwoColumnSectioned",
     sections: [

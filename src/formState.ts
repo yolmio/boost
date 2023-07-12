@@ -831,6 +831,7 @@ export function withInsertFormState(opts: WithInsertFormStateOpts): StateNode {
   const relations: {
     tableModel: Table;
     sharedFields: ComputedField[];
+    withValues?: Record<string, string>;
     fields: ComputedField[];
     formFields: FormStateField[];
     foreignKeyField: string;
@@ -878,6 +879,7 @@ export function withInsertFormState(opts: WithInsertFormStateOpts): StateNode {
         sharedFields,
         tableModel: relationTable,
         foreignKeyField,
+        withValues: relation.withValues,
       });
     }
   }
@@ -926,7 +928,7 @@ export function withInsertFormState(opts: WithInsertFormStateOpts): StateNode {
             const insertFields = [
               ...relation.sharedFields.map((f) => f.fieldModel.name),
               ...relation.fields.map((f) => f.fieldModel.name),
-              ...(opts.withValues ? Object.keys(opts.withValues) : []),
+              ...(relation.withValues ? Object.keys(relation.withValues) : []),
             ].join(",");
             const insertValues = [
               ...relation.sharedFields.map((f) =>
@@ -941,7 +943,9 @@ export function withInsertFormState(opts: WithInsertFormStateOpts): StateNode {
                   cursor.field(f.formStateName).value
                 )
               ),
-              ...(opts.withValues ? Object.values(opts.withValues) : []),
+              ...(relation.withValues
+                ? Object.values(relation.withValues)
+                : []),
             ].join(",");
             return modify(
               `insert into db.${ident(

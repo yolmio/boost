@@ -17,8 +17,15 @@ export interface SectionedInsertFormPageOpts {
   table: string;
   path?: string;
   content: InsertFormContent;
-  afterSubmitClient?: (state: FormState) => ClientProcStatement[];
+  withValues?: Record<string, string>;
   afterSubmitService?: (state: FormState) => ServiceProcStatement[];
+  afterSubmitClient?: (state: FormState) => ClientProcStatement[];
+  beforeSubmitClient?: (state: FormState) => ClientProcStatement[];
+  beforeTransaction?: (state: FormState) => ServiceProcStatement[];
+  /** Runs before the insert */
+  serviceCheck?: (state: FormState) => ServiceProcStatement[];
+  /** Like afterSubmitService, but runs as part of the same transaction as the insert */
+  postInsert?: (state: FormState) => ServiceProcStatement[];
 }
 
 const styles = createStyles({
@@ -46,8 +53,13 @@ export function insertFormPage(opts: SectionedInsertFormPageOpts) {
     table: opts.table,
     fields,
     relations,
-    afterSubmitClient: opts.afterSubmitClient,
+    withValues: opts.withValues,
     afterSubmitService: opts.afterSubmitService,
+    afterSubmitClient: opts.afterSubmitClient,
+    serviceCheck: opts.serviceCheck,
+    postInsert: opts.postInsert,
+    beforeSubmitClient: opts.beforeSubmitClient,
+    beforeTransaction: opts.beforeTransaction,
     children: ({ formState, onSubmit }) =>
       insertFormContent(opts.content, {
         formState,
