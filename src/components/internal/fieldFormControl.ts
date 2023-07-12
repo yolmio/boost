@@ -117,6 +117,7 @@ export function fieldFormControl(opts: FieldFormControlOpts): Node | undefined {
     case "Enum":
       return enumSelect({
         enum: field.enum,
+        emptyOption: field.notNull ? undefined : "'No value'",
         slots: { select: { props: { id, value: fieldHelper.value } } },
         on: {
           input: [
