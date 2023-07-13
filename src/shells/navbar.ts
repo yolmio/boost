@@ -58,10 +58,6 @@ const styles = createStyles({
     display: "flex",
     gap: 1.5,
   },
-  actionButtonWrapper: {
-    display: "none",
-    sm: { display: "flex" },
-  },
   searchButton: () => {
     return {
       appearance: "none",
@@ -90,12 +86,19 @@ const styles = createStyles({
       border: "1px solid",
       borderColor: "divider",
       paddingLeft: "0.5rem",
-      paddingRight: "0.75rem",
+      paddingRight: "0.5rem",
+      sm: {
+        paddingRight: "0.75rem",
+      },
     };
   },
   searchButtonStartIcon: {
     display: "inherit",
-    marginRight: "0.5rem",
+    sm: { marginRight: "0.5rem" },
+  },
+  searchButtonLabel: {
+    display: "none",
+    sm: { display: "inline" },
   },
   linksDivider: {
     my: 1,
@@ -195,10 +198,7 @@ export function navbarShell(opts: NavbarProps) {
           styles: styles.navRight,
           children: [
             opts.primaryActionButton
-              ? element("div", {
-                  styles: styles.actionButtonWrapper,
-                  children: button(opts.primaryActionButton),
-                })
+              ? button(opts.primaryActionButton)
               : undefined,
             hasSearchDialog
               ? element("button", {
@@ -208,9 +208,12 @@ export function navbarShell(opts: NavbarProps) {
                       styles: styles.searchButtonStartIcon,
                       children: materialIcon("Search"),
                     }),
-                    opts.searchDialog
-                      ? `'Find ${opts.searchDialog.table}…'`
-                      : `'Search…'`,
+                    element("span", {
+                      styles: styles.searchButtonLabel,
+                      children: opts.searchDialog
+                        ? `'Find ${opts.searchDialog.table}…'`
+                        : `'Search…'`,
+                    }),
                   ],
                   on: { click: [setScalar(`ui.searching`, `true`)] },
                 })

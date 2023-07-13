@@ -753,6 +753,7 @@ export function withMultiInsertFormState(
                 ...(opts.afterSubmitService?.(formState) ?? []),
               ]),
             ],
+            errorName: "err",
             catch: [
               debugExpr(`err.type`),
               debugExpr(`err.message`),

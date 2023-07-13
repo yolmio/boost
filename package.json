@@ -24,6 +24,7 @@
     "./singleton": "./dist/singleton.js",
     "./migrate": "./dist/migrate.js",
     "./profile": "./dist/profile.js",
+    "./styleUtils": "./dist/styleUtils.js",
     "./components/datagrid": "./dist/components/datagrid/index.js",
     "./utils/*": "./dist/utils/*.js",
     "./components/*": "./dist/components/*.js",
@@ -52,6 +53,9 @@
       ],
       "formState": [
         "./dist/formState.d.ts"
+      ],
+      "styleUtils": [
+        "./dist/styleUtils.d.ts"
       ],
       "procHelpers": [
         "./dist/procHelpers.d.ts"

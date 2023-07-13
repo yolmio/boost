@@ -96,9 +96,16 @@ export function fieldFormControl(opts: FieldFormControlOpts): Node | undefined {
     case "SmallInt":
     case "Int":
     case "BigInt":
-    case "Decimal":
+    case "Decimal": {
+      let startDecorator;
+      if ("usage" in field && field.usage) {
+        if (field.usage.type === "Money") {
+          startDecorator = materialIcon("AttachMoney");
+        }
+      }
       return input({
         error: opts.fieldHelper.hasError,
+        startDecorator,
         slots: {
           input: {
             props: {
@@ -113,6 +120,7 @@ export function fieldFormControl(opts: FieldFormControlOpts): Node | undefined {
           },
         },
       });
+    }
 
     case "Enum":
       return enumSelect({
