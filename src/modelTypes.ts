@@ -107,7 +107,7 @@ export interface VirtualField {
 
 export type VirtualType =
   | { type: yom.SimpleScalarTypes }
-  | { type: yom.ScalarIntegerTypes }
+  | { type: yom.ScalarIntegerTypes; usage?: IntegerUsage }
   | { type: "Decimal"; precision: number; scale: number }
   | { type: "ForeignKey"; table: string }
   | { type: "Enum"; enum: string }
@@ -152,28 +152,71 @@ export interface StringField extends FieldBase {
 interface NumericFieldBase extends FieldBase {
   min?: string;
   max?: string;
-  displayText?: (field: string) => string;
 }
 
-type SimpleNumericField<N extends string> = { type: N } & NumericFieldBase;
+export type DurationSize = "seconds" | "minutes" | "hours";
 
-export type TinyUintField = SimpleNumericField<"TinyUint">;
-export type TinyIntField = SimpleNumericField<"TinyInt">;
-export type SmallUintField = SimpleNumericField<"SmallUint">;
-export type SmallIntField = SimpleNumericField<"SmallInt">;
-export type UintField = SimpleNumericField<"Uint">;
-export type IntField = SimpleNumericField<"Int">;
-export type BigUintField = SimpleNumericField<"BigUint">;
-export type BigIntField = SimpleNumericField<"BigInt">;
+export interface DurationUsage {
+  type: "Duration";
+  size: DurationSize;
+}
 
-export type RealField = SimpleNumericField<"Real">;
-export type DoubleField = SimpleNumericField<"Double">;
+export type Currency = "USD";
 
-export type DecimalUsage =
-  | { type: "Money"; currency: "USD" }
-  | {
-      type: "Percentage";
-    };
+export interface MoneyUsage {
+  type: "Money";
+  currency: Currency;
+}
+
+export type IntegerUsage = DurationUsage | MoneyUsage;
+
+interface IntegerFieldBase extends NumericFieldBase {
+  usage?: IntegerUsage;
+}
+
+export interface TinyUintField extends IntegerFieldBase {
+  type: "TinyUint";
+}
+export interface TinyIntField extends IntegerFieldBase {
+  type: "TinyInt";
+}
+export interface SmallUintField extends IntegerFieldBase {
+  type: "SmallUint";
+}
+export interface SmallIntField extends IntegerFieldBase {
+  type: "SmallInt";
+}
+export interface UintField extends IntegerFieldBase {
+  type: "Uint";
+}
+export interface IntField extends IntegerFieldBase {
+  type: "Int";
+}
+export interface BigUintField extends IntegerFieldBase {
+  type: "BigUint";
+}
+export interface BigIntField extends IntegerFieldBase {
+  type: "BigInt";
+}
+
+export type IntegerField =
+  | TinyUintField
+  | TinyIntField
+  | SmallUintField
+  | SmallIntField
+  | UintField
+  | IntField
+  | BigUintField
+  | BigIntField;
+
+export interface RealField extends NumericFieldBase {
+  type: "Real";
+}
+export interface DoubleField extends NumericFieldBase {
+  type: "Double";
+}
+
+export type DecimalUsage = MoneyUsage | { type: "Percentage" };
 
 export interface DecimalField extends FieldBase {
   type: "Decimal";
@@ -255,14 +298,6 @@ export interface EnumField extends FieldBase {
   enum: string;
 }
 
-export type DurationSize = "seconds" | "minutes" | "hours";
-
-export interface DurationField extends FieldBase {
-  type: "Duration";
-  backing: yom.FieldIntegerTypes;
-  size: DurationSize;
-}
-
 export type Field =
   | StringField
   | NumericFields
@@ -272,7 +307,6 @@ export type Field =
   | EnumField
   | OrderingField
   | UuidField
-  | DurationField
   | TimestampField
   | TimeField
   | TxField;

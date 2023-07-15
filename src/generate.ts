@@ -109,8 +109,6 @@ function generateTable(t: Table): yom.Table {
           },
           ...base,
         };
-      case "Duration":
-        return { type: { type: f.backing }, ...base };
     }
   });
   return {

@@ -228,9 +228,6 @@ function prepareDisplayValue(
       case "ForeignKey":
         type = { type: "BigUint" };
         break;
-      case "Duration":
-        type = { type: field.backing };
-        break;
       default:
         type = { type: field.type as any };
         break;

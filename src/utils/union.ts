@@ -57,9 +57,6 @@ function getTypeKey(field: Field): string {
     case "BigUint":
       return normalizeIntTypes(field.type);
 
-    case "Duration":
-      return normalizeIntTypes(field.backing);
-
     case "String":
       return "String";
 
