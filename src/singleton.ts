@@ -6,6 +6,7 @@ import { ident, stringLiteral } from "./utils/sqlHelpers.js";
 export const model: BoostModel = {
   name: "please-rename",
   title: "please-rename",
+  displayName: "Please Rename",
   theme: createTheme(),
   displayNameConfig: {
     default: defaultGetDisplayName,

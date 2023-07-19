@@ -26,6 +26,7 @@ import { card } from "@yolm/boost/components/card";
 
 model.name = "legal";
 model.title = "Legal";
+model.displayName = "Legal";
 
 /* 
 

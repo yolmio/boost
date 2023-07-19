@@ -464,6 +464,7 @@ export interface SearchConfig {
 export interface BoostModel {
   name: string;
   title: string;
+  displayName: string;
   theme: Theme;
   displayNameConfig: DisplayNameConfig;
   searchConfig: SearchConfig;

@@ -28,6 +28,7 @@ import {
 
 model.name = "northwind";
 model.title = "Northwind Traders";
+model.displayName = "Northwind Traders";
 
 //
 // DATABASE
@@ -44,7 +45,7 @@ addTable("employee", (table) => {
   table.date("hire_date");
   table.fieldGroupFromCatalog({
     type: "address",
-    createFields: { street1: "address" },
+    createFields: { street: "address" },
   });
   table.phoneNumber("home_phone");
   table.string("Extension", 4);
@@ -86,7 +87,7 @@ addTable("customer", (table) => {
   table.string("contact_title", 30);
   table.fieldGroupFromCatalog({
     type: "address",
-    createFields: { street1: "address" },
+    createFields: { street: "address" },
   });
   table.phoneNumber("phone");
   table.phoneNumber("fax");
@@ -117,7 +118,7 @@ addTable("supplier", (table) => {
   table.string("contact_title", 30);
   table.fieldGroupFromCatalog({
     type: "address",
-    createFields: { street1: "address" },
+    createFields: { street: "address" },
   });
   table.phoneNumber("phone");
   table.string("fax", 24);
@@ -151,7 +152,7 @@ addTable("order", (table) => {
     type: "address",
     name: "ship_address",
     prefix: "ship_",
-    createFields: { street1: "ship_address", name: "ship_name" },
+    createFields: { street: "ship_address", name: "ship_name" },
   });
   table.linkable();
 });

@@ -4,6 +4,7 @@ import { model } from "@yolm/boost/singleton";
 
 model.name = "hello_world";
 model.title = "Hello World";
+model.displayName = "Hello World";
 model.dbRunMode = "BrowserSync";
 
 // db

@@ -214,6 +214,7 @@ export function generateYom(): yom.Model {
     // todo make this part of the model
     locale: "en_us",
     name: model.name,
+    displayName: model.displayName,
     title: model.title,
     dbExecutionMode: model.dbRunMode,
     collation: model.collation,
