@@ -604,16 +604,20 @@ function createBreakpoints(values: BreakpointValues): Breakpoints {
 export function createTheme(themeOptions: ThemeOpts = {}): Theme {
   const lightColorScheme = deepmerge(
     defaultLightColorScheme,
-    themeOptions.lightColorSystem
+    themeOptions.lightColorSystem,
+    { clone: true }
   );
   attachColorChannels(lightColorScheme.palette);
   const darkColorScheme = deepmerge(
     defaultDarkColorScheme,
-    themeOptions.darkColorSystem
+    themeOptions.darkColorSystem,
+    { clone: true }
   );
   attachColorChannels(darkColorScheme.palette);
   const breakpoints = createBreakpoints(
-    deepmerge(defaultBreakpointValues, themeOptions.breakpointValues)
+    deepmerge(defaultBreakpointValues, themeOptions.breakpointValues, {
+      clone: true,
+    })
   );
   return {
     lightColorScheme,
@@ -633,7 +637,7 @@ export function createTheme(themeOptions: ThemeOpts = {}): Theme {
     fontWeight: { ...defaultFontWeight, ...themeOptions.fontWeight },
     lineHeight: { ...defaultLineHeight, ...themeOptions.lineHeight },
     letterSpacing: { ...defaultLetterSpacing, ...themeOptions.letterSpacing },
-    typography: { ...defaultTypography, ...themeOptions.typography },
+    typography: deepmerge(defaultTypography, themeOptions.typography),
   };
 }
 

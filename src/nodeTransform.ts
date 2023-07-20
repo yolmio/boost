@@ -425,7 +425,7 @@ function createRulesFromStyle(
     if (value === null || value === undefined || typeof value !== "object") {
       continue;
     }
-    if (key.charCodeAt(0) === 64 /* @ */) {
+    if (key.charCodeAt(0) === 64 /* @ */ && key.includes("media")) {
       if (!selector) {
         throw new Error("Must have parent selector for media query");
       }

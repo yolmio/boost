@@ -188,6 +188,9 @@ function getTransformedUi(): [yom.Node, string] {
     };
   }
   const serializer = new StyleSerializer();
+  for (const style of model.globalStyles) {
+    serializer.addGlobalStyle(style);
+  }
   addRootStyles(serializer, model.theme);
   const node = transformNode(rootNode, (styles, dynamicStyle) => {
     if (!styles) {

@@ -482,6 +482,7 @@ export interface BoostModel {
   scriptDbs: ScriptDb[];
 
   deviceDb: DeviceDb;
+  globalStyles: Style[];
   shell?: (pages: Node) => Node;
   pages: Page[];
 }

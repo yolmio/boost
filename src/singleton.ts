@@ -1,5 +1,5 @@
 import type { Authorization, BoostModel } from "./modelTypes.js";
-import { createTheme } from "./createTheme.js";
+import { ThemeOpts, createTheme } from "./createTheme.js";
 import { normalizeCase, upcaseFirst } from "./utils/inflectors.js";
 import { ident, stringLiteral } from "./utils/sqlHelpers.js";
 
@@ -98,9 +98,14 @@ export const model: BoostModel = {
   scriptDbs: [],
 
   deviceDb: { tables: {} },
+  globalStyles: [],
   pages: [],
 };
 
 function defaultGetDisplayName(sqlName: string) {
   return upcaseFirst(normalizeCase(sqlName).join(" "));
+}
+
+export function setTheme(themeOptions: ThemeOpts) {
+  model.theme = createTheme(themeOptions);
 }

@@ -6,6 +6,20 @@ export function isPlainObject(
   );
 }
 
+export function deepClone<T>(v: T): T {
+  if (Array.isArray(v)) {
+    return v.map(deepClone) as any;
+  }
+  if (isPlainObject(v)) {
+    const output: any = {};
+    for (const i in v) {
+      output[i] = deepClone(v[i]);
+    }
+    return output as T;
+  }
+  return v;
+}
+
 export interface DeepmergeOptions {
   clone?: boolean;
 }
@@ -15,7 +29,7 @@ export function deepmerge<T>(
   source: unknown,
   options: DeepmergeOptions = { clone: true }
 ): T {
-  const output = options.clone ? { ...target } : target;
+  const output = options.clone ? deepClone(target) : target;
 
   if (isPlainObject(target) && isPlainObject(source)) {
     Object.keys(source).forEach((key) => {

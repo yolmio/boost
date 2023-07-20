@@ -112,6 +112,7 @@ const styles = createStyles({
   },
   link: () => ({
     ...buttonStyles.button("plain", "harmonize", "sm", false),
+    fontWeight: "lg",
     "&.active": {
       ...getVariantStyle("soft", "harmonize"),
     },
