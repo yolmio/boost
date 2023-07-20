@@ -56,6 +56,7 @@ import { FormState } from "../../formState.js";
 import { getUniqueUiId } from "../../components/utils.js";
 import { AutoLabelOnLeftFieldOverride } from "../../components/internal/updateFormShared.js";
 import { RecordGridContext } from "./shared.js";
+import { inlineFieldDisplay } from "../../components/internal/fieldInlineDisplay.js";
 
 export const name = "relatedRecordsTimeline";
 
@@ -334,51 +335,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                               })
                             );
                           }
-                          let valueNode;
-                          switch (field.type) {
-                            case "String":
-                              if (field.multiline) {
-                                valueNode = element("p", {
-                                  styles: styles.multilineValue,
-                                  children: recordHelper.field(f),
-                                });
-                              } else {
-                                valueNode = element("span", {
-                                  children: recordHelper.field(f),
-                                });
-                              }
-                              break;
-                            case "Duration":
-                              if (field.size === "minutes") {
-                                valueNode = element("span", {
-                                  children: `sfn.display_minutes_duration(${recordHelper.field(
-                                    f
-                                  )})`,
-                                });
-                              }
-                              break;
-                            case "TinyInt":
-                            case "SmallInt":
-                            case "Int":
-                            case "BigInt":
-                            case "TinyUint":
-                            case "SmallUint":
-                            case "Uint":
-                            case "BigUint":
-                              valueNode = element("span", {
-                                children: field.displayText
-                                  ? field.displayText(recordHelper.field(f))
-                                  : recordHelper.field(f),
-                              });
-                              break;
-                            case "Enum":
-                              valueNode = element("span", {
-                                children: `dt.display_${
-                                  field.enum
-                                }(${recordHelper.field(f)})`,
-                              });
-                              break;
-                          }
+
                           let content = element("div", {
                             styles: styles.itemValueWrapper,
                             children: [
@@ -388,7 +345,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                                   field.displayName
                                 )} || ':'`,
                               }),
-                              valueNode,
+                              inlineFieldDisplay(field, recordHelper.field(f)),
                             ],
                           });
                           if (field.notNull) {

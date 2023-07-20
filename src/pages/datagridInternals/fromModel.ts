@@ -29,6 +29,7 @@ import { lazy } from "../../utils/memoize.js";
 import { materialIcon } from "../../components/materialIcon.js";
 import { Style } from "../../styleTypes.js";
 import { triggerQueryRefresh, resizeableSeperator } from "./shared.js";
+import { Cell } from "./types.js";
 
 function filterTypeFromField(type: Field): FilterType {
   switch (type.type) {
@@ -44,12 +45,15 @@ function filterTypeFromField(type: Field): FilterType {
     case "Real":
     case "Decimal":
     case "Tx":
-      return { type: "number" };
-    case "Duration":
-      if (type.size !== "minutes") {
-        throw new Error("Only minute durations supported right now");
+      if ("usage" in type && type.usage) {
+        if (type.usage.type === "Duration") {
+          if (type.usage.size === "minutes") {
+            return { type: "duration", size: "minutes" };
+          }
+          throw new Error("Only minute durations supported right now");
+        }
       }
-      return { type: "duration", size: "minutes" };
+      return { type: "number" };
     case "String":
     case "Uuid":
       return { type: "string" };
@@ -123,8 +127,6 @@ function getFieldProcFieldType(field: Field): FieldType {
       return { type: "BigUint" };
     case "Enum":
       return { type: "Enum", enum: field.enum };
-    case "Duration":
-      return { type: field.backing };
     case "String":
       return { type: "String", maxLength: field.maxLength };
     case "Decimal":
@@ -194,11 +196,6 @@ function getFieldCellWidth(
       return Math.max(maxValueLength, headerLength);
     }
     return headerLength;
-  }
-  if (field.type === "Duration") {
-    if (field.size === "minutes") {
-      return Math.max(150, headerLength);
-    }
   }
   if (field.type === "Enum") {
     const enum_ = model.enums[field.enum];
@@ -357,7 +354,6 @@ export function columnFromField({
       case "Real":
       case "Decimal":
       case "String":
-      case "Duration":
       case "ForeignKey":
       case "Tx":
         keydownHandler = editWithCharCellKeydownHandler;
@@ -393,7 +389,6 @@ export function columnFromField({
   if (!noSort) {
     switch (field.type) {
       case "Date":
-      case "Duration":
       case "BigInt":
       case "BigUint":
       case "Int":
@@ -479,11 +474,18 @@ export function columnFromVirtual(
   startFixedColumns: number
 ): SuperGridColumn {
   let sort: SortConfig | undefined;
+  let cell: Cell | undefined;
   switch (virtual.type.type) {
-    case "Date":
     case "BigInt":
     case "Int":
     case "SmallInt":
+      if (virtual.type.usage && virtual.type.usage.type === "Duration") {
+        cell = ({ value }) =>
+          `sfn.display_minutes_duration(try_cast(${value} as bigint))`;
+      }
+      sort = numberSortConfig;
+      break;
+    case "Date":
     case "Double":
     case "Real":
     case "Decimal":
@@ -503,7 +505,7 @@ export function columnFromVirtual(
       notNull: false,
     },
     sort,
-    cell: ({ value }) => value,
+    cell: cell ?? (({ value }) => value),
     initiallyDisplaying: true,
     initialWidth: 250,
     header: [
@@ -597,7 +599,6 @@ export function simpleColumnFromField({
       case "Real":
       case "Decimal":
       case "String":
-      case "Duration":
       case "ForeignKey":
       case "Tx":
         keydownHandler = editWithCharCellKeydownHandler;

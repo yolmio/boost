@@ -10,13 +10,14 @@ import {
   DateField,
   DecimalField,
   DoubleField,
-  DurationField,
+  DurationUsage,
   EnumField,
   Field,
   FieldBase,
   ForeignKeyField,
   ImageSetFieldGroup,
   IntField,
+  IntegerField,
   RealField,
   SmallIntField,
   SmallUintField,
@@ -413,18 +414,7 @@ function timestampCell(opts: BaseFieldCellOpts, field: TimestampField): Cell {
 
 function numericField(
   opts: BaseFieldCellOpts,
-  field:
-    | TinyIntField
-    | TinyUintField
-    | SmallIntField
-    | SmallUintField
-    | IntField
-    | UintField
-    | BigIntField
-    | BigUintField
-    | DecimalField
-    | RealField
-    | DoubleField
+  field: IntegerField | DecimalField | RealField | DoubleField
 ): Cell {
   let typeName: string;
   switch (field.type) {
@@ -715,8 +705,12 @@ function boolCell(opts: BaseFieldCellOpts, field: BoolField): Cell {
     });
 }
 
-function durationCell(opts: BaseFieldCellOpts, field: DurationField): Cell {
-  if (field.size === "minutes") {
+function durationCell(
+  opts: BaseFieldCellOpts,
+  field: IntegerField,
+  usage: DurationUsage
+): Cell {
+  if (usage.size === "minutes") {
     return (props) => {
       const bigintValue = opts.stringified
         ? `try_cast(${props.value} as bigint)`
@@ -784,7 +778,7 @@ function durationCell(opts: BaseFieldCellOpts, field: DurationField): Cell {
       );
     };
   }
-  throw new Error("Unsupported duration size: " + field.size);
+  throw new Error("Unsupported duration size: " + usage.size);
 }
 
 function imageCell(opts: BaseFieldCellOpts, group: ImageSetFieldGroup): Cell {
@@ -902,11 +896,6 @@ export function fieldCell(opts: FieldCellOpts): Cell {
       return stringCell(opts, opts.field);
     case "Bool":
       return boolCell(opts, opts.field);
-    case "Duration":
-      return durationCell(opts, opts.field);
-    case "Decimal":
-    case "Double":
-    case "Real":
     case "TinyInt":
     case "SmallInt":
     case "Int":
@@ -915,6 +904,13 @@ export function fieldCell(opts: FieldCellOpts): Cell {
     case "SmallUint":
     case "Uint":
     case "BigUint":
+      if ("usage" in opts.field && opts.field.usage?.type === "Duration") {
+        return durationCell(opts, opts.field, opts.field.usage);
+      }
+      return numericField(opts, opts.field);
+    case "Decimal":
+    case "Double":
+    case "Real":
       return numericField(opts, opts.field);
     case "Uuid":
       if (opts.field.group) {

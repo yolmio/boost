@@ -4,7 +4,8 @@
 export interface Model {
   locale: Locale;
   name: string;
-  title: string,
+  displayName: string;
+  title: string;
   pwaConfig: PwaConfig;
   /** Where and how queries and transactions run against the database */
   dbExecutionMode: DbExecutionMode;
@@ -403,9 +404,9 @@ export interface Table {
 export type UniqueConstraintField =
   | string
   | {
-    field: string;
-    distinctNulls?: boolean;
-  };
+      field: string;
+      distinctNulls?: boolean;
+    };
 
 export interface UniqueConstraint {
   fields: UniqueConstraintField[];
@@ -1321,6 +1322,10 @@ export interface GetBoundingClientRectStatement {
 
 export interface DoServiceProcStatement {
   t: "ServiceProc";
+  /**
+   * Don't execute ancestor allows for. Useful for an unauthorized branch below a state node with an allow
+   */
+  ignoreAncestorAllows?: boolean;
   statements: ServiceProcStatement[];
 }
 
@@ -1552,6 +1557,15 @@ export interface StateNode {
    * Equality is as expected for most types, but null is considered equal to null.
    */
   watch?: SqlExpression[];
+  /**
+   * Expression that will be executed on the service determining if the current user is allowed to execute this
+   * state node or any below.
+   */
+  allow?: string;
+  /**
+   * Don't execute ancestor allows for this state node. Useful for an unauthorized branch below a state node with an allow
+   */
+  ignoreAncestorAllows?: boolean;
   procedure: StateStatement[];
   /** positive integer of miliseconds of delay */
   fallbackDelay?: SqlExpression;
@@ -1571,6 +1585,7 @@ export interface StateNode {
    * fallback_triggered: means that it has been requesting for longer than the fallbackDelay and we might want to show
    *  something else in the ui.
    * failed: means that the state has failed to run.
+   * disallowed: means that the allow returned null or false
    */
   statusScalar?: string;
   /**
@@ -1957,19 +1972,19 @@ export type ElementEventHandlers = Partial<
 export interface FloatingOpts {
   anchorEl: SqlExpression;
   placement:
-  | "'top'"
-  | "'top-start'"
-  | "'top-end'"
-  | "'right'"
-  | "'right-start'"
-  | "'right-end'"
-  | "'bottom'"
-  | "'bottom-start'"
-  | "'bottom-end'"
-  | "'left'"
-  | "'left-start'"
-  | "'left-end'"
-  | SqlExpression;
+    | "'top'"
+    | "'top-start'"
+    | "'top-end'"
+    | "'right'"
+    | "'right-start'"
+    | "'right-end'"
+    | "'bottom'"
+    | "'bottom-start'"
+    | "'bottom-end'"
+    | "'left'"
+    | "'left-start'"
+    | "'left-end'"
+    | SqlExpression;
   strategy: "'absolute'" | "'fixed'" | SqlExpression;
   offset?: {
     mainAxis: SqlExpression;

@@ -283,20 +283,28 @@ const rules: [RegExp, string][] = [
 
 rules.reverse();
 
-export function pluralize(value: string): string {
-  if (uncountables.has(value)) {
-    return value;
+function pluralizeWord(word: string): string {
+  if (uncountables.has(word)) {
+    return word;
   }
-  if (specialCases.has(value)) {
-    return specialCases.get(value)!;
+  if (specialCases.has(word)) {
+    return specialCases.get(word)!;
   }
   for (const [rule, replace] of rules) {
-    const exec = value.match(rule);
+    const exec = word.match(rule);
     if (exec?.[1]) {
       return exec[1] + replace;
     }
   }
-  return value + "s";
+  return word + "s";
+}
+
+export function pluralize(value: string): string {
+  const splitValue = value.split(/-|_|\s/g);
+  const lastWord = splitValue[splitValue.length - 1];
+  return (
+    value.substring(0, value.length - lastWord.length) + pluralizeWord(lastWord)
+  );
 }
 
 export function upcaseFirst(s: string): string {

@@ -6,7 +6,6 @@ import type {
   DecimalUsage,
   DecisionTable,
   DecisionTableOutput,
-  DurationField,
   DurationSize,
   Enum,
   EnumValue,
@@ -14,6 +13,7 @@ import type {
   FieldBase,
   FieldCheck,
   FieldGroup,
+  IntegerUsage,
   NumericFields,
   Page,
   Parameter,
@@ -35,6 +35,17 @@ import {
   applyFieldGroupCatalog,
   FieldGroupCatalog,
 } from "./fieldGroupCatalog.js";
+import {
+  advanceCursor,
+  createQueryCursor,
+  exit,
+  forEachCursor,
+  if_,
+  returnExpr,
+  scalar,
+  setScalar,
+  try_,
+} from "./procHelpers.js";
 
 export class TableBuilder {
   #fields: BaseFieldBuilder[] = [];
@@ -135,19 +146,43 @@ export class TableBuilder {
 
   money(
     name: string,
-    opts: {
-      precision: number;
-      scale: number;
-      signed?: boolean;
-    }
+    opts?:
+      | {
+          precision: number;
+          scale: number;
+          signed?: boolean;
+        }
+      | yom.FieldIntegerTypes
   ) {
+    const usage = { type: "Money", currency: "USD" } as const;
+    if (typeof opts === "string") {
+      switch (opts) {
+        case "TinyUint":
+          return new TinyUintFieldBuilder(name, this, usage);
+        case "SmallUint":
+          return new SmallUintFieldBuilder(name, this, usage);
+        case "Uint":
+          return new UintFieldBuilder(name, this, usage);
+        case "BigUint":
+          return new BigUintFieldBuilder(name, this, usage);
+        case "TinyInt":
+          return new TinyIntFieldBuilder(name, this, usage);
+        case "SmallInt":
+          return new SmallIntFieldBuilder(name, this, usage);
+        case "Int":
+          return new IntFieldBuilder(name, this, usage);
+        case "BigInt":
+          return new BigIntFieldBuilder(name, this, usage);
+      }
+    }
+    const normalizedOpts = opts ?? { precision: 13, scale: 2, signed: true };
     return new DecimalFieldBuilder(
       name,
       this,
-      opts.precision,
-      opts.scale,
-      opts.signed ?? false,
-      { type: "Money", currency: "USD" }
+      normalizedOpts.precision,
+      normalizedOpts.scale,
+      normalizedOpts.signed ?? false,
+      usage
     );
   }
 
@@ -191,16 +226,43 @@ export class TableBuilder {
     return new StringFieldBuilder(name, maxLength, this);
   }
 
+  #duration = (
+    name: string,
+    size: DurationSize,
+    backing: yom.FieldIntegerTypes
+  ) => {
+    const usage = { type: "Duration", size } as const;
+    switch (backing) {
+      case "TinyUint":
+        return new TinyUintFieldBuilder(name, this, usage);
+      case "SmallUint":
+        return new SmallUintFieldBuilder(name, this, usage);
+      case "Uint":
+        return new UintFieldBuilder(name, this, usage);
+      case "BigUint":
+        return new BigUintFieldBuilder(name, this, usage);
+      case "TinyInt":
+        return new TinyIntFieldBuilder(name, this, usage);
+      case "SmallInt":
+        return new SmallIntFieldBuilder(name, this, usage);
+      case "Int":
+        return new IntFieldBuilder(name, this, usage);
+      case "BigInt":
+        return new BigIntFieldBuilder(name, this, usage);
+    }
+  };
+
   secondsDuration(name: string, backing: yom.FieldIntegerTypes) {
-    return new DurationFieldBuilder(name, this, backing, "seconds");
+    return this.#duration(name, "seconds", backing);
   }
 
   minutesDuration(name: string, backing: yom.FieldIntegerTypes) {
-    return new DurationFieldBuilder(name, this, backing, "minutes");
+    addMinuteDurationFns();
+    return this.#duration(name, "minutes", backing);
   }
 
   hoursDuration(name: string, backing: yom.FieldIntegerTypes) {
-    return new DurationFieldBuilder(name, this, backing, "hours");
+    return this.#duration(name, "hours", backing);
   }
 
   email(name: string) {
@@ -429,6 +491,51 @@ export class TableBuilder {
   }
 }
 
+function addMinuteDurationFns() {
+  addScalarFunction({
+    name: `parse_minutes_duration`,
+    bound: false,
+    parameters: [
+      {
+        name: "value",
+        type: { type: "String", maxLength: 65_000 },
+      },
+    ],
+    returnType: { type: "BigInt" },
+    procedure: [
+      try_<yom.BasicStatement>({
+        body: [
+          scalar(`total`, { type: "BigInt" }),
+          createQueryCursor(
+            `split`,
+            `select value from string.split(input.value, ':') order by ordinal desc`
+          ),
+          advanceCursor(`split`),
+          setScalar(`total`, `cast(split.value as bigint)`),
+          forEachCursor(`split`, `value`, [
+            setScalar(`total`, `total + cast(split.value as bigint) * 60`),
+          ]),
+          if_(`input.value like '-%'`, [setScalar(`total`, `total * -1`)]),
+          returnExpr(`total`),
+        ],
+        catch: [exit()],
+      }),
+    ],
+  });
+  addScalarFunction({
+    name: `display_minutes_duration`,
+    bound: false,
+    parameters: [{ name: "value", type: { type: "BigInt" } }],
+    returnType: { type: "String" },
+    procedure: [
+      returnExpr(`case when input.value < 0 then '-' else '' end ||
+    abs(round(input.value / 60)) ||
+    ':' ||
+    lpad(abs(round(input.value % 60)), 2, 0)`),
+    ],
+  });
+}
+
 export interface VirtualFieldHelper {
   name: string;
   displayName?: string;
@@ -524,7 +631,6 @@ abstract class BaseFieldBuilder {
 abstract class BaseNumericBuilder extends BaseFieldBuilder {
   #max?: string;
   #min?: string;
-  #displayText?: (num: string) => string;
 
   constructor(name: string, table: TableBuilder) {
     super(name, table);
@@ -540,46 +646,68 @@ abstract class BaseNumericBuilder extends BaseFieldBuilder {
     return this;
   }
 
-  displayText(f: (num: string) => string) {
-    this.#displayText = f;
-    return this;
-  }
-
   finishNumericBase() {
     return {
       min: this.#min,
       max: this.#max,
-      displayText: this.#displayText,
       ...this.finishBase(),
     };
   }
 }
 
-interface SimpleNumericFieldBuilder {
-  new (name: string, table: TableBuilder): BaseNumericBuilder;
+abstract class BaseIntegerBuilder extends BaseNumericBuilder {
+  #usage?: IntegerUsage;
+
+  constructor(name: string, table: TableBuilder, usage?: IntegerUsage) {
+    super(name, table);
+    this.#usage = usage;
+  }
+
+  finishIntegerBase() {
+    return {
+      usage: this.#usage,
+      ...this.finishNumericBase(),
+    };
+  }
 }
 
-function createSimpleNumericBuilder(
-  type: Exclude<NumericFields["type"], "Decimal">
-): SimpleNumericFieldBuilder {
-  return class extends BaseNumericBuilder {
+interface IntegerFieldBuilder {
+  new (
+    name: string,
+    table: TableBuilder,
+    usage?: IntegerUsage
+  ): BaseNumericBuilder;
+}
+
+function createIntegerBuilder(
+  type: Exclude<NumericFields["type"], "Decimal" | "Real" | "Double">
+): IntegerFieldBuilder {
+  return class extends BaseIntegerBuilder {
     finish(): Field {
       return { type, ...this.finishNumericBase() };
     }
   };
 }
 
-const TinyUintFieldBuilder = createSimpleNumericBuilder("TinyUint");
-const TinyIntFieldBuilder = createSimpleNumericBuilder("TinyInt");
-const SmallUintFieldBuilder = createSimpleNumericBuilder("SmallUint");
-const SmallIntFieldBuilder = createSimpleNumericBuilder("SmallInt");
-const UintFieldBuilder = createSimpleNumericBuilder("Uint");
-const IntFieldBuilder = createSimpleNumericBuilder("Int");
-const BigUintFieldBuilder = createSimpleNumericBuilder("BigUint");
-const BigIntFieldBuilder = createSimpleNumericBuilder("BigInt");
+const TinyUintFieldBuilder = createIntegerBuilder("TinyUint");
+const TinyIntFieldBuilder = createIntegerBuilder("TinyInt");
+const SmallUintFieldBuilder = createIntegerBuilder("SmallUint");
+const SmallIntFieldBuilder = createIntegerBuilder("SmallInt");
+const UintFieldBuilder = createIntegerBuilder("Uint");
+const IntFieldBuilder = createIntegerBuilder("Int");
+const BigUintFieldBuilder = createIntegerBuilder("BigUint");
+const BigIntFieldBuilder = createIntegerBuilder("BigInt");
 
-const RealFieldBuilder = createSimpleNumericBuilder("Real");
-const DoubleFieldBuilder = createSimpleNumericBuilder("Double");
+class RealFieldBuilder extends BaseNumericBuilder {
+  finish(): Field {
+    return { type: "Real", ...this.finishNumericBase() };
+  }
+}
+class DoubleFieldBuilder extends BaseNumericBuilder {
+  finish(): Field {
+    return { type: "Double", ...this.finishNumericBase() };
+  }
+}
 
 class DecimalFieldBuilder extends BaseFieldBuilder {
   #precision: number;
@@ -609,31 +737,6 @@ class DecimalFieldBuilder extends BaseFieldBuilder {
       scale: this.#scale,
       signed: this.#signed,
       usage: this.#usage,
-      ...this.finishBase(),
-    };
-  }
-}
-
-class DurationFieldBuilder extends BaseFieldBuilder {
-  #backing: yom.FieldIntegerTypes;
-  #size: DurationSize;
-
-  constructor(
-    name: string,
-    table: TableBuilder,
-    backing: yom.FieldIntegerTypes,
-    size: DurationSize
-  ) {
-    super(name, table);
-    this.#backing = backing;
-    this.#size = size;
-  }
-
-  finish(): DurationField {
-    return {
-      type: "Duration",
-      backing: this.#backing,
-      size: this.#size,
       ...this.finishBase(),
     };
   }

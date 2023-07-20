@@ -102,6 +102,28 @@ export function fieldFormControl(opts: FieldFormControlOpts): Node | undefined {
         if (field.usage.type === "Money") {
           startDecorator = materialIcon("AttachMoney");
         }
+        if (field.usage.type === "Duration") {
+          return durationInput({
+            error: opts.fieldHelper.hasError,
+            slots: {
+              input: {
+                props: {
+                  id,
+                  value: fieldHelper.value,
+                },
+                on: {
+                  blur: [fieldHelper.setTouched],
+                },
+              },
+            },
+            durationSize: field.usage.size,
+            onChange: (v) => [
+              fieldHelper.setValue(v),
+              fieldHelper.setTouched,
+              ...(opts.onChange ?? []),
+            ],
+          });
+        }
       }
       return input({
         error: opts.fieldHelper.hasError,
@@ -134,27 +156,6 @@ export function fieldFormControl(opts: FieldFormControlOpts): Node | undefined {
             ),
           ],
         },
-      });
-    case "Duration":
-      return durationInput({
-        error: opts.fieldHelper.hasError,
-        slots: {
-          input: {
-            props: {
-              id,
-              value: fieldHelper.value,
-            },
-            on: {
-              blur: [fieldHelper.setTouched],
-            },
-          },
-        },
-        durationSize: field.size,
-        onChange: (v) => [
-          fieldHelper.setValue(v),
-          fieldHelper.setTouched,
-          ...(opts.onChange ?? []),
-        ],
       });
     case "Uuid":
       return input({

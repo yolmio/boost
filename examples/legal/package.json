@@ -1,0 +1,18 @@
+{
+  "name": "consulting",
+  "version": "0.0.0",
+  "type": "module",
+  "license": "MIT",
+  "dependencies": {
+    "@faker-js/faker": "^8.0.2",
+    "@yolm/boost": "0.1"
+  },
+  "devDependencies": {
+    "tsx": "^3.12.0"
+  },
+  "scripts": {
+    "start": "node node_modules/@yolm/boost/dist/scripts/startEntry.js",
+    "save": "node node_modules/@yolm/boost/dist/scripts/saveEntry.js",
+    "script": "node node_modules/@yolm/boost/dist/scripts/scriptEntry.js"
+  }
+}

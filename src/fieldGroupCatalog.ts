@@ -7,8 +7,8 @@ export interface AddressFieldGroupCatalog {
   prefix?: string;
   createFields?: {
     name?: boolean | string;
-    street1?: boolean | string;
-    street2?: boolean | string;
+    street?: boolean | string;
+    streetTwo?: boolean | string;
     city?: boolean | string;
     state?: boolean | string;
     country?: boolean | string;
@@ -32,12 +32,12 @@ function address(opts: AddressFieldGroupCatalog, table: TableBuilder) {
   const groupName = opts.name ?? "address";
   const nameField = createFieldName(opts.createFields?.name, "name", false);
   const street1Field = createFieldName(
-    opts.createFields?.street1,
+    opts.createFields?.street,
     "street",
     true
   );
   const street2Field = createFieldName(
-    opts.createFields?.street2,
+    opts.createFields?.streetTwo,
     "street_two",
     false
   );
@@ -91,7 +91,7 @@ export interface RequiredUserTableFields {
 
 function requiredUserFields(_: RequiredUserTableFields, table: TableBuilder) {
   table.uuid(`global_id`).notNull().unique();
-  table.bool("disabled").notNull();
+  table.bool("disabled").notNull().default("false");
   table.string("email", 320).unique();
 }
 

@@ -505,13 +505,6 @@ export function getNormalizedValue(field: Field, valueExpr: string): string {
       return `case when ${valueExpr} != '' then cast(${valueExpr} as bigint) end`;
     case "Decimal":
       return `case when ${valueExpr} != '' then cast(${valueExpr} as decimal(${field.precision}, ${field.scale})) end`;
-    case "Duration": {
-      switch (field.size) {
-        case "minutes":
-          addMinuteDurationFns();
-          return `sfn.parse_minutes_duration(${valueExpr})`;
-      }
-    }
     case "Tx":
       return `case when ${valueExpr} != '' then cast(${valueExpr} as bigint) end`;
     case "Uuid":
@@ -578,7 +571,6 @@ export function formFieldType(field: Field): FieldType {
     case "SmallUint":
     case "Int":
     case "Uint":
-    case "Duration":
     case "Uuid":
     case "BigInt":
     case "Real":
@@ -635,8 +627,14 @@ export function withMultiInsertFormState(
   opts: WithMultiInsertFormOpts
 ): StateNode {
   const table = model.database.tables[opts.table];
+  if (!table) {
+    throw new Error("Table " + opts.table + " does not exist in model");
+  }
   const fields = opts.fields.map((f) => {
     const fieldSchema = table.fields[f.field];
+    if (!fieldSchema) {
+      throw new Error("Field " + f.field + " does not exist in table " + table);
+    }
     return {
       field: fieldSchema,
       initialValue:
@@ -1037,7 +1035,6 @@ export function defaultInitialValue(field: Field): string {
     case "SmallUint":
     case "Int":
     case "Uint":
-    case "Duration":
     case "Uuid":
     case "BigInt":
     case "Real":
@@ -1102,13 +1099,6 @@ export function defaultValidate(
     case "ForeignKey":
       if (field.notNull) {
         statements.push(if_(`${value} is null`, setError(`'Required'`)));
-      }
-      break;
-    case "Duration":
-      if (field.notNull) {
-        statements.push(
-          if_(`${value} is null or trim(${value}) = ''`, setError(`'Required'`))
-        );
       }
       break;
     case "Bool":
