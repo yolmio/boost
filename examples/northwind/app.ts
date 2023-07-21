@@ -51,6 +51,7 @@ addTable("employee", (table) => {
   table.string("Extension", 4);
   table.fieldGroupFromCatalog({ type: "simpleImageSet" });
   table.string("notes", 2000);
+  table.bool("is_sys_admin").notNull().default("false");
 
   table.check({
     fields: ["birth_date"],
@@ -60,20 +61,7 @@ addTable("employee", (table) => {
   table.linkable();
 });
 
-addEnum({
-  name: "role",
-  values: ["sys_admin"],
-  withDisplayDt: true,
-});
-
-addTable("employee_role", (table) => {
-  table.fk("employee").notNull();
-  table.enum("role").notNull();
-  table.unique(["employee", "role"]);
-});
-
 model.database.userTableName = "employee";
-model.database.userRoleTableName = "employee_role";
 
 addTable("category", (table) => {
   table.string("name", 15).notNull();
@@ -185,6 +173,8 @@ addTable("order_detail", (table) => {
 // UI
 //
 
+const isSysAdmin = `(select is_sys_admin from db.employee from where id = current_user())`;
+
 navbarShell({
   color: "primary",
   variant: "solid",
@@ -197,10 +187,7 @@ navbarShell({
     "/products",
     "/categories",
     "/reports",
-    {
-      auth: { allow: "sys_admin" },
-      url: "/admin",
-    },
+    { showIf: isSysAdmin, url: "/admin" },
   ],
   multiTableSearchDialog: {
     tables: [

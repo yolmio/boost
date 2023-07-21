@@ -1,4 +1,3 @@
-import { Authorization } from "../../modelTypes.js";
 import { Node } from "../../nodeTypes.js";
 import { BaseStatement, ClientProcStatement } from "../../yom.js";
 
@@ -11,7 +10,6 @@ export interface CellProps {
   setValue: (v: string) => BaseStatement[];
   nextCol: string;
   stopEditing: BaseStatement[];
-  auth?: Authorization;
 }
 
 export type Cell = (props: CellProps) => Node;

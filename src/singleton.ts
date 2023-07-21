@@ -1,4 +1,4 @@
-import type { Authorization, BoostModel } from "./modelTypes.js";
+import type { BoostModel } from "./modelTypes.js";
 import { ThemeOpts, createTheme } from "./createTheme.js";
 import { normalizeCase, upcaseFirst } from "./utils/inflectors.js";
 import { ident, stringLiteral } from "./utils/sqlHelpers.js";
@@ -40,43 +40,6 @@ export const model: BoostModel = {
   collation: "NoCase",
   database: {
     userTableName: "user",
-    userRoleTableName: "user_role",
-    roleEnumName: "role",
-    userIsAuthorized: (user: string, auth: Authorization) => {
-      const table = model.database.tables[model.database.userRoleTableName];
-      const roleField = ident(
-        Object.values(table.fields).find(
-          (f) => f.type === "Enum" && f.enum == model.database.roleEnumName
-        )!.name
-      );
-      const userField = ident(
-        Object.values(table.fields).find(
-          (f) =>
-            f.type === "ForeignKey" && f.table == model.database.userTableName
-        )!.name
-      );
-      let whereExpr = "true";
-      if ("allow" in auth) {
-        if (typeof auth.allow === "string") {
-          whereExpr = `${roleField} = ${stringLiteral(auth.allow)}`;
-        } else {
-          whereExpr = `${roleField} in (${stringLiteral(
-            auth.allow.join(", ")
-          )})`;
-        }
-      } else if ("deny" in auth) {
-        if (typeof auth.deny === "string") {
-          whereExpr = `${roleField} = ${stringLiteral(auth.deny)}`;
-        } else {
-          whereExpr = `${roleField} in (${stringLiteral(
-            auth.deny.join(", ")
-          )})`;
-        }
-      }
-      return `exists (select id from db.${ident(
-        table.name
-      )} where ${userField} = ${user} and ${whereExpr})`;
-    },
     autoTrim: "Both",
     collation: "NoCase",
     enableTransactionQueries: true,

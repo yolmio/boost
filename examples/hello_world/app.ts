@@ -15,18 +15,6 @@ addTable("user", (table) => {
   table.string("email", 70);
 });
 
-addEnum({
-  name: "role",
-  values: ["sys_admin"],
-  withDisplayDt: true,
-});
-
-addTable("user_role", (table) => {
-  table.fk("user").notNull();
-  table.enum("role").notNull();
-  table.unique(["user", "role"]);
-});
-
 // ui
 
 navbarShell({

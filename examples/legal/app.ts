@@ -54,22 +54,10 @@ addTable("employee", (table) => {
   table.fieldGroupFromCatalog({ type: "requiredUserFields" });
   table.string("first_name", 50).notNull();
   table.string("last_name", 50).notNull();
-});
-
-addEnum({
-  name: "role",
-  values: ["sys_admin"],
-  withDisplayDt: true,
-});
-
-addTable("employee_role", (table) => {
-  table.fk("employee").notNull();
-  table.enum("role").notNull();
-  table.unique(["employee", "role"]);
+  table.bool("is_sys_admin").notNull().default("false");
 });
 
 model.database.userTableName = "employee";
-model.database.userRoleTableName = "employee_role";
 
 addEnum({
   name: "contact_type",
@@ -187,6 +175,8 @@ addScalarFunction({
 // UI
 //
 
+const isSysAdmin = `(select is_sys_admin from db.employee from where id = current_user())`;
+
 navbarShell({
   color: "primary",
   variant: "solid",
@@ -196,11 +186,11 @@ navbarShell({
     "/time-entries",
     "/reports",
     {
-      auth: { allow: "sys_admin" },
+      showIf: isSysAdmin,
       url: "/admin",
     },
     {
-      auth: { allow: "sys_admin" },
+      showIf: isSysAdmin,
       url: "/employees",
     },
   ],
@@ -260,9 +250,7 @@ dashboardGridPage({
   ],
 });
 
-adminPage({
-  auth: { allow: "sys_admin" },
-});
+adminPage({ allow: isSysAdmin });
 
 const thirdStyles = {
   gridColumnSpan: 12,

@@ -7,7 +7,7 @@ import {
 } from "../../components/insertDialog.js";
 import { materialIcon } from "../../components/materialIcon.js";
 import { typography } from "../../components/typography.js";
-import { Authorization, Table } from "../../modelTypes.js";
+import { Table } from "../../modelTypes.js";
 import { element, ifNode, sourceMap, state } from "../../nodeHelpers.js";
 import { Node } from "../../nodeTypes.js";
 import {
@@ -21,7 +21,7 @@ import {
 } from "../../procHelpers.js";
 import { createStyles, flexGrowStyles } from "../../styleUtils.js";
 import { ident, stringLiteral } from "../../utils/sqlHelpers.js";
-import { StateStatement } from "../../yom.js";
+import { SqlExpression, StateStatement } from "../../yom.js";
 import {
   getCountQuery,
   SimpleBaseColumn,
@@ -57,7 +57,7 @@ export interface StyledSimpleGridConfig {
   idField: string;
   pageSize?: number;
   extraState?: StateStatement[];
-  auth?: Authorization;
+  allow?: SqlExpression;
   sourceMapName?: string;
   rowHeight?: RowHeight;
 }
@@ -271,7 +271,7 @@ export function styledSimpleDatagrid(config: StyledSimpleGridConfig) {
     },
     pageSize: config.pageSize,
     extraState: config.extraState,
-    auth: config.auth,
+    allow: config.allow,
     rowHeight: config.rowHeight ?? "medium",
   });
   if (config.sourceMapName) {

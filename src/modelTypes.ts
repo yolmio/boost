@@ -376,30 +376,8 @@ export interface Enum {
   control?: EnumControl;
 }
 
-export type Authorization =
-  | {
-      /**
-       * Allow only users with one of these roles to do some action.
-       *
-       * These are not sql expressions, just string values of the user_role enum.
-       */
-      allow: string[] | string;
-    }
-  | {
-      /**
-       * Deny any users with one of these roles to do some action. Anyone without one of these roles will be allowed.
-       *
-       * These are not sql expressions, just string values of the user_role enum.
-       */
-      deny: string[] | string;
-    };
-
 export interface Database {
   userTableName: string;
-  roleEnumName: string;
-  userRoleTableName: string;
-  /** Returns an expression that returns a boolean if the user is authorized */
-  userIsAuthorized: (user: string, auth: Authorization) => string;
   collation: yom.Collation;
   autoTrim: yom.AutoTrim;
   enableTransactionQueries: boolean;

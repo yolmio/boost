@@ -17,16 +17,16 @@ import { stringLiteral } from "../utils/sqlHelpers.js";
 import { model } from "../singleton.js";
 import { typography } from "../components/typography.js";
 import { divider } from "../components/divider.js";
-import { Authorization } from "../modelTypes.js";
 import { settingsDrawer } from "./internals/settingsDrawer.js";
 import { GlobalSearchOpts } from "./internals/types.js";
-import { makeAuthorizedLink } from "./internals/authLink.js";
+import { makeConditionalLink } from "./internals/authLink.js";
 import { globalSearchDialog } from "./internals/globalSearchDialog.js";
+import { SqlExpression } from "../yom.js";
 
 export interface NavbarProps extends GlobalSearchOpts {
   variant?: "soft" | "solid";
   color?: ColorPaletteProp;
-  links: (string | { label?: string; url: string; auth?: Authorization })[];
+  links: (string | { label?: string; url: string; showIf?: SqlExpression })[];
   primaryActionButton?: ButtonOpts;
 }
 
@@ -132,7 +132,7 @@ export function navbarShell(opts: NavbarProps) {
     return {
       url: link.url,
       label: link.label ?? getLabelFromUrl(link.url),
-      auth: link.auth,
+      showIf: link.showIf,
     };
   });
   if (opts.multiTableSearchDialog && opts.searchDialog) {
@@ -176,7 +176,7 @@ export function navbarShell(opts: NavbarProps) {
               href: "'/'",
             }),
             normalizedLabels.map((link) =>
-              makeAuthorizedLink(
+              makeConditionalLink(
                 element("a", {
                   props: { href: stringLiteral(link.url) },
                   styles: styles.link(),
@@ -190,7 +190,7 @@ export function navbarShell(opts: NavbarProps) {
                   ],
                   children: stringLiteral(link.label),
                 }),
-                link.auth
+                link.showIf
               )
             ),
           ],

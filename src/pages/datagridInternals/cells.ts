@@ -3,9 +3,6 @@ import { recordSelectDialog } from "../../components/searchDialog.js";
 import { selectIcon } from "../../components/select.js";
 import { mergeElEventHandlers } from "../../components/utils.js";
 import {
-  Authorization,
-  BigIntField,
-  BigUintField,
   BoolField,
   DateField,
   DecimalField,
@@ -16,17 +13,10 @@ import {
   FieldBase,
   ForeignKeyField,
   ImageSetFieldGroup,
-  IntField,
   IntegerField,
   RealField,
-  SmallIntField,
-  SmallUintField,
   StringField,
-  TimeField,
   TimestampField,
-  TinyIntField,
-  TinyUintField,
-  UintField,
   UuidField,
 } from "../../modelTypes.js";
 import { element, ifNode, state } from "../../nodeHelpers.js";
@@ -880,7 +870,6 @@ export interface FieldCellOpts extends BaseFieldCellOpts {
 export interface BaseFieldCellOpts extends FieldEditProcConfig {
   tableName: string;
   stringified: boolean;
-  auth?: Authorization;
   immutable?: boolean;
 }
 

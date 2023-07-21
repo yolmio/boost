@@ -61,7 +61,8 @@ addScript({
           reportsTo - 1 as reports_to,
           random.uuid() as global_id,
           firstName || lastName || '@gmail.com' as email,
-          false as disabled 
+          false as disabled,
+          rank() over () = 1 as is_sys_admin 
           from csv.Employee`
     ),
     modify(
@@ -90,9 +91,6 @@ addScript({
           quantity,
           discount
         from csv.OrderDetails`
-    ),
-    modify(
-      `insert into db.employee_role (employee, role) values (0, 'sys_admin')`
     ),
     saveDb(`data/dev`),
   ],

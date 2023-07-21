@@ -23,18 +23,12 @@ import { materialIcon } from "../components/materialIcon.js";
 import { tabs } from "../components/tabs.js";
 import { textarea } from "../components/textarea.js";
 import { typography } from "../components/typography.js";
-import { ClientProcStatement } from "../yom.js";
+import { ClientProcStatement, SqlExpression } from "../yom.js";
 import { input } from "../components/input.js";
 import { addPage } from "../modelHelpers.js";
-import { stringLiteral } from "../utils/sqlHelpers.js";
 import { Node } from "../nodeTypes.js";
-import {
-  currentUserIsAuthorized,
-  expectCurrentUserAuthorized,
-} from "../utils/auth.js";
-import { Authorization as Authorization } from "../modelTypes.js";
 
-function undoTxTab(auth?: Authorization) {
+function undoTxTab() {
   return state({
     procedure: [
       scalar(`tx_id`, `''`),
@@ -66,7 +60,6 @@ function undoTxTab(auth?: Authorization) {
                   body: [
                     if_(`try_cast(ui.tx_id as bigint) is null`, [exit()]),
                     serviceProc([
-                      expectCurrentUserAuthorized(auth),
                       startTransaction(),
                       { t: "UndoTx", tx: `cast(ui.tx_id as bigint)` },
                       commitTransaction(),
@@ -120,7 +113,7 @@ function undoTxTab(auth?: Authorization) {
   });
 }
 
-function modifyTab(auth?: Authorization) {
+function modifyTab() {
   return state({
     procedure: [
       scalar(`statement`, `''`),
@@ -155,7 +148,6 @@ function modifyTab(auth?: Authorization) {
                 try_<ClientProcStatement>({
                   body: [
                     serviceProc([
-                      expectCurrentUserAuthorized(auth),
                       startTransaction(),
                       setScalar(`ui.tx_id`, `current_tx()`),
                       dynamicModify(`ui.statement`),
@@ -209,7 +201,7 @@ function modifyTab(auth?: Authorization) {
   });
 }
 
-function queryTab(auth?: Authorization) {
+function queryTab() {
   return state({
     procedure: [
       scalar(`query`, `''`),
@@ -264,7 +256,6 @@ function queryTab(auth?: Authorization) {
       state({
         watch: [`query_to_run`],
         procedure: [
-          expectCurrentUserAuthorized(auth),
           if_(`query_to_run is null`, [exit()]),
           dynamicQuery({
             resultTable: "dyn_result",
@@ -353,7 +344,7 @@ function queryTab(auth?: Authorization) {
 
 interface AdminPageOpts {
   path?: string;
-  auth?: Authorization;
+  allow?: SqlExpression;
 }
 
 export function adminPage(opts: AdminPageOpts = {}) {
@@ -364,43 +355,46 @@ export function adminPage(opts: AdminPageOpts = {}) {
         idBase: `'tabs'`,
         tabs: [
           {
-            content: queryTab(opts.auth),
+            content: queryTab(),
             tabButton: `'Query'`,
           },
           {
-            content: modifyTab(opts.auth),
+            content: modifyTab(),
             tabButton: `'Modify'`,
           },
           {
-            content: undoTxTab(opts.auth),
+            content: undoTxTab(),
             tabButton: `'Undo Transaction'`,
           },
         ],
       }),
     ],
   });
-  if (opts.auth) {
+  if (opts.allow) {
     content = state({
-      procedure: [scalar(`is_admin`, currentUserIsAuthorized(opts.auth))],
+      allow: opts.allow,
+      procedure: [],
       statusScalar: "status",
-      children: switchNode(
-        [`status = 'fallback_triggered'`, circularProgress({ size: "lg" })],
-        [
-          `status = 'failed'`,
-          alert({
-            color: "danger",
-            children: `'Unable to check permissions. Please try again later.'`,
-          }),
-        ],
-        [`is_admin`, content],
-        [
-          `not is_admin`,
-          alert({
-            color: "danger",
-            children: `'You are not authorized to view this page.'`,
-          }),
-        ]
-      ),
+      children: [
+        switchNode(
+          [`status = 'fallback_triggered'`, circularProgress({ size: "lg" })],
+          [
+            `status = 'failed'`,
+            alert({
+              color: "danger",
+              children: `'Unable to load page.'`,
+            }),
+          ],
+          [
+            `status = 'disallowed'`,
+            alert({
+              color: "danger",
+              children: `'You are not authorized to view this page.'`,
+            }),
+          ],
+          [`true`, content]
+        ),
+      ],
     });
   }
   addPage({

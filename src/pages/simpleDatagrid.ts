@@ -11,7 +11,7 @@ import { model } from "../singleton.js";
 import { pluralize } from "../utils/inflectors.js";
 import { ident, stringLiteral } from "../utils/sqlHelpers.js";
 import { getTableBaseUrl } from "../utils/url.js";
-import { StateStatement } from "../yom.js";
+import { SqlExpression, StateStatement } from "../yom.js";
 import {
   simpleColumnFromField,
   simpleColumnFromVirtual,
@@ -23,7 +23,6 @@ import {
 } from "./datagridInternals/styledSimpleDatagrid.js";
 import { checkbox } from "../components/checkbox.js";
 import { FieldEditProcConfig } from "./datagridInternals/editHelper.js";
-import { Authorization } from "../modelTypes.js";
 import { button } from "../components/button.js";
 import { RowHeight } from "./datagridInternals/types.js";
 import { addPage } from "../modelHelpers.js";
@@ -41,7 +40,7 @@ export interface ToolbarOpts {
 
 export interface DatagridPageOpts {
   table: string;
-  auth?: Authorization;
+  allow?: SqlExpression;
   path?: string;
   selectable?: boolean;
   toolbar?: ToolbarOpts;
@@ -228,7 +227,7 @@ export function simpleDatagridPage(opts: DatagridPageOpts) {
   }
   const content = styledSimpleDatagrid({
     columns,
-    auth: opts.auth,
+    allow: opts.allow,
     idField: idSqlName,
     tableModel: tableModel,
     toolbar: toolbarConfig,

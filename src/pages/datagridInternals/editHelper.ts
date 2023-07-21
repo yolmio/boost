@@ -1,4 +1,3 @@
-import { Authorization } from "../../modelTypes.js";
 import {
   commitTransaction,
   commitUiChanges,
@@ -16,7 +15,6 @@ import {
   stopPropagation,
   try_,
 } from "../../procHelpers.js";
-import { expectCurrentUserAuthorized } from "../../utils/auth.js";
 import { ident, parenWrap, stringLiteral } from "../../utils/sqlHelpers.js";
 import {
   BaseStatement,
@@ -44,7 +42,6 @@ interface DoEditOpts extends FieldEditProcConfig {
   dbValue: string;
   recordId: string;
   resetValue: ClientProcStatement[];
-  auth?: Authorization;
 }
 
 export function displayEditError(message: string) {
@@ -69,7 +66,6 @@ export function doEdit(opts: DoEditOpts) {
     try_<ClientProcStatement>({
       body: [
         serviceProc([
-          expectCurrentUserAuthorized(opts.auth),
           ...(opts.beforeEditTransaction?.(opts.dbValue, opts.recordId) ?? []),
           startTransaction(),
           ...(opts.beforeEdit?.(opts.dbValue, opts.recordId) ?? []),
@@ -111,7 +107,6 @@ export interface FieldEditorHelpersOpts extends FieldEditProcConfig {
   validUiValue: string;
   changedUiValue: string;
   nextCol: string;
-  auth?: Authorization;
 }
 
 export function fieldEditorEventHandlers(

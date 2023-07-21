@@ -11,6 +11,7 @@ const employees: {
   lastName: string;
   email: string;
   uuid: string;
+  isSysAdmin: boolean;
 }[] = [];
 
 for (let i = 0; i < 10; i++) {
@@ -21,6 +22,7 @@ for (let i = 0; i < 10; i++) {
     lastName,
     email: faker.internet.email({ firstName, lastName }),
     uuid: faker.string.uuid(),
+    isSysAdmin: i === 0,
   });
 }
 
@@ -156,20 +158,18 @@ addScript({
   name: "init-dev-db",
   procedure: [
     modify(
-      `insert into db.employee (first_name, last_name, email, global_id, disabled) values ${employees
+      `insert into db.employee (first_name, last_name, email, global_id, is_sys_admin, disabled) values ${employees
         .map((r) => {
           const values = [
             stringLiteral(r.firstName),
             stringLiteral(r.lastName),
             stringLiteral(r.email),
             `cast(${stringLiteral(r.uuid)} as uuid)`,
+            r.isSysAdmin,
           ];
           return `(${values.join(",")}, false)`;
         })
         .join(",")}`
-    ),
-    modify(
-      `insert into db.employee_role (employee, role) values (0, 'sys_admin')`
     ),
     modify(
       `insert into db.contact (type, first_name, last_name, email, phone_number, date_of_birth, street, city, state, zip, country, mailing_list) values ${contacts.map(

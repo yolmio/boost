@@ -29,6 +29,7 @@ export type RecordGridChild = ChildOpts | CustomChild;
 
 export interface RecordGridPageOpts {
   path?: string;
+  allow?: string;
   table: string;
   createUpdatePage?: boolean;
   rootStyles?: Style;
@@ -96,6 +97,7 @@ export function recordGridPage(opts: RecordGridPageOpts) {
           `exists (select id from db.${opts.table} where id = record_id)`
         ),
       ],
+      allow: opts.allow,
       statusScalar: "status",
       children: switchNode(
         [
@@ -106,7 +108,7 @@ export function recordGridPage(opts: RecordGridPageOpts) {
           }),
         ],
         [
-          `status = 'failed'`,
+          `status = 'failed' or status = 'disallowed'`,
           element("div", {
             styles: styles.notContentWrapper,
             children: alert({

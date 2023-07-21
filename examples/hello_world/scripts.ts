@@ -9,7 +9,6 @@ addScript({
       `insert into db.user (global_id, disabled, email) values
       (cast('${DEFAULT_DEV_USER_UUID}' as uuid), false, 'v@nuvanti.com')`
     ),
-    modify(`insert into db.user_role (user, role) values (0, 'sys_admin')`),
     saveDb(`data/dev`),
   ],
 });
@@ -24,7 +23,6 @@ addScript({
       `insert into db.user (global_id, disabled, email) values
       ((select global_id from added_user), false, 'v@nuvanti.com')`
     ),
-    modify(`insert into db.user_role (user, role) values (0, 'sys_admin')`),
     setDb({ allowOverwrite: true }),
   ],
 });

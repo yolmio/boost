@@ -1,4 +1,3 @@
-import { Authorization } from "../../modelTypes.js";
 import { sourceMap, state } from "../../nodeHelpers.js";
 import { DataGridStyles, Node } from "../../nodeTypes.js";
 import {
@@ -9,9 +8,13 @@ import {
   setScalar,
   table,
 } from "../../procHelpers.js";
-import { expectCurrentUserAuthorized } from "../../utils/auth.js";
 import { ident } from "../../utils/sqlHelpers.js";
-import { FieldType, ProcTableField, StateStatement } from "../../yom.js";
+import {
+  FieldType,
+  ProcTableField,
+  SqlExpression,
+  StateStatement,
+} from "../../yom.js";
 import {
   colClickHandlers,
   colKeydownHandlers,
@@ -32,7 +35,7 @@ export interface SimpleDatagridBaseOpts {
   idFieldSource: string;
   rowHeight: RowHeight;
   pageSize?: number;
-  auth?: Authorization;
+  allow?: SqlExpression;
 }
 
 export interface SimpleBaseColumn extends ColumnEventHandlers {
@@ -50,17 +53,14 @@ export interface SimpleBaseColumnQueryGeneration {
 }
 
 export function simplDatagridBase(opts: SimpleDatagridBaseOpts) {
-  const { columns, datagridStyles, auth: requiredRole } = opts;
-  const getResultsProc: StateStatement[] = [
-    expectCurrentUserAuthorized(requiredRole),
-    ...getQuery(
-      columns,
-      opts.source,
-      opts.idFieldSource,
-      opts.idField,
-      typeof opts.pageSize === "number"
-    ),
-  ];
+  const { columns, datagridStyles, allow } = opts;
+  const getResultsProc: StateStatement[] = getQuery(
+    columns,
+    opts.source,
+    opts.idFieldSource,
+    opts.idField,
+    typeof opts.pageSize === "number"
+  );
   const rowHeight = rowHeightInPixels(opts.rowHeight);
   let children = opts.children({
     t: "DataGrid",
@@ -132,7 +132,6 @@ export function simplDatagridBase(opts: SimpleDatagridBaseOpts) {
             ],
             column: i.toString(),
             row: `record.iteration_index + 1`,
-            auth: opts.auth,
           })
         ),
         header: col.header,
@@ -143,6 +142,7 @@ export function simplDatagridBase(opts: SimpleDatagridBaseOpts) {
   children = state({
     watch: ["dg_refresh_key"],
     procedure: getResultsProc,
+    allow,
     statusScalar: "status",
     errorRecord: "dg_error",
     children,
