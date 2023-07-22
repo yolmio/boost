@@ -5,8 +5,6 @@ export interface Model {
   locale: Locale;
   name: string;
   displayName: string;
-  title: string;
-  pwaConfig: PwaConfig;
   /** Where and how queries and transactions run against the database */
   dbExecutionMode: DbExecutionMode;
   collation: Collation;
@@ -25,25 +23,6 @@ export interface Model {
   api?: AppApi;
   /** @private */
   internalLogicTests?: LogicTest[];
-}
-
-export interface PwaConfig {
-  name: string;
-  display: string;
-  shortName?: string;
-  description?: string;
-  themeColor?: string;
-  backgroundColor?: string;
-  icons?: PwaIcon[];
-}
-
-export interface PwaIcon {
-  /**
-   * Relative Path from assets folder, e.g. assets/myfolder/myimage.png -> myfolder/myimage.png
-   */
-  src: string;
-  sizes: string;
-  //iconType: string | undefined;
 }
 
 export type Locale = "en_us";
@@ -1473,6 +1452,8 @@ export interface DynamicQueryToCsv {
 }
 
 export interface UiModel {
+  htmlHead: string;
+  pwaManifest: object;
   css: string;
   defaultFallbackDelay?: number;
   collation?: Collation;

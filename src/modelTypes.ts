@@ -3,6 +3,7 @@ import type { Node } from "./nodeTypes.js";
 import type { Style } from "./styleTypes.js";
 import { ComponentOpts } from "./components/types.js";
 import { Theme } from "./theme.js";
+import { WebAppManifest } from "./pwaManifest.js";
 
 export interface ExtensibleObject {
   /**
@@ -436,6 +437,27 @@ export interface SearchConfig {
   defaultTokenizer: yom.Tokenizer;
 }
 
+export interface WebAppConfig {
+  htmlHead: string;
+  viewport?: string;
+  manifest: WebAppManifest;
+  logoGeneration:
+    | {
+        type: "App";
+        safariPinnedTabColor: string;
+        msTileColor: string;
+        themeColor: string;
+      }
+    | {
+        type: "Account";
+        safariPinnedTabColor: string;
+        msTileColor: string;
+        themeColor: string;
+      }
+    | { type: "Default" }
+    | { type: "Custom" };
+}
+
 /**
  * A model that is easier to code generate with and has more information.
  */
@@ -446,7 +468,6 @@ export interface BoostModel {
   theme: Theme;
   displayNameConfig: DisplayNameConfig;
   searchConfig: SearchConfig;
-  pwaConfig: yom.PwaConfig;
   dbRunMode: yom.DbExecutionMode;
   collation: yom.Collation;
   autoTrim: yom.AutoTrim;
@@ -459,6 +480,7 @@ export interface BoostModel {
   scripts: yom.Script[];
   scriptDbs: ScriptDb[];
 
+  webAppConfig: WebAppConfig;
   deviceDb: DeviceDb;
   globalStyles: Style[];
   shell?: (pages: Node) => Node;

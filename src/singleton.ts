@@ -1,7 +1,6 @@
 import type { BoostModel } from "./modelTypes.js";
 import { ThemeOpts, createTheme } from "./createTheme.js";
 import { normalizeCase, upcaseFirst } from "./utils/inflectors.js";
-import { ident, stringLiteral } from "./utils/sqlHelpers.js";
 
 export const model: BoostModel = {
   name: "please-rename",
@@ -31,9 +30,11 @@ export const model: BoostModel = {
       filters: [{ type: "Lowercase" }],
     },
   },
-  pwaConfig: {
-    name: "Temporary name",
-    display: "minimal-ui",
+  webAppConfig: {
+    htmlHead: "",
+    viewport: `width=device-width, initial-scale=1`,
+    logoGeneration: { type: "Default" },
+    manifest: {},
   },
   dbRunMode: "BrowserSync",
   autoTrim: "None",

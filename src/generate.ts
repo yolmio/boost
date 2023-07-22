@@ -10,6 +10,9 @@ import type {
 } from "./modelTypes";
 import { default404Page } from "./pages/default404.js";
 import { Node, RouteNode, RoutesNode } from "./nodeTypes.js";
+import { escapeHtml } from "./utils/escapeHtml.js";
+import * as fs from "fs";
+import * as path from "path";
 
 function generateDecisionTable(dt: DecisionTable): yom.DecisionTable {
   return {
@@ -213,16 +216,66 @@ export function generateYom(): yom.Model {
     );
     console.log();
   }
+  let htmlHead = model.webAppConfig.htmlHead;
+  if (model.title) {
+    htmlHead += `<title>${escapeHtml(model.title)}</title>`;
+  }
+  if (model.webAppConfig.viewport) {
+    htmlHead += `<meta name="viewport" content="${escapeHtml(
+      model.webAppConfig.viewport
+    )}">`;
+  }
+  switch (model.webAppConfig.logoGeneration.type) {
+    case "Default":
+      htmlHead += `
+  <link rel="apple-touch-icon" sizes="180x180" href="/global_assets/logo/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/global_assets/logo/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/global_assets/logo/favicon-16x16.png">
+  <link rel="manifest" href="/global_assets/logo/site.webmanifest">
+  <link rel="mask-icon" href="/global_assets/logo/safari-pinned-tab.svg" color="#5a35a3">
+  <link rel="shortcut icon" href="/global_assets/logo/favicon.ico">
+  <meta name="msapplication-TileColor" content="#00aba9">
+  <meta name="msapplication-config" content="/global_assets/logo/browserconfig.xml">
+  <meta name="theme-color" content="#ffffff">`;
+      break;
+    case "App":
+      htmlHead += `
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/logo/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/logo/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/logo/favicon-16x16.png">
+  <link rel="manifest" href="/assets/logo/site.webmanifest">
+  <link rel="mask-icon" href="/assets/logo/safari-pinned-tab.svg" color="${model.webAppConfig.logoGeneration.safariPinnedTabColor}">
+  <link rel="shortcut icon" href="/assets/logo/favicon.ico">
+  <meta name="msapplication-TileColor" content="${model.webAppConfig.logoGeneration.msTileColor}">
+  <meta name="msapplication-config" content="/assets/logo/browserconfig.xml">
+  <meta name="theme-color" content="${model.webAppConfig.logoGeneration.themeColor}">`;
+      break;
+    case "Account":
+      htmlHead += `
+  <link rel="apple-touch-icon" sizes="180x180" href="/account_assets/logo/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/account_assets/logo/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/account_assets/logo/favicon-16x16.png">
+  <link rel="manifest" href="/account_assets/logo/site.webmanifest">
+  <link rel="mask-icon" href="/account_assets/logo/safari-pinned-tab.svg" color="${model.webAppConfig.logoGeneration.safariPinnedTabColor}">
+  <link rel="shortcut icon" href="/account_assets/logo/favicon.ico">
+  <meta name="msapplication-TileColor" content="${model.webAppConfig.logoGeneration.msTileColor}">
+  <meta name="msapplication-config" content="/account_assets/logo/browserconfig.xml">
+  <meta name="theme-color" content="${model.webAppConfig.logoGeneration.themeColor}">`;
+      break;
+    case "Custom":
+      break;
+  }
+  if (!model.webAppConfig.manifest.name) {
+    model.webAppConfig.manifest.name = model.displayName;
+  }
   return {
     // todo make this part of the model
     locale: "en_us",
     name: model.name,
     displayName: model.displayName,
-    title: model.title,
     dbExecutionMode: model.dbRunMode,
     collation: model.collation,
     autoTrim: model.autoTrim,
-    pwaConfig: model.pwaConfig,
     textCast: {
       date: "%F",
       timestamp: "%+",
@@ -246,6 +299,8 @@ export function generateYom(): yom.Model {
       })),
     })),
     ui: {
+      pwaManifest: model.webAppConfig.manifest,
+      htmlHead: htmlHead,
       tree: uiTree,
       css,
       deviceDb: {
