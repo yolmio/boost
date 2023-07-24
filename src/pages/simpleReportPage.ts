@@ -6,7 +6,6 @@ import { formLabel } from "../components/formLabel.js";
 import { iconButton } from "../components/iconButton.js";
 import { input } from "../components/input.js";
 import { materialIcon } from "../components/materialIcon.js";
-import { simpleDistinctLineChart } from "../components/simpleDistinctLineChart.js";
 import { getTableRecordSelect } from "../components/tableRecordSelect.js";
 import { typography } from "../components/typography.js";
 import { addPage } from "../modelHelpers.js";
@@ -115,11 +114,9 @@ export interface TableComparisonReport extends ReportBase {
   };
 }
 
-export interface StraightLineChart extends ReportBase {
-  stateTable?: string;
-  query?: string;
-  lineChartQuery: string;
-  lineChartLabels?: string;
+export interface CustomReport extends ReportBase {
+  state: StateStatement[];
+  node: Node;
 }
 
 function getParameterDisplayName(p: ParameterBase): string {
@@ -633,26 +630,14 @@ export class SimpleReportsPageBuilder {
     this.#addReport(node, opts);
   }
 
-  straightLineChart(opts: StraightLineChart) {
-    const procedure = opts.procedure ?? [];
-    if (opts.query) {
-      procedure.push(pushSource(`options.query`));
-      procedure.push(table(`query_result`, opts.query));
-      procedure.push(popSource());
-    }
+  customReport(opts: CustomReport) {
     let node: Node = sourceMap(
-      `simpleReportPage.straightLineChart(${opts.name})`,
+      `simpleReportPage.customReport(${opts.name})`,
       state({
         watch: opts.parameters?.map((p) => p.name),
-        procedure,
+        procedure: opts.state,
         statusScalar: "status",
-        children: wrapWithLoadingErrorSwitch(
-          simpleDistinctLineChart({
-            query: opts.lineChartQuery,
-            labels: opts.lineChartLabels,
-            size: "lg",
-          })
-        ),
+        children: wrapWithLoadingErrorSwitch(opts.node),
       })
     );
     this.#addReport(node, opts);

@@ -17,6 +17,7 @@
   "exports": {
     "./yom": "./dist/yom.js",
     "./modelTypes": "./dist/modelTypes.js",
+    "./styleTypes": "./dist/styleTypes.js",
     "./modelHelpers": "./dist/modelHelpers.js",
     "./procHelpers": "./dist/procHelpers.js",
     "./nodeHelpers": "./dist/nodeHelpers.js",
@@ -46,6 +47,9 @@
       ],
       "modelTypes": [
         "./dist/modelTypes.d.ts"
+      ],
+      "styleTypes": [
+        "./dist/styleTypes.d.ts"
       ],
       "modelHelpers": [
         "./dist/modelHelpers.d.ts"

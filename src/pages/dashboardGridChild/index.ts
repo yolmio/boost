@@ -1,4 +1,3 @@
-import * as simpleDistinctLineChartCard from "./simpleDistinctLineChartCard.js";
 import * as threeStats from "./threeStats.js";
 import * as table from "./table.js";
 import * as header from "./header.js";
@@ -7,7 +6,6 @@ import * as pieChart from "./pieChart.js";
 import * as barChart from "./barChart.js";
 
 export const childFnMap = {
-  [simpleDistinctLineChartCard.name]: simpleDistinctLineChartCard.content,
   [threeStats.name]: threeStats.content,
   [table.name]: table.content,
   [header.name]: header.content,
@@ -17,9 +15,6 @@ export const childFnMap = {
 };
 
 export type ChildOpts =
-  | (simpleDistinctLineChartCard.Opts & {
-      type: typeof simpleDistinctLineChartCard.name;
-    })
   | (threeStats.Opts & { type: typeof threeStats.name })
   | (table.Opts & { type: typeof table.name })
   | (header.Opts & { type: typeof header.name })

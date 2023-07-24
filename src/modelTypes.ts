@@ -486,3 +486,5 @@ export interface BoostModel {
   shell?: (pages: Node) => Node;
   pages: Page[];
 }
+
+export * from "./nodeTypes.js";
