@@ -35,23 +35,42 @@ const styles = createStyles({
   dialogRoot: {
     display: "flex",
     gap: 1.5,
-    flexDirection: "column",
+    flexDirection: "column-reverse",
     maxWidth: "calc(100vw - 32px)",
     lg: { flexDirection: "row" },
   },
   img: {
-    maxWidth: "100%",
+    maxWidth: "calc(100vw - 32px)",
+    maxHeight: "calc(100vh - 98px)",
+    minHeight: 50,
+    width: "100%",
     border: "1px solid",
     borderColor: "divider",
+    lg: {
+      maxWidth: "calc(100vw - 32px - 132px)",
+      maxHeight: "calc(100vh - 48px)",
+    },
   },
   actionsWrapper: {
     display: "flex",
-    flexDirection: "column",
     gap: 1,
     alignItems: "center",
+    lg: { flexDirection: "column" },
   },
   closeButton: {
-    alignSelf: "flex-end",
+    order: 5,
+    ml: "auto",
+    justifySelf: "flex-end",
+    lg: {
+      ml: "auto",
+      order: "initial",
+      justifySelf: "inherit",
+      alignSelf: "flex-end",
+    },
+  },
+  divider: {
+    display: "none",
+    lg: { display: "block" },
   },
   replaceButton: () => ({ "&:focus-within": model.theme.focus.default }),
 });
@@ -116,9 +135,10 @@ export function imageDalog(opts: ImageDialogOptions) {
                     size: "sm",
                     on: { click: opts.onClose },
                   }),
-                  divider({ inset: "none" }),
+                  divider({ styles: styles.divider, inset: "none" }),
                   button({
                     tag: "label",
+                    size: "sm",
                     startDecorator: materialIcon("Upload"),
                     styles: styles.replaceButton(),
                     children: [
@@ -162,6 +182,7 @@ export function imageDalog(opts: ImageDialogOptions) {
                   button({
                     startDecorator: materialIcon("Delete"),
                     loading: `deleting`,
+                    size: "sm",
                     on: {
                       click: [
                         setScalar(`deleting`, `true`),

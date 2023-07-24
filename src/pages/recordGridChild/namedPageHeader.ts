@@ -88,6 +88,7 @@ const styles = createStyles({
     position: "fixed",
     bottom: 16,
     left: 16,
+    zIndex: 1000,
   },
   grow: {
     display: "none",
@@ -140,10 +141,14 @@ function imagePart(
                     ],
                     catch: [
                       setScalar(`failed_upload`, `true`),
-                      spawn([
-                        delay("5000"),
-                        setScalar(`failed_upload`, `false`),
-                      ]),
+                      spawn({
+                        detached: true,
+                        statements: [
+                          delay("5000"),
+                          setScalar(`failed_upload`, `false`),
+                          commitUiChanges(),
+                        ],
+                      }),
                     ],
                   }),
                   setScalar(`uploading`, `false`),
