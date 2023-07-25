@@ -77,6 +77,11 @@ for (const client of clients) {
   const matterCount = faker.number.int({ min: 0, max: 5 });
   const contactId = contacts.indexOf(client);
   for (let i = 0; i < matterCount; i++) {
+    const startDate = faker.date.past();
+    const endDate = faker.date.between({
+      from: startDate,
+      to: new Date(startDate.getTime() + 1000 * 60 * 60 * 24 * 90),
+    });
     matters.push({
       type: faker.helpers.arrayElement([
         "civil",
@@ -95,9 +100,9 @@ for (const client of clients) {
         "respondent",
       ]),
       contact: contactId,
-      date: faker.date.past().toISOString().split("T")[0],
-      closeDate: faker.datatype.boolean()
-        ? faker.date.past().toISOString().split("T")[0]
+      date: startDate.toISOString().split("T")[0],
+      closeDate: faker.datatype.boolean(0.9)
+        ? endDate.toISOString().split("T")[0]
         : undefined,
       name: faker.lorem.words({ min: 3, max: 5 }),
       notes: faker.lorem.paragraph(),
@@ -129,7 +134,10 @@ for (let matterId = 0; matterId < matters.length; matterId++) {
   for (let i = 0; i < paymentCount; i++) {
     const cost = faker.number.float({ min: 0, max: 1000, precision: 2 });
     const minutes = faker.number.int({ min: 500, max: 1200 });
-    const date = faker.date.past().toISOString().split("T")[0];
+    const date = faker.date
+      .between({ from: matter.date, to: matter.closeDate ?? Date.now() })
+      .toISOString()
+      .split("T")[0];
     payments.push({
       contact: contactId,
       cost,
@@ -141,7 +149,10 @@ for (let matterId = 0; matterId < matters.length; matterId++) {
   const entryCount = faker.number.int({ min: 1, max: 15 });
   for (let i = 0; i < entryCount; i++) {
     const minutes = faker.number.int({ min: 10, max: 300 });
-    const date = faker.date.past().toISOString().split("T")[0];
+    const date = faker.date
+      .between({ from: matter.date, to: matter.closeDate ?? Date.now() })
+      .toISOString()
+      .split("T")[0];
     const billable = faker.datatype.boolean(0.95);
     entries.push({
       contact: contactId,
@@ -218,7 +229,7 @@ addScript({
       )}`
     ),
     modify(
-      `insert into db.matter_start (matter, contact, date) values ${matters
+      `insert into db.matter_close (matter, contact, date) values ${matters
         .filter((r) => r.closeDate)
         .map((r, i) => {
           const values = [i, r.contact, `DATE '${r.closeDate}'`];

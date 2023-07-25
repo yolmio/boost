@@ -210,11 +210,14 @@ export interface WrapInTooltipChildrenOpts {
 
 export interface WrapInTooltipOpts {
   title: Node;
+  idBase?: string;
   children: (opts: WrapInTooltipChildrenOpts) => Node;
 }
 
-export function wrappingTooltip(opts: WrapInTooltipOpts) {
-  const anchorEl = stringLiteral(getUniqueUiId());
+export function wrapInTooltip(opts: WrapInTooltipOpts) {
+  const anchorEl = opts.idBase
+    ? opts.idBase + " || " + stringLiteral(getUniqueUiId())
+    : stringLiteral(getUniqueUiId());
   return state({
     procedure: [scalar(`open_tooltip`, `false`), scalar(`enter_count`, `0`)],
     children: [

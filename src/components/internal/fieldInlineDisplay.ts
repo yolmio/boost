@@ -76,6 +76,19 @@ export function inlineFieldDisplay(field: Field, expr: string) {
     case "Int":
     case "SmallInt":
     case "SmallUint": {
+      if (field.usage) {
+        switch (field.usage.type) {
+          case "Money": {
+            return `format.currency(${expr}, 'usd')`;
+          }
+          case "Duration": {
+            if (field.usage.size === "minutes") {
+              return `sfn.display_minutes_duration(${expr})`;
+            }
+            throw new Error("Only minutes duration is supported");
+          }
+        }
+      }
       expr = `format.decimal(${expr})`;
       break;
     }

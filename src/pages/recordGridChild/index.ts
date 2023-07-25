@@ -8,6 +8,7 @@ import * as notesCard from "./notesCard.js";
 import * as relatedTable from "./relatedTable.js";
 import * as relatedRecordsTimeline from "./relatedRecordsTimeline.js";
 import * as superSimpleHeader from "./superSimpleHeader.js";
+import * as attachmentsCard from "./attachmentsCard.js";
 
 export const childFnMap = {
   [addressCard.name]: addressCard.content,
@@ -20,10 +21,12 @@ export const childFnMap = {
   [relatedTable.name]: relatedTable.content,
   [relatedRecordsTimeline.name]: relatedRecordsTimeline.content,
   [superSimpleHeader.name]: superSimpleHeader.content,
+  [attachmentsCard.name]: attachmentsCard.content,
 };
 
 export type ChildOpts =
   | (addressCard.Opts & { type: typeof addressCard.name })
+  | (attachmentsCard.Opts & { type: typeof attachmentsCard.name })
   | (namedHeader.Opts & { type: typeof namedHeader.name })
   | (addressesCard.Opts & { type: typeof addressesCard.name })
   | (notesListCard.Opts & { type: typeof notesListCard.name })

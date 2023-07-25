@@ -1,5 +1,10 @@
 import { navbarShell } from "@yolm/boost/shells/navbar";
-import { addEnum, addScalarFunction, addTable } from "@yolm/boost/modelHelpers";
+import {
+  addEnum,
+  addScalarFunction,
+  addTable,
+  addTableFromCatalog,
+} from "@yolm/boost/modelHelpers";
 import {
   navigate,
   returnExpr,
@@ -85,11 +90,8 @@ addTable("contact", (table) => {
   });
 });
 
-addTable("contact_note", (table) => {
-  table.fk("contact").notNull();
-  table.string("content", 2000).notNull();
-  table.date("date").notNull();
-});
+addTableFromCatalog({ type: "notes", mainTable: "contact" });
+addTableFromCatalog({ type: "attachments", mainTable: "contact" });
 
 addEnum({
   name: "matter_type",
@@ -122,6 +124,8 @@ addTable("matter", (table) => {
   table.string("notes", 2000).multiline();
   table.linkable();
 });
+
+addTableFromCatalog({ type: "attachments", mainTable: "matter" });
 
 addTable("matter_start", (table) => {
   table.fk("contact").notNull();
@@ -372,6 +376,10 @@ recordGridPage({
       styles: { gridColumnSpan: 12, lg: { gridColumnSpan: 6 } },
     },
     {
+      type: "attachmentsCard",
+      styles: { gridColumnSpan: 12, lg: { gridColumnSpan: 6 } },
+    },
+    {
       type: "relatedRecordsTimeline",
       dateField: "date",
       timelineHeader: `'Timeline'`,
@@ -409,6 +417,13 @@ recordGridPage({
           dotColor: "primary-500",
           icon: "AccessTimeFilledOutlined",
           header: (helper) => `'Time entry'`,
+          exprs: [
+            {
+              name: "matter_name",
+              type: { type: "String" },
+              expr: "(select name from db.matter where id = matter)",
+            },
+          ],
           displayFields: ["minutes", "billable", "note"],
         },
         {
@@ -452,6 +467,10 @@ recordGridPage({
     {
       type: "notesCard",
       styles: { gridColumnSpan: 12, lg: { gridColumnSpan: 4 } },
+    },
+    {
+      type: "attachmentsCard",
+      styles: { gridColumnSpan: 12, lg: { gridColumnSpan: 6 } },
     },
   ],
 });

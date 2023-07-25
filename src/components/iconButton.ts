@@ -11,8 +11,6 @@ export interface IconButtonOpts
     SingleElementComponentOpts {
   /** expression for if the button is disabled */
   disabled?: string;
-  /** expression for if the button shouhld be put into a loading state */
-  loading?: string;
   /** expression for href, will make button into <a> tag and add this prop */
   href?: string;
 

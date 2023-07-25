@@ -34,7 +34,8 @@ import { getTableBaseUrl } from "./utils/url.js";
 import {
   applyFieldGroupCatalog,
   FieldGroupCatalog,
-} from "./fieldGroupCatalog.js";
+} from "./catalog/fieldGroup.js";
+import { applyTableCatalog, TableCatalog } from "./catalog/table.js";
 import {
   advanceCursor,
   createQueryCursor,
@@ -684,7 +685,7 @@ function createIntegerBuilder(
 ): IntegerFieldBuilder {
   return class extends BaseIntegerBuilder {
     finish(): Field {
-      return { type, ...this.finishNumericBase() };
+      return { type, ...this.finishIntegerBase() };
     }
   };
 }
@@ -910,6 +911,14 @@ export function addTable(name: string, f: (table: TableBuilder) => void) {
     inScriptDb.tables[name] = builder.finish();
   } else {
     model.database.tables[name] = builder.finish();
+  }
+}
+
+export function addTableFromCatalog(catalog: TableCatalog | (() => void)) {
+  if (typeof catalog === "function") {
+    catalog();
+  } else {
+    applyTableCatalog(catalog);
   }
 }
 
