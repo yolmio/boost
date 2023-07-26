@@ -448,8 +448,6 @@ dashboardGridPage({
   ],
 });
 
-adminPage();
-
 simpleDatagridPage({
   table: "employee",
   selectable: true,
@@ -1028,3 +1026,5 @@ reportsPage.table({
 });
 
 reportsPage.finish();
+
+adminPage();

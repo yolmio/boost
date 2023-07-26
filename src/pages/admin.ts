@@ -27,6 +27,122 @@ import { ClientProcStatement, SqlExpression } from "../yom.js";
 import { input } from "../components/input.js";
 import { addPage } from "../modelHelpers.js";
 import { Node } from "../nodeTypes.js";
+import { model } from "../singleton.js";
+import { stringLiteral } from "../utils/sqlHelpers.js";
+import { createStyles, flexGrowStyles } from "../styleUtils.js";
+import { chip } from "../components/chip.js";
+import { divider } from "../components/divider.js";
+
+const styles = createStyles({
+  root: {
+    display: "flex",
+    flexDirection: "column",
+    height: "100%",
+    lg: { flexDirection: "row" },
+  },
+  schemaWrapper: {
+    height: "100%",
+    width: "100%",
+    position: "relative",
+    borderRight: "1px solid",
+    borderColor: "divider",
+    flexShrink: 0,
+    order: 1,
+    lg: { width: 340, order: 0 },
+  },
+  schema: {
+    position: "absolute",
+    inset: 0,
+    px: 1,
+    py: 1,
+    display: "flex",
+    flexDirection: "column",
+    gap: 0.5,
+    lg: {
+      overflowY: "auto",
+    },
+  },
+  tableFields: {
+    display: "flex",
+    flexDirection: "column",
+    backgroundColor: "primary-50",
+    p: 1,
+  },
+  enumValues: {
+    display: "flex",
+    flexDirection: "column",
+    backgroundColor: "primary-50",
+    p: 1,
+  },
+  enumValue: {
+    fontSize: "sm",
+    py: 0.5,
+    borderBottom: "1px solid",
+    borderColor: "divider",
+    alignItems: "center",
+    width: "100%",
+  },
+  schemaField: {
+    display: "flex",
+    justifyContent: "space-between",
+    width: "100%",
+    py: 0.5,
+    borderBottom: "1px solid",
+    borderColor: "divider",
+    alignItems: "center",
+  },
+  tabs: {
+    flexGrow: 1,
+    py: 2,
+    px: 1,
+  },
+  expandable: {
+    userSelect: "none",
+    display: "flex",
+    alignItems: "center",
+    gap: 1.5,
+    px: 1,
+    py: 1,
+    fontSize: "sm",
+    fontWeight: "md",
+    textDecoration: "none",
+    color: "text-secondary",
+    borderRadius: "md",
+    cursor: "pointer",
+    "&:hover": {
+      backgroundColor: "primary-50",
+      dark: {
+        backgroundColor: "primary-800",
+      },
+    },
+    "&.active": {
+      color: "primary-plain-color",
+      backgroundColor: "primary-50",
+      dark: {
+        backgroundColor: "primary-800",
+      },
+    },
+    "&:active": {
+      backgroundColor: "primary-100",
+      dark: {
+        backgroundColor: "primary-700",
+      },
+    },
+  },
+  fieldName: {
+    display: "block",
+    fontSize: "sm",
+  },
+  notNullFieldName: {
+    display: "flex",
+    gap: 1,
+  },
+  fieldType: {
+    display: "block",
+    fontSize: "sm",
+    color: "text-secondary",
+  },
+});
 
 function undoTxTab() {
   return state({
@@ -342,6 +458,374 @@ function queryTab() {
   });
 }
 
+interface FieldDisplayOpts {
+  name: string;
+  notNull: boolean;
+  type: string;
+}
+
+function displayField({ name, notNull, type }: FieldDisplayOpts) {
+  return element("div", {
+    styles: styles.schemaField,
+    children: [
+      notNull
+        ? element("div", {
+            styles: styles.notNullFieldName,
+            children: [
+              element("span", {
+                styles: styles.fieldName,
+                children: stringLiteral(name),
+              }),
+              notNull
+                ? chip({
+                    color: "neutral",
+                    variant: "soft",
+                    children: `'not null'`,
+                    size: "sm",
+                  })
+                : undefined,
+            ],
+          })
+        : element("span", {
+            styles: styles.fieldName,
+            children: stringLiteral(name),
+          }),
+      element("span", {
+        styles: styles.fieldType,
+        children: stringLiteral(type),
+      }),
+    ],
+  });
+}
+
+function collapse(label: string, node: Node) {
+  return state({
+    procedure: [scalar(`open`, `false`)],
+    children: [
+      element("div", {
+        styles: styles.expandable,
+        dynamicClasses: [
+          {
+            condition: `open`,
+            classes: "active",
+          },
+        ],
+        children: [
+          stringLiteral(label),
+          element("div", { styles: flexGrowStyles }),
+          ifNode(
+            `open`,
+            materialIcon("KeyboardArrowDown"),
+            materialIcon("KeyboardArrowRight")
+          ),
+        ],
+        on: {
+          click: [setScalar(`ui.open`, `not open`)],
+        },
+      }),
+      ifNode(`open`, node),
+    ],
+  });
+}
+
+function transactionQueryReference(): Node[] {
+  const userFk = model.database.userTableName;
+  return [
+    typography({ level: "h5", children: "'Transaction Queries'" }),
+    divider(),
+    collapse(
+      "tx",
+      element("div", {
+        styles: styles.tableFields,
+        children: [
+          displayField({ name: "id", type: "biguint", notNull: true }),
+          displayField({
+            name: "timestamp",
+            type: "timestamp",
+            notNull: true,
+          }),
+          displayField({
+            name: "creator",
+            type: `${userFk} (fk)`,
+            notNull: false,
+          }),
+        ],
+      })
+    ),
+    collapse(
+      "tx_op",
+      element("div", {
+        styles: styles.tableFields,
+        children: [
+          displayField({ name: "tx_id", type: "biguint", notNull: true }),
+          displayField({
+            name: "tx_timestamp",
+            type: "timestamp",
+            notNull: true,
+          }),
+          displayField({
+            name: "tx_creator",
+            type: `${userFk} (fk)`,
+            notNull: false,
+          }),
+          displayField({
+            name: "kind",
+            type: "sys_op_kind (enum)",
+            notNull: true,
+          }),
+          displayField({
+            name: "table",
+            type: "sys_db_table (enum)",
+            notNull: true,
+          }),
+          displayField({
+            name: "skip_count",
+            type: "biguint",
+            notNull: false,
+          }),
+          displayField({
+            name: "sequence_id",
+            type: "biguint",
+            notNull: true,
+          }),
+          displayField({
+            name: "record_id",
+            type: "biguint",
+            notNull: true,
+          }),
+        ],
+      })
+    ),
+    collapse(
+      "{table}_as_of",
+      element("div", {
+        styles: styles.tableFields,
+        children: [
+          element("p", {
+            styles: { my: 1, fontSize: "sm" },
+            children: `'This table gives you access to all the fields of a table record as of a certain transaction (i.e. after that transaction was applied). For example: '`,
+          }),
+          element("p", {
+            styles: { my: 1, fontFamily: "monospace", fontSize: "sm" },
+            children: `'select first_name from contact_as_of(0, 1)'`,
+          }),
+          element("p", {
+            styles: { mt: 0, mb: 1, fontSize: "sm" },
+            children: `'The above query gets the first_name of the contact with id 0 after the second transaction (transaction with id 1) was applied.'`,
+          }),
+          displayField({ name: "tx_id", type: "biguint", notNull: true }),
+          displayField({
+            name: "tx_timestamp",
+            type: "timestamp",
+            notNull: true,
+          }),
+          displayField({
+            name: "tx_creator",
+            type: `${userFk} (fk)`,
+            notNull: false,
+          }),
+          displayField({
+            name: "record_id",
+            type: "biguint",
+            notNull: true,
+          }),
+        ],
+      })
+    ),
+    collapse(
+      "{table}_insert_op",
+      element("div", {
+        styles: styles.tableFields,
+        children: [
+          element("p", {
+            styles: { my: 1, fontSize: "sm" },
+            children: `'This table gives you detailed access to insert operations for the table specified. In addition to the fields below you can access all of the fields in the insert with field_{field_name}. For example:'`,
+          }),
+          element("p", {
+            styles: { my: 1, fontFamily: "monospace", fontSize: "sm" },
+            children: `'select field_name from contact_insert_op'`,
+          }),
+          element("p", {
+            styles: { mt: 0, mb: 1, fontSize: "sm" },
+            children: `'The above query gets the name field value on all insert operations.'`,
+          }),
+          displayField({ name: "tx_id", type: "biguint", notNull: true }),
+          displayField({
+            name: "tx_timestamp",
+            type: "timestamp",
+            notNull: true,
+          }),
+          displayField({
+            name: "tx_creator",
+            type: `${userFk} (fk)`,
+            notNull: false,
+          }),
+          displayField({
+            name: "record_id",
+            type: "biguint",
+            notNull: true,
+          }),
+        ],
+      })
+    ),
+    collapse(
+      "{table}_update_op",
+      element("div", {
+        styles: styles.tableFields,
+        children: [
+          element("p", {
+            styles: { my: 1, fontSize: "sm" },
+            children: `'This table gives you detailed access to update operations for the table specified. In addition to the fields below you can access all of the fields in the update with field_{field_name} and you can check if it is populated through populated_{field_name}. For example:'`,
+          }),
+          element("p", {
+            styles: { my: 1, fontFamily: "monospace", fontSize: "sm" },
+            children: `'select field_checked from todo_update_op where populated_checked'`,
+          }),
+          element("p", {
+            styles: { mt: 0, mb: 1, fontSize: "sm" },
+            children: `'The above query gets the checked field value on all update operations where the checked field was populated.'`,
+          }),
+          displayField({ name: "tx_id", type: "biguint", notNull: true }),
+          displayField({
+            name: "tx_timestamp",
+            type: "timestamp",
+            notNull: true,
+          }),
+          displayField({
+            name: "tx_creator",
+            type: `${userFk} (fk)`,
+            notNull: false,
+          }),
+          displayField({
+            name: "record_id",
+            type: "biguint",
+            notNull: true,
+          }),
+        ],
+      })
+    ),
+    collapse(
+      "sys_op_kind",
+      element("div", {
+        styles: styles.enumValues,
+        children: [
+          element("div", {
+            styles: styles.enumValue,
+            children: `'insert'`,
+          }),
+          element("div", {
+            styles: styles.enumValue,
+            children: `'update'`,
+          }),
+          element("div", {
+            styles: styles.enumValue,
+            children: `'delete'`,
+          }),
+          element("div", { styles: styles.enumValue, children: `'skip'` }),
+          element("div", {
+            styles: styles.enumValue,
+            children: `'restore'`,
+          }),
+        ],
+      })
+    ),
+    collapse(
+      "sys_db_table",
+      element("div", {
+        styles: styles.enumValues,
+        children: Object.keys(model.database.tables).map((name) =>
+          element("div", {
+            styles: styles.enumValue,
+            children: stringLiteral(name),
+          })
+        ),
+      })
+    ),
+  ];
+}
+
+function schemaReference() {
+  return element("div", {
+    styles: styles.schemaWrapper,
+    children: element("div", {
+      styles: styles.schema,
+      children: [
+        typography({ level: "h5", children: "'Tables'" }),
+        divider(),
+        Object.values(model.database.tables).map((table) => {
+          const fields = Object.values(table.fields).map((field) => {
+            let typeString = field.type.toLowerCase();
+            if (field.type === "ForeignKey") {
+              typeString = `${field.table} (fk)`;
+            } else if (field.type === "Enum") {
+              typeString = `${field.enum} (enum)`;
+            } else if (field.type === "Tx") {
+              typeString = `tx (biguint)`;
+            }
+            return displayField({
+              name: field.name,
+              notNull: field.notNull ?? false,
+              type: typeString,
+            });
+          });
+          if (model.database.enableTransactionQueries) {
+            fields.unshift(
+              displayField({
+                name: "last_modified_by_tx",
+                notNull: true,
+                type: "tx (biguint)",
+              }),
+              displayField({
+                name: "created_by_tx",
+                notNull: true,
+                type: "tx (biguint)",
+              })
+            );
+          }
+          fields.unshift(
+            displayField({
+              name: table.primaryKeyFieldName ?? "id",
+              notNull: true,
+              type: "pk (biguint)",
+            })
+          );
+          return collapse(
+            table.name,
+            element("div", { styles: styles.tableFields, children: fields })
+          );
+        }),
+        typography({ level: "h5", children: "'Enums'" }),
+        divider(),
+        Object.values(model.enums)
+          .filter((enum_) =>
+            Object.values(model.database.tables).some((t) =>
+              Object.values(t.fields).some(
+                (f) => f.type === "Enum" && f.enum === enum_.name
+              )
+            )
+          )
+          .map((enum_) => {
+            return collapse(
+              enum_.name,
+              element("div", {
+                styles: styles.enumValues,
+                children: Object.values(enum_.values).map((v) =>
+                  element("div", {
+                    styles: styles.enumValue,
+                    children: stringLiteral(v.name),
+                  })
+                ),
+              })
+            );
+          }),
+        ...(model.database.enableTransactionQueries
+          ? transactionQueryReference()
+          : []),
+      ],
+    }),
+  });
+}
+
 interface AdminPageOpts {
   path?: string;
   allow?: SqlExpression;
@@ -349,9 +833,11 @@ interface AdminPageOpts {
 
 export function adminPage(opts: AdminPageOpts = {}) {
   let content: Node = element("div", {
-    styles: { p: 2 },
+    styles: styles.root,
     children: [
+      schemaReference(),
       tabs({
+        styles: styles.tabs,
         idBase: `'tabs'`,
         tabs: [
           {

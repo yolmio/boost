@@ -1,7 +1,7 @@
 import { model } from "../singleton.js";
 import { element, state } from "../nodeHelpers.js";
 import type { Node } from "../nodeTypes.js";
-import { StyleObject } from "../styleTypes.js";
+import { Style, StyleObject } from "../styleTypes.js";
 import { Variant } from "../theme.js";
 import { createStyles, cssVar, getVariantStyle } from "../styleUtils.js";
 import { scopedVariables, styles as listStyles } from "./list.js";
@@ -133,6 +133,7 @@ const styles = createStyles({
 type Orientation = "horizontal" | "vertical";
 
 export interface BetterTabsOpts extends ComponentOpts {
+  styles?: Style;
   tabDefaultColor?: Color;
   tabSelectedColor?: Color;
   tabDefaultVariant?: Variant;
@@ -174,7 +175,7 @@ export function tabs(opts: BetterTabsOpts) {
   return state({
     procedure: [scalar(`selected_tab`, `0`), scalar(`focus_tab`, `0`)],
     children: element("div", {
-      styles: rootStyle,
+      styles: opts.styles ? [opts.styles, rootStyle] : rootStyle,
       children: [
         element("div", {
           props: { role: "'tablist'" },

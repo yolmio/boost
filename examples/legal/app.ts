@@ -254,8 +254,6 @@ dashboardGridPage({
   ],
 });
 
-adminPage({ allow: isSysAdmin });
-
 const thirdStyles = {
   gridColumnSpan: 12,
   md: { gridColumnSpan: 6 },
@@ -638,3 +636,5 @@ reportsBuilder.table({
 });
 
 reportsBuilder.finish();
+
+adminPage({ allow: isSysAdmin });
