@@ -66,12 +66,18 @@ const styles = createStyles({
     display: "flex",
     flexDirection: "column",
     backgroundColor: "primary-50",
+    dark: {
+      backgroundColor: "primary-800",
+    },
     p: 1,
   },
   enumValues: {
     display: "flex",
     flexDirection: "column",
     backgroundColor: "primary-50",
+    dark: {
+      backgroundColor: "primary-800",
+    },
     p: 1,
   },
   enumValue: {
@@ -141,6 +147,15 @@ const styles = createStyles({
     display: "block",
     fontSize: "sm",
     color: "text-secondary",
+  },
+  txInfoText: {
+    my: 1,
+    fontSize: "sm",
+  },
+  txInfoCode: {
+    my: 1,
+    fontFamily: "monospace",
+    fontSize: "sm",
   },
 });
 
@@ -602,32 +617,16 @@ function transactionQueryReference(): Node[] {
         styles: styles.tableFields,
         children: [
           element("p", {
-            styles: { my: 1, fontSize: "sm" },
+            styles: styles.txInfoText,
             children: `'This table gives you access to all the fields of a table record as of a certain transaction (i.e. after that transaction was applied). For example: '`,
           }),
           element("p", {
-            styles: { my: 1, fontFamily: "monospace", fontSize: "sm" },
+            styles: styles.txInfoCode,
             children: `'select first_name from contact_as_of(0, 1)'`,
           }),
           element("p", {
-            styles: { mt: 0, mb: 1, fontSize: "sm" },
+            styles: styles.txInfoText,
             children: `'The above query gets the first_name of the contact with id 0 after the second transaction (transaction with id 1) was applied.'`,
-          }),
-          displayField({ name: "tx_id", type: "biguint", notNull: true }),
-          displayField({
-            name: "tx_timestamp",
-            type: "timestamp",
-            notNull: true,
-          }),
-          displayField({
-            name: "tx_creator",
-            type: `${userFk} (fk)`,
-            notNull: false,
-          }),
-          displayField({
-            name: "record_id",
-            type: "biguint",
-            notNull: true,
           }),
         ],
       })
@@ -638,15 +637,15 @@ function transactionQueryReference(): Node[] {
         styles: styles.tableFields,
         children: [
           element("p", {
-            styles: { my: 1, fontSize: "sm" },
+            styles: styles.txInfoText,
             children: `'This table gives you detailed access to insert operations for the table specified. In addition to the fields below you can access all of the fields in the insert with field_{field_name}. For example:'`,
           }),
           element("p", {
-            styles: { my: 1, fontFamily: "monospace", fontSize: "sm" },
+            styles: styles.txInfoCode,
             children: `'select field_name from contact_insert_op'`,
           }),
           element("p", {
-            styles: { mt: 0, mb: 1, fontSize: "sm" },
+            styles: styles.txInfoText,
             children: `'The above query gets the name field value on all insert operations.'`,
           }),
           displayField({ name: "tx_id", type: "biguint", notNull: true }),
@@ -674,15 +673,15 @@ function transactionQueryReference(): Node[] {
         styles: styles.tableFields,
         children: [
           element("p", {
-            styles: { my: 1, fontSize: "sm" },
+            styles: styles.txInfoText,
             children: `'This table gives you detailed access to update operations for the table specified. In addition to the fields below you can access all of the fields in the update with field_{field_name} and you can check if it is populated through populated_{field_name}. For example:'`,
           }),
           element("p", {
-            styles: { my: 1, fontFamily: "monospace", fontSize: "sm" },
+            styles: styles.txInfoCode,
             children: `'select field_checked from todo_update_op where populated_checked'`,
           }),
           element("p", {
-            styles: { mt: 0, mb: 1, fontSize: "sm" },
+            styles: styles.txInfoText,
             children: `'The above query gets the checked field value on all update operations where the checked field was populated.'`,
           }),
           displayField({ name: "tx_id", type: "biguint", notNull: true }),

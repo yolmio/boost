@@ -76,12 +76,26 @@ const matters: {
 for (const client of clients) {
   const matterCount = faker.number.int({ min: 0, max: 5 });
   const contactId = contacts.indexOf(client);
+  let lastMatterDate = faker.date.past({ years: 3 });
   for (let i = 0; i < matterCount; i++) {
-    const startDate = faker.date.past();
+    if (lastMatterDate > new Date()) {
+      continue;
+    }
+    const startDate = new Date(
+      lastMatterDate.getTime() +
+        faker.number.int({ min: 1, max: 5 }) * 1000 * 60 * 60 * 24
+    );
+    if (startDate > new Date()) {
+      continue;
+    }
     const endDate = faker.date.between({
       from: startDate,
-      to: new Date(startDate.getTime() + 1000 * 60 * 60 * 24 * 90),
+      to: new Date(
+        Math.max(startDate.getTime() + 1000 * 60 * 60 * 24 * 60, Date.now())
+      ),
     });
+    lastMatterDate = endDate;
+    const hasClosed = faker.datatype.boolean(0.9);
     matters.push({
       type: faker.helpers.arrayElement([
         "civil",
@@ -101,13 +115,14 @@ for (const client of clients) {
       ]),
       contact: contactId,
       date: startDate.toISOString().split("T")[0],
-      closeDate: faker.datatype.boolean(0.9)
-        ? endDate.toISOString().split("T")[0]
-        : undefined,
+      closeDate: hasClosed ? endDate.toISOString().split("T")[0] : undefined,
       name: faker.lorem.words({ min: 3, max: 5 }),
       notes: faker.lorem.paragraph(),
       employee: faker.number.int({ min: 0, max: 9 }),
     });
+    if (hasClosed) {
+      break;
+    }
   }
 }
 
@@ -130,12 +145,19 @@ const entries: {
 for (let matterId = 0; matterId < matters.length; matterId++) {
   const matter = matters[matterId];
   const contactId = matter.contact;
-  const paymentCount = faker.number.int({ min: 0, max: 5 });
+  const entryCount = faker.number.int({ min: 1, max: 20 });
+  const paymentCount = faker.number.int({
+    min: 1,
+    max: Math.max(1, Math.floor(entryCount / 3)),
+  });
   for (let i = 0; i < paymentCount; i++) {
     const cost = faker.number.float({ min: 0, max: 1000, precision: 2 });
     const minutes = faker.number.int({ min: 500, max: 1200 });
     const date = faker.date
-      .between({ from: matter.date, to: matter.closeDate ?? Date.now() })
+      .between({
+        from: new Date(matter.date),
+        to: matter.closeDate ? new Date(matter.closeDate) : Date.now(),
+      })
       .toISOString()
       .split("T")[0];
     payments.push({
@@ -146,11 +168,13 @@ for (let matterId = 0; matterId < matters.length; matterId++) {
       invoiceId: faker.string.uuid(),
     });
   }
-  const entryCount = faker.number.int({ min: 1, max: 15 });
   for (let i = 0; i < entryCount; i++) {
     const minutes = faker.number.int({ min: 10, max: 300 });
     const date = faker.date
-      .between({ from: matter.date, to: matter.closeDate ?? Date.now() })
+      .between({
+        from: new Date(matter.date),
+        to: matter.closeDate ? new Date(matter.closeDate) : Date.now(),
+      })
       .toISOString()
       .split("T")[0];
     const billable = faker.datatype.boolean(0.95);

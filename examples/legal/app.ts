@@ -439,7 +439,7 @@ recordGridPage({
         },
         {
           table: "payment",
-          dotColor: "success-500",
+          dotColor: "success-300",
           header: (helper) => `'Payment'`,
           icon: "Receipt",
           displayFields: ["cost", "invoice_id"],
