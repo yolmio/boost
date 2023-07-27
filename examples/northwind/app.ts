@@ -196,7 +196,7 @@ navbarShell({
     "/reports",
     { showIf: isAdmin, url: "/employees" },
     { showIf: isAdmin, url: "/users" },
-    { showIf: isSysAdmin, url: "/db-managment" },
+    { showIf: isSysAdmin, url: "/db-management" },
   ],
   multiTableSearchDialog: {
     tables: [
@@ -466,6 +466,7 @@ simpleDatagridPage({
     add: {
       type: "dialog",
       opts: {
+        withValues: { image_thumb: "null", image_full: "null" },
         beforeTransactionCommit: (state) => [
           addUsers(
             `select ${state.fields.get(

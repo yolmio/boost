@@ -7,12 +7,13 @@ import { StyleObject } from "../styleTypes.js";
 import { createStyles, cssVar } from "../styleUtils.js";
 import { SlottedComponentWithSlotNames } from "./utils.js";
 import { createSlotsFn } from "./utils.js";
-import { backdropStyles } from "./modal.js";
+import { styles as modalStyles } from "./modal.js";
 import { withExitTransition } from "./withExitTransition.js";
 
 type Direction = "left" | "right";
 
-export interface DrawerOpts extends SlottedComponentWithSlotNames<"drawer"> {
+export interface DrawerOpts
+  extends SlottedComponentWithSlotNames<"drawer" | "backdrop"> {
   open: string;
   direction: Direction;
 
@@ -90,7 +91,7 @@ export function drawer(opts: DrawerOpts) {
         portal(
           slot("root", {
             tag: "div",
-            styles: backdropStyles(),
+            styles: modalStyles.root(),
             dynamicClasses,
             on: {
               keydown: [
@@ -100,18 +101,26 @@ export function drawer(opts: DrawerOpts) {
                 ]),
               ],
             },
-            children: slot("drawer", {
-              tag: "div",
-              on: {
-                clickAway: [...opts.onClose, ...startCloseTransition],
-              },
-              styles: styles.drawerStyles(opts.direction),
-              dynamicClasses,
-              children: opts.children([
-                ...opts.onClose,
-                ...startCloseTransition,
-              ]),
-            }),
+            children: [
+              slot("backdrop", {
+                tag: "div",
+                styles: modalStyles.backdrop,
+                dynamicClasses,
+                props: { "aria-hidden": "true" },
+              }),
+              slot("drawer", {
+                tag: "div",
+                on: {
+                  clickAway: [...opts.onClose, ...startCloseTransition],
+                },
+                styles: styles.drawerStyles(opts.direction),
+                dynamicClasses,
+                children: opts.children([
+                  ...opts.onClose,
+                  ...startCloseTransition,
+                ]),
+              }),
+            ],
           })
         ),
       ])

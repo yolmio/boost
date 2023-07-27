@@ -15,66 +15,69 @@ import {
 } from "./utils.js";
 import { withExitTransition } from "./withExitTransition.js";
 
-export interface ModalOpts extends SlottedComponentWithSlotNames<"backdrop"> {
+export interface ModalOpts
+  extends SlottedComponentWithSlotNames<"backdrop" | "overflow"> {
   open: string;
   onClose: ClientProcStatement[];
   children: (close: ClientProcStatement[]) => Node;
 }
 
-export const backdropStyles = lazy(() => {
-  const enterAnimation = registerKeyframes({
-    from: {
-      backdropFilter: "blur(0px)",
-      opacity: "0",
-    },
-    to: {
+export const styles = createStyles({
+  root: () => {
+    const enterAnimation = registerKeyframes({
+      from: {
+        backdropFilter: "blur(0px)",
+        opacity: "0",
+      },
+      to: {
+        backdropFilter: "blur(8px)",
+        opacity: "1",
+      },
+    });
+    const exitAnimation = registerKeyframes({
+      from: {
+        backdropFilter: "blur(8px)",
+        opacity: "1",
+      },
+      to: {
+        backdropFilter: "blur(0px)",
+        opacity: "0",
+      },
+    });
+    return {
+      position: "fixed",
+      zIndex: 1300,
+      inset: 0,
       backdropFilter: "blur(8px)",
       opacity: "1",
-    },
-  });
-  const exitAnimation = registerKeyframes({
-    from: {
-      backdropFilter: "blur(8px)",
-      opacity: "1",
-    },
-    to: {
-      backdropFilter: "blur(0px)",
-      opacity: "0",
-    },
-  });
-  return {
-    zIndex: 1300,
+      animationName: enterAnimation,
+      animationTimingFunction: "ease-out",
+      animationDuration: "200ms",
+      "&.in_exit_transition": {
+        animationName: exitAnimation,
+        animationTimingFunction: "ease-in",
+        backdropFilter: "blur(0px)",
+        opacity: "0",
+      },
+    };
+  },
+  backdrop: {
+    zIndex: -1,
     position: "fixed",
-    right: 0,
-    bottom: 0,
-    top: 0,
-    left: 0,
+    inset: 0,
     overflowY: "auto",
     overflowX: "hidden",
-    backgroundColor: cssVar(`palette-background-backdrop`),
+    backgroundColor: "background-backdrop",
     WebkitTapHighlightColor: "transparent",
-    backdropFilter: "blur(8px)",
-    opacity: "1",
-    animationName: enterAnimation,
-    animationTimingFunction: "ease-out",
-    animationDuration: "200ms",
-    "&.in_exit_transition": {
-      animationName: exitAnimation,
-      animationTimingFunction: "ease-in",
-      backdropFilter: "blur(0px)",
-      opacity: "0",
-    },
-  };
-});
-
-const styles = createStyles({
-  modalRoot: {
-    position: "fixed",
-    zIndex: 1300,
-    right: 0,
-    bottom: 0,
-    top: 0,
-    left: 0,
+  },
+  overflow: {
+    position: "absolute",
+    inset: 0,
+    height: "100%",
+    overflow: "hidden auto",
+    outline: "none",
+    display: "flex",
+    flexDirection: "column", // required for fullscreen ModalDialog, using `row` cannot be achieved.
   },
   dialog: (size: Size, layout: DialogLayout) => {
     return {
@@ -109,36 +112,31 @@ const styles = createStyles({
       minWidth:
         "min(calc(100vw - 2 * var(--modal-dialog-padding)), var(--modal-dialog-min-width, 300px))",
       outline: 0,
-      position: "absolute",
       background: cssVar(`palette-background-body`),
-      overflow: "auto",
       ...(layout === "fullscreen" && {
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        border: 0,
         borderRadius: 0,
+        width: "100%",
+        margin: "calc(-1 * var(--modal-overflow-padding-y)) 0",
+        flex: 1,
       }),
       ...(layout === "center" && {
-        top: "50%",
-        left: "50%",
-        transform: "translate(-50%, -50%)",
+        height: "max-content", // height is based on content, otherwise `margin: auto` will take place.
+        mx: "auto",
+        my: 3,
       }),
       ...(layout === "fullscreenOnMobile" && {
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        border: 0,
         borderRadius: 0,
+        width: "100%",
+        margin: "calc(-1 * var(--modal-overflow-padding-y)) 0",
+        flex: 1,
+        height: "auto",
         md: {
-          top: "50%",
-          left: "50%",
-          right: "unset",
-          bottom: "unset",
-          transform: "translate(-50%, -50%)",
+          mx: "auto",
+          my: 3,
+          height: "max-content", // height is based on content, otherwise `margin: auto` will take place.
+          width: "unset",
           borderRadius: "var(--modal-dialog-radius)",
+          flex: "unset",
         },
       }),
     };
@@ -155,25 +153,33 @@ export function modal(opts: ModalOpts) {
         portal(
           slot("root", {
             tag: "div",
-            styles: styles.modalRoot,
-            children: slot("backdrop", {
-              tag: "div",
-              styles: backdropStyles(),
-              dynamicClasses,
-              on: {
-                click: [...opts.onClose, ...startCloseTransition],
-                keydown: [
-                  if_("event.key = 'Escape'", [
-                    ...opts.onClose,
-                    ...startCloseTransition,
-                  ]),
-                ],
-              },
-              children: opts.children([
-                ...opts.onClose,
-                ...startCloseTransition,
-              ]),
-            }),
+            styles: styles.root(),
+            dynamicClasses,
+            on: {
+              click: [...opts.onClose, ...startCloseTransition],
+              keydown: [
+                if_("event.key = 'Escape'", [
+                  ...opts.onClose,
+                  ...startCloseTransition,
+                ]),
+              ],
+            },
+            children: [
+              slot("backdrop", {
+                tag: "div",
+                styles: styles.backdrop,
+                dynamicClasses,
+                props: { "aria-hidden": "true" },
+              }),
+              slot("overflow", {
+                tag: "div",
+                styles: styles.overflow,
+                children: opts.children([
+                  ...opts.onClose,
+                  ...startCloseTransition,
+                ]),
+              }),
+            ],
           })
         )
       )
