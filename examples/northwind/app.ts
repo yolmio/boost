@@ -1,12 +1,14 @@
 import { addEnum, addTable } from "@yolm/boost/modelHelpers";
 import { navbarShell } from "@yolm/boost/shells/navbar";
 import {
+  addUsers,
   commitUiChanges,
   debugExpr,
   if_,
   modify,
   navigate,
   record,
+  removeUsers,
   scalar,
   serviceProc,
   setScalar,
@@ -25,6 +27,7 @@ import {
   ReportParameter,
   SimpleReportsPageBuilder,
 } from "@yolm/boost/pages/simpleReportPage";
+import { ServiceProcStatement } from "@yolm/boost/yom";
 
 model.name = "northwind";
 model.title = "Northwind Traders";
@@ -34,10 +37,17 @@ model.displayName = "Northwind Traders";
 // DATABASE
 //
 
-addTable("employee", (table) => {
+addTable("user", (table) => {
   table.fieldGroupFromCatalog({ type: "requiredUserFields" });
+  table.bool("is_sys_admin").notNull().default("false");
+  table.bool("is_admin").notNull().default("false");
+  table.fk("employee");
+});
+
+addTable("employee", (table) => {
   table.string("first_name", 10).notNull();
   table.string("last_name", 20).notNull();
+  table.email("email").notNull();
   table.string("title", 30);
   table.string("title_of_courtesy", 30);
   table.fk("reports_to", "employee");
@@ -51,7 +61,6 @@ addTable("employee", (table) => {
   table.string("Extension", 4);
   table.fieldGroupFromCatalog({ type: "simpleImageSet" });
   table.string("notes", 2000);
-  table.bool("is_sys_admin").notNull().default("false");
 
   table.check({
     fields: ["birth_date"],
@@ -60,8 +69,6 @@ addTable("employee", (table) => {
   });
   table.linkable();
 });
-
-model.database.userTableName = "employee";
 
 addTable("category", (table) => {
   table.string("name", 15).notNull();
@@ -173,13 +180,13 @@ addTable("order_detail", (table) => {
 // UI
 //
 
-const isSysAdmin = `(select is_sys_admin from db.employee from where id = current_user())`;
+const isSysAdmin = `(select is_sys_admin from db.user from where id = current_user())`;
+const isAdmin = `(select is_admin from db.user from where id = current_user())`;
 
 navbarShell({
   color: "primary",
   variant: "solid",
   links: [
-    "/employees",
     "/orders",
     "/customers",
     "/shippers",
@@ -187,6 +194,8 @@ navbarShell({
     "/products",
     "/categories",
     "/reports",
+    { showIf: isAdmin, url: "/employees" },
+    { showIf: isAdmin, url: "/users" },
     { showIf: isSysAdmin, url: "/db-managment" },
   ],
   multiTableSearchDialog: {
@@ -454,10 +463,47 @@ simpleDatagridPage({
   toolbar: {
     export: true,
     delete: true,
+    add: {
+      type: "dialog",
+      opts: {
+        beforeTransactionCommit: (state) => [
+          addUsers(
+            `select ${state.fields.get(
+              "email"
+            )} as email, next_record_id(db.user) as db_id, 'none' as notification_type`,
+            "added_user"
+          ),
+          modify(
+            `insert into db.user (global_id, is_sys_admin, is_admin, disabled, email, employee) values ((select global_id from added_user), false, false, false, ${state.fields.get(
+              "email"
+            )}, last_record_id(db.employee))`
+          ),
+        ],
+      },
+    },
+  },
+  fields: {
+    email: {
+      beforeEdit: (newValue, recordId) => [
+        scalar(
+          `user_id`,
+          `(select id from db.user where employee = ${recordId})`
+        ),
+        modify(`update db.user set email = ${newValue} where id = user_id`),
+        if_(`not (select disabled from db.user where id = user_id)`, [
+          removeUsers(`select global_id from db.user where id = user_id`),
+          addUsers(
+            `select ${newValue} as email, user_id as db_id, 'none' as notification_type`,
+            `added_user`
+          ),
+          modify(
+            `update db.user set global_id = (select global_id from added_user) where id = user_id`
+          ),
+        ]),
+      ],
+    },
   },
   viewButton: true,
-  ignoreFields: ["global_id"],
-  fields: { email: { immutable: true } },
   rowHeight: "tall",
   fieldOrder: ["image_thumb", "first_name", "last_name", "title"],
 });
@@ -492,6 +538,64 @@ recordGridPage({
       },
     },
   ],
+});
+
+simpleDatagridPage({
+  table: "user",
+  toolbar: {
+    add: {
+      type: "dialog",
+      opts: {
+        withValues: { global_id: "new_global_id", disabled: "false" },
+        beforeTransactionStart: (state) => [
+          addUsers(
+            `select next_record_id(db.user) as db_id, 'none' as notification_type, ${state.fields.get(
+              "email"
+            )} as email`
+          ),
+          scalar(`new_global_id`, `(select global_id from added_user)`),
+        ],
+      },
+    },
+  },
+  fields: {
+    disabled: {
+      beforeEdit: (newValue, recordId) => [
+        if_<ServiceProcStatement>(
+          newValue,
+          [removeUsers(`select global_id from db.user where id = ${recordId}`)],
+          [
+            addUsers(
+              `select email, id as db_id, 'none' as notification_type from db.user where id = ${recordId}`,
+              `added_user`
+            ),
+            modify(
+              `update db.user set global_id = (select global_id from added_user) where id = ${recordId}`
+            ),
+          ]
+        ),
+      ],
+    },
+    email: {
+      beforeEdit: (newValue, recordId) => [
+        scalar(
+          `employee`,
+          `(select employee from db.user where id = ${recordId})`
+        ),
+        modify(
+          `update db.employee set email = ${newValue} where id = employee`
+        ),
+        removeUsers(`select global_id from db.user where id = ${recordId}`),
+        addUsers(
+          `select ${newValue} as email, ${recordId} as db_id, 'none' as notification_type`,
+          `added_user`
+        ),
+        modify(
+          `update db.user set global_id = (select global_id from added_user) where id = ${recordId}`
+        ),
+      ],
+    },
+  },
 });
 
 datagridPage({

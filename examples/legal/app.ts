@@ -33,6 +33,7 @@ import {
   SimpleReportsPageBuilder,
 } from "@yolm/boost/pages/simpleReportPage";
 import { card } from "@yolm/boost/components/card";
+import { ServiceProcStatement } from "../../dist/yom.js";
 
 model.name = "legal";
 model.title = "Legal";
@@ -492,9 +493,9 @@ simpleDatagridPage({
           `user_id`,
           `(select id from db.user where employee = ${recordId})`
         ),
-        if_(`user_id is not null`, [
+        modify(`update db.user set email = ${newValue} where id = user_id`),
+        if_(`not (select disabled from db.user where id = user_id)`, [
           removeUsers(`select global_id from db.user where id = user_id`),
-          modify(`update db.user set email = ${newValue} where id = user_id`),
           addUsers(
             `select ${newValue} as email, user_id as db_id, 'none' as notification_type`,
             `added_user`
@@ -510,8 +511,40 @@ simpleDatagridPage({
 
 simpleDatagridPage({
   table: "user",
-  toolbar: { add: { type: "dialog" } },
+  toolbar: {
+    add: {
+      type: "dialog",
+      opts: {
+        withValues: { global_id: "new_global_id", disabled: "false" },
+        beforeTransactionStart: (state) => [
+          addUsers(
+            `select next_record_id(db.user) as db_id, 'none' as notification_type, ${state.fields.get(
+              "email"
+            )} as email`
+          ),
+          scalar(`new_global_id`, `(select global_id from added_user)`),
+        ],
+      },
+    },
+  },
   fields: {
+    disabled: {
+      beforeEdit: (newValue, recordId) => [
+        if_<ServiceProcStatement>(
+          newValue,
+          [removeUsers(`select global_id from db.user where id = ${recordId}`)],
+          [
+            addUsers(
+              `select email, id as db_id, 'none' as notification_type from db.user where id = ${recordId}`,
+              `added_user`
+            ),
+            modify(
+              `update db.user set global_id = (select global_id from added_user) where id = ${recordId}`
+            ),
+          ]
+        ),
+      ],
+    },
     email: {
       beforeEdit: (newValue, recordId) => [
         scalar(

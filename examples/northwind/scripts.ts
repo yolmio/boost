@@ -8,6 +8,9 @@ addScript({
   procedure: [
     importCsv(`csv`, `data/csv`),
     modify(
+      `insert into db.user (global_id, is_sys_admin, is_admin, disabled, email) values (random.uuid(), true, true, false, 'coolguy@coolemail.com')`
+    ),
+    modify(
       `insert into db.shipper select companyName as name, phone from csv.Shipper`
     ),
     modify(
@@ -59,10 +62,7 @@ addScript({
           homePhone as home_phone,
           cast(extension as string),
           reportsTo - 1 as reports_to,
-          random.uuid() as global_id,
-          firstName || lastName || '@gmail.com' as email,
-          false as disabled,
-          rank() over () = 1 as is_sys_admin 
+          firstName || ' ' || lastName || '@yolmail.com' as email
           from csv.Employee`
     ),
     modify(
