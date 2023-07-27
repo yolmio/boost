@@ -328,6 +328,7 @@ function dateCell(opts: BaseFieldCellOpts, field: DateField): Cell {
     }
     const { value, recordId, setValue, nextCol } = props;
     const handlers = fieldEditorEventHandlers({
+      ...opts,
       fieldName: field.name,
       tableName: opts.tableName,
       dbValue: `value`,
@@ -373,6 +374,7 @@ function timestampCell(opts: BaseFieldCellOpts, field: TimestampField): Cell {
     }
     const { value, recordId, setValue, nextCol } = props;
     const handlers = fieldEditorEventHandlers({
+      ...opts,
       fieldName: field.name,
       tableName: opts.tableName,
       dbValue: `value`,
@@ -489,6 +491,7 @@ function stringCell(opts: BaseFieldCellOpts, field: StringField): Cell {
     }
     const { value, recordId, setValue, nextCol } = props;
     const handlers = fieldEditorEventHandlers({
+      ...opts,
       fieldName: field.name,
       tableName: opts.tableName,
       dbValue: `case when value = '' then null else value end`,
@@ -522,6 +525,7 @@ function castEventHandlers(
 ) {
   const { value, recordId, setValue, nextCol } = props;
   return fieldEditorEventHandlers({
+    ...opts,
     fieldName: field.name,
     tableName: opts.tableName,
     dbValue: field.notNull

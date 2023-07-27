@@ -146,7 +146,7 @@ export function recordGridPage(opts: RecordGridPageOpts) {
   if (opts.createUpdatePage) {
     updateFormPage({
       table: opts.table,
-      afterSubmitService: () => [
+      afterTransactionCommit: () => [
         navigate(`${stringLiteral(pathBase)} || '/' || ui.record_id`),
       ],
       content: {

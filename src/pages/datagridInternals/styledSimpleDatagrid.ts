@@ -116,9 +116,10 @@ export function styledSimpleDatagrid(config: StyledSimpleGridConfig) {
             type: "AutoLabelOnLeft",
             ignoreFields: Object.keys(withValues),
           },
-          afterSubmitService: (state) => [
-            ...((config.toolbar.add as any).opts?.afterSubmitService?.(state) ??
-              []),
+          afterTransactionCommit: (state) => [
+            ...((config.toolbar.add as any).opts?.afterTransactionCommit?.(
+              state
+            ) ?? []),
             triggerQueryRefresh(),
           ],
         }),

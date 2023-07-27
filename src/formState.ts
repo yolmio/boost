@@ -602,13 +602,45 @@ export interface InsertFormField {
   initialValue?: string;
 }
 
-export interface WithMultiInsertFormOpts {
+/** Using this you can extend what a form state helper does when submitting */
+export interface FormStateProcedureExtensions {
+  /**
+   * Runs before the service proc starts
+   *
+   * You can set errors in the form state here and we will not start the service proc if there are errors.
+   */
+  beforeSubmitClient?: (state: FormState) => ClientProcStatement[];
+  /**
+   * Runs on the data service before the start of the transaction
+   *
+   * You can set errors in the form state here and we will not run the transaction if there are errors
+   * and instead return the error to the client.
+   */
+  beforeTransactionStart?: (state: FormState) => ServiceProcStatement[];
+  /**
+   * Runs after the start of the transaction, here you can set up any variables you would like to use
+   * in the body of the transaction or you can just do some additional updates or inserts or deletes.
+   */
+  afterTransactionStart?: (state: FormState) => ServiceProcStatement[];
+  /**
+   * Runs after the body of the transaction but before the commit, this lets you reference anything done
+   * in the transaction body. For example if you insert a record and need to reference the id of the record
+   * for an insert into another table you can do that here.
+   */
+  beforeTransactionCommit?: (state: FormState) => ServiceProcStatement[];
+  /**
+   * Runs after the commit of the transaction, this lets you reference anything done and committed in the transaction body.
+   */
+  afterTransactionCommit?: (state: FormState) => ServiceProcStatement[];
+  /**
+   * Runs on the client after the service procedure has completed successfully.
+   */
+  afterSubmitClient?: (state: FormState) => ClientProcStatement[];
+}
+
+export interface WithMultiInsertFormOpts extends FormStateProcedureExtensions {
   defaultInitialValue?: (field: Field) => string;
   defaultPrepare?: (field: Field, value: string) => string;
-  // defaultValidate?: (
-  //   field: Field,
-  //   props: FormValidateProps,
-  // ) => ClientProcStatement[];
 
   table: string;
   fields: InsertFormField[];
@@ -618,9 +650,6 @@ export interface WithMultiInsertFormOpts {
 
   initializeFormState?: (state: FormState) => BasicStatement[];
   children: (state: InsertFormState) => Node;
-
-  afterSubmitClient?: (state: FormState) => ClientProcStatement[];
-  afterSubmitService?: (state: FormState) => ServiceProcStatement[];
 }
 
 export function withMultiInsertFormState(
@@ -704,6 +733,36 @@ export function withMultiInsertFormState(
         });
         return [...checkFields, ...checkTables];
       });
+      const serviceProcStatements = [
+        startTransaction(),
+        ...(opts.afterTransactionStart?.(formState) ?? []),
+        formState.iterTable(table.name, (cursor) => {
+          const insertFields = [
+            ...sharedFields.map((f) => f.field.name),
+            ...fields.map((f) => f.field.name),
+            ...(opts.sharedStaticValues
+              ? opts.sharedStaticValues.map(([col]) => col)
+              : []),
+          ].join(",");
+          const insertValues = [
+            ...sharedFields.map((f) =>
+              getNormalizedValue(f.field, formState.fields.get(f.field.name))
+            ),
+            ...fields.map((f) =>
+              getNormalizedValue(f.field, cursor.field(f.field.name).value)
+            ),
+            ...(opts.sharedStaticValues
+              ? opts.sharedStaticValues.map(([, val]) => val)
+              : []),
+          ].join(",");
+          return modify(
+            `insert into db.${table.name} (${insertFields}) values (${insertValues})`
+          );
+        }),
+        ...(opts.beforeTransactionCommit?.(formState) ?? []),
+        commitTransaction(),
+        ...(opts.afterTransactionCommit?.(formState) ?? []),
+      ];
       const onSubmit: EventHandler = {
         procedure: [
           if_(formState.submitting, [exit()]),
@@ -716,40 +775,17 @@ export function withMultiInsertFormState(
           commitUiChanges(),
           try_<ClientProcStatement>({
             body: [
-              serviceProc([
-                startTransaction(),
-                formState.iterTable(table.name, (cursor) => {
-                  const insertFields = [
-                    ...sharedFields.map((f) => f.field.name),
-                    ...fields.map((f) => f.field.name),
-                    ...(opts.sharedStaticValues
-                      ? opts.sharedStaticValues.map(([col]) => col)
-                      : []),
-                  ].join(",");
-                  const insertValues = [
-                    ...sharedFields.map((f) =>
-                      getNormalizedValue(
-                        f.field,
-                        formState.fields.get(f.field.name)
-                      )
-                    ),
-                    ...fields.map((f) =>
-                      getNormalizedValue(
-                        f.field,
-                        cursor.field(f.field.name).value
-                      )
-                    ),
-                    ...(opts.sharedStaticValues
-                      ? opts.sharedStaticValues.map(([, val]) => val)
-                      : []),
-                  ].join(",");
-                  return modify(
-                    `insert into db.${table.name} (${insertFields}) values (${insertValues})`
-                  );
-                }),
-                commitTransaction(),
-                ...(opts.afterSubmitService?.(formState) ?? []),
-              ]),
+              serviceProc(
+                opts.beforeTransactionStart
+                  ? [
+                      ...opts.beforeTransactionStart(formState),
+                      if_(
+                        `not ` + formState.hasAnyError,
+                        serviceProcStatements
+                      ),
+                    ]
+                  : serviceProcStatements
+              ),
             ],
             errorName: "err",
             catch: [
@@ -777,29 +813,15 @@ export interface InsertFormRelation {
   withValues?: Record<string, string>;
 }
 
-export interface WithInsertFormStateOpts extends BaseInsertFormStateOpts {
+export interface WithInsertFormStateOpts extends FormStateProcedureExtensions {
   table: string;
   fields: InsertFormField[];
   relations?: InsertFormRelation[];
+  withValues?: Record<string, string>;
   children: (state: InsertFormState) => Node;
-}
-
-export interface BaseInsertFormStateOpts {
   defaultInitialValue?: (field: Field) => string;
   defaultPrepare?: (field: Field, value: string) => string;
-
-  withValues?: Record<string, string>;
-  afterSubmitClient?: (state: FormState) => ClientProcStatement[];
-  afterSubmitService?: (state: FormState) => ServiceProcStatement[];
-  beforeSubmitClient?: (state: FormState) => ClientProcStatement[];
-  beforeTransaction?: (state: FormState) => ServiceProcStatement[];
-  /** Runs before the insert */
-  serviceCheck?: (state: FormState) => ServiceProcStatement[];
-  /** Like afterSubmitService, but runs as part of the same transaction as the insert */
-  postInsert?: (state: FormState) => ServiceProcStatement[];
-  resetAfterSubmit?: boolean;
 }
-
 export function withInsertFormState(opts: WithInsertFormStateOpts): StateNode {
   const table = model.database.tables[opts.table];
   const formFields: FormStateField[] = [];
@@ -959,15 +981,15 @@ export function withInsertFormState(opts: WithInsertFormStateOpts): StateNode {
         );
       }
       const serviceProcStatements = [
-        ...(opts.beforeTransaction?.(formState) ?? []),
         startTransaction(),
+        ...(opts.afterTransactionStart?.(formState) ?? []),
         modify(
           `insert into db.${table.name} (${insertCols}) values (${insertValues})`
         ),
         ...insertRelations,
-        ...(opts.postInsert?.(formState) ?? []),
+        ...(opts.beforeTransactionCommit?.(formState) ?? []),
         commitTransaction(),
-        ...(opts.afterSubmitService?.(formState) ?? []),
+        ...(opts.afterTransactionCommit?.(formState) ?? []),
       ];
       const onSubmit: EventHandler = {
         procedure: [
@@ -983,9 +1005,9 @@ export function withInsertFormState(opts: WithInsertFormStateOpts): StateNode {
           try_<ClientProcStatement>({
             body: [
               serviceProc(
-                opts.serviceCheck
+                opts.beforeTransactionStart
                   ? [
-                      ...opts.serviceCheck(formState),
+                      ...opts.beforeTransactionStart(formState),
                       if_(
                         `not ` + formState.hasAnyError,
                         serviceProcStatements
@@ -1271,7 +1293,7 @@ export interface UpdateFormField {
   initialValue?: string;
 }
 
-export interface WithUpdateFormStateOpts {
+export interface WithUpdateFormStateOpts extends FormStateProcedureExtensions {
   table: string;
   fields: UpdateFormField[];
   relations?: {
@@ -1282,9 +1304,6 @@ export interface WithUpdateFormStateOpts {
 
   initialRecord?: string;
   recordId?: string;
-
-  afterSubmitClient?: (state: FormState) => ClientProcStatement[];
-  afterSubmitService?: (state: FormState) => ServiceProcStatement[];
 
   children: (state: UpdateFormState) => Node;
 }
@@ -1358,6 +1377,16 @@ export function withUpdateFormState(opts: WithUpdateFormStateOpts) {
           );
         }
       }
+      const serviceProcStatements = [
+        startTransaction(),
+        ...(opts.afterTransactionStart?.(formState) ?? []),
+        modify(
+          `update db.${table.name} set ${setValues} where id = ${recordId}`
+        ),
+        ...(opts.beforeTransactionCommit?.(formState) ?? []),
+        commitTransaction(),
+        ...(opts.afterTransactionCommit?.(formState) ?? []),
+      ];
       const onSubmit: EventHandler = {
         procedure: [
           ...formState.resetErrorState,
@@ -1369,14 +1398,17 @@ export function withUpdateFormState(opts: WithUpdateFormStateOpts) {
           commitUiChanges(),
           try_<ClientProcStatement>({
             body: [
-              serviceProc([
-                startTransaction(),
-                modify(
-                  `update db.${table.name} set ${setValues} where id = ${recordId}`
-                ),
-                commitTransaction(),
-                ...(opts.afterSubmitService?.(formState) ?? []),
-              ]),
+              serviceProc(
+                opts.beforeTransactionStart
+                  ? [
+                      ...opts.beforeTransactionStart(formState),
+                      if_(
+                        `not ` + formState.hasAnyError,
+                        serviceProcStatements
+                      ),
+                    ]
+                  : serviceProcStatements
+              ),
             ],
             errorName: `err`,
             catch: [

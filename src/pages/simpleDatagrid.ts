@@ -150,8 +150,9 @@ function getColumns(
       field,
       idField,
       beforeEdit: fieldConfig?.beforeEdit,
-      afterEditTransaction: fieldConfig?.afterEditTransaction,
+      beforeEditTransaction: fieldConfig?.beforeEditTransaction,
       afterEdit: fieldConfig?.afterEdit,
+      afterEditTransaction: fieldConfig?.afterEditTransaction,
       immutable: fieldConfig?.immutable,
       columnIndex: columns.length,
     });

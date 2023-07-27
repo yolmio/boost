@@ -1,4 +1,8 @@
-import { FormState, withUpdateFormState } from "../formState.js";
+import {
+  FormState,
+  FormStateProcedureExtensions,
+  withUpdateFormState,
+} from "../formState.js";
 import { addPage } from "../modelHelpers.js";
 import { element, state, switchNode } from "../nodeHelpers.js";
 import { Node } from "../nodeTypes.js";
@@ -17,12 +21,10 @@ import { circularProgress } from "../components/circularProgress.js";
 import { alert } from "../components/alert.js";
 import { materialIcon } from "../components/materialIcon.js";
 
-export interface EditFormPage {
+export interface EditFormPage extends FormStateProcedureExtensions {
   table: string;
   path?: string;
   content: UpdateFormContent;
-  afterSubmitClient?: (state: FormState) => ClientProcStatement[];
-  afterSubmitService?: (state: FormState) => ServiceProcStatement[];
 }
 
 const styles = createStyles({
@@ -50,8 +52,12 @@ export function updateFormPage(opts: EditFormPage) {
   let content: Node = withUpdateFormState({
     table: opts.table,
     fields: getFieldsFromUpdateFormContent(opts.content, table),
+    beforeSubmitClient: opts.beforeSubmitClient,
+    beforeTransactionStart: opts.beforeTransactionStart,
+    afterTransactionStart: opts.afterTransactionStart,
+    beforeTransactionCommit: opts.beforeTransactionCommit,
+    afterTransactionCommit: opts.afterTransactionCommit,
     afterSubmitClient: opts.afterSubmitClient,
-    afterSubmitService: opts.afterSubmitService,
     initialRecord: `ui.record`,
     children: ({ formState, onSubmit }) =>
       updateFormContent(opts.content, {

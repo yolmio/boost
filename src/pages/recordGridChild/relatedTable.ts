@@ -183,7 +183,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                             table: opts.table,
                             recordId: `record.id`,
                             initialRecord: `record`,
-                            afterSubmitService: () => [ctx.triggerRefresh],
+                            afterTransactionCommit: () => [ctx.triggerRefresh],
                           }),
                           element("td", {
                             styles: styles.cell,
@@ -235,7 +235,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                 onClose: [setScalar(`adding`, `false`)],
                 open: `adding`,
                 table: opts.table,
-                afterSubmitService: () => [ctx.triggerRefresh],
+                afterTransactionCommit: () => [ctx.triggerRefresh],
               }),
             ],
           }),

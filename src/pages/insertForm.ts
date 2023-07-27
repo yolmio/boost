@@ -1,11 +1,13 @@
-import { FormState, withInsertFormState } from "../formState.js";
+import {
+  FormStateProcedureExtensions,
+  withInsertFormState,
+} from "../formState.js";
 import { addPage } from "../modelHelpers.js";
 import { element } from "../nodeHelpers.js";
 import { Node } from "../nodeTypes.js";
 import { model } from "../singleton.js";
 import { containerStyles, createStyles } from "../styleUtils.js";
 import { stringLiteral } from "../utils/sqlHelpers.js";
-import { ClientProcStatement, ServiceProcStatement } from "../yom.js";
 import {
   getFieldsAndRelationsFromInsertFormContent,
   InsertFormContent,
@@ -13,19 +15,12 @@ import {
 } from "../components/internal/insertFormShared.js";
 import { getTableBaseUrl } from "../utils/url.js";
 
-export interface SectionedInsertFormPageOpts {
+export interface SectionedInsertFormPageOpts
+  extends FormStateProcedureExtensions {
   table: string;
   path?: string;
   content: InsertFormContent;
   withValues?: Record<string, string>;
-  afterSubmitService?: (state: FormState) => ServiceProcStatement[];
-  afterSubmitClient?: (state: FormState) => ClientProcStatement[];
-  beforeSubmitClient?: (state: FormState) => ClientProcStatement[];
-  beforeTransaction?: (state: FormState) => ServiceProcStatement[];
-  /** Runs before the insert */
-  serviceCheck?: (state: FormState) => ServiceProcStatement[];
-  /** Like afterSubmitService, but runs as part of the same transaction as the insert */
-  postInsert?: (state: FormState) => ServiceProcStatement[];
 }
 
 const styles = createStyles({
@@ -54,12 +49,12 @@ export function insertFormPage(opts: SectionedInsertFormPageOpts) {
     fields,
     relations,
     withValues: opts.withValues,
-    afterSubmitService: opts.afterSubmitService,
-    afterSubmitClient: opts.afterSubmitClient,
-    serviceCheck: opts.serviceCheck,
-    postInsert: opts.postInsert,
     beforeSubmitClient: opts.beforeSubmitClient,
-    beforeTransaction: opts.beforeTransaction,
+    beforeTransactionStart: opts.beforeTransactionStart,
+    afterTransactionStart: opts.afterTransactionStart,
+    beforeTransactionCommit: opts.beforeTransactionCommit,
+    afterTransactionCommit: opts.afterTransactionCommit,
+    afterSubmitClient: opts.afterSubmitClient,
     children: ({ formState, onSubmit }) =>
       insertFormContent(opts.content, {
         formState,

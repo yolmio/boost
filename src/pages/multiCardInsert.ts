@@ -1,5 +1,6 @@
 import {
   FormState,
+  FormStateProcedureExtensions,
   FormStateTableCursor,
   InsertFormField,
   withMultiInsertFormState,
@@ -9,15 +10,9 @@ import { element, ifNode, state } from "../nodeHelpers.js";
 import { Node } from "../nodeTypes.js";
 import { scalar, setScalar } from "../procHelpers.js";
 import { model } from "../singleton.js";
-import { StyleObject } from "../styleTypes.js";
 import { downcaseFirst, pluralize } from "../utils/inflectors.js";
-import { lazy } from "../utils/memoize.js";
 import { stringLiteral } from "../utils/sqlHelpers.js";
-import {
-  ClientProcStatement,
-  ServiceProcStatement,
-  StateStatement,
-} from "../yom.js";
+import { ClientProcStatement, StateStatement } from "../yom.js";
 import { button } from "../components/button.js";
 import { card } from "../components/card.js";
 import { checkbox } from "../components/checkbox.js";
@@ -46,7 +41,7 @@ export interface CardFormField extends InsertFormField {
   ) => ClientProcStatement[];
 }
 
-export interface MultiCardInsertPageOpts {
+export interface MultiCardInsertPageOpts extends FormStateProcedureExtensions {
   path?: string;
   table: string;
   sharedSection?: {
@@ -63,9 +58,6 @@ export interface MultiCardInsertPageOpts {
   initialCardRecord?: Record<string, string>;
   /** When a new record is added, the initial values */
   initialNewValues?: Record<string, string>;
-
-  afterSubmitClient?: (state: FormState) => ClientProcStatement[];
-  afterSubmitService?: (state: FormState) => ServiceProcStatement[];
 
   afterInsertScreen?: {
     node: Node;
@@ -164,11 +156,15 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
     sharedFields: opts.sharedSection?.fields,
     fields: formStateFields,
     sharedStaticValues: opts.sharedStaticValues,
+    beforeSubmitClient: opts.beforeSubmitClient,
+    beforeTransactionStart: opts.beforeTransactionStart,
+    afterTransactionStart: opts.afterTransactionStart,
+    beforeTransactionCommit: opts.beforeTransactionCommit,
+    afterTransactionCommit: opts.afterTransactionCommit,
     afterSubmitClient: (state) => [
       ...(opts.afterSubmitClient?.(state) ?? []),
       opts.afterInsertScreen ? setScalar(`ui.added`, `true`) : null,
     ],
-    afterSubmitService: opts.afterSubmitService,
     initializeFormState: opts.initialCardRecord
       ? (state) => state.addRecordToTable(opts.table, opts.initialCardRecord!)
       : undefined,

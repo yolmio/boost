@@ -6,13 +6,18 @@ import {
   addTableFromCatalog,
 } from "@yolm/boost/modelHelpers";
 import {
+  addUsers,
+  if_,
+  modify,
   navigate,
+  removeUsers,
   returnExpr,
   scalar,
   setScalar,
 } from "@yolm/boost/procHelpers";
 import { dbManagementPage } from "@yolm/boost/pages/dbManagement";
 import { datagridPage } from "@yolm/boost/pages/datagrid";
+import { simpleDatagridPage } from "@yolm/boost/pages/simpleDatagrid";
 import { recordGridPage } from "@yolm/boost/pages/recordGrid";
 import { dashboardGridPage } from "@yolm/boost/pages/dashboardGrid";
 import { insertFormPage } from "@yolm/boost/pages/insertForm";
@@ -55,14 +60,18 @@ actually insert matter_start and matter_close
 // DATABASE
 //
 
-addTable("employee", (table) => {
+addTable("user", (table) => {
   table.fieldGroupFromCatalog({ type: "requiredUserFields" });
-  table.string("first_name", 50).notNull();
-  table.string("last_name", 50).notNull();
   table.bool("is_sys_admin").notNull().default("false");
+  table.bool("is_admin").notNull().default("false");
+  table.fk("employee");
 });
 
-model.database.userTableName = "employee";
+addTable("employee", (table) => {
+  table.string("first_name", 50).notNull();
+  table.string("last_name", 50).notNull();
+  table.email("email").notNull();
+});
 
 addEnum({
   name: "contact_type",
@@ -179,7 +188,7 @@ addScalarFunction({
 // UI
 //
 
-const isSysAdmin = `(select is_sys_admin from db.employee from where id = current_user())`;
+const isSysAdmin = `(select is_sys_admin from db.user from where id = current_user())`;
 
 navbarShell({
   color: "primary",
@@ -191,11 +200,16 @@ navbarShell({
     "/reports",
     {
       showIf: isSysAdmin,
-      url: "/db-management",
+      url: "/employees",
     },
     {
       showIf: isSysAdmin,
-      url: "/employees",
+      url: "/users",
+    },
+    {
+      showIf: isSysAdmin,
+      url: "/db-management",
+      label: "DB",
     },
   ],
   primaryActionButton: {
@@ -303,7 +317,7 @@ insertFormPage({
     type: "TwoColumnSectioned",
     sections: contactFormSections,
   },
-  afterSubmitService: () => [navigate(`'/contacts'`)],
+  afterTransactionCommit: () => [navigate(`'/contacts'`)],
 });
 
 updateFormPage({
@@ -312,7 +326,7 @@ updateFormPage({
     type: "TwoColumnSectioned",
     sections: contactFormSections,
   },
-  afterSubmitService: () => [navigate(`'/contacts/' || ui.record_id`)],
+  afterTransactionCommit: () => [navigate(`'/contacts/' || ui.record_id`)],
 });
 
 datagridPage({
@@ -449,6 +463,77 @@ recordGridPage({
   ],
 });
 
+simpleDatagridPage({
+  table: "employee",
+  toolbar: {
+    add: {
+      type: "dialog",
+      opts: {
+        beforeTransactionCommit: (state) => [
+          addUsers(
+            `select ${state.fields.get(
+              "email"
+            )} as email, next_record_id(db.user) as db_id, 'none' as notification_type`,
+            "added_user"
+          ),
+          modify(
+            `insert into db.user (global_id, is_sys_admin, is_admin, disabled, email, employee) values ((select global_id from added_user), false, false, false, ${state.fields.get(
+              "email"
+            )}, last_record_id(db.employee))`
+          ),
+        ],
+      },
+    },
+  },
+  fields: {
+    email: {
+      beforeEdit: (newValue, recordId) => [
+        scalar(
+          `user_id`,
+          `(select id from db.user where employee = ${recordId})`
+        ),
+        if_(`user_id is not null`, [
+          removeUsers(`select global_id from db.user where id = user_id`),
+          modify(`update db.user set email = ${newValue} where id = user_id`),
+          addUsers(
+            `select ${newValue} as email, user_id as db_id, 'none' as notification_type`,
+            `added_user`
+          ),
+          modify(
+            `update db.user set global_id = (select global_id from added_user) where id = user_id`
+          ),
+        ]),
+      ],
+    },
+  },
+});
+
+simpleDatagridPage({
+  table: "user",
+  toolbar: { add: { type: "dialog" } },
+  fields: {
+    email: {
+      beforeEdit: (newValue, recordId) => [
+        scalar(
+          `employee`,
+          `(select employee from db.user where id = ${recordId})`
+        ),
+        modify(
+          `update db.employee set email = ${newValue} where id = employee`
+        ),
+        removeUsers(`select global_id from db.user where id = ${recordId}`),
+        addUsers(
+          `select ${newValue} as email, ${recordId} as db_id, 'none' as notification_type`,
+          `added_user`
+        ),
+        modify(
+          `update db.user set global_id = (select global_id from added_user) where id = ${recordId}`
+        ),
+      ],
+    },
+  },
+});
+
 recordGridPage({
   table: "matter",
   createUpdatePage: true,
@@ -502,7 +587,11 @@ multiCardInsertPage({
   sharedSection: {
     header: `'Choose an employee and date'`,
     fields: [
-      { field: "employee", initialValue: "current_user()" },
+      {
+        field: "employee",
+        initialValue:
+          "(select employee from db.user where id = current_user())",
+      },
       { field: "date", initialValue: `current_date()` },
     ],
   },

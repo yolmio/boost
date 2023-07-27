@@ -647,7 +647,7 @@ insertFormPage({
       },
     ],
   },
-  afterSubmitService: () => [
+  afterTransactionCommit: () => [
     navigate(`'/orders/' || last_record_id(db.order)`),
   ],
 });

@@ -1,4 +1,8 @@
-import { FormState, withUpdateFormState } from "../formState.js";
+import {
+  FormState,
+  FormStateProcedureExtensions,
+  withUpdateFormState,
+} from "../formState.js";
 import { model } from "../singleton.js";
 import { createStyles } from "../styleUtils.js";
 import { stringLiteral } from "../utils/sqlHelpers.js";
@@ -14,15 +18,13 @@ import {
 } from "./internal/updateFormShared.js";
 import { sourceMap } from "../nodeHelpers.js";
 
-export interface EditDialogOpts {
+export interface EditDialogOpts extends FormStateProcedureExtensions {
   open: string;
   onClose: ClientProcStatement[];
   table: string;
   content: UpdateFormContent;
   initialRecord?: string;
   recordId: string;
-  afterSubmitService?: (state: FormState) => ServiceProcStatement[];
-  afterSubmitClient?: (state: FormState) => ClientProcStatement[];
 }
 
 const titleId = stringLiteral(getUniqueUiId());
@@ -71,8 +73,12 @@ export function updateDialog(opts: EditDialogOpts) {
               table: opts.table,
               recordId: opts.recordId,
               fields: getFieldsFromUpdateFormContent(opts.content, tableModel),
-              afterSubmitService: opts.afterSubmitService,
               initialRecord: opts.initialRecord,
+              beforeSubmitClient: opts.beforeSubmitClient,
+              beforeTransactionStart: opts.beforeTransactionStart,
+              afterTransactionStart: opts.afterTransactionStart,
+              beforeTransactionCommit: opts.beforeTransactionCommit,
+              afterTransactionCommit: opts.afterTransactionCommit,
               afterSubmitClient: (state) => [
                 ...(opts.afterSubmitClient?.(state) ?? []),
                 ...closeModal,

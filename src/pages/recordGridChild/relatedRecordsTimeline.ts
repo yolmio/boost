@@ -52,7 +52,7 @@ import {
   StateStatement,
 } from "../../yom.js";
 import { Node } from "../../nodeTypes.js";
-import { FormState } from "../../formState.js";
+import { FormState, FormStateProcedureExtensions } from "../../formState.js";
 import { getUniqueUiId } from "../../components/utils.js";
 import { AutoLabelOnLeftFieldOverride } from "../../components/internal/updateFormShared.js";
 import { RecordGridContext } from "./shared.js";
@@ -91,11 +91,7 @@ export interface Opts {
 
     insertDialogOpts?: {
       withValues?: Record<string, string>;
-      /** Runs before the insert */
-      serviceCheck?: (state: FormState) => ServiceProcStatement[];
-      /** Like afterSubmitService, but runs as part of the same transaction as the insert */
-      postInsert?: (state: FormState) => ServiceProcStatement[];
-    };
+    } & FormStateProcedureExtensions;
   }[];
 }
 
@@ -427,7 +423,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                       fieldOverrides,
                       ignoreFields,
                     },
-                    afterSubmitService: () => [ctx.triggerRefresh],
+                    afterTransactionCommit: () => [ctx.triggerRefresh],
                   }),
                 };
               }),
@@ -597,9 +593,22 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                           ignoreFields,
                         },
                         withValues,
-                        serviceCheck: t.insertDialogOpts?.serviceCheck,
-                        postInsert: t.insertDialogOpts?.postInsert,
-                        afterSubmitService: () => [ctx.triggerRefresh],
+                        beforeSubmitClient:
+                          t.insertDialogOpts?.beforeSubmitClient,
+                        beforeTransactionStart:
+                          t.insertDialogOpts?.beforeTransactionStart,
+                        afterTransactionStart:
+                          t.insertDialogOpts?.afterTransactionStart,
+                        beforeTransactionCommit:
+                          t.insertDialogOpts?.beforeTransactionCommit,
+                        afterTransactionCommit: (state) => [
+                          ...(t.insertDialogOpts?.afterTransactionCommit?.(
+                            state
+                          ) ?? []),
+                          ctx.triggerRefresh,
+                        ],
+                        afterSubmitClient:
+                          t.insertDialogOpts?.afterSubmitClient,
                       });
                     }),
                   ],

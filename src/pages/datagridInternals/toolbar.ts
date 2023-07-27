@@ -121,8 +121,9 @@ export function toolbar(
             type: "AutoLabelOnLeft",
             ignoreFields: Object.keys(withValues),
           },
-          afterSubmitService: (state) => [
-            ...((toolbar.add as any).opts?.afterSubmitService?.(state) ?? []),
+          afterTransactionCommit: (state) => [
+            ...((toolbar.add as any).opts?.afterTransactionCommit?.(state) ??
+              []),
             triggerQueryRefresh(),
           ],
         }),
