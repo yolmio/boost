@@ -14,7 +14,7 @@ import {
   table,
 } from "@yolm/boost/procHelpers";
 import { datagridPage } from "@yolm/boost/pages/datagrid";
-import { adminPage } from "@yolm/boost/pages/admin";
+import { dbManagementPage } from "@yolm/boost/pages/dbManagement";
 import { recordGridPage } from "@yolm/boost/pages/recordGrid";
 import { simpleDatagridPage } from "@yolm/boost/pages/simpleDatagrid";
 import { insertFormPage } from "@yolm/boost/pages/insertForm";
@@ -187,7 +187,7 @@ navbarShell({
     "/products",
     "/categories",
     "/reports",
-    { showIf: isSysAdmin, url: "/admin" },
+    { showIf: isSysAdmin, url: "/db-managment" },
   ],
   multiTableSearchDialog: {
     tables: [
@@ -1027,4 +1027,4 @@ reportsPage.table({
 
 reportsPage.finish();
 
-adminPage();
+dbManagementPage();

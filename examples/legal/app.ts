@@ -11,7 +11,7 @@ import {
   scalar,
   setScalar,
 } from "@yolm/boost/procHelpers";
-import { adminPage } from "@yolm/boost/pages/admin";
+import { dbManagementPage } from "@yolm/boost/pages/dbManagement";
 import { datagridPage } from "@yolm/boost/pages/datagrid";
 import { recordGridPage } from "@yolm/boost/pages/recordGrid";
 import { dashboardGridPage } from "@yolm/boost/pages/dashboardGrid";
@@ -191,7 +191,7 @@ navbarShell({
     "/reports",
     {
       showIf: isSysAdmin,
-      url: "/admin",
+      url: "/db-management",
     },
     {
       showIf: isSysAdmin,
@@ -637,4 +637,4 @@ reportsBuilder.table({
 
 reportsBuilder.finish();
 
-adminPage({ allow: isSysAdmin });
+dbManagementPage({ allow: isSysAdmin });

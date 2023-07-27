@@ -825,12 +825,12 @@ function schemaReference() {
   });
 }
 
-interface AdminPageOpts {
+interface DbManagmentPageOpts {
   path?: string;
   allow?: SqlExpression;
 }
 
-export function adminPage(opts: AdminPageOpts = {}) {
+export function dbManagementPage(opts: DbManagmentPageOpts = {}) {
   let content: Node = element("div", {
     styles: styles.root,
     children: [
@@ -883,7 +883,7 @@ export function adminPage(opts: AdminPageOpts = {}) {
     });
   }
   addPage({
-    path: opts.path ?? `/admin`,
+    path: opts.path ?? `/db-management`,
     content,
   });
 }
