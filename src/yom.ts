@@ -369,6 +369,8 @@ export interface TableField {
   renameFrom?: string;
   type: FieldType;
   notNull?: boolean;
+  indexed?: boolean;
+  default?: SqlExpression;
 }
 
 export interface Table {

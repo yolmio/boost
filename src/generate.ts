@@ -11,8 +11,6 @@ import type {
 import { default404Page } from "./pages/default404.js";
 import { Node, RouteNode, RoutesNode } from "./nodeTypes.js";
 import { escapeHtml } from "./utils/escapeHtml.js";
-import * as fs from "fs";
-import * as path from "path";
 
 function generateDecisionTable(dt: DecisionTable): yom.DecisionTable {
   return {
@@ -56,6 +54,8 @@ function generateTable(t: Table): yom.Table {
       renameFrom: f.renameFrom,
       description: f.description,
       notNull: f.notNull,
+      default: f.default,
+      indexed: f.indexed,
     };
     switch (f.type) {
       case "String":

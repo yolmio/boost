@@ -135,6 +135,7 @@ export interface FieldBase extends ExtensibleObject {
   description?: string;
   default?: string;
   group?: string;
+  indexed?: boolean;
 }
 
 export type StringUsage = { type: "Email" } | { type: "PhoneNumber" };

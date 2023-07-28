@@ -189,7 +189,7 @@ addScript({
   name: "init-dev-db",
   procedure: [
     modify(
-      `insert into db.user (global_id, is_sys_admin, is_admin, disabled, email) values (random.uuid(), true, true, false, 'coolguy@coolemail.com')`
+      `insert into db.user (global_id, is_sys_admin, is_admin, email) values (random.uuid(), true, true, 'coolguy@coolemail.com')`
     ),
     modify(
       `insert into db.employee (first_name, last_name, email) values ${employees

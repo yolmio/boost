@@ -622,6 +622,7 @@ abstract class BaseFieldBuilder {
       unique: this._unique,
       default: this._default,
       group: this._group,
+      indexed: this._indexed,
       ext: {},
     };
   }
