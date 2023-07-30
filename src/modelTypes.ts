@@ -443,20 +443,20 @@ export interface WebAppConfig {
   viewport?: string;
   manifest: WebAppManifest;
   logoGeneration:
-    | {
-        type: "App";
-        safariPinnedTabColor: string;
-        msTileColor: string;
-        themeColor: string;
-      }
-    | {
-        type: "Account";
-        safariPinnedTabColor: string;
-        msTileColor: string;
-        themeColor: string;
-      }
-    | { type: "Default" }
-    | { type: "Custom" };
+  | {
+    type: "App";
+    safariPinnedTabColor: string;
+    msTileColor: string;
+    themeColor: string;
+  }
+  | {
+    type: "Account";
+    safariPinnedTabColor: string;
+    msTileColor: string;
+    themeColor: string;
+  }
+  | { type: "Default" }
+  | { type: "Custom" };
 }
 
 /**
@@ -470,6 +470,7 @@ export interface BoostModel {
   displayNameConfig: DisplayNameConfig;
   searchConfig: SearchConfig;
   dbRunMode: yom.DbExecutionMode;
+  appDomain?: string;
   collation: yom.Collation;
   autoTrim: yom.AutoTrim;
   database: Database;

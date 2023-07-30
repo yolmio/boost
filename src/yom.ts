@@ -7,6 +7,7 @@ export interface Model {
   displayName: string;
   /** Where and how queries and transactions run against the database */
   dbExecutionMode: DbExecutionMode;
+  appDomain?: string;
   collation: Collation;
   autoTrim: AutoTrim;
   /** Specifies how to format different types when using the cast function, e.g. cast(foo as string) */
@@ -385,9 +386,9 @@ export interface Table {
 export type UniqueConstraintField =
   | string
   | {
-      field: string;
-      distinctNulls?: boolean;
-    };
+    field: string;
+    distinctNulls?: boolean;
+  };
 
 export interface UniqueConstraint {
   fields: UniqueConstraintField[];
@@ -1955,19 +1956,19 @@ export type ElementEventHandlers = Partial<
 export interface FloatingOpts {
   anchorEl: SqlExpression;
   placement:
-    | "'top'"
-    | "'top-start'"
-    | "'top-end'"
-    | "'right'"
-    | "'right-start'"
-    | "'right-end'"
-    | "'bottom'"
-    | "'bottom-start'"
-    | "'bottom-end'"
-    | "'left'"
-    | "'left-start'"
-    | "'left-end'"
-    | SqlExpression;
+  | "'top'"
+  | "'top-start'"
+  | "'top-end'"
+  | "'right'"
+  | "'right-start'"
+  | "'right-end'"
+  | "'bottom'"
+  | "'bottom-start'"
+  | "'bottom-end'"
+  | "'left'"
+  | "'left-start'"
+  | "'left-end'"
+  | SqlExpression;
   strategy: "'absolute'" | "'fixed'" | SqlExpression;
   offset?: {
     mainAxis: SqlExpression;
