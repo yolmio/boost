@@ -10,6 +10,7 @@ import {
 import {
   commitTransaction,
   commitUiChanges,
+  debugQuery,
   exit,
   getElProperty,
   getWindowProperty,
@@ -23,21 +24,13 @@ import {
   try_,
 } from "../../procHelpers.js";
 import { model } from "../../singleton.js";
-import {
-  AllSystemCSSProperties,
-  Style,
-  StyleObject,
-} from "../../styleTypes.js";
+import { Style } from "../../styleTypes.js";
 import { createStyles, cssVar } from "../../styleUtils.js";
-import { stringLiteral } from "../../utils/sqlHelpers.js";
-import {
-  createRelatedUnionQuery,
-  UnionRecordHelper,
-} from "../../utils/union.js";
+import { ident, stringLiteral } from "../../utils/sqlHelpers.js";
+import { UnionExpr, createUnionQuery } from "../../utils/union.js";
 import { chip } from "../../components/chip.js";
 import { iconButton } from "../../components/iconButton.js";
 import { materialIcon } from "../../components/materialIcon.js";
-import { IconName } from "../../components/materialIconNames.js";
 import { popoverMenu } from "../../components/menu.js";
 import { typography } from "../../components/typography.js";
 import { confirmDangerDialog } from "../../components/confirmDangerDialog.js";
@@ -48,11 +41,11 @@ import { divider } from "../../components/divider.js";
 import {
   ClientProcStatement,
   DynamicClass,
-  ServiceProcStatement,
+  SqlExpression,
   StateStatement,
 } from "../../yom.js";
 import { Node } from "../../nodeTypes.js";
-import { FormState, FormStateProcedureExtensions } from "../../formState.js";
+import { FormStateProcedureExtensions } from "../../formState.js";
 import { getUniqueUiId } from "../../components/utils.js";
 import { AutoLabelOnLeftFieldOverride } from "../../components/internal/updateFormShared.js";
 import { RecordGridContext } from "./shared.js";
@@ -60,39 +53,64 @@ import { inlineFieldDisplay } from "../../components/internal/fieldInlineDisplay
 
 export const name = "relatedRecordsTimeline";
 
+export type TableDisplayValue =
+  | string
+  | {
+      expr: SqlExpression;
+      label: string;
+      type: VirtualType;
+    };
+
+interface ValueExpr {
+  expr: SqlExpression;
+  type: VirtualType;
+}
+
+type TableValue = string | ValueExpr;
+
+export interface RecordDefaultTableItemContent {
+  type: "RecordDefault";
+  headerValues?: TableValue[];
+  header: (...values: SqlExpression[]) => Node;
+  displayValues?: TableDisplayValue[];
+  disableDefaultAction?: boolean;
+  customAction?: {
+    values: TableValue[];
+    node: (...values: SqlExpression[]) => Node;
+  };
+}
+
+export interface CustomTableItemContent {
+  type: "Custom";
+  values: TableValue[];
+  node: (...values: SqlExpression[]) => Node;
+}
+
+type InsertDialogOpts = {
+  withValues?: Record<string, string>;
+} & FormStateProcedureExtensions;
+
+export interface TableTimelineSource {
+  table: string;
+  customFrom?: string;
+  dateExpr?: SqlExpression;
+  foreignKeyExpr?: SqlExpression;
+  disableInsert?: boolean;
+  itemContent: RecordDefaultTableItemContent | CustomTableItemContent;
+  insertDialogOpts?: InsertDialogOpts;
+  icon: {
+    styles: Style;
+    content: Node;
+  };
+}
+
 export interface Opts {
-  dateField: string;
+  dateField?: string;
   timelineHeader: string;
-  additionalState?: StateStatement[];
-  afterHeaderNode?: Node;
+  additionalState?: (ctx: RecordGridContext) => StateStatement[];
+  afterHeaderNode?: (ctx: RecordGridContext) => Node;
   styles?: Style;
-  tables: {
-    table: string;
-    /**
-     * Specify a special from clause for the query to get this table
-     *
-     * For example if you want to display a table in the timeline that is referenced only by
-     * the main table (i.e. a to 1 relationship instead of to N).
-     *
-     * 'from db.contact join db.other_table on contact.fk = other_table.id'
-     */
-    customFrom?: string;
-
-    dateExpr?: string;
-
-    dotColor: AllSystemCSSProperties["backgroundColor"];
-    icon: IconName;
-
-    exprs?: { name: string; expr: string; type: VirtualType }[];
-
-    displayFields?: string[];
-
-    header: (v: UnionRecordHelper) => string;
-
-    insertDialogOpts?: {
-      withValues?: Record<string, string>;
-    } & FormStateProcedureExtensions;
-  }[];
+  sources: (ctx: RecordGridContext) => TableTimelineSource[];
 }
 
 const styles = createStyles({
@@ -177,52 +195,93 @@ const styles = createStyles({
 const addButtonId = stringLiteral(getUniqueUiId());
 
 export function content(opts: Opts, ctx: RecordGridContext) {
-  const query = createRelatedUnionQuery({
-    foreignKeyExpr: ctx.recordId,
-    foreignKeyTable: ctx.table.name,
+  const sources = opts.sources(ctx);
+  const query = createUnionQuery({
+    orderBy: "date desc, union_source_idx, id desc",
     limit: `row_count`,
-    orderBy: "date desc, event_type, id desc",
-    orderByFields: ["date"],
-    tables: opts.tables.map((t) => {
-      const tableModel = model.database.tables[t.table];
-      const fields: string[] = [];
-      const exprs = t.exprs ?? [];
-      for (const field of Object.values(tableModel.fields)) {
-        if (field.type === "ForeignKey") {
-          if (field.table === ctx.table.name) {
-            continue;
-          }
-          const otherTable = model.database.tables[field.table];
-          if (otherTable.recordDisplayName) {
-            const nameExpr = otherTable.recordDisplayName.expr(
-              ...otherTable.recordDisplayName.fields.map((f) => `record.${f}`)
-            );
-            exprs.push({
-              name: `${field.name}_name`,
-              expr: `(select ${nameExpr} from db.${otherTable.name} as record where record.id = ${tableModel.name}.${field.name})`,
-              type: { type: "String" },
-            });
+    orderByFields: ["date", "id"],
+    sources: sources.map((source) => {
+      const tableModel = model.database.tables[source.table];
+      let customFrom = source.customFrom;
+      if (!customFrom) {
+        let foreignKeyExpr = source.foreignKeyExpr;
+        if (!foreignKeyExpr) {
+          for (const f of Object.values(tableModel.fields)) {
+            if (f.type === "ForeignKey" && f.table === ctx.table.name) {
+              if (foreignKeyExpr) {
+                throw new Error(
+                  "Please specify a foreignKeyExpr when multiple fields could be used and you don't specify a customFrom"
+                );
+              }
+              foreignKeyExpr = f.name;
+            }
           }
         }
-        fields.push(field.name);
+        customFrom = ` from db.${ident(
+          source.table
+        )} where ${foreignKeyExpr} = ${ctx.recordId}`;
+      }
+      let dateExpr = source.dateExpr ?? opts.dateField;
+      if (!dateExpr) {
+        throw new Error("Please specify a dateExpr or dateField");
+      }
+      const fields = new Set<string>();
+      const exprs: UnionExpr[] = [];
+      function addValue(value: TableValue, exprName: string) {
+        if (typeof value === "string") {
+          fields.add(value);
+        } else {
+          exprs.push({
+            name: exprName,
+            expr: value.expr,
+            type: value.type,
+          });
+        }
+      }
+      if (source.itemContent.type === "RecordDefault") {
+        const { displayValues, headerValues, customAction } =
+          source.itemContent;
+        if (displayValues) {
+          for (let i = 0; i < displayValues.length; i++) {
+            addValue(displayValues[i], `display_value_${i}`);
+          }
+        }
+        if (headerValues) {
+          for (let i = 0; i < headerValues.length; i++) {
+            addValue(headerValues[i], `header_value_${i}`);
+          }
+        }
+        if (customAction) {
+          for (let i = 0; i < customAction.values.length; i++) {
+            addValue(customAction.values[i], `custom_action_value_${i}`);
+          }
+        }
+      } else {
+        for (let i = 0; i < source.itemContent.values.length; i++) {
+          addValue(source.itemContent.values[i], `custom_value_${i}`);
+        }
       }
       return {
-        table: t.table,
-        customFrom: t.customFrom,
+        type: "Table",
+        table: source.table,
+        customFrom,
         exprs,
-        fields,
-        orderByExprs: [t.dateExpr ?? opts.dateField],
+        fields: [...fields],
+        orderByExprs: [
+          dateExpr,
+          `${ident(source.table)}.${ident(
+            tableModel.primaryKeyFieldName ?? "id"
+          )}`,
+        ],
       };
     }),
   });
-  const tableIconStyles: any = {};
-  const tableIconDynamicClasses: DynamicClass[] = [];
-  for (let i = 0; i < opts.tables.length; i++) {
-    tableIconStyles["&.table-" + i] = {
-      backgroundColor: opts.tables[i].dotColor,
-    };
-    tableIconDynamicClasses.push({
-      condition: `record.event_type = ${i}`,
+  const sourceIconStyles: any = {};
+  const sourceIconDynamicClasses: DynamicClass[] = [];
+  for (let i = 0; i < sources.length; i++) {
+    sourceIconStyles["&.table-" + i] = sources[i].icon.styles;
+    sourceIconDynamicClasses.push({
+      condition: `record.union_source_idx = ${i}`,
       classes: "table-" + i,
     });
   }
@@ -253,14 +312,14 @@ export function content(opts: Opts, ctx: RecordGridContext) {
               my: 1,
               p: 1,
               "--icon-font-size": "1.5rem",
-              ...tableIconStyles,
+              ...sourceIconStyles,
             },
-            dynamicClasses: tableIconDynamicClasses,
+            dynamicClasses: sourceIconDynamicClasses,
             children: {
               t: "Switch",
-              cases: opts.tables.map((t, i) => ({
-                condition: `record.event_type = ${i}`,
-                node: materialIcon(t.icon),
+              cases: sources.map((t, i) => ({
+                condition: `record.union_source_idx = ${i}`,
+                node: t.icon.content,
               })),
             },
           }),
@@ -272,210 +331,239 @@ export function content(opts: Opts, ctx: RecordGridContext) {
           ),
         ],
       }),
-      state({
-        procedure: [scalar(`editing`, `false`), scalar(`deleting`, `false`)],
-        children: element("div", {
-          styles: styles.itemContent,
-          children: [
-            element("div", {
-              styles: styles.itemLeft,
-              children: [
-                typography({
-                  level: "h6",
-                  children:
-                    "case " +
-                    opts.tables
-                      .map((t, i) => {
-                        const recordHelper = query.getRecordHelper(
-                          t.table,
-                          "record"
-                        );
-                        return `when record.event_type = ${i} then ${t.header(
-                          recordHelper
-                        )}`;
-                      })
-                      .join(" ") +
-                    " end",
-                }),
-                element("div", {
-                  styles: styles.itemValues,
-                  children: {
-                    t: "Switch",
-                    cases: opts.tables.map((t, i) => {
-                      const condition = `record.event_type = ${i}`;
-                      if (!t.displayFields) {
-                        return { condition };
-                      }
-                      const tableModel = model.database.tables[t.table];
-                      const recordHelper = query.getRecordHelper(
-                        t.table,
-                        "record"
-                      );
-                      return {
-                        condition,
-                        node: t.displayFields.map((f) => {
-                          const field = tableModel.fields[f];
-                          if (!field) {
-                            throw new Error(
-                              `Field ${f} does not exist in table ${tableModel.name}}`
-                            );
-                          }
-                          if (field.type === "Bool") {
-                            return ifNode(
-                              recordHelper.field(f),
-                              chip({
-                                variant: "soft",
-                                color: "neutral",
-                                size: "sm",
-                                children: stringLiteral(field.displayName),
-                              })
-                            );
-                          }
-
-                          let content = element("div", {
-                            styles: styles.itemValueWrapper,
-                            children: [
-                              element("p", {
-                                styles: styles.itemValue,
-                                children: `${stringLiteral(
-                                  field.displayName
-                                )} || ':'`,
-                              }),
-                              inlineFieldDisplay(field, recordHelper.field(f)),
-                            ],
-                          });
-                          if (field.notNull) {
-                            return content;
-                          }
-                          return ifNode(
-                            recordHelper.field(f) + ` is not null`,
-                            content
-                          );
-                        }),
-                      };
-                    }),
-                  },
-                }),
-              ],
-            }),
-            popoverMenu({
-              menuListOpts: {
-                styles: styles.editPopover,
-                floating: {
-                  placement: `'bottom-end'`,
-                },
-              },
-              id: `${basePopoverMenuId} || '-' || record.iteration_index`,
-              button: ({ buttonProps, onButtonClick }) =>
-                iconButton({
-                  variant: "plain",
-                  color: "neutral",
-                  size: "sm",
-                  children: materialIcon("MoreHoriz"),
-                  props: buttonProps,
-                  on: {
-                    click: onButtonClick,
-                  },
-                }),
-              items: [
-                {
-                  onClick: [setScalar(`ui.editing`, `true`)],
-                  children: `'Edit'`,
-                },
-                {
-                  onClick: [setScalar(`ui.deleting`, `true`)],
-                  children: `'Delete'`,
-                },
-              ],
-            }),
-            ifNode(`editing`, {
-              t: "Switch",
-              cases: opts.tables.map((t, i) => {
-                const recordHelper = query.getRecordHelper(t.table, "record");
-                const tableModel = model.database.tables[t.table];
-                const ignoreFields: string[] = [];
-                const fieldOverrides: Record<
-                  string,
-                  AutoLabelOnLeftFieldOverride
-                > = {};
-                for (const field of Object.values(tableModel.fields)) {
-                  if (
-                    field.type === "ForeignKey" &&
-                    field.table === ctx.table.name
-                  ) {
-                    ignoreFields.push(field.name);
-                    continue;
+      {
+        t: "Switch",
+        cases: sources.map(({ itemContent, table: tableName }, sourceIdx) => {
+          let node: Node;
+          if (itemContent.type === "RecordDefault") {
+            const tableModel = model.database.tables[tableName];
+            const editIgnoreFields: string[] = [];
+            for (const field of Object.values(tableModel.fields)) {
+              if (
+                field.type === "ForeignKey" &&
+                field.table === ctx.table.name
+              ) {
+                editIgnoreFields.push(field.name);
+                continue;
+              }
+            }
+            let action: Node | undefined;
+            if (itemContent.customAction) {
+              action = itemContent.customAction.node(
+                ...itemContent.customAction.values.map((v, valueIdx) => {
+                  if (typeof v === "string") {
+                    return query.getField(sourceIdx, "record", v);
+                  } else {
+                    return query.getField(
+                      sourceIdx,
+                      "record",
+                      `custom_action_value_${valueIdx}`
+                    );
                   }
-                  const override: AutoLabelOnLeftFieldOverride = {
-                    initialValue: recordHelper.field(field.name),
-                  };
-                  fieldOverrides[field.name] = override;
-                }
-                return {
-                  condition: `record.event_type = ${i}`,
-                  node: updateDialog({
-                    table: t.table,
-                    open: `ui.editing`,
-                    onClose: [setScalar(`ui.editing`, `false`)],
-                    recordId: `record.id`,
-                    content: {
-                      type: "AutoLabelOnLeft",
-                      fieldOverrides,
-                      ignoreFields,
+                })
+              );
+            } else if (!itemContent.disableDefaultAction) {
+              action = state({
+                procedure: [
+                  scalar(`editing`, `false`),
+                  scalar(`deleting`, `false`),
+                ],
+                children: [
+                  popoverMenu({
+                    menuListOpts: {
+                      styles: styles.editPopover,
+                      floating: {
+                        placement: `'bottom-end'`,
+                      },
                     },
-                    afterTransactionCommit: () => [ctx.triggerRefresh],
+                    id: `${basePopoverMenuId} || '-' || record.iteration_index`,
+                    button: ({ buttonProps, onButtonClick }) =>
+                      iconButton({
+                        variant: "plain",
+                        color: "neutral",
+                        size: "sm",
+                        children: materialIcon("MoreHoriz"),
+                        props: buttonProps,
+                        on: {
+                          click: onButtonClick,
+                        },
+                      }),
+                    items: [
+                      {
+                        onClick: [setScalar(`ui.editing`, `true`)],
+                        children: `'Edit'`,
+                      },
+                      {
+                        onClick: [setScalar(`ui.deleting`, `true`)],
+                        children: `'Delete'`,
+                      },
+                    ],
                   }),
-                };
-              }),
-            }),
-            confirmDangerDialog({
-              onConfirm: (closeModal) => [
-                setScalar(`dialog_waiting`, `true`),
-                commitUiChanges(),
-                try_<ClientProcStatement>({
-                  body: [
-                    serviceProc([
-                      startTransaction(),
-                      ...opts.tables.map((t, i) =>
-                        if_(
-                          `record.event_type = ${i}`,
-                          modify(
-                            `delete from db.${t.table} where id = record.id`
+                  ifNode(
+                    `editing`,
+                    updateDialog({
+                      table: tableName,
+                      open: `ui.editing`,
+                      onClose: [setScalar(`ui.editing`, `false`)],
+                      recordId: `record.id`,
+                      content: {
+                        type: "AutoLabelOnLeft",
+                        ignoreFields: editIgnoreFields,
+                      },
+                      afterTransactionCommit: () => [ctx.triggerRefresh],
+                    })
+                  ),
+                  confirmDangerDialog({
+                    onConfirm: (closeModal) => [
+                      setScalar(`dialog_waiting`, `true`),
+                      commitUiChanges(),
+                      try_<ClientProcStatement>({
+                        body: [
+                          serviceProc([
+                            startTransaction(),
+                            modify(
+                              `delete from db.${ident(
+                                tableName
+                              )} where id = record.id`
+                            ),
+                            commitTransaction(),
+                            ctx.triggerRefresh,
+                          ]),
+                        ],
+                        catch: [
+                          setScalar(`dialog_waiting`, `false`),
+                          setScalar(
+                            `dialog_error`,
+                            `'Unable to delete, try again another time.'`
+                          ),
+                          exit(),
+                        ],
+                      }),
+                      ...closeModal,
+                    ],
+                    open: `ui.deleting`,
+                    onClose: [setScalar(`ui.deleting`, `false`)],
+                    description: `'Are you sure you want to delete this ' || ${stringLiteral(
+                      tableModel.displayName.toLowerCase()
+                    )} || '?'`,
+                  }),
+                ],
+              });
+            }
+            node = element("div", {
+              styles: styles.itemContent,
+              children: [
+                element("div", {
+                  styles: styles.itemLeft,
+                  children: [
+                    typography({
+                      level: "h6",
+                      children: itemContent.header(
+                        ...(itemContent.headerValues?.map((v, headerIdx) =>
+                          query.getField(
+                            sourceIdx,
+                            "record",
+                            typeof v === "string"
+                              ? v
+                              : `header_value_${headerIdx}`
                           )
-                        )
+                        ) ?? [])
                       ),
-                      commitTransaction(),
-                      ctx.triggerRefresh,
-                    ]),
-                  ],
-                  catch: [
-                    setScalar(`dialog_waiting`, `false`),
-                    setScalar(
-                      `dialog_error`,
-                      `'Unable to delete, try again another time.'`
-                    ),
-                    exit(),
+                    }),
+                    itemContent.displayValues
+                      ? element("div", {
+                          styles: styles.itemValues,
+                          children: itemContent.displayValues.map(
+                            (value, valueIdx) => {
+                              if (typeof value === "string") {
+                                const field = tableModel.fields[value];
+                                if (!field) {
+                                  throw new Error(
+                                    `Field ${value} does not exist in table ${tableModel.name}}`
+                                  );
+                                }
+                                const valueExpr = query.getField(
+                                  sourceIdx,
+                                  "record",
+                                  field.name
+                                );
+                                if (field.type === "Bool") {
+                                  return ifNode(
+                                    valueExpr,
+                                    chip({
+                                      variant: "soft",
+                                      color: "neutral",
+                                      size: "sm",
+                                      children: stringLiteral(
+                                        field.displayName
+                                      ),
+                                    })
+                                  );
+                                }
+                                let content = element("div", {
+                                  styles: styles.itemValueWrapper,
+                                  children: [
+                                    element("p", {
+                                      styles: styles.itemValue,
+                                      children: `${stringLiteral(
+                                        field.displayName
+                                      )} || ':'`,
+                                    }),
+                                    inlineFieldDisplay(field, valueExpr),
+                                  ],
+                                });
+                                if (field.notNull) {
+                                  return content;
+                                }
+                                return ifNode(
+                                  valueExpr + ` is not null`,
+                                  content
+                                );
+                              } else {
+                                const expr = query.getField(
+                                  sourceIdx,
+                                  "record",
+                                  `display_value_${valueIdx}`
+                                );
+                                return element("div", {
+                                  styles: styles.itemValueWrapper,
+                                  children: [
+                                    element("p", {
+                                      styles: styles.itemValue,
+                                      children: `${stringLiteral(
+                                        value.label
+                                      )} || ':'`,
+                                    }),
+                                    expr,
+                                  ],
+                                });
+                              }
+                            }
+                          ),
+                        })
+                      : undefined,
                   ],
                 }),
-                ...closeModal,
+                action,
               ],
-              open: `ui.deleting`,
-              onClose: [setScalar(`ui.deleting`, `false`)],
-              description:
-                "'Are you sure you want to delete this ' || case " +
-                opts.tables
-                  .map((t, i) => {
-                    const table = model.database.tables[t.table];
-                    return `when record.event_type = ${i} then ${stringLiteral(
-                      table.displayName.toLowerCase()
-                    )}`;
-                  })
-                  .join(" ") +
-                " end || '?'",
-            }),
-          ],
+            });
+          } else {
+            node = itemContent.node(
+              ...itemContent.values.map((v, valueIdx) =>
+                query.getField(
+                  sourceIdx,
+                  "record",
+                  typeof v === "string" ? v : `custom_value_${valueIdx}`
+                )
+              )
+            );
+          }
+          return {
+            condition: `record.union_source_idx = ${sourceIdx}`,
+            node,
+          };
         }),
-      }),
+      },
     ],
   });
   return sourceMap(
@@ -487,7 +575,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
         procedure: [
           table(`result`, query.query),
           scalar(`service_row_count`, `row_count`),
-          ...(opts.additionalState ?? []),
+          ...(opts.additionalState?.(ctx) ?? []),
         ],
         statusScalar: `status`,
         children: element("div", {
@@ -519,7 +607,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
               children: [
                 typography({ level: "h5", children: opts.timelineHeader }),
                 state({
-                  procedure: opts.tables.map((t, i) =>
+                  procedure: sources.map((t, i) =>
                     scalar(`adding_${i}`, `false`)
                   ),
                   children: [
@@ -548,7 +636,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                               click: onButtonClick,
                             },
                           }),
-                        items: opts.tables.map((t, i) => ({
+                        items: sources.map((t, i) => ({
                           children:
                             `'Add ' || ` +
                             stringLiteral(
@@ -558,68 +646,65 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                         })),
                       }),
                     }),
-                    opts.tables.map((t, i) => {
-                      const tableModel = model.database.tables[t.table];
-                      const withValues: Record<string, string> =
-                        t.insertDialogOpts?.withValues ?? {};
-                      let foreignKeyField = Object.values(
-                        tableModel.fields
-                      ).find(
-                        (f) =>
-                          f.type === "ForeignKey" && f.table === ctx.table.name
-                      );
-                      const overrides: Record<
-                        string,
-                        AutoLabelOnLeftFieldOverride
-                      > = {
-                        date: {
-                          initialValue: `current_date()`,
-                        },
-                      };
-                      if (foreignKeyField) {
-                        overrides[foreignKeyField.name] = {
-                          initialValue: ctx.recordId,
+                    sources
+                      .filter((t) => !t.disableInsert)
+                      .map((t, i) => {
+                        const tableModel = model.database.tables[t.table];
+                        const opts = t.insertDialogOpts ?? {};
+                        const withValues: Record<string, string> =
+                          opts.withValues ?? {};
+                        let foreignKeyField = Object.values(
+                          tableModel.fields
+                        ).find(
+                          (f) =>
+                            f.type === "ForeignKey" &&
+                            f.table === ctx.table.name
+                        );
+                        const overrides: Record<
+                          string,
+                          AutoLabelOnLeftFieldOverride
+                        > = {
+                          date: {
+                            initialValue: `current_date()`,
+                          },
                         };
-                        withValues[foreignKeyField.name] = ctx.recordId;
-                      }
-                      const ignoreFields = Object.keys(withValues);
-                      return insertDialog({
-                        open: `ui.adding_${i}`,
-                        onClose: [setScalar(`ui.adding_${i}`, `false`)],
-                        table: t.table,
-                        content: {
-                          type: "AutoLabelOnLeft",
-                          fieldOverrides: overrides,
-                          ignoreFields,
-                        },
-                        withValues,
-                        beforeSubmitClient:
-                          t.insertDialogOpts?.beforeSubmitClient,
-                        beforeTransactionStart:
-                          t.insertDialogOpts?.beforeTransactionStart,
-                        afterTransactionStart:
-                          t.insertDialogOpts?.afterTransactionStart,
-                        beforeTransactionCommit:
-                          t.insertDialogOpts?.beforeTransactionCommit,
-                        afterTransactionCommit: (state) => [
-                          ...(t.insertDialogOpts?.afterTransactionCommit?.(
-                            state
-                          ) ?? []),
-                          ctx.triggerRefresh,
-                        ],
-                        afterSubmitClient:
-                          t.insertDialogOpts?.afterSubmitClient,
-                      });
-                    }),
+                        if (foreignKeyField) {
+                          overrides[foreignKeyField.name] = {
+                            initialValue: ctx.recordId,
+                          };
+                          withValues[foreignKeyField.name] = ctx.recordId;
+                        }
+                        const ignoreFields = Object.keys(withValues);
+                        return insertDialog({
+                          open: `ui.adding_${i}`,
+                          onClose: [setScalar(`ui.adding_${i}`, `false`)],
+                          table: t.table,
+                          content: {
+                            type: "AutoLabelOnLeft",
+                            fieldOverrides: overrides,
+                            ignoreFields,
+                          },
+                          withValues,
+                          beforeSubmitClient: opts.beforeSubmitClient,
+                          beforeTransactionStart: opts.beforeTransactionStart,
+                          afterTransactionStart: opts.afterTransactionStart,
+                          beforeTransactionCommit: opts.beforeTransactionCommit,
+                          afterTransactionCommit: (state) => [
+                            ...(opts.afterTransactionCommit?.(state) ?? []),
+                            ctx.triggerRefresh,
+                          ],
+                          afterSubmitClient: opts.afterSubmitClient,
+                        });
+                      }),
                   ],
                 }),
               ],
             }),
-            opts.afterHeaderNode ? opts.afterHeaderNode : undefined,
+            opts.afterHeaderNode?.(ctx),
             each({
               table: `result`,
               recordName: `record`,
-              key: `record.id || '_' || record.event_type`,
+              key: `record.id || '_' || record.union_source_idx`,
               children: item,
             }),
           ],

@@ -30,12 +30,31 @@ import { recordDeleteButton } from "../../components/recordDeleteButton.js";
 import { typography } from "../../components/typography.js";
 import { RecordGridContext } from "./shared.js";
 import { circularProgress } from "../../components/circularProgress.js";
+import { Color, Size, Variant } from "../../components/types.js";
 
 export const name = "namedHeader";
 
+type Chip =
+  | string
+  | {
+      field: string;
+      color?: Color;
+      size?: Size;
+      variant?: Variant;
+      displayName?: string;
+    }
+  | {
+      color?: Color;
+      size?: Size;
+      variant?: Variant;
+      displayName: string;
+      fields: string[];
+      condition: (...fields: string[]) => SqlExpression;
+    };
+
 export interface Opts {
   subHeader?: SqlExpression;
-  chips?: string[];
+  chips?: Chip[];
   prefix?: string;
   imageGroup?: string;
   disableImage?: boolean;
@@ -255,7 +274,20 @@ export function content(opts: Opts, ctx: RecordGridContext) {
   const nameExpr = tableModel.recordDisplayName.expr(
     ...tableModel.recordDisplayName.fields.map((f) => `record.${f}`)
   );
-  let selectFields = opts.chips ? ", " + opts.chips.join(", ") : "";
+  let selectFields = opts.chips
+    ? ", " +
+      opts.chips
+        .map((v, i) =>
+          typeof v === "string"
+            ? v
+            : "field" in v
+            ? v.field
+            : v.condition(...v.fields.map((f) => `record.${f}`)) +
+              " as chip_" +
+              i
+        )
+        .join(", ")
+    : "";
   if (opts.prefix) {
     selectFields += ", " + opts.prefix;
   }
@@ -310,17 +342,40 @@ export function content(opts: Opts, ctx: RecordGridContext) {
             opts.chips
               ? element("div", {
                   styles: styles.chips,
-                  children: opts.chips.map((c) => {
-                    const field = tableModel.fields[c];
-                    return ifNode(
-                      `record.${c}`,
-                      chip({
-                        variant: "soft",
-                        color: "neutral",
-                        size: "sm",
-                        children: stringLiteral(field.displayName),
-                      })
-                    );
+                  children: opts.chips.map((c, i) => {
+                    if (typeof c === "string") {
+                      const field = tableModel.fields[c];
+                      return ifNode(
+                        `record.${c}`,
+                        chip({
+                          variant: "soft",
+                          color: "neutral",
+                          size: "sm",
+                          children: stringLiteral(field.displayName),
+                        })
+                      );
+                    } else if ("field" in c) {
+                      const field = tableModel.fields[c.field];
+                      return ifNode(
+                        `record.${c.field}`,
+                        chip({
+                          variant: c.variant ?? "soft",
+                          color: c.color ?? "neutral",
+                          size: c.size ?? "sm",
+                          children: stringLiteral(field.displayName),
+                        })
+                      );
+                    } else {
+                      return ifNode(
+                        `record.chip_${i}`,
+                        chip({
+                          variant: c.variant ?? "soft",
+                          color: c.color ?? "neutral",
+                          size: c.size ?? "sm",
+                          children: stringLiteral(c.displayName),
+                        })
+                      );
+                    }
                   }),
                 })
               : undefined,

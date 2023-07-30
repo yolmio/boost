@@ -182,7 +182,6 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                             open: `editing`,
                             table: opts.table,
                             recordId: `record.id`,
-                            initialRecord: `record`,
                             afterTransactionCommit: () => [ctx.triggerRefresh],
                           }),
                           element("td", {

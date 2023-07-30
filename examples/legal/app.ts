@@ -33,7 +33,8 @@ import {
   SimpleReportsPageBuilder,
 } from "@yolm/boost/pages/simpleReportPage";
 import { card } from "@yolm/boost/components/card";
-import { ServiceProcStatement } from "../../dist/yom.js";
+import { iconButton } from "@yolm/boost/components/iconButton";
+import { ServiceProcStatement } from "@yolm/boost/yom";
 
 model.name = "legal";
 model.title = "Legal";
@@ -43,17 +44,21 @@ model.displayName = "Legal";
 
 todos:
 
+Simple timeline for matters
+reports
+dashboard
+theme
+
+Adventure works
+hello world with contact list with datagrid and search
+
+dev mode
+fix focus trap in dialog
+
 boost/platform stuff:
 
-need to allow missing non-null values if default is provided
 Make default value show up in forms
-Proper field display in related records timeline
 validate sections are not empty in reports page
-attachments card
-
-legal stuff:
-attachments
-actually insert matter_start and matter_close
 
 */
 
@@ -137,20 +142,7 @@ addTable("matter", (table) => {
 
 addTableFromCatalog({ type: "attachments", mainTable: "matter" });
 
-addTable("matter_start", (table) => {
-  table.fk("contact").notNull();
-  table.fk("matter").notNull();
-  table.date("date").notNull();
-});
-
-addTable("matter_close", (table) => {
-  table.fk("contact").notNull();
-  table.fk("matter").notNull();
-  table.date("date").notNull();
-});
-
 addTable("time_entry", (table) => {
-  table.fk("contact").notNull().onDelete("Restrict");
   table.fk("matter").notNull().onDelete("Restrict");
   table.fk("employee").notNull().onDelete("Restrict");
   table.date("date").notNull();
@@ -180,7 +172,8 @@ addScalarFunction({
   returnType: "Int",
   procedure: [
     returnExpr(
-      `coalesce((select sum(minutes) from db.payment where contact = input.contact), 0) - coalesce((select sum(minutes) from db.time_entry where contact = input.contact and billable), 0)`
+      `coalesce((select sum(minutes) from db.payment where contact = input.contact), 0) -
+        coalesce((select sum(minutes) from db.time_entry where matter in (select id from db.matter where contact = input.contact) and billable), 0)`
     ),
   ],
 });
@@ -396,68 +389,99 @@ recordGridPage({
       type: "relatedRecordsTimeline",
       dateField: "date",
       timelineHeader: `'Timeline'`,
-      additionalState: [
-        scalar(
-          `remaining_minutes`,
-          `coalesce((select sum(minutes) from db.payment where contact = ui.record_id), 0) - coalesce((select sum(minutes) from db.time_entry where contact = ui.record_id and billable), 0)`
-        ),
+      additionalState: () => [
+        scalar(`remaining_minutes`, `sfn.remaining_minutes(ui.record_id)`),
       ],
-      afterHeaderNode: element("div", {
-        styles: { display: "flex", gap: 2, pt: 1, pb: 2, px: 1 },
-        children: [
-          remainingHoursDisplay(
-            `'Remaining paid hours: '`,
-            `remaining_minutes`
-          ),
-        ],
-      }),
-      tables: [
-        {
-          table: "matter_close",
-          dotColor: "success-500",
-          header: (helper) => `'Close ' || ${helper.field("matter_name")}`,
-          exprs: [
-            {
-              name: "matter_name",
-              type: { type: "String" },
-              expr: "(select name from db.matter where id = matter)",
-            },
+      afterHeaderNode: () =>
+        element("div", {
+          styles: { display: "flex", gap: 2, pt: 1, pb: 2, px: 1 },
+          children: [
+            remainingHoursDisplay(
+              `'Remaining paid hours: '`,
+              `remaining_minutes`
+            ),
           ],
-          icon: "Done",
+        }),
+      sources: (ctx) => [
+        {
+          table: "matter",
+          customFrom: `from db.matter where contact = ${ctx.recordId} and close_date is not null`,
+          dateExpr: `close_date`,
+          icon: {
+            styles: { backgroundColor: "success-500" },
+            content: materialIcon("Done"),
+          },
+          itemContent: {
+            type: "RecordDefault",
+            headerValues: ["id", "name"],
+            header: (id, name) => [
+              `'Close ' `,
+              element("a", {
+                styles: {
+                  color: "primary-500",
+                  textDecoration: "none",
+                  "&:hover": { textDecoration: "underline" },
+                },
+                props: { href: `'/matters/' || ${id}` },
+                children: name,
+              }),
+            ],
+            disableDefaultAction: true,
+            displayValues: ["type", "client_position"],
+          },
+          disableInsert: true,
         },
         {
           table: "time_entry",
-          dotColor: "primary-500",
-          icon: "AccessTimeFilledOutlined",
-          header: (helper) => `'Time entry'`,
-          exprs: [
-            {
-              name: "matter_name",
-              type: { type: "String" },
-              expr: "(select name from db.matter where id = matter)",
-            },
-          ],
-          displayFields: ["minutes", "billable", "note"],
+          customFrom: `from db.time_entry where matter in (select id from db.matter where matter.contact = ${ctx.recordId})`,
+          icon: {
+            styles: { backgroundColor: "primary-500" },
+            content: materialIcon("AccessTimeFilledOutlined"),
+          },
+          itemContent: {
+            type: "RecordDefault",
+            header: () => `'Time entry'`,
+            displayValues: ["matter", "minutes", "billable", "note"],
+          },
         },
         {
-          table: "matter_start",
-          dotColor: "primary-300",
-          header: (helper) => `'Start ' || ${helper.field("matter_name")}`,
-          icon: "Gavel",
-          exprs: [
-            {
-              name: "matter_name",
-              type: { type: "String" },
-              expr: "(select name from db.matter where id = matter)",
-            },
-          ],
+          table: "matter",
+          customFrom: `from db.matter where contact = ${ctx.recordId}`,
+          icon: {
+            styles: { backgroundColor: "primary-300" },
+            content: materialIcon("Gavel"),
+          },
+          itemContent: {
+            type: "RecordDefault",
+            headerValues: ["id", "name"],
+            header: (id, name) => [
+              `'Start ' `,
+              element("a", {
+                styles: {
+                  color: "primary-500",
+                  textDecoration: "none",
+                  "&:hover": { textDecoration: "underline" },
+                },
+                props: { href: `'/matters/' || ${id}` },
+                children: name,
+              }),
+            ],
+            disableDefaultAction: true,
+            displayValues: ["type", "client_position"],
+          },
+          disableInsert: true,
         },
         {
           table: "payment",
-          dotColor: "success-300",
-          header: (helper) => `'Payment'`,
-          icon: "Receipt",
-          displayFields: ["cost", "invoice_id"],
+          icon: {
+            styles: { backgroundColor: "success-300" },
+            content: materialIcon("Receipt"),
+          },
+          itemContent: {
+            type: "RecordDefault",
+            header: () => `'Payment'`,
+            displayValues: ["cost", "invoice_id"],
+          },
         },
       ],
     },
@@ -574,11 +598,34 @@ recordGridPage({
     {
       type: "namedHeader",
       subHeader: "dt.display_matter_type(type)",
+      chips: [
+        {
+          fields: ["close_date"],
+          condition: (closeDate) => `${closeDate} is not null`,
+          displayName: "Closed",
+          color: "success",
+          size: "md",
+          variant: "solid",
+        },
+      ],
     },
     {
       type: "twoColumnDisplayCard",
       styles: { gridColumnSpan: 12, lg: { gridColumnSpan: 8 } },
-      cells: ["client_position", "contact", "date", "close_date"],
+      cells: [
+        "contact",
+        "client_position",
+        "date",
+        "close_date",
+        {
+          label: "'Total time spent'",
+          expr: `(select sfn.display_minutes_duration(sum(minutes)) from db.time_entry where matter = ui.record_id)`,
+        },
+        {
+          label: "'Time entry count'",
+          expr: `(select count(*) from db.time_entry where matter = ui.record_id)`,
+        },
+      ],
     },
     {
       type: "notesCard",
@@ -642,7 +689,6 @@ multiCardInsertPage({
                 order by most_recent desc, matter desc
           ) join db.matter as record on record.id = matter limit 10`,
     },
-    { field: "contact" },
     { field: "minutes" },
     { field: "note" },
   ],

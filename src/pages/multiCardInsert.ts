@@ -51,7 +51,7 @@ export interface MultiCardInsertPageOpts extends FormStateProcedureExtensions {
       initialValue?: string;
     }[];
   };
-  sharedStaticValues?: [string, string][];
+  sharedStaticValues?: Record<string, string>;
   cardsHeader?: string;
   cardFields: CardFormField[];
   cardFooterFields?: { field: string }[];

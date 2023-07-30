@@ -1,32 +1,62 @@
 import { Field, VirtualType } from "../modelTypes.js";
 import { model } from "../singleton.js";
 import { SequentialIDGenerator } from "../utils/SequentialIdGenerator.js";
-import { FieldIntegerTypes } from "../yom.js";
-import { ident, tableFieldSql, tableIdSql } from "./sqlHelpers.js";
+import { FieldIntegerTypes, SqlExpression } from "../yom.js";
+import { tableFieldSql } from "./sqlHelpers.js";
 
-export interface RelatedUnionOpts {
-  orderBy: string;
-  orderByFields: string[];
-  foreignKeyExpr: string;
-  foreignKeyTable: string;
-  tables: {
-    table: string;
-    customFrom?: string;
-    orderByExprs: string[];
-    fields: string[];
-    exprs: { name: string; expr: string; type: VirtualType }[];
-    foreignKeyField?: string;
-  }[];
-  limit?: string;
+export interface TableUnionSource {
+  type: "Table";
+  table: string;
+  customFrom?: string;
+  orderByExprs: string[];
+  fields?: string[];
+  exprs?: UnionExpr[];
 }
 
-export interface UnionRecordHelper {
-  field(s: string): string;
+export interface UnionExpr {
+  name: string;
+  expr: SqlExpression;
+  type: VirtualType;
 }
 
-interface Union {
+export interface QueryUnionSource {
+  type: "Query";
+  orderByExprs: string[];
+  selectColumns: UnionExpr[];
+  /**
+   * This is not the full query for the source, but rather the part after the select i.e. the from clause on
+   */
   query: string;
-  getRecordHelper: (table: string, recordName: string) => UnionRecordHelper;
+}
+
+export type UnionSource = TableUnionSource | QueryUnionSource;
+
+/**
+ * This is a helper function to create a union query from multiple sources
+ *
+ * It will merge the fields from each source together and order them by the orderBy clause provided.
+ * The merging is done by expression type and makes it possible to merge fields from different sources
+ * and not end up with a union with a hundred columns.
+ */
+export interface UnionOpts {
+  /**
+   * Anything that fits as an order by clause
+   *
+   * e.g. "id desc, name asc" or just "id"
+   */
+  orderBy: string;
+  /**
+   * The names of the fields that should be specified by each source
+   * so we can merge them together and order by them with the orderBy clause
+   */
+  orderByFields: string[];
+  sources: UnionSource[];
+  limit?: SqlExpression;
+}
+
+export interface Union {
+  query: string;
+  getField: (source: number, recordName: string, field: string) => string;
 }
 
 function normalizeIntTypes(ty: FieldIntegerTypes): string {
@@ -81,10 +111,10 @@ function getVirtualTypeKey(ty: VirtualType): string {
   return ty.type;
 }
 
-export function createRelatedUnionQuery(opts: RelatedUnionOpts): Union {
+export function createUnionQuery(opts: UnionOpts): Union {
   const fieldIdGen = new SequentialIDGenerator();
-  type Source = { table: string } & (
-    | { field: string }
+  type Source = { idx: number } & (
+    | { field: string; table: string }
     | { expr: string; exprName: string }
   );
   const mergedFields: {
@@ -96,7 +126,8 @@ export function createRelatedUnionQuery(opts: RelatedUnionOpts): Union {
     const mergeField = mergedFields.find(
       (mergeField) =>
         mergeField.type === typeKey &&
-        !mergeField.sources.some((s) => s.table === source.table)
+        // We cannot merge fields from the same source
+        !mergeField.sources.some((s) => s.idx === source.idx)
     );
     if (mergeField) {
       mergeField.sources.push(source);
@@ -108,59 +139,63 @@ export function createRelatedUnionQuery(opts: RelatedUnionOpts): Union {
       });
     }
   }
-  for (const t of opts.tables) {
-    const table = model.database.tables[t.table];
-    for (const f of t.fields) {
-      const typeKey = getTypeKey(table.fields[f]);
-      mergeField(typeKey, { table: t.table, field: f });
-    }
-    for (const e of t.exprs) {
-      const typeKey = getVirtualTypeKey(e.type);
-      mergeField(typeKey, { table: t.table, expr: e.expr, exprName: e.name });
+  for (let i = 0; i < opts.sources.length; i++) {
+    const source = opts.sources[i];
+    if (source.type === "Table") {
+      const table = model.database.tables[source.table];
+      if (source.fields) {
+        for (const f of source.fields) {
+          let typeKey: string;
+          if (
+            f === (table.primaryKeyFieldName ?? "id") ||
+            f === "created_by_tx" ||
+            f === "last_modified_by_tx"
+          ) {
+            typeKey = "BigInt";
+          } else {
+            typeKey = getTypeKey(table.fields[f]);
+          }
+          mergeField(typeKey, { idx: i, field: f, table: source.table });
+        }
+      }
+      if (source.exprs) {
+        for (const e of source.exprs) {
+          const typeKey = getVirtualTypeKey(e.type);
+          mergeField(typeKey, { idx: i, expr: e.expr, exprName: e.name });
+        }
+      }
+    } else {
+      for (const e of source.selectColumns) {
+        const typeKey = getVirtualTypeKey(e.type);
+        mergeField(typeKey, { idx: i, expr: e.expr, exprName: e.name });
+      }
     }
   }
   const queries: string[] = [];
-  for (let i = 0; i < opts.tables.length; i++) {
-    const t = opts.tables[i];
-    let query = ` select ${tableIdSql(t.table)} as id, ${i} as event_type`;
-    for (let i = 0; i < t.orderByExprs.length; i++) {
+  for (let sourceIdx = 0; sourceIdx < opts.sources.length; sourceIdx++) {
+    const source = opts.sources[sourceIdx];
+    let query = ` select ${sourceIdx} as union_source_idx`;
+    for (let i = 0; i < source.orderByExprs.length; i++) {
       const name = opts.orderByFields[i];
-      const expr = t.orderByExprs[i];
+      const expr = source.orderByExprs[i];
       query += `,${expr} as ${name}`;
     }
     for (const mergedField of mergedFields) {
-      const onSource = mergedField.sources.find((s) => s.table === t.table);
+      const onSource = mergedField.sources.find((s) => s.idx === sourceIdx);
       if (onSource) {
         const expr =
           "field" in onSource
-            ? tableFieldSql(t.table, onSource.field)
+            ? tableFieldSql(onSource.table, onSource.field)
             : onSource.expr;
         query += `,${expr} as ${mergedField.id}`;
       } else {
         query += `,null as ${mergedField.id}`;
       }
     }
-    let foreignKeyField = t.foreignKeyField;
-    if (!foreignKeyField) {
-      const table = model.database.tables[t.table];
-      for (const f of Object.values(table.fields)) {
-        if (f.type === "ForeignKey" && f.table === opts.foreignKeyTable) {
-          if (foreignKeyField) {
-            throw new Error(
-              "Please specify a foreignKeyField when multiple fields could be used"
-            );
-          }
-          foreignKeyField = f.name;
-        }
-      }
-    }
-    if (t.customFrom) {
-      query += " " + t.customFrom;
-    } else {
-      const foreignKeyFieldSql = tableFieldSql(t.table, foreignKeyField!);
-      query += ` from db.${ident(t.table)} where ${foreignKeyFieldSql} = ${
-        opts.foreignKeyExpr
-      }`;
+    if (source.type === "Query") {
+      query += " " + source.query;
+    } else if (source.customFrom) {
+      query += " " + source.customFrom;
     }
     queries.push(query);
   }
@@ -170,23 +205,147 @@ export function createRelatedUnionQuery(opts: RelatedUnionOpts): Union {
   }
   return {
     query,
-    getRecordHelper: (table, recordName) => ({
-      field: (field) => {
-        const foundField = mergedFields.find((f) =>
-          f.sources.some(
-            (s) =>
-              s.table === table &&
-              (("expr" in s && s.exprName === field) ||
-                ("field" in s && s.field === field))
-          )
-        );
-        if (foundField) {
-          return recordName + "." + foundField.id;
-        }
-        throw new Error(
-          `Field '${field}' does not exist in union for table '${table}'`
-        );
-      },
-    }),
+    getField: (idx, recordName, field) => {
+      const foundField = mergedFields.find((f) =>
+        f.sources.some(
+          (s) =>
+            s.idx === idx &&
+            (("expr" in s && s.exprName === field) ||
+              ("field" in s && s.field === field))
+        )
+      );
+      if (foundField) {
+        return recordName + "." + foundField.id;
+      }
+      throw new Error(
+        `Field '${field}' does not exist in union for source '${idx}'`
+      );
+    },
   };
 }
+
+// export interface RelatedUnionOpts {
+//   orderBy: string;
+//   orderByFields: string[];
+//   foreignKeyExpr: string;
+//   foreignKeyTable: string;
+//   tables: {
+//     table: string;
+//     customFrom?: string;
+//     orderByExprs: string[];
+//     fields: string[];
+//     exprs: { name: string; expr: string; type: VirtualType }[];
+//     foreignKeyField?: string;
+//   }[];
+//   limit?: string;
+// }
+
+// export function createRelatedUnionQuery(opts: RelatedUnionOpts): Union {
+//   const fieldIdGen = new SequentialIDGenerator();
+//   type Source = { table: string } & (
+//     | { field: string }
+//     | { expr: string; exprName: string }
+//   );
+//   const mergedFields: {
+//     id: string;
+//     type: string;
+//     sources: Source[];
+//   }[] = [];
+//   function mergeField(typeKey: string, source: Source) {
+//     const mergeField = mergedFields.find(
+//       (mergeField) =>
+//         mergeField.type === typeKey &&
+//         !mergeField.sources.some((s) => s.table === source.table)
+//     );
+//     if (mergeField) {
+//       mergeField.sources.push(source);
+//     } else {
+//       mergedFields.push({
+//         id: fieldIdGen.next(),
+//         type: typeKey,
+//         sources: [source],
+//       });
+//     }
+//   }
+//   for (const t of opts.tables) {
+//     const table = model.database.tables[t.table];
+//     for (const f of t.fields) {
+//       const typeKey = getTypeKey(table.fields[f]);
+//       mergeField(typeKey, { table: t.table, field: f });
+//     }
+//     for (const e of t.exprs) {
+//       const typeKey = getVirtualTypeKey(e.type);
+//       mergeField(typeKey, { table: t.table, expr: e.expr, exprName: e.name });
+//     }
+//   }
+//   const queries: string[] = [];
+//   for (let i = 0; i < opts.tables.length; i++) {
+//     const t = opts.tables[i];
+//     let query = ` select ${tableIdSql(t.table)} as id, ${i} as event_type`;
+//     for (let i = 0; i < t.orderByExprs.length; i++) {
+//       const name = opts.orderByFields[i];
+//       const expr = t.orderByExprs[i];
+//       query += `,${expr} as ${name}`;
+//     }
+//     for (const mergedField of mergedFields) {
+//       const onSource = mergedField.sources.find((s) => s.table === t.table);
+//       if (onSource) {
+//         const expr =
+//           "field" in onSource
+//             ? tableFieldSql(t.table, onSource.field)
+//             : onSource.expr;
+//         query += `,${expr} as ${mergedField.id}`;
+//       } else {
+//         query += `,null as ${mergedField.id}`;
+//       }
+//     }
+//     let foreignKeyField = t.foreignKeyField;
+//     if (!foreignKeyField) {
+//       const table = model.database.tables[t.table];
+//       for (const f of Object.values(table.fields)) {
+//         if (f.type === "ForeignKey" && f.table === opts.foreignKeyTable) {
+//           if (foreignKeyField) {
+//             throw new Error(
+//               "Please specify a foreignKeyField when multiple fields could be used"
+//             );
+//           }
+//           foreignKeyField = f.name;
+//         }
+//       }
+//     }
+//     if (t.customFrom) {
+//       query += " " + t.customFrom;
+//     } else {
+//       const foreignKeyFieldSql = tableFieldSql(t.table, foreignKeyField!);
+//       query += ` from db.${ident(t.table)} where ${foreignKeyFieldSql} = ${
+//         opts.foreignKeyExpr
+//       }`;
+//     }
+//     queries.push(query);
+//   }
+//   let query = queries.join(" union all ") + ` order by ${opts.orderBy}`;
+//   if (opts.limit) {
+//     query += ` limit ${opts.limit}`;
+//   }
+//   return {
+//     query,
+//     getRecordHelper: (table, recordName) => ({
+//       field: (field) => {
+//         const foundField = mergedFields.find((f) =>
+//           f.sources.some(
+//             (s) =>
+//               s.table === table &&
+//               (("expr" in s && s.exprName === field) ||
+//                 ("field" in s && s.field === field))
+//           )
+//         );
+//         if (foundField) {
+//           return recordName + "." + foundField.id;
+//         }
+//         throw new Error(
+//           `Field '${field}' does not exist in union for table '${table}'`
+//         );
+//       },
+//     }),
+//   };
+// }

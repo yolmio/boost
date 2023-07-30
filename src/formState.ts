@@ -8,6 +8,7 @@ import type {
   ForEachTableStatement,
   ProcTableField,
   ServiceProcStatement,
+  SqlExpression,
   StateStatement,
 } from "./yom.js";
 import {
@@ -489,6 +490,14 @@ export function withFormState(opts: FormStateOpts): StateNode {
 }
 
 export function getNormalizedValue(field: Field, valueExpr: string): string {
+  if ("usage" in field) {
+    if (field.usage?.type === "Duration") {
+      if (field.usage?.size !== "minutes") {
+        throw new Error("Only minutes duration is supported");
+      }
+      return `sfn.parse_minutes_duration(${valueExpr})`;
+    }
+  }
   switch (field.type) {
     case "String":
       return `case when trim(${valueExpr}) != '' then trim(${valueExpr}) end`;
@@ -513,51 +522,6 @@ export function getNormalizedValue(field: Field, valueExpr: string): string {
     default:
       return valueExpr;
   }
-}
-
-function addMinuteDurationFns() {
-  addScalarFunction({
-    name: `parse_minutes_duration`,
-    bound: false,
-    parameters: [
-      {
-        name: "value",
-        type: { type: "String", maxLength: 65_000 },
-      },
-    ],
-    returnType: { type: "BigInt" },
-    procedure: [
-      try_<BasicStatement>({
-        body: [
-          scalar(`total`, { type: "BigInt" }),
-          createQueryCursor(
-            `split`,
-            `select value from string.split(input.value, ':') order by ordinal desc`
-          ),
-          advanceCursor(`split`),
-          setScalar(`total`, `cast(split.value as bigint)`),
-          forEachCursor(`split`, `value`, [
-            setScalar(`total`, `total + cast(split.value as bigint) * 60`),
-          ]),
-          if_(`input.value like '-%'`, [setScalar(`total`, `total * -1`)]),
-          returnExpr(`total`),
-        ],
-        catch: [exit()],
-      }),
-    ],
-  });
-  addScalarFunction({
-    name: `display_minutes_duration`,
-    bound: false,
-    parameters: [{ name: "value", type: { type: "BigInt" } }],
-    returnType: { type: "String" },
-    procedure: [
-      returnExpr(`case when input.value < 0 then '-' else '' end ||
-    abs(round(input.value / 60)) ||
-    ':' ||
-    lpad(abs(round(input.value % 60)), 2, 0)`),
-    ],
-  });
 }
 
 export function formFieldType(field: Field): FieldType {
@@ -646,7 +610,7 @@ export interface WithMultiInsertFormOpts extends FormStateProcedureExtensions {
   fields: InsertFormField[];
   sharedFields?: InsertFormField[];
 
-  sharedStaticValues?: [string, string][];
+  sharedStaticValues?: Record<string, string>;
 
   initializeFormState?: (state: FormState) => BasicStatement[];
   children: (state: InsertFormState) => Node;
@@ -715,11 +679,8 @@ export function withMultiInsertFormState(
           .flat();
         const checkTables = table.checks.map((check) => {
           const fields = check.fields.map((f) => {
-            if (opts.sharedStaticValues) {
-              const value = opts.sharedStaticValues.find(([n]) => n === f);
-              if (value) {
-                return value[1];
-              }
+            if (opts.sharedStaticValues?.[f]) {
+              return opts.sharedStaticValues?.[f];
             }
             const sharedField = sharedFields.find((sf) => sf.field.name === f);
             if (sharedField) {
@@ -740,9 +701,7 @@ export function withMultiInsertFormState(
           const insertFields = [
             ...sharedFields.map((f) => f.field.name),
             ...fields.map((f) => f.field.name),
-            ...(opts.sharedStaticValues
-              ? opts.sharedStaticValues.map(([col]) => col)
-              : []),
+            ...Object.keys(opts.sharedStaticValues ?? {}),
           ].join(",");
           const insertValues = [
             ...sharedFields.map((f) =>
@@ -751,9 +710,7 @@ export function withMultiInsertFormState(
             ...fields.map((f) =>
               getNormalizedValue(f.field, cursor.field(f.field.name).value)
             ),
-            ...(opts.sharedStaticValues
-              ? opts.sharedStaticValues.map(([, val]) => val)
-              : []),
+            ...Object.values(opts.sharedStaticValues ?? {}),
           ].join(",");
           return modify(
             `insert into db.${table.name} (${insertFields}) values (${insertValues})`
@@ -1133,6 +1090,11 @@ export function defaultValidate(
     case "Uint":
     case "BigInt":
     case "BigUint": {
+      if (field.usage) {
+        if (field.usage.type === "Duration") {
+          return;
+        }
+      }
       let min = field.min;
       let max = field.max;
       if (!min) {
@@ -1283,6 +1245,21 @@ export function defaultValidate(
   return statements;
 }
 
+function getUpdateFormStateValueFromReocrdValue(
+  field: Field,
+  value: SqlExpression
+): SqlExpression {
+  if ("usage" in field) {
+    if (field.usage?.type === "Duration") {
+      if (field.usage?.size !== "minutes") {
+        throw new Error("Only minutes duration is supported");
+      }
+      return `sfn.display_minutes_duration(${value})`;
+    }
+  }
+  return value;
+}
+
 interface UpdateFormState {
   formState: FormState;
   onSubmit: EventHandler;
@@ -1316,7 +1293,10 @@ export function withUpdateFormState(opts: WithUpdateFormStateOpts) {
     if (f.initialValue) {
       initialValue = f.initialValue;
     } else if (opts.initialRecord) {
-      initialValue = `${opts.initialRecord}.${f.field}`;
+      initialValue = getUpdateFormStateValueFromReocrdValue(
+        fieldSchema,
+        `${opts.initialRecord}.${f.field}`
+      );
     } else {
       throw new Error(
         "In an update form `initialRecord` or `initialValue` must be supplied"

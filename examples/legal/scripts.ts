@@ -116,7 +116,7 @@ for (const client of clients) {
       notes: faker.lorem.paragraph(),
       employee: faker.number.int({ min: 0, max: 9 }),
     });
-    if (hasClosed) {
+    if (!hasClosed) {
       break;
     }
   }
@@ -130,7 +130,6 @@ const payments: {
   invoiceId: string;
 }[] = [];
 const entries: {
-  contact: number;
   matter: number;
   employee: number;
   date: string;
@@ -151,8 +150,8 @@ for (let matterId = 0; matterId < matters.length; matterId++) {
     const minutes = faker.number.int({ min: 500, max: 1200 });
     const date = faker.date
       .between({
-        from: new Date(matter.date),
-        to: matter.closeDate ? new Date(matter.closeDate) : Date.now(),
+        from: matter.date,
+        to: matter.closeDate ?? Date.now(),
       })
       .toISOString()
       .split("T")[0];
@@ -168,14 +167,13 @@ for (let matterId = 0; matterId < matters.length; matterId++) {
     const minutes = faker.number.int({ min: 10, max: 300 });
     const date = faker.date
       .between({
-        from: new Date(matter.date),
-        to: matter.closeDate ? new Date(matter.closeDate) : Date.now(),
+        from: matter.date,
+        to: matter.closeDate ?? Date.now(),
       })
       .toISOString()
       .split("T")[0];
     const billable = faker.datatype.boolean(0.95);
     entries.push({
-      contact: contactId,
       matter: matterId,
       employee: matter.employee,
       minutes,
@@ -242,22 +240,6 @@ addScript({
       )}`
     ),
     modify(
-      `insert into db.matter_start (matter, contact, date) values ${matters.map(
-        (r, i) => {
-          const values = [i, r.contact, `DATE '${r.date}'`];
-          return `(${values.join(",")})`;
-        }
-      )}`
-    ),
-    modify(
-      `insert into db.matter_close (matter, contact, date) values ${matters
-        .filter((r) => r.closeDate)
-        .map((r, i) => {
-          const values = [i, r.contact, `DATE '${r.closeDate}'`];
-          return `(${values.join(",")})`;
-        })}`
-    ),
-    modify(
       `insert into db.payment (contact, cost, minutes, date, invoice_id) values ${payments.map(
         (r) => {
           const values = [
@@ -272,10 +254,9 @@ addScript({
       )}`
     ),
     modify(
-      `insert into db.time_entry (contact, matter, employee, date, minutes, billable) values ${entries.map(
+      `insert into db.time_entry (matter, employee, date, minutes, billable) values ${entries.map(
         (r) => {
           const values = [
-            r.contact,
             r.matter,
             r.employee,
             `DATE '${r.date}'`,

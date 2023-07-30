@@ -45,6 +45,13 @@ export function tableFieldSql(tableName: string, field: string) {
       `Tried to create sql for table ${tableName} but table does not exist`
     );
   }
+  if (
+    field === (table.primaryKeyFieldName ?? "id") ||
+    field === "created_by_tx" ||
+    field === "last_modified_by_tx"
+  ) {
+    return `${ident(tableName)}.${ident(field)}`;
+  }
   if (!table.fields[field]) {
     throw new Error(
       `Tried to create sql for table ${tableName} field ${field} but field does not exist`

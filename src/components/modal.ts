@@ -121,8 +121,7 @@ export const styles = createStyles({
       }),
       ...(layout === "center" && {
         height: "max-content", // height is based on content, otherwise `margin: auto` will take place.
-        mx: "auto",
-        my: 3,
+        margin: "auto",
       }),
       ...(layout === "fullscreenOnMobile" && {
         borderRadius: 0,
@@ -131,8 +130,7 @@ export const styles = createStyles({
         flex: 1,
         height: "auto",
         md: {
-          mx: "auto",
-          my: 3,
+          margin: "auto",
           height: "max-content", // height is based on content, otherwise `margin: auto` will take place.
           width: "unset",
           borderRadius: "var(--modal-dialog-radius)",

@@ -5,7 +5,7 @@ import {
 } from "../formState.js";
 import { model } from "../singleton.js";
 import { createStyles } from "../styleUtils.js";
-import { stringLiteral } from "../utils/sqlHelpers.js";
+import { ident, stringLiteral } from "../utils/sqlHelpers.js";
 import { ClientProcStatement, ServiceProcStatement } from "../yom.js";
 import { divider } from "./divider.js";
 import { modal, modalDialog } from "./modal.js";
@@ -16,14 +16,17 @@ import {
   UpdateFormContent,
   updateFormContent,
 } from "./internal/updateFormShared.js";
-import { sourceMap } from "../nodeHelpers.js";
+import { element, sourceMap, state, switchNode } from "../nodeHelpers.js";
+import { record } from "../procHelpers.js";
+import { alert } from "./alert.js";
+import { circularProgress } from "./circularProgress.js";
+import { materialIcon } from "./materialIcon.js";
 
 export interface EditDialogOpts extends FormStateProcedureExtensions {
   open: string;
   onClose: ClientProcStatement[];
   table: string;
   content: UpdateFormContent;
-  initialRecord?: string;
   recordId: string;
 }
 
@@ -69,27 +72,61 @@ export function updateDialog(opts: EditDialogOpts) {
               children: `'Update ' || ${stringLiteral(tableModel.displayName)}`,
             }),
             divider({ styles: styles.divider }),
-            withUpdateFormState({
-              table: opts.table,
-              recordId: opts.recordId,
-              fields: getFieldsFromUpdateFormContent(opts.content, tableModel),
-              initialRecord: opts.initialRecord,
-              beforeSubmitClient: opts.beforeSubmitClient,
-              beforeTransactionStart: opts.beforeTransactionStart,
-              afterTransactionStart: opts.afterTransactionStart,
-              beforeTransactionCommit: opts.beforeTransactionCommit,
-              afterTransactionCommit: opts.afterTransactionCommit,
-              afterSubmitClient: (state) => [
-                ...(opts.afterSubmitClient?.(state) ?? []),
-                ...closeModal,
+            state({
+              procedure: [
+                record(
+                  `update_dialog_record`,
+                  `select * from db.${ident(opts.table)} where id = ${
+                    opts.recordId
+                  }`
+                ),
               ],
-              children: ({ formState, onSubmit }) =>
-                updateFormContent(opts.content, {
-                  formState,
-                  onSubmit,
-                  table: tableModel,
-                  cancel: { type: "Proc", proc: closeModal },
-                }),
+              statusScalar: `update_dialog_status`,
+              children: switchNode(
+                [
+                  `update_dialog_status = 'received' and update_dialog_record.id is not null`,
+                  withUpdateFormState({
+                    table: opts.table,
+                    recordId: opts.recordId,
+                    fields: getFieldsFromUpdateFormContent(
+                      opts.content,
+                      tableModel
+                    ),
+                    initialRecord: `update_dialog_record`,
+                    beforeSubmitClient: opts.beforeSubmitClient,
+                    beforeTransactionStart: opts.beforeTransactionStart,
+                    afterTransactionStart: opts.afterTransactionStart,
+                    beforeTransactionCommit: opts.beforeTransactionCommit,
+                    afterTransactionCommit: opts.afterTransactionCommit,
+                    afterSubmitClient: (state) => [
+                      ...(opts.afterSubmitClient?.(state) ?? []),
+                      ...closeModal,
+                    ],
+                    children: ({ formState, onSubmit }) =>
+                      updateFormContent(opts.content, {
+                        formState,
+                        onSubmit,
+                        table: tableModel,
+                        cancel: { type: "Proc", proc: closeModal },
+                      }),
+                  }),
+                ],
+                [
+                  `update_dialog_status = 'requested' or update_dialog_status = 'fallback_triggered'`,
+                  element("div", {
+                    children: circularProgress({ size: "lg" }),
+                  }),
+                ],
+                [
+                  `true`,
+                  alert({
+                    color: "danger",
+                    startDecorator: materialIcon("Report"),
+                    size: "lg",
+                    children: `'Unable to load page'`,
+                  }),
+                ]
+              ),
             }),
           ],
         }),
