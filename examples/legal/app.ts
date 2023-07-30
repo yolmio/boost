@@ -386,7 +386,7 @@ recordGridPage({
       styles: { gridColumnSpan: 12, lg: { gridColumnSpan: 6 } },
     },
     {
-      type: "relatedRecordsTimeline",
+      type: "timeline",
       dateField: "date",
       timelineHeader: `'Timeline'`,
       additionalState: () => [

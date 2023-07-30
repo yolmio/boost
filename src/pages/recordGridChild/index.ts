@@ -6,7 +6,7 @@ import * as staticTableCard from "./staticTableCard.js";
 import * as twoColumnDisplayCard from "./twoColumnDisplayCard.js";
 import * as notesCard from "./notesCard.js";
 import * as relatedTable from "./relatedTable.js";
-import * as relatedRecordsTimeline from "./relatedRecordsTimeline.js";
+import * as relatedRecordsTimeline from "./timeline.js";
 import * as superSimpleHeader from "./superSimpleHeader.js";
 import * as attachmentsCard from "./attachmentsCard.js";
 

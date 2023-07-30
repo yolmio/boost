@@ -51,7 +51,7 @@ import { AutoLabelOnLeftFieldOverride } from "../../components/internal/updateFo
 import { RecordGridContext } from "./shared.js";
 import { inlineFieldDisplay } from "../../components/internal/fieldInlineDisplay.js";
 
-export const name = "relatedRecordsTimeline";
+export const name = "timeline";
 
 export type TableDisplayValue =
   | string
