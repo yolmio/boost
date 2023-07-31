@@ -32,6 +32,7 @@ import { stringLiteral } from "../utils/sqlHelpers.js";
 import { createStyles, flexGrowStyles } from "../styleUtils.js";
 import { chip } from "../components/chip.js";
 import { divider } from "../components/divider.js";
+import { isDeploy } from "../utils/env.js";
 
 const styles = createStyles({
   root: {
@@ -828,9 +829,13 @@ function schemaReference() {
 interface DbManagmentPageOpts {
   path?: string;
   allow?: SqlExpression;
+  doNotDeploy?: boolean;
 }
 
 export function dbManagementPage(opts: DbManagmentPageOpts = {}) {
+  if (opts.doNotDeploy && !isDeploy()) {
+    return;
+  }
   let content: Node = element("div", {
     styles: styles.root,
     children: [

@@ -100,6 +100,7 @@ export function getAppYolmConfig() {
 }
 
 export async function deploy(majorDbVersion: boolean) {
+  process.env.YOLM_BOOST_ENV = "deploy";
   const appModel = await getAppModel();
   writeAppModelToDisk(appModel);
   const config = getAppYolmConfig();

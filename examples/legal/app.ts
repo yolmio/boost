@@ -121,9 +121,6 @@ todos:
 Adventure works
 hello world with contact list with datagrid and search
 
-dev mode
-fix focus trap in dialog
-
 boost/platform stuff:
 
 Make default value show up in forms
