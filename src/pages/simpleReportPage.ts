@@ -727,6 +727,9 @@ export class SimpleReportsPageBuilder {
           ],
         })
       );
+      if (section.reports.length === 0) {
+        throw new Error("Section must have at least one report");
+      }
       for (const report of section.reports) {
         routes.push(
           route({

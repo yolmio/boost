@@ -12,21 +12,16 @@ import type {
   StateStatement,
 } from "./yom.js";
 import {
-  advanceCursor,
   block,
   commitTransaction,
   commitUiChanges,
-  createQueryCursor,
   debugExpr,
   debugQuery,
-  delay,
   exit,
-  forEachCursor,
   forEachTable,
   if_,
   modify,
   record,
-  returnExpr,
   scalar,
   serviceProc,
   setScalar,
@@ -36,7 +31,6 @@ import {
 } from "./procHelpers.js";
 import { model } from "./singleton.js";
 import { EachNode, Node, StateNode } from "./nodeTypes.js";
-import { addScalarFunction } from "./modelHelpers.js";
 import { ident, stringLiteral } from "./utils/sqlHelpers.js";
 
 export interface ErrorState {
@@ -776,9 +770,8 @@ export interface WithInsertFormStateOpts extends FormStateProcedureExtensions {
   relations?: InsertFormRelation[];
   withValues?: Record<string, string>;
   children: (state: InsertFormState) => Node;
-  defaultInitialValue?: (field: Field) => string;
-  defaultPrepare?: (field: Field, value: string) => string;
 }
+
 export function withInsertFormState(opts: WithInsertFormStateOpts): StateNode {
   const table = model.database.tables[opts.table];
   const formFields: FormStateField[] = [];
@@ -794,10 +787,7 @@ export function withInsertFormState(opts: WithInsertFormStateOpts): StateNode {
     }
     const formStateName = fieldModel.name;
     formFields.push({
-      initialValue:
-        fieldConfig.initialValue ??
-        opts.defaultInitialValue?.(fieldModel) ??
-        defaultInitialValue(fieldModel),
+      initialValue: fieldConfig.initialValue ?? defaultInitialValue(fieldModel),
       name: formStateName,
       type: formFieldType(fieldModel),
     });
@@ -824,9 +814,7 @@ export function withInsertFormState(opts: WithInsertFormStateOpts): StateNode {
           const formStateName = fieldModel.name;
           formFields.push({
             initialValue:
-              fieldConfig.initialValue ??
-              opts.defaultInitialValue?.(fieldModel) ??
-              defaultInitialValue(fieldModel),
+              fieldConfig.initialValue ?? defaultInitialValue(fieldModel),
             name: formStateName,
             type: formFieldType(fieldModel),
           });
@@ -840,9 +828,7 @@ export function withInsertFormState(opts: WithInsertFormStateOpts): StateNode {
         const formStateName = fieldModel.name;
         relationFormFields.push({
           initialValue:
-            fieldConfig.initialValue ??
-            opts.defaultInitialValue?.(fieldModel) ??
-            defaultInitialValue(fieldModel),
+            fieldConfig.initialValue ?? defaultInitialValue(fieldModel),
           name: formStateName,
           type: formFieldType(fieldModel),
         });
@@ -1003,6 +989,9 @@ export function withInsertFormState(opts: WithInsertFormStateOpts): StateNode {
 }
 
 export function defaultInitialValue(field: Field): string {
+  if (field.default) {
+    return field.default;
+  }
   switch (field.type) {
     case "Bool":
       return field.notNull ? `false` : `null`;

@@ -24,7 +24,6 @@ import { insertFormPage } from "@yolm/boost/pages/insertForm";
 import { updateFormPage } from "@yolm/boost/pages/updateForm";
 import { button } from "@yolm/boost/components/button";
 import { multiCardInsertPage } from "@yolm/boost/pages/multiCardInsert";
-import { typography } from "@yolm/boost/components/typography";
 import { materialIcon } from "@yolm/boost/components/materialIcon";
 import { model, setTheme } from "@yolm/boost/singleton";
 import { element } from "@yolm/boost/nodeHelpers";
@@ -120,11 +119,6 @@ todos:
 
 Adventure works
 hello world with contact list with datagrid and search
-
-boost/platform stuff:
-
-Make default value show up in forms
-validate sections are not empty in reports page
 
 */
 
