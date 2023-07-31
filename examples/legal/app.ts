@@ -33,7 +33,6 @@ import {
   SimpleReportsPageBuilder,
 } from "@yolm/boost/pages/simpleReportPage";
 import { card } from "@yolm/boost/components/card";
-import { iconButton } from "@yolm/boost/components/iconButton";
 import { ServiceProcStatement } from "@yolm/boost/yom";
 
 model.name = "legal";
@@ -44,7 +43,6 @@ model.displayName = "Legal";
 
 todos:
 
-Simple timeline for matters
 reports
 dashboard
 theme
@@ -360,6 +358,12 @@ function remainingHoursDisplay(label: string, value: string) {
   });
 }
 
+const linkStyle = {
+  color: "primary-500",
+  textDecoration: "none",
+  "&:hover": { textDecoration: "underline" },
+};
+
 recordGridPage({
   table: "contact",
   children: [
@@ -394,7 +398,7 @@ recordGridPage({
       ],
       afterHeaderNode: () =>
         element("div", {
-          styles: { display: "flex", gap: 2, pt: 1, pb: 2, px: 1 },
+          styles: { display: "flex", gap: 2, pt: 1, px: 1 },
           children: [
             remainingHoursDisplay(
               `'Remaining paid hours: '`,
@@ -417,11 +421,7 @@ recordGridPage({
             header: (id, name) => [
               `'Close ' `,
               element("a", {
-                styles: {
-                  color: "primary-500",
-                  textDecoration: "none",
-                  "&:hover": { textDecoration: "underline" },
-                },
+                styles: linkStyle,
                 props: { href: `'/matters/' || ${id}` },
                 children: name,
               }),
@@ -457,11 +457,7 @@ recordGridPage({
             header: (id, name) => [
               `'Start ' `,
               element("a", {
-                styles: {
-                  color: "primary-500",
-                  textDecoration: "none",
-                  "&:hover": { textDecoration: "underline" },
-                },
+                styles: linkStyle,
                 props: { href: `'/matters/' || ${id}` },
                 children: name,
               }),
@@ -634,6 +630,21 @@ recordGridPage({
     {
       type: "attachmentsCard",
       styles: { gridColumnSpan: 12, lg: { gridColumnSpan: 6 } },
+    },
+    {
+      type: "singleSourceTimeline",
+      table: "time_entry",
+      dateExpr: "date",
+      icon: {
+        styles: { backgroundColor: "primary-500" },
+        content: materialIcon("AccessTimeFilledOutlined"),
+      },
+      itemContent: () => ({
+        type: "RecordDefault",
+        header: () => `'Time entry'`,
+        displayValues: ["matter", "minutes", "billable", "note"],
+      }),
+      timelineHeader: `'Time entries'`,
     },
   ],
 });

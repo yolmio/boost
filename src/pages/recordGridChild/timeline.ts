@@ -50,6 +50,7 @@ import { getUniqueUiId } from "../../components/utils.js";
 import { AutoLabelOnLeftFieldOverride } from "../../components/internal/updateFormShared.js";
 import { RecordGridContext } from "./shared.js";
 import { inlineFieldDisplay } from "../../components/internal/fieldInlineDisplay.js";
+import { recordDefaultItemContent, styles } from "./timelineShared.js";
 
 export const name = "timeline";
 
@@ -59,6 +60,7 @@ export type TableDisplayValue =
       expr: SqlExpression;
       label: string;
       type: VirtualType;
+      display: (e: SqlExpression) => Node;
     };
 
 interface ValueExpr {
@@ -112,85 +114,6 @@ export interface Opts {
   styles?: Style;
   sources: (ctx: RecordGridContext) => TableTimelineSource[];
 }
-
-const styles = createStyles({
-  root: {
-    display: "flex",
-    flexDirection: "column",
-    gridColumnSpan: "full",
-  },
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "baseline",
-    pt: 2,
-    px: 1,
-  },
-  addButtonWrapper: {
-    position: "relative",
-  },
-  addPopover: {
-    width: 240,
-  },
-  editPopover: {
-    width: 120,
-  },
-  item: {
-    display: "flex",
-    minHeight: 80,
-  },
-  date: {
-    display: "flex",
-    flexDirection: "column",
-    mx: 1,
-    mt: 1,
-    color: cssVar(`palette-text-secondary`),
-    alignItems: "center",
-    fontSize: "sm",
-    minWidth: 60,
-  },
-  iconWrapper: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-  },
-  line: {
-    width: 2,
-    backgroundColor: cssVar(`palette-neutral-100`),
-    flexGrow: 1,
-  },
-  itemContent: {
-    ml: 2,
-    flexGrow: 1,
-    display: "flex",
-    alignItems: "start",
-  },
-  itemLeft: {
-    display: "flex",
-    flexDirection: "column",
-    flexGrow: 1,
-  },
-  itemValues: {
-    display: "flex",
-    gap: 1,
-    flexWrap: "wrap",
-    mb: 2,
-  },
-  itemValueWrapper: {
-    display: "flex",
-  },
-  itemValue: {
-    mr: 0.5,
-    color: "text-secondary",
-    my: 0,
-    fontSize: "sm",
-    alignSelf: "flex-end",
-  },
-  multilineValue: {
-    whiteSpace: "pre-wrap",
-    my: 0,
-  },
-});
 
 const addButtonId = stringLiteral(getUniqueUiId());
 
@@ -285,7 +208,6 @@ export function content(opts: Opts, ctx: RecordGridContext) {
       classes: "table-" + i,
     });
   }
-  const basePopoverMenuId = stringLiteral(getUniqueUiId());
   const item = element("div", {
     styles: styles.item,
     children: [
@@ -305,13 +227,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
         children: [
           element("span", {
             styles: {
-              display: "flex",
-              alignSelf: "baseline",
-              color: "white",
-              borderRadius: "50%",
-              my: 1,
-              p: 1,
-              "--icon-font-size": "1.5rem",
+              ...styles.icon,
               ...sourceIconStyles,
             },
             dynamicClasses: sourceIconDynamicClasses,
@@ -336,20 +252,38 @@ export function content(opts: Opts, ctx: RecordGridContext) {
         cases: sources.map(({ itemContent, table: tableName }, sourceIdx) => {
           let node: Node;
           if (itemContent.type === "RecordDefault") {
-            const tableModel = model.database.tables[tableName];
-            const editIgnoreFields: string[] = [];
-            for (const field of Object.values(tableModel.fields)) {
-              if (
-                field.type === "ForeignKey" &&
-                field.table === ctx.table.name
-              ) {
-                editIgnoreFields.push(field.name);
-                continue;
-              }
-            }
-            let action: Node | undefined;
-            if (itemContent.customAction) {
-              action = itemContent.customAction.node(
+            node = recordDefaultItemContent(ctx, {
+              displayValues: itemContent.displayValues?.map((v, valueIdx) => {
+                if (typeof v === "string") {
+                  return {
+                    type: "field",
+                    field: v,
+                    exprValue: query.getField(sourceIdx, "record", v),
+                  };
+                } else {
+                  return {
+                    type: "expr",
+                    exprValue: query.getField(
+                      sourceIdx,
+                      "record",
+                      `display_value_${valueIdx}`
+                    ),
+                    display: v.display,
+                    label: v.label,
+                  };
+                }
+              }),
+              header: itemContent.header(
+                ...(itemContent.headerValues?.map((v, headerIdx) =>
+                  query.getField(
+                    sourceIdx,
+                    "record",
+                    typeof v === "string" ? v : `header_value_${headerIdx}`
+                  )
+                ) ?? [])
+              ),
+              tableModel: model.database.tables[tableName],
+              customAction: itemContent.customAction?.node(
                 ...itemContent.customAction.values.map((v, valueIdx) => {
                   if (typeof v === "string") {
                     return query.getField(sourceIdx, "record", v);
@@ -361,191 +295,8 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                     );
                   }
                 })
-              );
-            } else if (!itemContent.disableDefaultAction) {
-              action = state({
-                procedure: [
-                  scalar(`editing`, `false`),
-                  scalar(`deleting`, `false`),
-                ],
-                children: [
-                  popoverMenu({
-                    menuListOpts: {
-                      styles: styles.editPopover,
-                      floating: {
-                        placement: `'bottom-end'`,
-                      },
-                    },
-                    id: `${basePopoverMenuId} || '-' || record.iteration_index`,
-                    button: ({ buttonProps, onButtonClick }) =>
-                      iconButton({
-                        variant: "plain",
-                        color: "neutral",
-                        size: "sm",
-                        children: materialIcon("MoreHoriz"),
-                        props: buttonProps,
-                        on: {
-                          click: onButtonClick,
-                        },
-                      }),
-                    items: [
-                      {
-                        onClick: [setScalar(`ui.editing`, `true`)],
-                        children: `'Edit'`,
-                      },
-                      {
-                        onClick: [setScalar(`ui.deleting`, `true`)],
-                        children: `'Delete'`,
-                      },
-                    ],
-                  }),
-                  ifNode(
-                    `editing`,
-                    updateDialog({
-                      table: tableName,
-                      open: `ui.editing`,
-                      onClose: [setScalar(`ui.editing`, `false`)],
-                      recordId: `record.id`,
-                      content: {
-                        type: "AutoLabelOnLeft",
-                        ignoreFields: editIgnoreFields,
-                      },
-                      afterTransactionCommit: () => [ctx.triggerRefresh],
-                    })
-                  ),
-                  confirmDangerDialog({
-                    onConfirm: (closeModal) => [
-                      setScalar(`dialog_waiting`, `true`),
-                      commitUiChanges(),
-                      try_<ClientProcStatement>({
-                        body: [
-                          serviceProc([
-                            startTransaction(),
-                            modify(
-                              `delete from db.${ident(
-                                tableName
-                              )} where id = record.id`
-                            ),
-                            commitTransaction(),
-                            ctx.triggerRefresh,
-                          ]),
-                        ],
-                        catch: [
-                          setScalar(`dialog_waiting`, `false`),
-                          setScalar(
-                            `dialog_error`,
-                            `'Unable to delete, try again another time.'`
-                          ),
-                          exit(),
-                        ],
-                      }),
-                      ...closeModal,
-                    ],
-                    open: `ui.deleting`,
-                    onClose: [setScalar(`ui.deleting`, `false`)],
-                    description: `'Are you sure you want to delete this ' || ${stringLiteral(
-                      tableModel.displayName.toLowerCase()
-                    )} || '?'`,
-                  }),
-                ],
-              });
-            }
-            node = element("div", {
-              styles: styles.itemContent,
-              children: [
-                element("div", {
-                  styles: styles.itemLeft,
-                  children: [
-                    typography({
-                      level: "h6",
-                      children: itemContent.header(
-                        ...(itemContent.headerValues?.map((v, headerIdx) =>
-                          query.getField(
-                            sourceIdx,
-                            "record",
-                            typeof v === "string"
-                              ? v
-                              : `header_value_${headerIdx}`
-                          )
-                        ) ?? [])
-                      ),
-                    }),
-                    itemContent.displayValues
-                      ? element("div", {
-                          styles: styles.itemValues,
-                          children: itemContent.displayValues.map(
-                            (value, valueIdx) => {
-                              if (typeof value === "string") {
-                                const field = tableModel.fields[value];
-                                if (!field) {
-                                  throw new Error(
-                                    `Field ${value} does not exist in table ${tableModel.name}}`
-                                  );
-                                }
-                                const valueExpr = query.getField(
-                                  sourceIdx,
-                                  "record",
-                                  field.name
-                                );
-                                if (field.type === "Bool") {
-                                  return ifNode(
-                                    valueExpr,
-                                    chip({
-                                      variant: "soft",
-                                      color: "neutral",
-                                      size: "sm",
-                                      children: stringLiteral(
-                                        field.displayName
-                                      ),
-                                    })
-                                  );
-                                }
-                                let content = element("div", {
-                                  styles: styles.itemValueWrapper,
-                                  children: [
-                                    element("p", {
-                                      styles: styles.itemValue,
-                                      children: `${stringLiteral(
-                                        field.displayName
-                                      )} || ':'`,
-                                    }),
-                                    inlineFieldDisplay(field, valueExpr),
-                                  ],
-                                });
-                                if (field.notNull) {
-                                  return content;
-                                }
-                                return ifNode(
-                                  valueExpr + ` is not null`,
-                                  content
-                                );
-                              } else {
-                                const expr = query.getField(
-                                  sourceIdx,
-                                  "record",
-                                  `display_value_${valueIdx}`
-                                );
-                                return element("div", {
-                                  styles: styles.itemValueWrapper,
-                                  children: [
-                                    element("p", {
-                                      styles: styles.itemValue,
-                                      children: `${stringLiteral(
-                                        value.label
-                                      )} || ':'`,
-                                    }),
-                                    expr,
-                                  ],
-                                });
-                              }
-                            }
-                          ),
-                        })
-                      : undefined,
-                  ],
-                }),
-                action,
-              ],
+              ),
+              disableDefaultAction: itemContent.disableDefaultAction,
             });
           } else {
             node = itemContent.node(
@@ -567,7 +318,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
     ],
   });
   return sourceMap(
-    `relatedRecordsTimeline`,
+    `timeline`,
     state({
       procedure: [scalar(`row_count`, `50`)],
       children: state({
@@ -607,7 +358,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
               children: [
                 typography({ level: "h5", children: opts.timelineHeader }),
                 state({
-                  procedure: sources.map((t, i) =>
+                  procedure: sources.map((_, i) =>
                     scalar(`adding_${i}`, `false`)
                   ),
                   children: [
@@ -701,11 +452,14 @@ export function content(opts: Opts, ctx: RecordGridContext) {
               ],
             }),
             opts.afterHeaderNode?.(ctx),
-            each({
-              table: `result`,
-              recordName: `record`,
-              key: `record.id || '_' || record.union_source_idx`,
-              children: item,
+            element("div", {
+              styles: styles.items,
+              children: each({
+                table: `result`,
+                recordName: `record`,
+                key: `record.id || '_' || record.union_source_idx`,
+                children: item,
+              }),
             }),
           ],
         }),

@@ -9,6 +9,7 @@ import * as relatedTable from "./relatedTable.js";
 import * as relatedRecordsTimeline from "./timeline.js";
 import * as superSimpleHeader from "./superSimpleHeader.js";
 import * as attachmentsCard from "./attachmentsCard.js";
+import * as singleSourceTimeline from "./singleSourceTimeline.js";
 
 export const childFnMap = {
   [addressCard.name]: addressCard.content,
@@ -22,10 +23,12 @@ export const childFnMap = {
   [relatedRecordsTimeline.name]: relatedRecordsTimeline.content,
   [superSimpleHeader.name]: superSimpleHeader.content,
   [attachmentsCard.name]: attachmentsCard.content,
+  [singleSourceTimeline.name]: singleSourceTimeline.content,
 };
 
 export type ChildOpts =
   | (addressCard.Opts & { type: typeof addressCard.name })
+  | (singleSourceTimeline.Opts & { type: typeof singleSourceTimeline.name })
   | (attachmentsCard.Opts & { type: typeof attachmentsCard.name })
   | (namedHeader.Opts & { type: typeof namedHeader.name })
   | (addressesCard.Opts & { type: typeof addressesCard.name })
