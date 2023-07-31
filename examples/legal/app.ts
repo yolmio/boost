@@ -118,9 +118,7 @@ setTheme({
 
 todos:
 
-reports
 dashboard
-theme
 
 Adventure works
 hello world with contact list with datagrid and search
@@ -856,12 +854,17 @@ select
   first_name || ' ' || last_name as employee,
   billable_minutes,
   non_billable_minutes,
-  billable_minutes + non_billable_minutes as total_minutes
+  billable_minutes + non_billable_minutes as total_minutes,
+  billable_count,
+  non_billable_count,
+  billable_count + non_billable_count as total_count
 from (
   select
     employee,
     sum(case when billable then minutes else 0 end) as billable_minutes,
-    sum(case when not billable then minutes else 0 end) as non_billable_minutes
+    sum(case when not billable then minutes else 0 end) as non_billable_minutes,
+    count(case when billable then true end) as billable_count,
+    count(case when not billable then true end) as non_billable_count
   from db.time_entry
   where date between start_date and end_date
   group by employee
@@ -869,22 +872,145 @@ from (
 order by total_minutes desc`;
 
 reportsBuilder.table({
-  name: "Hours",
+  name: "Time Entry Stats",
   parameters: lastMonthParams,
   query: employeeHoursQuery,
   columns: [
     { header: "Employee", cell: (r) => `${r}.employee` },
     {
-      header: "Total",
+      header: "Total Hours",
       cell: (r) => `sfn.display_minutes_duration(${r}.total_minutes)`,
     },
     {
-      header: "Billable",
+      header: "Billable Hours",
       cell: (r) => `sfn.display_minutes_duration(${r}.billable_minutes)`,
     },
     {
-      header: "Non Billable",
+      header: "Non Billable Hours",
       cell: (r) => `sfn.display_minutes_duration(${r}.non_billable_minutes)`,
+    },
+    {
+      header: "Total Entry Count",
+      cell: (r) => `${r}.total_count`,
+    },
+    {
+      header: "Billable Entry Count",
+      cell: (r) => `${r}.billable_count`,
+    },
+    {
+      header: "Non Billable Entry Count",
+      cell: (r) => `${r}.non_billable_count`,
+    },
+  ],
+});
+
+const mattersStartedQuery = `
+select 
+  first_name || ' ' || last_name as employee,
+  (select count(*) from db.matter where employee = employee.id and date between start_date and end_date) as matters_started,
+  (select count(*) from db.matter where employee = employee.id and close_date between start_date and end_date) as matters_closed,
+  (select count(*) from db.matter where employee = employee.id and close_date is null) as current_matters_open
+from db.employee
+order by current_matters_open desc`;
+
+reportsBuilder.table({
+  name: "Matter Stats",
+  parameters: lastMonthParams,
+  query: mattersStartedQuery,
+  columns: [
+    { header: "Employee", cell: (r) => `${r}.employee` },
+    {
+      header: "Current Matters Open",
+      cell: (r) => `${r}.current_matters_open`,
+    },
+    {
+      header: "Matters Started",
+      cell: (r) => `${r}.matters_started`,
+    },
+    {
+      header: "Matters Closed",
+      cell: (r) => `${r}.matters_closed`,
+    },
+  ],
+});
+
+reportsBuilder.section("Clients");
+
+const highestPayingClients = `
+select
+  id,
+  first_name || ' ' || last_name as client_name,
+  (select sum(cost) from db.payment where contact = contact.id) as total_paid,
+  (select count(*) from db.matter where contact = contact.id) as matter_count,
+  (select sum(minutes) from db.time_entry where matter in (select matter.id from db.matter where contact = contact.id)) as total_minutes
+from db.contact
+where type = 'client'
+order by total_paid desc nulls last
+limit 10`;
+
+reportsBuilder.table({
+  name: "Highest Paying Clients",
+  query: highestPayingClients,
+  columns: [
+    {
+      header: "Client",
+      cell: (r) => `${r}.client_name`,
+      href: (r) => `'/contacts/' || ${r}.id`,
+    },
+    {
+      header: "Total Paid",
+      cell: (r) => `format.currency(${r}.total_paid, 'usd')`,
+    },
+    {
+      header: "Matter Count",
+      cell: (r) => `format.decimal(${r}.matter_count)`,
+    },
+    {
+      header: "Total Hours",
+      cell: (r) => `sfn.display_minutes_duration(${r}.total_minutes)`,
+    },
+  ],
+});
+
+reportsBuilder.section("Matters");
+
+const longestRunningMattersQuery = `
+select
+  id,
+  name,
+  date.duration(day, date, coalesce(close_date, current_date())) as days
+from db.matter
+order by days desc
+limit 10`;
+
+reportsBuilder.table({
+  name: "Longest Running Matters",
+  query: longestRunningMattersQuery,
+  columns: [
+    {
+      header: "Matter",
+      cell: (r) => `${r}.name`,
+      href: (r) => `'/matters/' || ${r}.id`,
+    },
+    {
+      header: "Days Open",
+      cell: (r) => `${r}.days`,
+    },
+  ],
+});
+
+reportsBuilder.singleColumnFixedRowsTable({
+  name: "Matters Overview",
+  rows: [
+    {
+      header: "Open Matter Count",
+      expr: `(select count(*) from db.matter where close_date is null)`,
+    },
+    {
+      header: "Average Open Matter Duration",
+      expr: `(select avg(date.duration(day, date, coalesce(close_date, current_date()))) from db.matter)`,
+      cell: (v) =>
+        `format.decimal(${v}, maximum_fraction_digits => 1) || ' days'`,
     },
   ],
 });
