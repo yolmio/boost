@@ -1,20 +1,21 @@
 import { circularProgress } from "../../components/circularProgress.js";
 import { element, ifNode, state } from "../../nodeHelpers.js";
+import { PieChartNode } from "../../nodeTypes.js";
 import { table } from "../../procHelpers.js";
 import { Style } from "../../styleTypes.js";
 import { createStyles, cssVar } from "../../styleUtils.js";
 import { stringLiteral } from "../../utils/sqlHelpers.js";
+import { StateStatement } from "../../yom.js";
 
 export const name = "pieChart";
 
 export interface Opts {
   styles?: Style;
   cardStyles?: Style;
-  stateQuery: string;
-  lineChartQuery: string;
-  labels: string;
+  stateQuery?: string;
+  state?: StateStatement[];
   header: string;
-  donut?: boolean;
+  pieChartOpts: Omit<PieChartNode, "t" | "styles">;
 }
 
 const styles = createStyles({
@@ -90,6 +91,9 @@ const styles = createStyles({
 });
 
 export function content(opts: Opts) {
+  if (!opts.stateQuery && !opts.state) {
+    throw new Error("pieChart expects either stateQuery or state");
+  }
   return element("div", {
     styles: opts.styles ? [styles.root, opts.styles] : styles.root,
     children: [
@@ -100,25 +104,25 @@ export function content(opts: Opts) {
       element("div", {
         styles: opts.cardStyles ? [styles.card, opts.cardStyles] : styles.card,
         children: state({
-          procedure: [table(`result`, opts.stateQuery)],
+          procedure: opts.stateQuery
+            ? [table(`result`, opts.stateQuery)]
+            : opts.state!,
           statusScalar: `status`,
           children: ifNode(
             `status = 'fallback_triggered'`,
             circularProgress({ size: "md" }),
             {
               t: "PieChart",
-              series: opts.lineChartQuery,
               styles: {
                 root: styles.chartRoot,
                 sliceDonut: styles.slice,
                 label: styles.label,
               },
-              donut: opts.donut?.toString(),
               donutWidth: "30",
-              labels: opts.labels,
               labelDirection: "'explode'",
               labelOffset: "32",
               chartPadding: "56",
+              ...opts.pieChartOpts,
             }
           ),
         }),

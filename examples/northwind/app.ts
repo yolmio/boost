@@ -387,9 +387,11 @@ dashboardGridPage({
       cardStyles: { minHeight: "300px", lg: { minHeight: "450px" } },
       header: "Unshipped Orders by Employee",
       stateQuery: pieChartQuery,
-      labels: "select employee from result",
-      lineChartQuery: "select count from result",
-      donut: true,
+      pieChartOpts: {
+        labels: "select employee from result",
+        series: "select count from result",
+        donut: "true",
+      },
     },
     {
       type: "barChart",

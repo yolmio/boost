@@ -118,8 +118,6 @@ setTheme({
 
 todos:
 
-dashboard
-
 Adventure works
 hello world with contact list with datagrid and search
 
@@ -301,34 +299,122 @@ navbarShell({
   },
 });
 
-const dashboardCardStyles = {
-  gridColumnSpan: "full",
-  lg: { gridColumnSpan: 6 },
-};
+const openMatters = `
+select
+  matter.id as matter_id,
+  name,
+  first_name || ' ' || last_name as employee_name,
+  employee.id as employee_id,
+  date
+from db.matter
+  join db.employee
+    on employee.id = matter.employee
+where close_date is null
+order by date
+limit 10`;
 
 dashboardGridPage({
   children: [
     {
-      type: "custom",
-      content: () =>
-        card({
-          variant: "soft",
-          color: "primary",
-          styles: dashboardCardStyles,
-          children: element("div", {
-            styles: { display: "flex", flexDirection: "column" },
-            children: [
-              typography({
-                level: "h5",
-                children: `'Welcome to the Example Legal Application'`,
-              }),
-              typography({
-                level: "body1",
-                children: `'A real application would be tweaked to whatever the business needs, but this should give you a good idea of what is possible'`,
-              }),
-            ],
-          }),
-        }),
+      type: "header",
+      header: `'Legal App Demo'`,
+      subHeader: "'Welcome back. Here''s whats going on'",
+      logo: {
+        src: "'/assets/logo.png'",
+        styles: {
+          width: "150px",
+          mr: 2,
+          borderRadius: "md",
+          backgroundColor: "neutral-100",
+          dark: { backgroundColor: "neutral-800" },
+        },
+      },
+    },
+    {
+      type: "threeStats",
+      header: `'Last 30 Days'`,
+      left: {
+        title: "'Billable Hours'",
+        procedure: [
+          scalar(
+            `value_num`,
+            `(select sum(minutes) from db.time_entry where billable and date > date.add(day, -30, today()))`
+          ),
+          scalar(
+            `previous_num`,
+            `(select sum(minutes) from db.time_entry where billable and date between date.add(day, -60, today()) and date.add(day, -30, today()))`
+          ),
+        ],
+        value: `sfn.display_minutes_duration(value_num)`,
+        previous: `sfn.display_minutes_duration(previous_num)`,
+        trend: `cast((value_num - previous_num) as decimal(10, 2)) / cast(previous_num as decimal(10, 2))`,
+      },
+      middle: {
+        title: "'Income'",
+        procedure: [
+          scalar(
+            `value_num`,
+            `(select sum(cost) from db.payment where date > date.add(day, -30, today()))`
+          ),
+          scalar(
+            `previous_num`,
+            `(select sum(cost) from db.payment where date between date.add(day, -60, today()) and date.add(day, -30, today()))`
+          ),
+        ],
+        value: `format.currency(value_num, 'USD')`,
+        previous: `format.currency(previous_num, 'USD')`,
+        trend: `(value_num - previous_num) / previous_num`,
+      },
+      right: {
+        title: "'Closed Matters'",
+        value: `(select count(*) from db.matter where close_date > date.add(day, -30, today()))`,
+        previous: `(select count(*) from db.matter where close_date between date.add(day, -60, today()) and date.add(day, -30, today())))`,
+        trend: `cast((value - previous) as decimal(10, 2)) / cast(previous as decimal(10, 2))`,
+      },
+    },
+    {
+      type: "table",
+      query: openMatters,
+      header: "Open Matters",
+      columns: [
+        {
+          cell: (row) => `${row}.name`,
+          href: (row) => `'/matters/' || ${row}.matter_id`,
+          header: "Matter",
+        },
+        {
+          cell: (row) => `${row}.employee_name`,
+          href: (row) => `'/employees/' || ${row}.employee_id`,
+          header: "Employee",
+        },
+        {
+          cell: (row) => `format.date(${row}.date, '%-d %b %Y')`,
+          header: "Start Date",
+        },
+      ],
+    },
+    {
+      type: "pieChart",
+      cardStyles: { minHeight: "200px", lg: { minHeight: "350px" } },
+      header: "Hours in the last 30 days",
+      state: [
+        scalar(
+          `billable`,
+          `(select sum(minutes) from db.time_entry where billable and date > date.add(day, -30, today()))`
+        ),
+        scalar(
+          `non_billable`,
+          `(select sum(minutes) from db.time_entry where not billable and date > date.add(day, -30, today()))`
+        ),
+      ],
+      pieChartOpts: {
+        labels:
+          "select value from (values('Billable'), ('Non-Billable')) as t(value)",
+        series:
+          "select value from (values(billable), (non_billable)) as t(value)",
+        donut: "true",
+        donutWidth: "15",
+      },
     },
   ],
 });
