@@ -75,6 +75,9 @@ export const styles = createStyles({
     width: 2,
     backgroundColor: "neutral-100",
     flexGrow: 1,
+    dark: {
+      backgroundColor: "neutral-700",
+    },
   },
   itemContent: {
     ml: 2,

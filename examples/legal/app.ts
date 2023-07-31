@@ -26,7 +26,7 @@ import { button } from "@yolm/boost/components/button";
 import { multiCardInsertPage } from "@yolm/boost/pages/multiCardInsert";
 import { typography } from "@yolm/boost/components/typography";
 import { materialIcon } from "@yolm/boost/components/materialIcon";
-import { model } from "@yolm/boost/singleton";
+import { model, setTheme } from "@yolm/boost/singleton";
 import { element } from "@yolm/boost/nodeHelpers";
 import {
   ReportParameter,
@@ -34,10 +34,85 @@ import {
 } from "@yolm/boost/pages/simpleReportPage";
 import { card } from "@yolm/boost/components/card";
 import { ServiceProcStatement } from "@yolm/boost/yom";
+import { colors } from "@yolm/boost/colors";
+import { colorChannel } from "@yolm/boost/colorManipulator";
 
 model.name = "legal";
 model.title = "Legal";
 model.displayName = "Legal";
+
+// generated the woff files with:
+// https://gwfh.mranftl.com/fonts
+for (const weight of ["regular", "500", "600", "700"]) {
+  model.globalStyles.push({
+    "@font-face": {
+      fontDisplay: "swap",
+      fontFamily: "'Arimo'",
+      fontStyle: "normal",
+      fontWeight: weight,
+      src: `url('/assets/arimo-v28-latin-${weight}.woff2') format('woff2')`,
+    },
+  });
+}
+
+// generated palette with:
+// https://www.tints.dev/brand/1345B9
+const primaryLightPalette = {
+  50: "#E3EBFC",
+  100: "#C7D6F9",
+  200: "#90AEF4",
+  300: "#5885EE",
+  400: "#215DE8",
+  500: "#1345B9",
+  600: "#0F3794",
+  700: "#0B296F",
+  800: "#081C4A",
+  900: "#040E25",
+};
+const primaryDarkPalette = {
+  50: "#E8EEFD",
+  100: "#D1DDFA",
+  200: "#A2BBF6",
+  300: "#7499F1",
+  400: "#4578ED",
+  500: "#1756E8",
+  600: "#1245BA",
+  700: "#0E338B",
+  800: "#09225D",
+  900: "#05112E",
+};
+
+setTheme({
+  fontFamily: {
+    body: "Arimo, sans-serif",
+  },
+  radius: {
+    xs: "2px",
+    sm: "4px",
+    md: "6px",
+    lg: "8px",
+    xl: "10px",
+  },
+  lightColorSystem: {
+    palette: {
+      primary: primaryLightPalette,
+      neutral: colors.slate,
+      focusVisible: primaryLightPalette[500],
+    },
+    shadowChannel: colorChannel(primaryLightPalette[50]),
+  },
+  darkColorSystem: {
+    palette: {
+      primary: primaryDarkPalette,
+      neutral: {
+        ...colors.slate,
+        outlinedBorder: colors.slate[700],
+      },
+      focusVisible: primaryDarkPalette[500],
+    },
+    shadowChannel: colorChannel(primaryDarkPalette[900]),
+  },
+});
 
 /* 
 

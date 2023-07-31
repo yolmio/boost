@@ -29,12 +29,10 @@ const styles = createStyles({
   label: {
     fontWeight: "lg",
     fontSize: "sm",
-    pl: 1.5,
   },
   data: {
     p: 0,
     m: 0,
-    pl: 1.5,
     mt: 0.5,
     fontSize: "md",
     color: "text-secondary",
