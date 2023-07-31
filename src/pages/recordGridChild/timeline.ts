@@ -369,14 +369,16 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                               click: onButtonClick,
                             },
                           }),
-                        items: sources.map((t, i) => ({
-                          children:
-                            `'Add ' || ` +
-                            stringLiteral(
-                              model.database.tables[t.table].displayName
-                            ),
-                          onClick: [setScalar(`ui.adding_${i}`, `true`)],
-                        })),
+                        items: sources
+                          .filter((t) => !t.disableInsert)
+                          .map((t, i) => ({
+                            children:
+                              `'Add ' || ` +
+                              stringLiteral(
+                                model.database.tables[t.table].displayName
+                              ),
+                            onClick: [setScalar(`ui.adding_${i}`, `true`)],
+                          })),
                       }),
                     }),
                     sources
