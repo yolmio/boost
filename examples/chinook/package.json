@@ -1,0 +1,17 @@
+{
+  "name": "chinook",
+  "version": "0.0.0",
+  "type": "module",
+  "license": "MIT",
+  "dependencies": {
+    "@yolm/boost": "0.1"
+  },
+  "devDependencies": {
+    "tsx": "^3.12.0"
+  },
+  "scripts": {
+    "start": "node node_modules/@yolm/boost/dist/scripts/startEntry.js",
+    "save": "node node_modules/@yolm/boost/dist/scripts/saveEntry.js",
+    "script": "node node_modules/@yolm/boost/dist/scripts/scriptEntry.js"
+  }
+}

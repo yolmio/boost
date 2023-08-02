@@ -1,0 +1,17 @@
+# dependencies
+node_modules
+
+# logs
+*.log
+
+# macOS-specific files
+.DS_Store
+
+# Always generated, no need to keep in version control
+app.json
+
+# databases
+# 
+# You should add any databases that you don't want checked into version control here
+# the dev database is ignored because we recreate it when needed
+data/dev

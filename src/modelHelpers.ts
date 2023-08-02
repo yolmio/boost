@@ -48,6 +48,9 @@ import {
   try_,
 } from "./procHelpers.js";
 
+const RECORD_DISPLAY_NAME_FIELD_GROUPS = [["first_name", "last_name"]];
+const RECORD_DISPLAY_NAME_FIELDS = ["name", "title"];
+
 export class TableBuilder {
   #fields: BaseFieldBuilder[] = [];
   #fieldGroups: Record<string, FieldGroup> = {};
@@ -57,6 +60,7 @@ export class TableBuilder {
   #description?: string;
   #searchConfig: yom.RankedSearchTable | undefined;
   #renameFrom?: string;
+  #recordDisplayNameFields?: string[];
   #recordDisplayName?: RecordDisplayName;
   #createDefaultNameMatch = false;
   #getHrefToRecord?: (id: string) => string;
@@ -343,6 +347,11 @@ export class TableBuilder {
     return this;
   }
 
+  recordDisplayNameFields(fields: string[]) {
+    this.#recordDisplayNameFields = fields;
+    return this;
+  }
+
   recordDisplayName(fields: string[], expr?: (...fields: string[]) => string) {
     if (fields.length !== 1 && !expr) {
       throw new Error(
@@ -384,38 +393,64 @@ export class TableBuilder {
       const field = f.finish();
       fields[field.name] = field;
     }
-    let recordDisplayName = this.#recordDisplayName;
-    if (fields.first_name && fields.last_name) {
-      if (fields.first_name.notNull && fields.last_name.notNull) {
-        recordDisplayName = {
-          fields: ["first_name", "last_name"],
-          expr: (firstName, lastName) => `${firstName} || ' ' || ${lastName}`,
-        };
-      } else if (fields.first_name.notNull) {
-        recordDisplayName = {
-          fields: ["first_name", "last_name"],
-          expr: (firstName, lastName) =>
-            `case when ${lastName} is null then ${firstName} else ${firstName} || ' ' || ${lastName} end`,
-        };
-      } else if (fields.last_name.notNull) {
-        recordDisplayName = {
-          fields: ["first_name", "last_name"],
-          expr: (firstName, lastName) =>
-            `case when ${firstName} is null then ${lastName} else ${firstName} || ' ' || ${lastName} end`,
-        };
-      } else {
-        recordDisplayName = {
-          fields: ["first_name", "last_name"],
-          expr: (firstName, lastName) =>
-            `case
-            when ${firstName} is null then ${lastName}
-            when ${lastName} is null then ${firstName}
-            else ${firstName} || ' ' || ${lastName} end`,
-        };
+    let displayNameFields = this.#recordDisplayNameFields;
+    for (const fieldNames of RECORD_DISPLAY_NAME_FIELD_GROUPS) {
+      if (fieldNames.every((f) => fields[f])) {
+        displayNameFields = fieldNames;
+        break;
       }
-    } else if (fields.name) {
-      recordDisplayName = { fields: ["name"], expr: (name) => name };
-    } else if (!recordDisplayName) {
+    }
+    if (!displayNameFields) {
+      for (const fieldName of RECORD_DISPLAY_NAME_FIELDS) {
+        if (fields[fieldName]) {
+          displayNameFields = [fieldName];
+          break;
+        }
+      }
+    }
+    let recordDisplayName = this.#recordDisplayName;
+    if (!recordDisplayName && displayNameFields) {
+      if (displayNameFields.length === 1) {
+        recordDisplayName = {
+          fields: displayNameFields,
+          expr: (name) => name,
+        };
+      } else if (displayNameFields.length === 2) {
+        const [firstField, secondField] = displayNameFields;
+        if (fields[firstField].notNull && fields[secondField].notNull) {
+          recordDisplayName = {
+            fields: displayNameFields,
+            expr: (first, second) => `${first} || ' ' || ${second}`,
+          };
+        } else if (fields[firstField].notNull && !fields[secondField].notNull) {
+          recordDisplayName = {
+            fields: displayNameFields,
+            expr: (first, second) =>
+              `case when ${second} is null then ${first} else ${first} || ' ' || ${second} end`,
+          };
+        } else if (!fields[firstField].notNull && fields[secondField].notNull) {
+          recordDisplayName = {
+            fields: displayNameFields,
+            expr: (first, second) =>
+              `case when ${first} is null then ${second} else ${first} || ' ' || ${second} end`,
+          };
+        } else {
+          recordDisplayName = {
+            fields: displayNameFields,
+            expr: (first, second) =>
+              `case
+            when ${first} is null then ${second}
+            when ${second} is null then ${first}
+            else ${first} || ' ' || ${second} end`,
+          };
+        }
+      } else {
+        throw new Error(
+          "recordDisplayNameFields only supports a length 1 or 2"
+        );
+      }
+    }
+    if (!recordDisplayName) {
       recordDisplayName = {
         fields: [],
         expr: () => {
@@ -427,49 +462,37 @@ export class TableBuilder {
     }
     const tableName = this.name;
     if (this.#createDefaultNameMatch) {
-      if (fields.first_name && fields.last_name) {
-        addSearchMatch({
-          name: tableName + "_name",
-          table: tableName,
-          tokenizer: model.searchConfig.defaultTokenizer,
-          style: {
-            ...model.searchConfig.defaultFuzzyConfig,
-            type: "Fuzzy",
-          },
-          fieldGroups: [
-            {
-              fields: [`first_name`, `last_name`],
-            },
-          ],
-        });
-      } else if (fields.name) {
-        addSearchMatch({
-          name: tableName + "_name",
-          table: tableName,
-          tokenizer: model.searchConfig.defaultTokenizer,
-          style: {
-            ...model.searchConfig.defaultFuzzyConfig,
-            type: "Fuzzy",
-          },
-          fields: [`name`],
-        });
-      } else {
+      if (!displayNameFields) {
         throw new Error(
-          "createDefaultNameMatch assumes either a `name` field or a `first_name` and `last_name`"
+          "createDefaultNameMatch assumes recordDisplayNameFields"
         );
       }
+      addSearchMatch({
+        name: tableName + "_name",
+        table: tableName,
+        tokenizer: model.searchConfig.defaultTokenizer,
+        style: {
+          ...model.searchConfig.defaultFuzzyConfig,
+          type: "Fuzzy",
+        },
+        fieldGroups:
+          displayNameFields.length > 1
+            ? [{ fields: displayNameFields }]
+            : undefined,
+        fields: displayNameFields.length === 1 ? displayNameFields : undefined,
+      });
     }
     let searchConfig = this.#searchConfig;
     if (!this.#searchConfig) {
-      if (fields.first_name && fields.last_name) {
+      if (displayNameFields?.length === 1) {
         searchConfig = {
           table: tableName,
-          fieldGroups: [{ priority: 1, fields: ["first_name", "last_name"] }],
+          fields: [{ priority: 1, field: displayNameFields[0] }],
         };
-      } else if (fields.name) {
+      } else if (displayNameFields && displayNameFields?.length > 1) {
         searchConfig = {
           table: tableName,
-          fields: [{ priority: 1, field: "name" }],
+          fieldGroups: [{ priority: 1, fields: displayNameFields }],
         };
       }
     }
