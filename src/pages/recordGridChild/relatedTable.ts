@@ -27,6 +27,7 @@ export interface Opts {
         label: string;
       }
   )[];
+  addButtonText?: string;
   insertDialog?: Omit<AutoLabelOnLeftInsertFormContent, "type">;
 }
 
@@ -218,7 +219,8 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                   size: "sm",
                   variant: "outlined",
                   startDecorator: materialIcon("Add"),
-                  children: `'Add ${ctx.table.displayName}…'`,
+                  children:
+                    opts.addButtonText ?? `'Add ${ctx.table.displayName}…'`,
                   on: { click: [setScalar(`adding`, `true`)] },
                 }),
               }),

@@ -216,6 +216,23 @@ function prepareDisplayValue(
 ): PreparedTableSearchDisplay {
   if (typeof value === "string") {
     const field = table.fields[value];
+    if (field.type === "ForeignKey") {
+      const toTable = model.database.tables[field.table];
+      if (toTable.recordDisplayName) {
+        const nameExpr = toTable.recordDisplayName.expr(
+          ...toTable.recordDisplayName.fields.map((f) => `other.${f}`)
+        );
+        return {
+          expr: (record) => {
+            return `(select ${nameExpr} from db.${field.table} as other where other.id = ${record}.${value})`;
+          },
+          name: value,
+          label: field.displayName,
+          type: { type: "String", maxLength: 2000 },
+          display: (value) => value,
+        };
+      }
+    }
     let type: FieldType;
     switch (field.type) {
       case "String":
@@ -1229,9 +1246,7 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
                                                             v.label
                                                           )} || ':'`,
                                                         }),
-                                                        element("span", {
-                                                          children: value,
-                                                        }),
+                                                        v.display(value),
                                                       ],
                                                     })
                                                   );

@@ -36,11 +36,11 @@ addScript({
       FirstName as first_name,
       LastName as last_name,
       Company as company,
-      Address as address,
+      Address as street,
       City as city,
       State as state,
       Country as country,
-      PostalCode as postal_code,
+      PostalCode as zip,
       Phone as phone,
       Fax as fax,
       Email as email,
@@ -51,20 +51,28 @@ addScript({
     select
       CustomerId - 1 as customer,
       cast(substring(InvoiceDate from 1 for 10) as date) as invoice_date,
-      BillingAddress as billing_address,
+      BillingAddress as billing_street,
       BillingCity as billing_city,
       BillingState as billing_state,
       BillingCountry as billing_country,
       BillingPostalCode as billing_postal_code,
       Total as total
     from csv.invoice`),
-    modify(`insert into db.media_type select Name as name from csv.media_type`),
     modify(`insert into db.playlist select Name as name from csv.playlist`),
     modify(`insert into db.track 
     select
       Name as name,
       AlbumId - 1 as album,
-      MediaTypeId - 1 as media_type,
+      cast(
+        case
+          when MediaTypeId = 1 then 'mpeg'
+          when MediaTypeId = 2 then 'protected_aac'
+          when MediaTypeId = 3 then 'protected_mpeg4'
+          when MediaTypeId = 4 then 'purchased_aac'
+          when MediaTypeId = 5 then 'aac'
+        end
+        as enums.media_type
+      ) as media_type,
       GenreId - 1 as genre,
       Composer as composer,
       Milliseconds as milliseconds,
