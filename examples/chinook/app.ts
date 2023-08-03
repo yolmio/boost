@@ -209,6 +209,16 @@ recordGridPage({
         lg: { gridColumnSpan: 4 },
       },
     },
+    {
+      type: "simpleLinkRelationCard",
+      table: "invoice",
+      displayValues: ["invoice_date", "total", "billing_country"],
+      styles: {
+        alignSelf: "start",
+        gridColumnSpan: 12,
+        lg: { gridColumnSpan: 6 },
+      },
+    },
   ],
 });
 

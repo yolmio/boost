@@ -10,6 +10,7 @@ import * as relatedRecordsTimeline from "./timeline.js";
 import * as superSimpleHeader from "./superSimpleHeader.js";
 import * as attachmentsCard from "./attachmentsCard.js";
 import * as singleSourceTimeline from "./singleSourceTimeline.js";
+import * as simpleLinkRelationCard from "./simpleLinkRelationCard.js";
 
 export const childFnMap = {
   [addressCard.name]: addressCard.content,
@@ -24,6 +25,7 @@ export const childFnMap = {
   [superSimpleHeader.name]: superSimpleHeader.content,
   [attachmentsCard.name]: attachmentsCard.content,
   [singleSourceTimeline.name]: singleSourceTimeline.content,
+  [simpleLinkRelationCard.name]: simpleLinkRelationCard.content,
 };
 
 export type ChildOpts =
@@ -40,4 +42,7 @@ export type ChildOpts =
   | (relatedRecordsTimeline.Opts & {
       type: typeof relatedRecordsTimeline.name;
     })
-  | (superSimpleHeader.Opts & { type: typeof superSimpleHeader.name });
+  | (superSimpleHeader.Opts & { type: typeof superSimpleHeader.name })
+  | (simpleLinkRelationCard.Opts & {
+      type: typeof simpleLinkRelationCard.name;
+    });
