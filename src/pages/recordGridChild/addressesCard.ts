@@ -1,4 +1,4 @@
-import { AddressFieldGroup } from "../../modelTypes.js";
+import { AddressFieldGroup } from "../../appTypes.js";
 import { element, state } from "../../nodeHelpers.js";
 import { record } from "../../procHelpers.js";
 import { createStyles } from "../../styleUtils.js";

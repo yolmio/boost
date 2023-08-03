@@ -1,9 +1,9 @@
 import { button } from "../components/button.js";
 import { InsertDialogOpts } from "../components/insertDialog.js";
-import { Table } from "../modelTypes.js";
+import { Table } from "../appTypes.js";
 import { element } from "../nodeHelpers.js";
 import { if_, modify, scalar, setScalar, table } from "../procHelpers.js";
-import { model } from "../singleton.js";
+import { app } from "../singleton.js";
 import { upcaseFirst } from "../utils/inflectors.js";
 import { ident, stringLiteral } from "../utils/sqlHelpers.js";
 import { getTableBaseUrl } from "../utils/url.js";
@@ -23,7 +23,7 @@ import { checkbox } from "../components/checkbox.js";
 import { DefaultView } from "./datagridInternals/datagridBase.js";
 import { resizeableSeperator } from "./datagridInternals/shared.js";
 import { FieldEditProcConfig } from "./datagridInternals/editHelper.js";
-import { addPage } from "../modelHelpers.js";
+import { addPage } from "../appHelpers.js";
 
 export interface ToolbarOpts {
   views?: boolean;
@@ -124,7 +124,7 @@ function getColumns(
   viewButtonUrl: ((id: string) => string) | undefined,
   opts: DatagridPageOpts
 ): SuperGridColumn[] {
-  const tableModel = model.database.tables[tableName];
+  const tableModel = app.database.tables[tableName];
   const columns: SuperGridColumn[] = [];
   if (selectable) {
     columns.push({
@@ -226,7 +226,7 @@ function getColumns(
 }
 
 export function datagridPage(opts: DatagridPageOpts) {
-  const tableModel = model.database.tables[opts.table];
+  const tableModel = app.database.tables[opts.table];
   const path = opts.path ?? getTableBaseUrl(opts.table);
   const selectable = opts.selectable ?? true;
   let getViewButtonUrl: ((id: string) => string) | undefined;

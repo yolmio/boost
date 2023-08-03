@@ -1,4 +1,4 @@
-import { addPage } from "../modelHelpers.js";
+import { addPage } from "../appHelpers.js";
 import { element } from "../nodeHelpers.js";
 import { Node } from "../nodeTypes.js";
 import { baseGridStyles, createStyles } from "../styleUtils.js";

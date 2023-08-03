@@ -7,7 +7,7 @@ import {
   setScalar,
   table,
 } from "../procHelpers.js";
-import { model } from "../singleton.js";
+import { app } from "../singleton.js";
 import { pluralize } from "../utils/inflectors.js";
 import { ident, stringLiteral } from "../utils/sqlHelpers.js";
 import { getTableBaseUrl } from "../utils/url.js";
@@ -25,7 +25,7 @@ import { checkbox } from "../components/checkbox.js";
 import { FieldEditProcConfig } from "./datagridInternals/editHelper.js";
 import { button } from "../components/button.js";
 import { RowHeight } from "./datagridInternals/types.js";
-import { addPage } from "../modelHelpers.js";
+import { addPage } from "../appHelpers.js";
 
 export interface ToolbarOpts {
   delete?: boolean;
@@ -73,7 +73,7 @@ function getColumns(
   viewButtonUrl: ((id: string) => string) | undefined,
   opts: DatagridPageOpts
 ): SimpleColumn[] {
-  const tableModel = model.database.tables[tableName];
+  const tableModel = app.database.tables[tableName];
   const columns: SimpleColumn[] = [];
   if (selectable) {
     columns.push({
@@ -174,7 +174,7 @@ function getColumns(
 }
 
 export function simpleDatagridPage(opts: DatagridPageOpts) {
-  const tableModel = model.database.tables[opts.table];
+  const tableModel = app.database.tables[opts.table];
   const path = opts.path ?? getTableBaseUrl(opts.table);
   const selectable = opts.selectable ?? true;
   let getViewButtonUrl: ((id: string) => string) | undefined;

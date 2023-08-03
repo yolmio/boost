@@ -3,11 +3,11 @@ import {
   FormStateProcedureExtensions,
   withUpdateFormState,
 } from "../formState.js";
-import { addPage } from "../modelHelpers.js";
+import { addPage } from "../appHelpers.js";
 import { element, state, switchNode } from "../nodeHelpers.js";
 import { Node } from "../nodeTypes.js";
 import { record } from "../procHelpers.js";
-import { model } from "../singleton.js";
+import { app } from "../singleton.js";
 import { containerStyles, createStyles } from "../styleUtils.js";
 import { stringLiteral } from "../utils/sqlHelpers.js";
 import { ClientProcStatement, ServiceProcStatement } from "../yom.js";
@@ -46,7 +46,7 @@ const styles = createStyles({
 });
 
 export function updateFormPage(opts: EditFormPage) {
-  const table = model.database.tables[opts.table];
+  const table = app.database.tables[opts.table];
   const pathBase = getTableBaseUrl(opts.table);
   const path = opts.path ?? pathBase + `/{record_id:id}/edit`;
   let content: Node = withUpdateFormState({

@@ -1,5 +1,5 @@
 import { typography } from "../../components/typography.js";
-import { AddressFieldGroup } from "../../modelTypes.js";
+import { AddressFieldGroup } from "../../appTypes.js";
 import { ifNode } from "../../nodeHelpers.js";
 import { createStyles } from "../../styleUtils.js";
 import { ident } from "../../utils/sqlHelpers.js";

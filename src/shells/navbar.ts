@@ -11,10 +11,10 @@ import {
 import { iconButton } from "../components/iconButton.js";
 import { drawer } from "../components/drawer.js";
 import { materialIcon } from "../components/materialIcon.js";
-import { setShell } from "../modelHelpers.js";
+import { setShell } from "../appHelpers.js";
 import { upcaseFirst } from "../utils/inflectors.js";
 import { stringLiteral } from "../utils/sqlHelpers.js";
-import { model } from "../singleton.js";
+import { app } from "../singleton.js";
 import { typography } from "../components/typography.js";
 import { divider } from "../components/divider.js";
 import { settingsDrawer } from "./internals/settingsDrawer.js";
@@ -75,7 +75,7 @@ const styles = createStyles({
       fontFamily: cssVar(`font-family-body`),
       fontWeight: cssVar(`font-weight-md`),
       lineHeight: 1,
-      "&:focus-visible": model.theme.focus.default,
+      "&:focus-visible": app.theme.focus.default,
       "&:hover": getVariantStyle("soft", "harmonize", "hover"),
       "&:active": getVariantStyle("soft", "harmonize", "active"),
       ...getVariantStyle("soft", "harmonize"),

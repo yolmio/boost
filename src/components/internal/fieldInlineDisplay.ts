@@ -1,7 +1,7 @@
-import { Field } from "../../modelTypes.js";
+import { Field } from "../../appTypes.js";
 import { element, state } from "../../nodeHelpers.js";
 import { scalar } from "../../procHelpers.js";
-import { model } from "../../singleton.js";
+import { app } from "../../singleton.js";
 import { createStyles } from "../../styleUtils.js";
 import { stringLiteral } from "../../utils/sqlHelpers.js";
 
@@ -20,7 +20,7 @@ export function inlineFieldDisplay(field: Field, expr: string) {
       return `format.date(${expr}, ${formatString})`;
     }
     case "ForeignKey": {
-      const toTable = model.database.tables[field.table];
+      const toTable = app.database.tables[field.table];
       if (toTable.inlineRecordDisplay) {
         return toTable.inlineRecordDisplay(expr);
       }

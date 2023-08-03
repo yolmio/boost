@@ -1,12 +1,12 @@
-import { addScript, addScriptDbFromMappingFile } from "./modelHelpers.js";
+import { addScript, addScriptDbFromMappingFile } from "./appHelpers.js";
 import { loadDb, modify, saveDb, table } from "./procHelpers.js";
-import { model } from "./singleton.js";
+import { app } from "./singleton.js";
 import { ScriptStatement } from "./yom.js";
 import * as path from "path";
 import toposort from "toposort";
 
 function isTableReferencedByOthers(t: string) {
-  for (const otherTable of Object.values(model.database.tables)) {
+  for (const otherTable of Object.values(app.database.tables)) {
     for (const field of Object.values(otherTable.fields)) {
       if (field.type === "ForeignKey" && field.table === t) {
         return true;
@@ -44,7 +44,7 @@ export function createMigrationScript(opts: MigrationScriptOpts) {
   );
   const tableImports: ScriptStatement[] = [];
   const graph: [string, string][] = [];
-  for (const t of Object.values(model.database.tables)) {
+  for (const t of Object.values(app.database.tables)) {
     if (opts.ignoreTables?.includes(t.name)) {
       continue;
     }
@@ -57,7 +57,7 @@ export function createMigrationScript(opts: MigrationScriptOpts) {
   const sortedTables = toposort(graph);
   sortedTables.reverse();
   for (const tableName of sortedTables) {
-    const t = model.database.tables[tableName];
+    const t = app.database.tables[tableName];
     const tableOpts = opts.tables?.[t.name] ?? {};
     const scriptDbTableName = opts.transformTableName?.(t.name) ?? t.name;
     const fields = Object.values(t.fields)

@@ -3,7 +3,7 @@ import {
   withInsertFormState,
 } from "../formState.js";
 import { sourceMap } from "../nodeHelpers.js";
-import { model } from "../singleton.js";
+import { app } from "../singleton.js";
 import { createStyles } from "../styleUtils.js";
 import { stringLiteral } from "../utils/sqlHelpers.js";
 import { ClientProcStatement } from "../yom.js";
@@ -43,7 +43,7 @@ const styles = createStyles({
 const titleId = stringLiteral(getUniqueUiId());
 
 export function insertDialog(opts: InsertDialogOpts) {
-  const tableModel = model.database.tables[opts.table];
+  const tableModel = app.database.tables[opts.table];
   const { fields, relations } = getFieldsAndRelationsFromInsertFormContent(
     opts.content,
     tableModel

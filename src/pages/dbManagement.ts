@@ -25,9 +25,9 @@ import { textarea } from "../components/textarea.js";
 import { typography } from "../components/typography.js";
 import { ClientProcStatement, SqlExpression } from "../yom.js";
 import { input } from "../components/input.js";
-import { addPage } from "../modelHelpers.js";
+import { addPage } from "../appHelpers.js";
 import { Node } from "../nodeTypes.js";
-import { model } from "../singleton.js";
+import { app } from "../singleton.js";
 import { stringLiteral } from "../utils/sqlHelpers.js";
 import { createStyles, flexGrowStyles } from "../styleUtils.js";
 import { chip } from "../components/chip.js";
@@ -545,7 +545,7 @@ function collapse(label: string, node: Node) {
 }
 
 function transactionQueryReference(): Node[] {
-  const userFk = model.database.userTableName;
+  const userFk = app.database.userTableName;
   return [
     typography({ level: "h5", children: "'Transaction Queries'" }),
     divider(),
@@ -733,7 +733,7 @@ function transactionQueryReference(): Node[] {
       "sys_db_table",
       element("div", {
         styles: styles.enumValues,
-        children: Object.keys(model.database.tables).map((name) =>
+        children: Object.keys(app.database.tables).map((name) =>
           element("div", {
             styles: styles.enumValue,
             children: stringLiteral(name),
@@ -752,7 +752,7 @@ function schemaReference() {
       children: [
         typography({ level: "h5", children: "'Tables'" }),
         divider(),
-        Object.values(model.database.tables).map((table) => {
+        Object.values(app.database.tables).map((table) => {
           const fields = Object.values(table.fields).map((field) => {
             let typeString = field.type.toLowerCase();
             if (field.type === "ForeignKey") {
@@ -768,7 +768,7 @@ function schemaReference() {
               type: typeString,
             });
           });
-          if (model.database.enableTransactionQueries) {
+          if (app.database.enableTransactionQueries) {
             fields.unshift(
               displayField({
                 name: "last_modified_by_tx",
@@ -796,9 +796,9 @@ function schemaReference() {
         }),
         typography({ level: "h5", children: "'Enums'" }),
         divider(),
-        Object.values(model.enums)
+        Object.values(app.enums)
           .filter((enum_) =>
-            Object.values(model.database.tables).some((t) =>
+            Object.values(app.database.tables).some((t) =>
               Object.values(t.fields).some(
                 (f) => f.type === "Enum" && f.enum === enum_.name
               )
@@ -818,7 +818,7 @@ function schemaReference() {
               })
             );
           }),
-        ...(model.database.enableTransactionQueries
+        ...(app.database.enableTransactionQueries
           ? transactionQueryReference()
           : []),
       ],

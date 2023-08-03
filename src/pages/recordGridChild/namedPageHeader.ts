@@ -1,4 +1,4 @@
-import { ImageSetFieldGroup, Table } from "../../modelTypes.js";
+import { ImageSetFieldGroup, Table } from "../../appTypes.js";
 import { element, ifNode, state } from "../../nodeHelpers.js";
 import {
   commitUiChanges,
@@ -13,7 +13,7 @@ import {
   spawn,
   try_,
 } from "../../procHelpers.js";
-import { model } from "../../singleton.js";
+import { app } from "../../singleton.js";
 import { createStyles, visuallyHiddenStyles } from "../../styleUtils.js";
 import {
   getUploadStatements,
@@ -83,7 +83,7 @@ const styles = createStyles({
     justifyContent: "center",
     alignItems: "center",
     cursor: "pointer",
-    "&:focus-within": model.theme.focus.default,
+    "&:focus-within": app.theme.focus.default,
   }),
   imgWrapper: {
     width: 128,
@@ -95,7 +95,7 @@ const styles = createStyles({
     height: 128,
     borderRadius: "xl",
     cursor: "pointer",
-    "&:focus": model.theme.focus.default,
+    "&:focus": app.theme.focus.default,
   }),
   subHeader: {
     fontSize: "lg",

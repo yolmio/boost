@@ -7,7 +7,7 @@ import {
 } from "../../components/insertDialog.js";
 import { materialIcon } from "../../components/materialIcon.js";
 import { typography } from "../../components/typography.js";
-import { Table } from "../../modelTypes.js";
+import { Table } from "../../appTypes.js";
 import { element, ifNode, sourceMap, state } from "../../nodeHelpers.js";
 import { Node } from "../../nodeTypes.js";
 import {

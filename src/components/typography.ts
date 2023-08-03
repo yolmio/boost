@@ -1,5 +1,5 @@
 import { Node } from "../nodeTypes.js";
-import { model } from "../singleton.js";
+import { app } from "../singleton.js";
 import { StyleObject } from "../styleTypes.js";
 import { createStyles, cssVar, getVariantStyle } from "../styleUtils.js";
 import { TypographyKeys, Variant } from "../theme.js";
@@ -54,7 +54,7 @@ export const styles = createStyles({
           }),
         }),
       }),
-      ...(level && level !== "inherit" && model.theme.typography[level]),
+      ...(level && level !== "inherit" && app.theme.typography[level]),
       ...(noWrap && {
         overflow: "hidden",
         textOverflow: "ellipsis",

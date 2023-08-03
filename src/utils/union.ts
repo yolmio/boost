@@ -1,5 +1,5 @@
-import { Field, VirtualType } from "../modelTypes.js";
-import { model } from "../singleton.js";
+import { Field, VirtualType } from "../appTypes.js";
+import { app } from "../singleton.js";
 import { SequentialIDGenerator } from "../utils/SequentialIdGenerator.js";
 import { FieldIntegerTypes, SqlExpression } from "../yom.js";
 import { tableFieldSql } from "./sqlHelpers.js";
@@ -142,7 +142,7 @@ export function createUnionQuery(opts: UnionOpts): Union {
   for (let i = 0; i < opts.sources.length; i++) {
     const source = opts.sources[i];
     if (source.type === "Table") {
-      const table = model.database.tables[source.table];
+      const table = app.database.tables[source.table];
       if (source.fields) {
         for (const f of source.fields) {
           let typeKey: string;

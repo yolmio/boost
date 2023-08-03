@@ -23,7 +23,7 @@ import { materialIcon } from "../../components/materialIcon.js";
 import { textarea } from "../../components/textarea.js";
 import { typography } from "../../components/typography.js";
 import { RecordGridContext } from "./shared.js";
-import { model } from "../../singleton.js";
+import { app } from "../../singleton.js";
 import { card } from "../../components/card.js";
 import { Style } from "../../styleTypes.js";
 
@@ -103,7 +103,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
   let foreignKeyField = opts.foreignKeyField;
   const notesTable = opts.notesTable ?? ctx.table.name + "_note";
   if (!foreignKeyField) {
-    const notesTableModel = model.database.tables[notesTable];
+    const notesTableModel = app.database.tables[notesTable];
     if (!notesTableModel) {
       throw new Error(`No notes table found for ${notesTable}`);
     }

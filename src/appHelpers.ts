@@ -25,9 +25,9 @@ import type {
   TableControl,
   VirtualField,
   VirtualType,
-} from "./modelTypes.js";
+} from "./appTypes.js";
 import type * as yom from "./yom.js";
-import { model } from "./singleton.js";
+import { app } from "./singleton.js";
 import { stringLiteral } from "./utils/sqlHelpers.js";
 import type { Node } from "./nodeTypes.js";
 import { getTableBaseUrl } from "./utils/url.js";
@@ -68,7 +68,7 @@ export class TableBuilder {
   #displayName: string;
 
   constructor(private name: string) {
-    this.#displayName = model.displayNameConfig.table(name);
+    this.#displayName = app.displayNameConfig.table(name);
   }
 
   displayName(name: string) {
@@ -326,7 +326,7 @@ export class TableBuilder {
   virtualField(virtual: VirtualFieldHelper): TableBuilder {
     this.#virtualFields[virtual.name] = {
       name: virtual.name,
-      displayName: model.displayNameConfig.virtual(virtual.name),
+      displayName: app.displayNameConfig.virtual(virtual.name),
       fields: virtual.fields,
       expr: virtual.expr,
       type:
@@ -470,9 +470,9 @@ export class TableBuilder {
       addSearchMatch({
         name: tableName + "_name",
         table: tableName,
-        tokenizer: model.searchConfig.defaultTokenizer,
+        tokenizer: app.searchConfig.defaultTokenizer,
         style: {
-          ...model.searchConfig.defaultFuzzyConfig,
+          ...app.searchConfig.defaultFuzzyConfig,
           type: "Fuzzy",
         },
         fieldGroups:
@@ -582,7 +582,7 @@ abstract class BaseFieldBuilder {
 
   constructor(name: string, protected table: TableBuilder) {
     this._name = name;
-    this._displayName = model.displayNameConfig.field(name);
+    this._displayName = app.displayNameConfig.field(name);
     table.addField(this);
   }
 
@@ -923,7 +923,7 @@ class EnumFieldBuilder extends BaseFieldBuilder {
 }
 
 export function addSearchMatch(index: yom.SearchMatchConfig) {
-  model.database.searchMatches[index.name] = index;
+  app.database.searchMatches[index.name] = index;
 }
 
 let inScriptDb: ScriptDbDefinition | undefined;
@@ -934,7 +934,7 @@ export function addTable(name: string, f: (table: TableBuilder) => void) {
   if (inScriptDb) {
     inScriptDb.tables[name] = builder.finish();
   } else {
-    model.database.tables[name] = builder.finish();
+    app.database.tables[name] = builder.finish();
   }
 }
 
@@ -952,7 +952,7 @@ export function addDeviceDatabaseTable(
 ) {
   const builder = new TableBuilder(name);
   f(builder);
-  model.deviceDb.tables[name] = builder.finish();
+  app.deviceDb.tables[name] = builder.finish();
 }
 
 export interface SimpleDt {
@@ -996,13 +996,13 @@ export interface HelperEnum {
 }
 
 export function addEnum(enum_: HelperEnum) {
-  const displayName = model.displayNameConfig.enum(enum_.name);
+  const displayName = app.displayNameConfig.enum(enum_.name);
   const values = enum_.values.map((v) => {
     if (typeof v === "string") {
-      return { name: v, displayName: model.displayNameConfig.enumValue(v) };
+      return { name: v, displayName: app.displayNameConfig.enumValue(v) };
     }
     return {
-      displayName: model.displayNameConfig.enumValue(v.name),
+      displayName: app.displayNameConfig.enumValue(v.name),
       ...v,
     };
   });
@@ -1058,7 +1058,7 @@ export function addEnum(enum_: HelperEnum) {
     description: enum_.description,
     values: valuesObject,
   };
-  model.enums[enum_.name] = modelEnum;
+  app.enums[enum_.name] = modelEnum;
   if (enum_.withDisplayDt) {
     modelEnum.getDisplayName = (v) => `dt.display_${enum_.name}(${v})`;
   }
@@ -1153,9 +1153,9 @@ export function addDecisionTable(dt: HelperDecisionTable) {
     setup: dt.setup,
   };
   if (dt.bound) {
-    model.database.decisionTables[dt.name] = newDt;
+    app.database.decisionTables[dt.name] = newDt;
   } else {
-    model.decisionTables[dt.name] = newDt;
+    app.decisionTables[dt.name] = newDt;
   }
 }
 
@@ -1177,26 +1177,26 @@ export function addScalarFunction(f: HelperScalarFunction) {
       typeof f.returnType === "string" ? { type: f.returnType } : f.returnType,
   };
   if (f.bound) {
-    model.database.scalarFunctions[f.name] = newDt;
+    app.database.scalarFunctions[f.name] = newDt;
   } else {
-    model.scalarFunctions[f.name] = newDt;
+    app.scalarFunctions[f.name] = newDt;
   }
 }
 
 export function addPage(page: Page) {
-  model.pages.push(page);
+  app.pages.push(page);
 }
 
 export function setShell(node: (pages: Node) => Node) {
-  model.shell = node;
+  app.shell = node;
 }
 
 export function addScript(script: yom.Script) {
-  model.scripts.push(script);
+  app.scripts.push(script);
 }
 
 export function addScriptDbFromMappingFile(name: string, mappingFile: string) {
-  model.scriptDbs.push({
+  app.scriptDbs.push({
     name,
     definition: {
       type: "MappingFile",
@@ -1210,13 +1210,13 @@ export function addScriptDbDefinition(
   define: (db: ScriptDbDefinition) => void
 ) {
   inScriptDb = {
-    autoTrim: model.autoTrim,
-    collation: model.collation,
+    autoTrim: app.autoTrim,
+    collation: app.collation,
     enableTransactionQueries: true,
     tables: {},
   };
   define(inScriptDb);
-  model.scriptDbs.push({
+  app.scriptDbs.push({
     name,
     definition: { type: "Model", db: inScriptDb },
   });

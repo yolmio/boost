@@ -3,7 +3,7 @@ import {
   FormStateProcedureExtensions,
   withUpdateFormState,
 } from "../formState.js";
-import { model } from "../singleton.js";
+import { app } from "../singleton.js";
 import { createStyles } from "../styleUtils.js";
 import { ident, stringLiteral } from "../utils/sqlHelpers.js";
 import { ClientProcStatement, ServiceProcStatement } from "../yom.js";
@@ -47,7 +47,7 @@ const styles = createStyles({
 });
 
 export function updateDialog(opts: EditDialogOpts) {
-  const tableModel = model.database.tables[opts.table];
+  const tableModel = app.database.tables[opts.table];
   return sourceMap(
     `updateDialog(table: ${opts.table})`,
     modal({

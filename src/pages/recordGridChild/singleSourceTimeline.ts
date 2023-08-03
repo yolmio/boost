@@ -38,7 +38,7 @@ import {
   table,
   try_,
 } from "../../procHelpers.js";
-import { model } from "../../singleton.js";
+import { app } from "../../singleton.js";
 import { Style } from "../../styleTypes.js";
 import { ident, stringLiteral } from "../../utils/sqlHelpers.js";
 import {
@@ -113,7 +113,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
       });
     }
   }
-  const tableModel = model.database.tables[opts.table];
+  const tableModel = app.database.tables[opts.table];
   const itemContent = opts.itemContent(ctx);
   const insertDialogOpts = opts.insertDialogOpts?.(ctx);
   const withValues: Record<string, string> = insertDialogOpts?.withValues ?? {};

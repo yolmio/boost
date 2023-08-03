@@ -1,11 +1,11 @@
 import { navbarShell } from "@yolm/boost/shells/navbar";
-import { addEnum, addPage, addTable } from "@yolm/boost/modelHelpers";
-import { model } from "@yolm/boost/singleton";
+import { addPage, addTable } from "@yolm/boost/appHelpers";
+import { app } from "@yolm/boost/singleton";
 
-model.name = "hello_world";
-model.title = "Hello World App";
-model.displayName = "Hello World";
-model.dbRunMode = "BrowserSync";
+app.name = "hello_world";
+app.title = "Hello World App";
+app.displayName = "Hello World";
+app.dbRunMode = "BrowserSync";
 
 // db
 

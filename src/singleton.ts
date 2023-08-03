@@ -1,8 +1,8 @@
-import type { BoostModel } from "./modelTypes.js";
+import type { BoostAppModel } from "./appTypes.js";
 import { ThemeOpts, createTheme } from "./createTheme.js";
 import { normalizeCase, upcaseFirst } from "./utils/inflectors.js";
 
-export const model: BoostModel = {
+export const app: BoostAppModel = {
   name: "please-rename",
   title: "please-rename",
   displayName: "Please Rename",
@@ -71,5 +71,5 @@ function defaultGetDisplayName(sqlName: string) {
 }
 
 export function setTheme(themeOptions: ThemeOpts) {
-  model.theme = createTheme(themeOptions);
+  app.theme = createTheme(themeOptions);
 }

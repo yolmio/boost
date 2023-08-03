@@ -1,4 +1,4 @@
-import { TableControlOpts } from "../modelTypes.js";
+import { TableControlOpts } from "../appTypes.js";
 import { each, element, ifNode, state } from "../nodeHelpers.js";
 import {
   if_,
@@ -8,7 +8,7 @@ import {
   setScalar,
   table,
 } from "../procHelpers.js";
-import { model } from "../singleton.js";
+import { app } from "../singleton.js";
 import { circularProgress } from "./circularProgress.js";
 import { queryCombobox } from "./searchSelect.js";
 import { select } from "./select.js";
@@ -17,7 +17,7 @@ export function getTableRecordSelect(
   tableName: string,
   opts: TableControlOpts
 ) {
-  const tableModel = model.database.tables[tableName];
+  const tableModel = app.database.tables[tableName];
   let selectInfo = tableModel.control ?? { type: "Combobox" };
   switch (selectInfo.type) {
     case "Combobox": {
@@ -66,7 +66,7 @@ export function getTableRecordSelect(
                     },
                     style: {
                       type: "Fuzzy",
-                      ...model.searchConfig.defaultFuzzyConfig,
+                      ...app.searchConfig.defaultFuzzyConfig,
                     },
                     tables: [searchConfig],
                   },

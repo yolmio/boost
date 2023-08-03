@@ -1,4 +1,4 @@
-import { model } from "../singleton.js";
+import { app } from "../singleton.js";
 import { element, state } from "../nodeHelpers.js";
 import type { Node } from "../nodeTypes.js";
 import { Style, StyleObject } from "../styleTypes.js";
@@ -33,7 +33,7 @@ const styles = createStyles({
       ),
       '&[aria-selected="true"]': {
         ...getVariantStyle(selectedVariant, selectedColor),
-        boxShadow: model.theme.shadow.sm,
+        boxShadow: app.theme.shadow.sm,
         fontWeight: "initial",
         ...((selectedVariant === "plain" || selectedVariant === "outlined") && {
           backgroundColor: cssVar(`palette-background-surface`),

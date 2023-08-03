@@ -8,7 +8,7 @@ import { input } from "../components/input.js";
 import { materialIcon } from "../components/materialIcon.js";
 import { getTableRecordSelect } from "../components/tableRecordSelect.js";
 import { typography } from "../components/typography.js";
-import { addPage } from "../modelHelpers.js";
+import { addPage } from "../appHelpers.js";
 import {
   each,
   element,

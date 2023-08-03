@@ -16,7 +16,7 @@ import {
   darkSchemeSelector,
   lightSchemeSelector,
 } from "./styleUtils.js";
-import { model } from "./singleton.js";
+import { app } from "./singleton.js";
 import type { Node } from "./nodeTypes.js";
 import type * as yom from "./yom.js";
 
@@ -562,7 +562,7 @@ export class StyleSerializer {
       for (const [key, v] of Object.entries(frames)) {
         if (v) {
           const properties = serializeSimpleCssProperties(
-            prepStyle(v, model.theme)
+            prepStyle(v, app.theme)
           ).join(";");
           selectors.push(`${key} {${properties}}`);
         }
@@ -572,7 +572,7 @@ export class StyleSerializer {
   }
 
   addGlobalStyle(style: Style) {
-    createRulesFromStyle(prepStyle(style, model.theme), this.#cssRules);
+    createRulesFromStyle(prepStyle(style, app.theme), this.#cssRules);
   }
 
   addStyle(style: Style, useCached = true): string {
@@ -584,7 +584,7 @@ export class StyleSerializer {
     }
     const className = "boost-" + classNameGenerator.next();
     createRulesFromStyle(
-      prepStyle(style, model.theme),
+      prepStyle(style, app.theme),
       this.#cssRules,
       "." + className
     );

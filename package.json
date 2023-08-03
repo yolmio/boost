@@ -16,9 +16,9 @@
   },
   "exports": {
     "./yom": "./dist/yom.js",
-    "./modelTypes": "./dist/modelTypes.js",
+    "./appTypes": "./dist/appTypes.js",
     "./styleTypes": "./dist/styleTypes.js",
-    "./modelHelpers": "./dist/modelHelpers.js",
+    "./appHelpers": "./dist/appHelpers.js",
     "./procHelpers": "./dist/procHelpers.js",
     "./nodeHelpers": "./dist/nodeHelpers.js",
     "./formState": "./dist/formState.js",
@@ -51,8 +51,8 @@
       "styleTypes": [
         "./dist/styleTypes.d.ts"
       ],
-      "modelHelpers": [
-        "./dist/modelHelpers.d.ts"
+      "appHelpers": [
+        "./dist/appHelpers.d.ts"
       ],
       "nodeHelpers": [
         "./dist/nodeHelpers.d.ts"

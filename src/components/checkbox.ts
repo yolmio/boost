@@ -1,4 +1,4 @@
-import { model } from "../singleton.js";
+import { app } from "../singleton.js";
 import { element, ifNode } from "../nodeHelpers.js";
 import { Variant } from "../theme.js";
 import { createStyles, cssVar, getVariantStyle } from "../styleUtils.js";
@@ -122,7 +122,7 @@ const styles = createStyles({
       // TODO: discuss the transition approach in a separate PR. This value is copied from mui-material Button.
       transition:
         "background-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms",
-      "&:has(:focus-visible)": model.theme.focus.default,
+      "&:has(:focus-visible)": app.theme.focus.default,
     };
     if (disableIcon) {
       Object.assign(styles, {

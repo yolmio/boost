@@ -1,6 +1,6 @@
 import { element, state } from "../../nodeHelpers.js";
 import { record } from "../../procHelpers.js";
-import { model } from "../../singleton.js";
+import { app } from "../../singleton.js";
 import { createStyles } from "../../styleUtils.js";
 import { ident } from "../../utils/sqlHelpers.js";
 import { divider } from "../../components/divider.js";

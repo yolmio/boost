@@ -1,5 +1,5 @@
 import { FormState, UpdateFormField } from "../../formState.js";
-import { Table } from "../../modelTypes.js";
+import { Table } from "../../appTypes.js";
 import { element, ifNode } from "../../nodeHelpers.js";
 import { Node } from "../../nodeTypes.js";
 import { Style } from "../../styleTypes.js";

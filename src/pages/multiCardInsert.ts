@@ -5,11 +5,11 @@ import {
   InsertFormField,
   withMultiInsertFormState,
 } from "../formState.js";
-import { addPage } from "../modelHelpers.js";
+import { addPage } from "../appHelpers.js";
 import { element, ifNode, state } from "../nodeHelpers.js";
 import { Node } from "../nodeTypes.js";
 import { scalar, setScalar } from "../procHelpers.js";
-import { model } from "../singleton.js";
+import { app } from "../singleton.js";
 import { downcaseFirst, pluralize } from "../utils/inflectors.js";
 import { stringLiteral } from "../utils/sqlHelpers.js";
 import { ClientProcStatement, StateStatement } from "../yom.js";
@@ -146,7 +146,7 @@ const styles = createStyles({
 });
 
 export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
-  const table = model.database.tables[opts.table];
+  const table = app.database.tables[opts.table];
   const formStateFields = opts.cardFields.slice();
   if (opts.cardFooterFields) {
     formStateFields.push(...opts.cardFooterFields);

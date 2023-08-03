@@ -1,9 +1,8 @@
-import { addEnum, addTable } from "@yolm/boost/modelHelpers";
+import { addTable } from "@yolm/boost/appHelpers";
 import { navbarShell } from "@yolm/boost/shells/navbar";
 import {
   addUsers,
   commitUiChanges,
-  debugExpr,
   if_,
   modify,
   navigate,
@@ -21,7 +20,7 @@ import { recordGridPage } from "@yolm/boost/pages/recordGrid";
 import { simpleDatagridPage } from "@yolm/boost/pages/simpleDatagrid";
 import { insertFormPage } from "@yolm/boost/pages/insertForm";
 import { dashboardGridPage } from "@yolm/boost/pages/dashboardGrid";
-import { model } from "@yolm/boost/singleton";
+import { app } from "@yolm/boost/singleton";
 import { button } from "@yolm/boost/components/button";
 import {
   ReportParameter,
@@ -29,9 +28,9 @@ import {
 } from "@yolm/boost/pages/simpleReportPage";
 import { ServiceProcStatement } from "@yolm/boost/yom";
 
-model.name = "northwind";
-model.title = "Northwind Traders";
-model.displayName = "Northwind Traders";
+app.name = "northwind";
+app.title = "Northwind Traders";
+app.displayName = "Northwind Traders";
 
 //
 // DATABASE

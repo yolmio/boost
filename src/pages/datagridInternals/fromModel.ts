@@ -1,4 +1,4 @@
-import { Field, VirtualField, VirtualType } from "../../modelTypes.js";
+import { Field, VirtualField, VirtualType } from "../../appTypes.js";
 import { element, switchNode } from "../../nodeHelpers.js";
 import {
   commitUiChanges,
@@ -7,7 +7,7 @@ import {
   scalar,
   setScalar,
 } from "../../procHelpers.js";
-import { model } from "../../singleton.js";
+import { app } from "../../singleton.js";
 import { ident, stringLiteral } from "../../utils/sqlHelpers.js";
 import { ClientProcStatement, FieldType } from "../../yom.js";
 import { fieldCell } from "./cells.js";
@@ -179,7 +179,7 @@ function getFieldCellWidth(
   const cellBuffer = 20;
   const headerLength = field.displayName.length * charSize + headerBuffer;
   if (field.type === "Uuid" && field.group) {
-    const tableModel = model.database.tables[table];
+    const tableModel = app.database.tables[table];
     const group = tableModel.fieldGroups[field.group];
     if (group.type === "Image") {
       return 138;
@@ -198,7 +198,7 @@ function getFieldCellWidth(
     return headerLength;
   }
   if (field.type === "Enum") {
-    const enum_ = model.enums[field.enum];
+    const enum_ = app.enums[field.enum];
     const maxVariant = Math.max(
       ...Object.values(enum_.values).map((v) => v.displayName.length)
     );
@@ -365,7 +365,7 @@ export function columnFromField({
         break;
       case "Uuid":
         if (field.group) {
-          const tableModel = model.database.tables[table];
+          const tableModel = app.database.tables[table];
           const group = tableModel.fieldGroups[field.group];
           if (group.type === "Image") {
             if (group.variants[field.name].usage !== "square_thumbnail") {
@@ -615,7 +615,7 @@ export function simpleColumnFromField({
         break;
       case "Uuid":
         if (field.group) {
-          const tableModel = model.database.tables[table];
+          const tableModel = app.database.tables[table];
           const group = tableModel.fieldGroups[field.group];
           if (group.type === "Image") {
             if (group.variants[field.name].usage !== "square_thumbnail") {

@@ -1,5 +1,5 @@
-import { TableBuilder, addDeviceDatabaseTable } from "../modelHelpers.js";
-import { Table } from "../modelTypes.js";
+import { TableBuilder, addDeviceDatabaseTable } from "../appHelpers.js";
+import { Table } from "../appTypes.js";
 import {
   each,
   element,
@@ -26,7 +26,7 @@ import {
   stopPropagation,
   table,
 } from "../procHelpers.js";
-import { model } from "../singleton.js";
+import { app } from "../singleton.js";
 import { createStyles, cssVar } from "../styleUtils.js";
 import { SequentialIDGenerator } from "../utils/SequentialIdGenerator.js";
 import { normalizeCase, pluralize, upcaseFirst } from "../utils/inflectors.js";
@@ -217,7 +217,7 @@ function prepareDisplayValue(
   if (typeof value === "string") {
     const field = table.fields[value];
     if (field.type === "ForeignKey") {
-      const toTable = model.database.tables[field.table];
+      const toTable = app.database.tables[field.table];
       if (toTable.recordDisplayName) {
         const nameExpr = toTable.recordDisplayName.expr(
           ...toTable.recordDisplayName.fields.map((f) => `other.${f}`)
@@ -341,7 +341,7 @@ function addDisplayValueToTable(
 }
 
 export function tableSearchDialog(opts: TableSearchDialogOpts) {
-  const tableModel = model.database.tables[opts.table];
+  const tableModel = app.database.tables[opts.table];
   if (!tableModel.recordDisplayName) {
     throw new Error("tableSearchDialog expects recordDisplayName to exist");
   }
@@ -480,7 +480,7 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
                         },
                         style: {
                           type: "Fuzzy",
-                          ...model.searchConfig.defaultFuzzyConfig,
+                          ...app.searchConfig.defaultFuzzyConfig,
                         },
                         tables: [searchConfig],
                       },
@@ -759,7 +759,7 @@ function calcMultiTable(tables: PreparedMultiTableSearchDialogTable[]) {
   let labelExpr = "case ";
   let urlExpr = "case ";
   for (const table of tables) {
-    const tableModel = model.database.tables[table.name];
+    const tableModel = app.database.tables[table.name];
     if (!tableModel.recordDisplayName) {
       throw new Error(
         "multiTableSearchDialog expects recordDisplayName to exist"
@@ -829,7 +829,7 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
   const containerId = stringLiteral(getUniqueUiId());
   const optionId = (id: string) => `${inputId} || '-' || ${id}`;
   const tables = opts.tables.map((t): PreparedMultiTableSearchDialogTable => {
-    const tableModel = model.database.tables[t.name];
+    const tableModel = app.database.tables[t.name];
     return {
       name: t.name,
       icon: t.icon,
@@ -968,7 +968,7 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
                         },
                         style: {
                           type: "Fuzzy",
-                          ...model.searchConfig.defaultFuzzyConfig,
+                          ...app.searchConfig.defaultFuzzyConfig,
                         },
                         tables: tableConfigs,
                       },
@@ -1149,7 +1149,7 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
                               checked: `not ${t.name}_disabled`,
                               label: stringLiteral(
                                 pluralize(
-                                  model.database.tables[t.name].displayName
+                                  app.database.tables[t.name].displayName
                                 )
                               ),
                               color: "neutral",
@@ -1324,7 +1324,7 @@ export interface RecordSelectDialog {
 }
 
 export function recordSelectDialog(opts: RecordSelectDialog) {
-  const tableModel = model.database.tables[opts.table];
+  const tableModel = app.database.tables[opts.table];
   if (!tableModel.recordDisplayName) {
     throw new Error("tableSearchDialog expects recordDisplayName to exist");
   }
@@ -1416,7 +1416,7 @@ export function recordSelectDialog(opts: RecordSelectDialog) {
                       },
                       style: {
                         type: "Fuzzy",
-                        ...model.searchConfig.defaultFuzzyConfig,
+                        ...app.searchConfig.defaultFuzzyConfig,
                       },
                       tables: [searchConfig],
                     },

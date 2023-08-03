@@ -1,4 +1,4 @@
-import { Table } from "../../modelTypes.js";
+import { Table } from "../../appTypes.js";
 import { BaseStatement } from "../../yom.js";
 
 export interface RecordGridContext {

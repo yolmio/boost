@@ -7,7 +7,7 @@ import { popoverMenu } from "../../components/menu.js";
 import { typography } from "../../components/typography.js";
 import { updateDialog } from "../../components/updateDialog.js";
 import { getUniqueUiId } from "../../components/utils.js";
-import { Node, Table, VirtualType } from "../../modelTypes.js";
+import { Node, Table, VirtualType } from "../../appTypes.js";
 import { element, ifNode, state } from "../../nodeHelpers.js";
 import {
   commitTransaction,

@@ -1,4 +1,4 @@
-import { addDecisionTable, addEnum, addTable } from "../../modelHelpers.js";
+import { addDecisionTable, addEnum, addTable } from "../../appHelpers.js";
 import { queryParams, state } from "../../nodeHelpers.js";
 import { DataGridStyles, Node } from "../../nodeTypes.js";
 import {
@@ -16,7 +16,7 @@ import {
   table,
   while_,
 } from "../../procHelpers.js";
-import { model } from "../../singleton.js";
+import { app } from "../../singleton.js";
 import { ident, stringLiteral } from "../../utils/sqlHelpers.js";
 import { ServiceProcStatement, StateStatement } from "../../yom.js";
 import {
@@ -66,9 +66,9 @@ export function datagridBase(opts: DatagridBaseOpts) {
   const { columns, datagridStyles, dts } = opts;
   if (opts.enableViews) {
     addViewTables();
-    model.enums.datagrid_view_name.values[opts.datagridName] = {
+    app.enums.datagrid_view_name.values[opts.datagridName] = {
       name: opts.datagridName,
-      displayName: model.displayNameConfig.default(opts.datagridName),
+      displayName: app.displayNameConfig.default(opts.datagridName),
     };
   }
   addDgFilterOp();
@@ -812,7 +812,7 @@ export function makeIdsQuery(
 }
 
 function addViewTables() {
-  if ("datagrid_view" in model.database.tables) {
+  if ("datagrid_view" in app.database.tables) {
     return;
   }
   addEnum({
@@ -822,7 +822,7 @@ function addViewTables() {
   addTable("datagrid_view", (t) => {
     t.string("name", 200).notNull();
     t.enum("datagrid_name", "datagrid_view_name").notNull();
-    t.fk("user", model.database.userTableName);
+    t.fk("user", app.database.userTableName);
     t.bool("root_filter_is_any").notNull();
     t.smallUint("row_height").notNull();
     t.ordering("ordering").notNull();
@@ -854,7 +854,7 @@ function addViewTables() {
 }
 
 function addDgFilterOp() {
-  if (!model.enums.dg_filter_op) {
+  if (!app.enums.dg_filter_op) {
     addEnum({
       name: "dg_filter_op",
       values: [

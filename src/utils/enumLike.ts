@@ -1,4 +1,4 @@
-import { BoolEnumLikeConfig } from "../modelTypes.js";
+import { BoolEnumLikeConfig } from "../appTypes.js";
 import { stringLiteral } from "./sqlHelpers.js";
 
 export function enumLikeDisplayName(

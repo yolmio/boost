@@ -13,7 +13,7 @@ import { insertDialog } from "../../components/insertDialog.js";
 import { AutoLabelOnLeftInsertFormContent } from "../../components/internal/insertFormShared.js";
 import { deepmerge } from "../../utils/deepmerge.js";
 import { RecordGridContext } from "./shared.js";
-import { model } from "../../singleton.js";
+import { app } from "../../singleton.js";
 
 export const name = "relatedTable";
 
@@ -59,7 +59,7 @@ const styles = createStyles({
 });
 
 export function content(opts: Opts, ctx: RecordGridContext) {
-  const tableModel = model.database.tables[opts.table];
+  const tableModel = app.database.tables[opts.table];
   const foreignKeyField = Object.values(tableModel.fields).find(
     (f) => f.type === "ForeignKey" && f.table === ctx.table.name
   );

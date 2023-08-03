@@ -4,7 +4,7 @@ import {
   addScalarFunction,
   addTable,
   addTableFromCatalog,
-} from "@yolm/boost/modelHelpers";
+} from "@yolm/boost/appHelpers";
 import {
   addUsers,
   if_,
@@ -25,7 +25,7 @@ import { updateFormPage } from "@yolm/boost/pages/updateForm";
 import { button } from "@yolm/boost/components/button";
 import { multiCardInsertPage } from "@yolm/boost/pages/multiCardInsert";
 import { materialIcon } from "@yolm/boost/components/materialIcon";
-import { model, setTheme } from "@yolm/boost/singleton";
+import { app, setTheme } from "@yolm/boost/singleton";
 import { element } from "@yolm/boost/nodeHelpers";
 import {
   ReportParameter,
@@ -36,14 +36,14 @@ import { ServiceProcStatement } from "@yolm/boost/yom";
 import { colors } from "@yolm/boost/colors";
 import { colorChannel } from "@yolm/boost/colorManipulator";
 
-model.name = "legal";
-model.title = "Legal";
-model.displayName = "Legal";
+app.name = "legal";
+app.title = "Legal";
+app.displayName = "Legal";
 
 // generated the woff files with:
 // https://gwfh.mranftl.com/fonts
 for (const weight of ["regular", "500", "600", "700"]) {
-  model.globalStyles.push({
+  app.globalStyles.push({
     "@font-face": {
       fontDisplay: "swap",
       fontFamily: "'Arimo'",

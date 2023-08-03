@@ -1,4 +1,4 @@
-import type { Field, Table } from "./modelTypes";
+import type { Field, Table } from "./appTypes";
 import type {
   BaseStatement,
   BasicStatement,
@@ -29,7 +29,7 @@ import {
   table,
   try_,
 } from "./procHelpers.js";
-import { model } from "./singleton.js";
+import { app } from "./singleton.js";
 import { EachNode, Node, StateNode } from "./nodeTypes.js";
 import { ident, stringLiteral } from "./utils/sqlHelpers.js";
 
@@ -613,7 +613,7 @@ export interface WithMultiInsertFormOpts extends FormStateProcedureExtensions {
 export function withMultiInsertFormState(
   opts: WithMultiInsertFormOpts
 ): StateNode {
-  const table = model.database.tables[opts.table];
+  const table = app.database.tables[opts.table];
   if (!table) {
     throw new Error("Table " + opts.table + " does not exist in model");
   }
@@ -773,7 +773,7 @@ export interface WithInsertFormStateOpts extends FormStateProcedureExtensions {
 }
 
 export function withInsertFormState(opts: WithInsertFormStateOpts): StateNode {
-  const table = model.database.tables[opts.table];
+  const table = app.database.tables[opts.table];
   const formFields: FormStateField[] = [];
   interface ComputedField {
     formStateName: string;
@@ -806,7 +806,7 @@ export function withInsertFormState(opts: WithInsertFormStateOpts): StateNode {
   }[] = [];
   if (opts.relations) {
     for (const relation of opts.relations) {
-      const relationTable = model.database.tables[relation.table];
+      const relationTable = app.database.tables[relation.table];
       const sharedFields: ComputedField[] = [];
       if (relation.sharedFields) {
         for (const fieldConfig of relation.sharedFields) {
@@ -1011,7 +1011,7 @@ export function defaultInitialValue(field: Field): string {
       return `''`;
     case "Enum":
       if (field.notNull) {
-        const enum_ = model.enums[field.enum];
+        const enum_ = app.enums[field.enum];
         const firstValue = Object.values(enum_.values)[0];
         return `cast(${stringLiteral(firstValue.name)} as enums.${enum_.name})`;
       }
@@ -1275,7 +1275,7 @@ export interface WithUpdateFormStateOpts extends FormStateProcedureExtensions {
 }
 
 export function withUpdateFormState(opts: WithUpdateFormStateOpts) {
-  const table = model.database.tables[opts.table];
+  const table = app.database.tables[opts.table];
   const fields = opts.fields.map((f) => {
     const fieldSchema = table.fields[f.field];
     let initialValue: string;

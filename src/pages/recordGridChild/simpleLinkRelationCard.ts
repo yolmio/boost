@@ -1,6 +1,6 @@
 import { each, element, ifNode, state } from "../../nodeHelpers.js";
 import { record } from "../../procHelpers.js";
-import { model } from "../../singleton.js";
+import { app } from "../../singleton.js";
 import { createStyles } from "../../styleUtils.js";
 import { ident, stringLiteral } from "../../utils/sqlHelpers.js";
 import { divider } from "../../components/divider.js";
@@ -81,7 +81,7 @@ const styles = createStyles({
 });
 
 export function content(opts: Opts, ctx: RecordGridContext) {
-  const otherTable = model.database.tables[opts.table];
+  const otherTable = app.database.tables[opts.table];
   if (!otherTable) {
     throw new Error(`Table ${opts.table} not found`);
   }

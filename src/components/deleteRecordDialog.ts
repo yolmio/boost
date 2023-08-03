@@ -6,7 +6,7 @@ import {
   setScalar,
   startTransaction,
 } from "../procHelpers.js";
-import { model } from "../singleton.js";
+import { app } from "../singleton.js";
 import { ClientProcStatement, ServiceProcStatement } from "../yom.js";
 import { confirmDangerDialog } from "./confirmDangerDialog.js";
 
@@ -21,7 +21,7 @@ export interface DeleteRecordDialog {
 }
 
 export function deleteRecordDialog(opts: DeleteRecordDialog) {
-  const table = model.database.tables[opts.table];
+  const table = app.database.tables[opts.table];
   return confirmDangerDialog({
     open: opts.open,
     onClose: opts.onClose,

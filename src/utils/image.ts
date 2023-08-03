@@ -1,4 +1,4 @@
-import { ImageSetFieldGroup, ImageUsage } from "../modelTypes.js";
+import { ImageSetFieldGroup, ImageUsage } from "../appTypes.js";
 import {
   addImage,
   joinTasks,

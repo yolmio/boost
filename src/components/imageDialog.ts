@@ -9,7 +9,7 @@ import {
   setScalar,
   try_,
 } from "../procHelpers.js";
-import { model } from "../singleton.js";
+import { app } from "../singleton.js";
 import { createStyles, visuallyHiddenStyles } from "../styleUtils.js";
 import { getUploadStatements, getVariantFromImageSet } from "../utils/image.js";
 import { ident } from "../utils/sqlHelpers.js";
@@ -72,11 +72,11 @@ const styles = createStyles({
     display: "none",
     lg: { display: "block" },
   },
-  replaceButton: () => ({ "&:focus-within": model.theme.focus.default }),
+  replaceButton: () => ({ "&:focus-within": app.theme.focus.default }),
 });
 
 export function imageDalog(opts: ImageDialogOptions) {
-  const table = model.database.tables[opts.tableName];
+  const table = app.database.tables[opts.tableName];
   const fieldGroup = table.fieldGroups[opts.group];
   if (fieldGroup.type !== "Image") {
     throw new Error("Invalid field group type for image dialog");

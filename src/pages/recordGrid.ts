@@ -1,10 +1,10 @@
 import { alert } from "../components/alert.js";
 import { circularProgress } from "../components/circularProgress.js";
-import { addPage } from "../modelHelpers.js";
+import { addPage } from "../appHelpers.js";
 import { element, sourceMap, state, switchNode } from "../nodeHelpers.js";
 import { Node } from "../nodeTypes.js";
 import { navigate, scalar, setScalar } from "../procHelpers.js";
-import { model } from "../singleton.js";
+import { app } from "../singleton.js";
 import { Style } from "../styleTypes.js";
 import {
   baseGridStyles,
@@ -54,7 +54,7 @@ const styles = createStyles({
 });
 
 export function recordGridPage(opts: RecordGridPageOpts) {
-  const tableModel = model.database.tables[opts.table];
+  const tableModel = app.database.tables[opts.table];
   const pathBase = pluralize(opts.table.split("_").join(" "))
     .split(" ")
     .join("-");

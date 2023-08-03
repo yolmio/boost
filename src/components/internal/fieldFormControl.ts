@@ -1,5 +1,5 @@
 import { FormStateFieldHelper } from "../../formState.js";
-import { Field } from "../../modelTypes.js";
+import { Field } from "../../appTypes.js";
 import { Node } from "../../nodeTypes.js";
 import { debugExpr } from "../../procHelpers.js";
 import { ClientProcStatement } from "../../yom.js";

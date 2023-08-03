@@ -1,4 +1,4 @@
-import { model } from "./singleton.js";
+import { app } from "./singleton.js";
 import { StyleSerializer, transformNode } from "./nodeTransform.js";
 import { addRootStyles } from "./rootStyles.js";
 import type * as yom from "./yom.js";
@@ -7,7 +7,7 @@ import type {
   DecisionTable,
   ScalarFunction,
   Table,
-} from "./modelTypes";
+} from "./appTypes.js";
 import { default404Page } from "./pages/default404.js";
 import { Node, RouteNode, RoutesNode } from "./nodeTypes.js";
 import { escapeHtml } from "./utils/escapeHtml.js";
@@ -142,35 +142,35 @@ function generateDatabase(database: Database): yom.Database {
 }
 
 function getTransformedUi(): [yom.Node, string] {
-  if (!model.pages.some((p) => p.path === "/*" || p.path === "*")) {
-    model.pages.push({
+  if (!app.pages.some((p) => p.path === "/*" || p.path === "*")) {
+    app.pages.push({
       path: "*",
       content: default404Page(),
     });
   }
-  const pagesWithShell = model.pages
+  const pagesWithShell = app.pages
     .filter((p) => !p.ignoreShell)
     .map(
       (p) =>
-      ({
-        t: "Route",
-        path: p.path,
-        children: p.content,
-      } as RouteNode)
+        ({
+          t: "Route",
+          path: p.path,
+          children: p.content,
+        } as RouteNode)
     );
-  const pagesWithoutShell = model.pages
+  const pagesWithoutShell = app.pages
     .filter((p) => p.ignoreShell)
     .map(
       (p) =>
-      ({
-        t: "Route",
-        path: p.path,
-        children: p.content,
-      } as RouteNode)
+        ({
+          t: "Route",
+          path: p.path,
+          children: p.content,
+        } as RouteNode)
     );
   let rootNode: Node;
-  if (model.shell) {
-    const shell = model.shell({
+  if (app.shell) {
+    const shell = app.shell({
       t: "Routes",
       children: pagesWithShell,
     });
@@ -178,12 +178,12 @@ function getTransformedUi(): [yom.Node, string] {
       pagesWithoutShell.length === 0
         ? shell
         : ({
-          t: "Routes",
-          children: [
-            ...pagesWithoutShell,
-            { t: "Route", path: "*", children: shell },
-          ],
-        } as RoutesNode);
+            t: "Routes",
+            children: [
+              ...pagesWithoutShell,
+              { t: "Route", path: "*", children: shell },
+            ],
+          } as RoutesNode);
   } else {
     rootNode = {
       t: "Routes",
@@ -191,10 +191,10 @@ function getTransformedUi(): [yom.Node, string] {
     };
   }
   const serializer = new StyleSerializer();
-  for (const style of model.globalStyles) {
+  for (const style of app.globalStyles) {
     serializer.addGlobalStyle(style);
   }
-  addRootStyles(serializer, model.theme);
+  addRootStyles(serializer, app.theme);
   const node = transformNode(rootNode, (styles, dynamicStyle) => {
     if (!styles) {
       return;
@@ -206,7 +206,7 @@ function getTransformedUi(): [yom.Node, string] {
 
 export function generateYom(): yom.Model {
   const [uiTree, css] = getTransformedUi();
-  if (model.name === "please-rename") {
+  if (app.name === "please-rename") {
     console.log();
     console.warn(
       "You should rename your app from 'please-rename' to something else using `setAppName()`."
@@ -216,16 +216,16 @@ export function generateYom(): yom.Model {
     );
     console.log();
   }
-  let htmlHead = model.webAppConfig.htmlHead;
-  if (model.title) {
-    htmlHead += `<title>${escapeHtml(model.title)}</title>`;
+  let htmlHead = app.webAppConfig.htmlHead;
+  if (app.title) {
+    htmlHead += `<title>${escapeHtml(app.title)}</title>`;
   }
-  if (model.webAppConfig.viewport) {
+  if (app.webAppConfig.viewport) {
     htmlHead += `<meta name="viewport" content="${escapeHtml(
-      model.webAppConfig.viewport
+      app.webAppConfig.viewport
     )}">`;
   }
-  switch (model.webAppConfig.logoGeneration.type) {
+  switch (app.webAppConfig.logoGeneration.type) {
     case "Default":
       htmlHead += `
   <link rel="apple-touch-icon" sizes="180x180" href="/global_assets/logo/apple-touch-icon.png">
@@ -244,11 +244,11 @@ export function generateYom(): yom.Model {
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/logo/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/assets/logo/favicon-16x16.png">
   <link rel="manifest" href="/assets/logo/site.webmanifest">
-  <link rel="mask-icon" href="/assets/logo/safari-pinned-tab.svg" color="${model.webAppConfig.logoGeneration.safariPinnedTabColor}">
+  <link rel="mask-icon" href="/assets/logo/safari-pinned-tab.svg" color="${app.webAppConfig.logoGeneration.safariPinnedTabColor}">
   <link rel="shortcut icon" href="/assets/logo/favicon.ico">
-  <meta name="msapplication-TileColor" content="${model.webAppConfig.logoGeneration.msTileColor}">
+  <meta name="msapplication-TileColor" content="${app.webAppConfig.logoGeneration.msTileColor}">
   <meta name="msapplication-config" content="/assets/logo/browserconfig.xml">
-  <meta name="theme-color" content="${model.webAppConfig.logoGeneration.themeColor}">`;
+  <meta name="theme-color" content="${app.webAppConfig.logoGeneration.themeColor}">`;
       break;
     case "Account":
       htmlHead += `
@@ -256,40 +256,40 @@ export function generateYom(): yom.Model {
   <link rel="icon" type="image/png" sizes="32x32" href="/account_assets/logo/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/account_assets/logo/favicon-16x16.png">
   <link rel="manifest" href="/account_assets/logo/site.webmanifest">
-  <link rel="mask-icon" href="/account_assets/logo/safari-pinned-tab.svg" color="${model.webAppConfig.logoGeneration.safariPinnedTabColor}">
+  <link rel="mask-icon" href="/account_assets/logo/safari-pinned-tab.svg" color="${app.webAppConfig.logoGeneration.safariPinnedTabColor}">
   <link rel="shortcut icon" href="/account_assets/logo/favicon.ico">
-  <meta name="msapplication-TileColor" content="${model.webAppConfig.logoGeneration.msTileColor}">
+  <meta name="msapplication-TileColor" content="${app.webAppConfig.logoGeneration.msTileColor}">
   <meta name="msapplication-config" content="/account_assets/logo/browserconfig.xml">
-  <meta name="theme-color" content="${model.webAppConfig.logoGeneration.themeColor}">`;
+  <meta name="theme-color" content="${app.webAppConfig.logoGeneration.themeColor}">`;
       break;
     case "Custom":
       break;
   }
-  if (!model.webAppConfig.manifest.name) {
-    model.webAppConfig.manifest.name = model.displayName;
+  if (!app.webAppConfig.manifest.name) {
+    app.webAppConfig.manifest.name = app.displayName;
   }
   return {
     // todo make this part of the model
     locale: "en_us",
-    name: model.name,
-    displayName: model.displayName,
-    dbExecutionMode: model.dbRunMode,
-    appDomain: model.appDomain,
-    collation: model.collation,
-    autoTrim: model.autoTrim,
+    name: app.name,
+    displayName: app.displayName,
+    dbExecutionMode: app.dbRunMode,
+    appDomain: app.appDomain,
+    collation: app.collation,
+    autoTrim: app.autoTrim,
     textCast: {
       date: "%F",
       timestamp: "%+",
       time: "%T",
     },
-    db: generateDatabase(model.database),
-    decisionTables: Object.values(model.decisionTables).map(
+    db: generateDatabase(app.database),
+    decisionTables: Object.values(app.decisionTables).map(
       generateDecisionTable
     ),
-    scalarFunctions: Object.values(model.scalarFunctions).map(
+    scalarFunctions: Object.values(app.scalarFunctions).map(
       generateScalarFunction
     ),
-    enums: Object.values(model.enums).map((e) => ({
+    enums: Object.values(app.enums).map((e) => ({
       name: e.name,
       renameFrom: e.renameFrom,
       description: e.description,
@@ -300,16 +300,16 @@ export function generateYom(): yom.Model {
       })),
     })),
     ui: {
-      pwaManifest: model.webAppConfig.manifest,
+      pwaManifest: app.webAppConfig.manifest,
       htmlHead: htmlHead,
       tree: uiTree,
       css,
       deviceDb: {
-        tables: Object.values(model.deviceDb.tables).map(generateTable),
+        tables: Object.values(app.deviceDb.tables).map(generateTable),
       },
     },
-    scripts: model.scripts,
-    scriptDbs: model.scriptDbs.map((db) => {
+    scripts: app.scripts,
+    scriptDbs: app.scriptDbs.map((db) => {
       if (db.definition.type === "MappingFile") {
         return { name: db.name, definition: db.definition };
       } else {

@@ -35,7 +35,7 @@ import {
   ToolbarConfig,
 } from "./styledDatagrid.js";
 import { DatagridDts, makeCountQuery, makeIdsQuery } from "./datagridBase.js";
-import { Table } from "../../modelTypes.js";
+import { Table } from "../../appTypes.js";
 import { select } from "../../components/select.js";
 import { Node } from "../../nodeTypes.js";
 import { insertDialog } from "../../components/insertDialog.js";

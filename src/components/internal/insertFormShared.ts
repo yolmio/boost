@@ -4,10 +4,10 @@ import {
   InsertFormField,
   InsertFormRelation,
 } from "../../formState.js";
-import { Table } from "../../modelTypes.js";
+import { Table } from "../../appTypes.js";
 import { element, ifNode } from "../../nodeHelpers.js";
 import { Node } from "../../nodeTypes.js";
-import { model } from "../../singleton.js";
+import { app } from "../../singleton.js";
 import { Style } from "../../styleTypes.js";
 import { downcaseFirst } from "../../utils/inflectors.js";
 import { stringLiteral } from "../../utils/sqlHelpers.js";
@@ -275,7 +275,7 @@ function twoColumnSectionedInsertFormContent(
     sections.push(divider());
     let sectionBody: Node;
     if (section.relation) {
-      const relationTable = model.database.tables[section.relation.table];
+      const relationTable = app.database.tables[section.relation.table];
       sectionBody = element("div", {
         styles: twoColumnFormStyles.cardRelation,
         children: [

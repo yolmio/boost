@@ -1,5 +1,5 @@
-import { TableBuilder } from "../modelHelpers.js";
-import { ImageSetVariant } from "../modelTypes.js";
+import { TableBuilder } from "../appHelpers.js";
+import { ImageSetVariant } from "../appTypes.js";
 
 export interface AddressFieldGroupCatalog {
   type: "address";

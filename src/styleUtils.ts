@@ -1,4 +1,4 @@
-import { model } from "./singleton.js";
+import { app } from "./singleton.js";
 import type { Style, StyleObject } from "./styleTypes.js";
 import type { ColorPaletteProp, CssVar, Variant } from "./theme.js";
 import { lazy, memoize } from "./utils/memoize.js";
@@ -458,16 +458,16 @@ export const containerStyles = lazy(() => {
     mx: "auto",
     px: 2,
     sm: {
-      maxWidth: model.theme.breakpoints.values.sm,
+      maxWidth: app.theme.breakpoints.values.sm,
     },
     md: {
-      maxWidth: model.theme.breakpoints.values.md,
+      maxWidth: app.theme.breakpoints.values.md,
     },
     lg: {
-      maxWidth: model.theme.breakpoints.values.lg,
+      maxWidth: app.theme.breakpoints.values.lg,
     },
     xl: {
-      maxWidth: model.theme.breakpoints.values.xl,
+      maxWidth: app.theme.breakpoints.values.xl,
     },
   };
 });

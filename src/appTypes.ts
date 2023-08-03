@@ -443,26 +443,26 @@ export interface WebAppConfig {
   viewport?: string;
   manifest: WebAppManifest;
   logoGeneration:
-  | {
-    type: "App";
-    safariPinnedTabColor: string;
-    msTileColor: string;
-    themeColor: string;
-  }
-  | {
-    type: "Account";
-    safariPinnedTabColor: string;
-    msTileColor: string;
-    themeColor: string;
-  }
-  | { type: "Default" }
-  | { type: "Custom" };
+    | {
+        type: "App";
+        safariPinnedTabColor: string;
+        msTileColor: string;
+        themeColor: string;
+      }
+    | {
+        type: "Account";
+        safariPinnedTabColor: string;
+        msTileColor: string;
+        themeColor: string;
+      }
+    | { type: "Default" }
+    | { type: "Custom" };
 }
 
 /**
  * A model that is easier to code generate with and has more information.
  */
-export interface BoostModel {
+export interface BoostAppModel {
   name: string;
   title: string;
   displayName: string;

@@ -1,8 +1,8 @@
 import { element } from "../nodeHelpers.js";
-import { model } from "../singleton.js";
+import { app } from "../singleton.js";
 import { select, SelectOpts } from "./select.js";
 import { stringLiteral } from "../utils/sqlHelpers.js";
-import { BoolEnumLikeConfig } from "../modelTypes.js";
+import { BoolEnumLikeConfig } from "../appTypes.js";
 import { memoize } from "../utils/memoize.js";
 
 export type EnumSelectOpts = Omit<SelectOpts, "children"> & {
@@ -11,7 +11,7 @@ export type EnumSelectOpts = Omit<SelectOpts, "children"> & {
 };
 
 const getEnumOptions = memoize((enumName: string, emptyOption?: string) => {
-  const enum_ = model.enums[enumName];
+  const enum_ = app.enums[enumName];
   const options = Object.values(enum_.values).map((v) =>
     element("option", {
       children: stringLiteral(v.displayName),

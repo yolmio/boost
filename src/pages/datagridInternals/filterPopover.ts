@@ -11,7 +11,7 @@ import {
   setScalar,
   spawn,
 } from "../../procHelpers.js";
-import { model } from "../../singleton.js";
+import { app } from "../../singleton.js";
 import { stringLiteral } from "../../utils/sqlHelpers.js";
 import { ClientProcStatement } from "../../yom.js";
 import { button } from "../../components/button.js";
@@ -867,7 +867,7 @@ function enumSelect(filterTerm: string, columns: SuperGridColumn[]) {
     slots: { select: { props: { value: `${filterTerm}.value_1` } } },
     children: switchNode(
       ...Object.entries(columnsByEnum).map(([enumName, columns]) => {
-        const opts = Object.values(model.enums[enumName].values).map((v) =>
+        const opts = Object.values(app.enums[enumName].values).map((v) =>
           element("option", {
             children: stringLiteral(v.displayName),
             props: { value: stringLiteral(v.name) },

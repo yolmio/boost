@@ -1,7 +1,7 @@
 import { each, element, state } from "../nodeHelpers.js";
 import { Node } from "../nodeTypes.js";
 import { scalar, setScalar, table } from "../procHelpers.js";
-import { model } from "../singleton.js";
+import { app } from "../singleton.js";
 import { flexGrowStyles } from "../styleUtils.js";
 import { pluralize } from "../utils/inflectors.js";
 import { stringLiteral } from "../utils/sqlHelpers.js";
@@ -29,7 +29,7 @@ export interface RelatedCardOpts {
 }
 
 export function relatedCardList(opts: RelatedCardOpts) {
-  const tableModel = model.database.tables[opts.table];
+  const tableModel = app.database.tables[opts.table];
   const foreignKeyField = Object.values(tableModel.fields).find(
     (f) => f.type === "ForeignKey" && f.table === opts.foreignKeyTable
   );

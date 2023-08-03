@@ -1,4 +1,4 @@
-import { VirtualType } from "../../modelTypes.js";
+import { VirtualType } from "../../appTypes.js";
 import {
   each,
   element,
@@ -16,7 +16,7 @@ import {
   setScalar,
   table,
 } from "../../procHelpers.js";
-import { model } from "../../singleton.js";
+import { app } from "../../singleton.js";
 import { Style } from "../../styleTypes.js";
 import { ident, stringLiteral } from "../../utils/sqlHelpers.js";
 import { UnionExpr, createUnionQuery } from "../../utils/union.js";
@@ -106,7 +106,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
     limit: `row_count`,
     orderByFields: ["date", "id"],
     sources: sources.map((source) => {
-      const tableModel = model.database.tables[source.table];
+      const tableModel = app.database.tables[source.table];
       let customFrom = source.customFrom;
       if (!customFrom) {
         let foreignKeyExpr = source.foreignKeyExpr;
@@ -264,7 +264,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                   )
                 ) ?? [])
               ),
-              tableModel: model.database.tables[tableName],
+              tableModel: app.database.tables[tableName],
               customAction: itemContent.customAction?.node(
                 ...itemContent.customAction.values.map((v, valueIdx) => {
                   if (typeof v === "string") {
@@ -375,7 +375,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                             children:
                               `'Add ' || ` +
                               stringLiteral(
-                                model.database.tables[t.table].displayName
+                                app.database.tables[t.table].displayName
                               ),
                             onClick: [setScalar(`ui.adding_${i}`, `true`)],
                           })),
@@ -384,7 +384,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                     sources
                       .filter((t) => !t.disableInsert)
                       .map((t, i) => {
-                        const tableModel = model.database.tables[t.table];
+                        const tableModel = app.database.tables[t.table];
                         const opts = t.insertDialogOpts ?? {};
                         const withValues: Record<string, string> =
                           opts.withValues ?? {};

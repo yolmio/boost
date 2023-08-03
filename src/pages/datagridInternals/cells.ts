@@ -18,7 +18,7 @@ import {
   StringField,
   TimestampField,
   UuidField,
-} from "../../modelTypes.js";
+} from "../../appTypes.js";
 import { element, ifNode, state } from "../../nodeHelpers.js";
 import {
   commitUiChanges,
@@ -34,7 +34,7 @@ import {
   spawn,
   try_,
 } from "../../procHelpers.js";
-import { model } from "../../singleton.js";
+import { app } from "../../singleton.js";
 import { createStyles, visuallyHiddenStyles } from "../../styleUtils.js";
 import { enumLikeDisplayName } from "../../utils/enumLike.js";
 import { stringLiteral } from "../../utils/sqlHelpers.js";
@@ -87,7 +87,7 @@ const styles = createStyles({
     display: "flex",
   },
   uploadButton: () => {
-    return { mx: "auto", "&:focus-within": model.theme.focus.default };
+    return { mx: "auto", "&:focus-within": app.theme.focus.default };
   },
   checkbox: {
     mx: "auto",
@@ -112,7 +112,7 @@ const styles = createStyles({
 });
 
 function foreignKeyCell(opts: BaseFieldCellOpts, field: ForeignKeyField): Cell {
-  const toTable = model.database.tables[field.table];
+  const toTable = app.database.tables[field.table];
   const nameExpr = toTable.recordDisplayName!.expr(
     ...toTable.recordDisplayName!.fields.map((f) => `r.${f}`)
   );
@@ -237,7 +237,7 @@ function foreignKeyCell(opts: BaseFieldCellOpts, field: ForeignKeyField): Cell {
 
 function enumCell(opts: BaseFieldCellOpts, field: EnumField): Cell {
   return (props) => {
-    const enumModel = model.enums[field.enum];
+    const enumModel = app.enums[field.enum];
     const display = element("span", {
       styles: sharedStyles.ellipsisSpan,
       children: enumModel.getDisplayName!(
@@ -907,7 +907,7 @@ export function fieldCell(opts: FieldCellOpts): Cell {
       return numericField(opts, opts.field);
     case "Uuid":
       if (opts.field.group) {
-        const table = model.database.tables[opts.tableName];
+        const table = app.database.tables[opts.tableName];
         const group = table.fieldGroups[opts.field.group];
         if (group.type === "Image") {
           return imageCell(opts, group);

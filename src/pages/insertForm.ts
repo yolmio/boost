@@ -2,10 +2,10 @@ import {
   FormStateProcedureExtensions,
   withInsertFormState,
 } from "../formState.js";
-import { addPage } from "../modelHelpers.js";
+import { addPage } from "../appHelpers.js";
 import { element } from "../nodeHelpers.js";
 import { Node } from "../nodeTypes.js";
-import { model } from "../singleton.js";
+import { app } from "../singleton.js";
 import { containerStyles, createStyles } from "../styleUtils.js";
 import { stringLiteral } from "../utils/sqlHelpers.js";
 import {
@@ -37,7 +37,7 @@ const styles = createStyles({
 });
 
 export function insertFormPage(opts: SectionedInsertFormPageOpts) {
-  const table = model.database.tables[opts.table];
+  const table = app.database.tables[opts.table];
   const pathBase = getTableBaseUrl(opts.table);
   const path = opts.path ?? pathBase + `/add`;
   const { fields, relations } = getFieldsAndRelationsFromInsertFormContent(
