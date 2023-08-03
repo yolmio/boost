@@ -784,7 +784,7 @@ function schemaReference() {
           }
           fields.unshift(
             displayField({
-              name: table.primaryKeyFieldName ?? "id",
+              name: table.primaryKeyFieldName,
               notNull: true,
               type: "pk (biguint)",
             })

@@ -46,7 +46,7 @@ export function tableFieldSql(tableName: string, field: string) {
     );
   }
   if (
-    field === (table.primaryKeyFieldName ?? "id") ||
+    field === table.primaryKeyFieldName ||
     field === "created_by_tx" ||
     field === "last_modified_by_tx"
   ) {
@@ -67,8 +67,6 @@ export function tableIdSql(tableName: string) {
       `Tried to create sql for table ${tableName} but table does not exist`
     );
   }
-  const field = table.primaryKeyFieldName
-    ? ident(table.primaryKeyFieldName)
-    : "id";
+  const field = ident(table.primaryKeyFieldName);
   return `${ident(tableName)}.${field}`;
 }

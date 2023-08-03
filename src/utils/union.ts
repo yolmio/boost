@@ -147,7 +147,7 @@ export function createUnionQuery(opts: UnionOpts): Union {
         for (const f of source.fields) {
           let typeKey: string;
           if (
-            f === (table.primaryKeyFieldName ?? "id") ||
+            f === table.primaryKeyFieldName ||
             f === "created_by_tx" ||
             f === "last_modified_by_tx"
           ) {

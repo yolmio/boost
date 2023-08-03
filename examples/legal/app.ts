@@ -758,18 +758,18 @@ recordGridPage({
     {
       type: "twoColumnDisplayCard",
       styles: { gridColumnSpan: 12, lg: { gridColumnSpan: 8 } },
-      cells: [
+      cells: (ctx) => [
         "contact",
         "client_position",
         "date",
         "close_date",
         {
           label: "'Total time spent'",
-          expr: `(select sfn.display_minutes_duration(sum(minutes)) from db.time_entry where matter = ui.record_id)`,
+          expr: `(select sfn.display_minutes_duration(sum(minutes)) from db.time_entry where matter = ${ctx.recordId})`,
         },
         {
           label: "'Time entry count'",
-          expr: `(select count(*) from db.time_entry where matter = ui.record_id)`,
+          expr: `(select count(*) from db.time_entry where matter = ${ctx.recordId})`,
         },
       ],
     },

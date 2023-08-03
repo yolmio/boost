@@ -226,9 +226,9 @@ export function content(opts: Opts, ctx: RecordGridContext) {
       itemRight,
     ],
   });
-  let fullQuery = `select ${ident(
-    tableModel.primaryKeyFieldName ?? "id"
-  )} as id, ${opts.dateExpr} as date `;
+  let fullQuery = `select ${ident(tableModel.primaryKeyFieldName)} as id, ${
+    opts.dateExpr
+  } as date `;
   for (const field of fields) {
     fullQuery += `, ${ident(field)}`;
   }

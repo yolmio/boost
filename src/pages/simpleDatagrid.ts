@@ -130,9 +130,7 @@ function getColumns(
       header: `'View'`,
     });
   }
-  const idField = tableModel.primaryKeyFieldName
-    ? ident(tableModel.primaryKeyFieldName)
-    : `id`;
+  const idField = ident(tableModel.primaryKeyFieldName);
   const startFixedColumns = columns.length;
   // columns.push(idColumn(tableModel));
   const fields = opts.fieldOrder ?? [];
@@ -193,9 +191,6 @@ export function simpleDatagridPage(opts: DatagridPageOpts) {
   if (opts.extraColumns) {
     columns.push(...opts.extraColumns);
   }
-  const idSqlName = tableModel.primaryKeyFieldName
-    ? ident(tableModel.primaryKeyFieldName)
-    : `id`;
   const toolbarConfig: ToolbarConfig = {
     header: stringLiteral(pluralize(tableModel.displayName)),
     delete: opts.toolbar?.delete ?? true,
@@ -229,7 +224,7 @@ export function simpleDatagridPage(opts: DatagridPageOpts) {
   const content = styledSimpleDatagrid({
     columns,
     allow: opts.allow,
-    idField: idSqlName,
+    idField: tableModel.primaryKeyFieldName,
     tableModel: tableModel,
     toolbar: toolbarConfig,
     extraState,

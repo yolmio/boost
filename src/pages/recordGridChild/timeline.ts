@@ -174,9 +174,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
         fields: [...fields],
         orderByExprs: [
           dateExpr,
-          `${ident(source.table)}.${ident(
-            tableModel.primaryKeyFieldName ?? "id"
-          )}`,
+          `${ident(source.table)}.${ident(tableModel.primaryKeyFieldName)}`,
         ],
       };
     }),

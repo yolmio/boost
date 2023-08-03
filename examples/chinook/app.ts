@@ -146,7 +146,7 @@ navbarShell({
     "/tracks",
     { showIf: isAdmin, url: "/employees" },
     { showIf: isAdmin, url: "/users" },
-    { showIf: isSysAdmin, url: "/db-management" },
+    { showIf: isSysAdmin, url: "/db-management", label: "DB" },
   ],
   multiTableSearchDialog: {
     tables: [
@@ -187,7 +187,7 @@ recordGridPage({
     {
       type: "staticTableCard",
       styles: { gridColumnSpan: 12, lg: { gridColumnSpan: 8 } },
-      rows: ["company", "email", "phone", "fax", "support_rep"],
+      rows: () => ["company", "email", "phone", "fax", "support_rep"],
     },
     {
       type: "addressCard",
@@ -200,7 +200,7 @@ recordGridPage({
     {
       type: "simpleLinkRelationCard",
       table: "invoice",
-      displayValues: ["invoice_date", "total", "billing_country"],
+      displayValues: () => ["invoice_date", "total", "billing_country"],
       styles: {
         alignSelf: "start",
         gridColumnSpan: 12,
@@ -208,6 +208,7 @@ recordGridPage({
       },
     },
   ],
+  createUpdatePage: true,
 });
 
 simpleDatagridPage({
@@ -225,7 +226,7 @@ recordGridPage({
     {
       type: "simpleLinkRelationCard",
       table: "track",
-      displayValues: ["media_type", "unit_price"],
+      displayValues: () => ["media_type", "unit_price"],
       styles: {
         alignSelf: "start",
         gridColumnSpan: 12,
@@ -233,6 +234,7 @@ recordGridPage({
       },
     },
   ],
+  createUpdatePage: true,
 });
 
 simpleDatagridPage({
@@ -245,7 +247,26 @@ simpleDatagridPage({
 
 recordGridPage({
   table: "artist",
-  children: [{ type: "namedHeader" }],
+  children: [
+    { type: "namedHeader" },
+    {
+      type: "simpleLinkRelationCard",
+      table: "album",
+      displayValues: () => [
+        {
+          expr: `(select count(*) from db.track where album = album.id)`,
+          label: "Track Count",
+          display: (e) => e,
+        },
+      ],
+      styles: {
+        alignSelf: "start",
+        gridColumnSpan: 12,
+        lg: { gridColumnSpan: 6 },
+      },
+    },
+  ],
+  createUpdatePage: true,
 });
 
 simpleDatagridPage({
@@ -265,14 +286,49 @@ simpleDatagridPage({
 
 recordGridPage({
   table: "playlist",
-  children: [{ type: "namedHeader" }],
+  children: [
+    { type: "namedHeader" },
+    {
+      type: "simpleLinkAssociationCard",
+      table: "track",
+      displayValues: () => ["album", "unit_price"],
+      styles: {
+        alignSelf: "start",
+        gridColumnSpan: 12,
+        lg: { gridColumnSpan: 6 },
+      },
+    },
+  ],
+  createUpdatePage: true,
 });
 
 datagridPage({ table: "track", viewButton: true });
 
 recordGridPage({
   table: "track",
-  children: [{ type: "namedHeader" }],
+  children: [
+    { type: "namedHeader" },
+    {
+      type: "staticTableCard",
+      rows: (ctx) => [
+        "media_type",
+        "genre",
+        "album",
+        "composer",
+        "milliseconds",
+        "bytes",
+        "unit_price",
+        {
+          label: "'Purchase Count'",
+          expr: `(select count(*) from db.invoice_line where track = ${ctx.recordId})`,
+        },
+      ],
+      styles: {
+        gridColumnSpan: 12,
+      },
+    },
+  ],
+  createUpdatePage: true,
 });
 
 datagridPage({ table: "invoice", viewButton: true });
@@ -287,7 +343,7 @@ recordGridPage({
         gridColumnSpan: 12,
         lg: { gridColumnSpan: 8 },
       },
-      rows: ["invoice_date", "total"],
+      rows: () => ["invoice_date", "total"],
     },
     {
       type: "addressCard",
@@ -320,6 +376,7 @@ recordGridPage({
       ],
     },
   ],
+  createUpdatePage: true,
 });
 
 dbManagementPage();

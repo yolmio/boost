@@ -78,7 +78,7 @@ export interface ImageSetFieldGroup {
 export type FieldGroup = AddressFieldGroup | ImageSetFieldGroup;
 
 export interface Table extends ExtensibleObject {
-  primaryKeyFieldName?: string;
+  primaryKeyFieldName: string;
   name: string;
   displayName: string;
   renameFrom?: string;

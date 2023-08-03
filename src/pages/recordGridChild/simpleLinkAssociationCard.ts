@@ -1,5 +1,6 @@
 import { each, element, ifNode, state } from "../../nodeHelpers.js";
 import {
+  debugExpr,
   exit,
   getBoundingClientRect,
   getElProperty,
@@ -12,9 +13,7 @@ import { app } from "../../singleton.js";
 import { createStyles, flexGrowStyles } from "../../styleUtils.js";
 import { ident, stringLiteral } from "../../utils/sqlHelpers.js";
 import { divider } from "../../components/divider.js";
-import { materialIcon } from "../../components/materialIcon.js";
 import { typography } from "../../components/typography.js";
-import { displayAddressText } from "./displayAddressText.js";
 import { card, cardOverflow } from "../../components/card.js";
 import { Style } from "../../styleTypes.js";
 import { RecordGridContext } from "./shared.js";
@@ -24,9 +23,19 @@ import { button } from "../../components/button.js";
 import { SqlExpression } from "../../yom.js";
 import { chip } from "../../components/chip.js";
 import { inlineFieldDisplay } from "../../components/internal/fieldInlineDisplay.js";
+import { getAssociationTable } from "../../utils/association.js";
+import { iconButton } from "../../components/iconButton.js";
+import { materialIcon } from "../../components/materialIcon.js";
+import { deleteRecordDialog } from "../../components/deleteRecordDialog.js";
+import { withInsertFormState } from "../../formState.js";
+import { formControl } from "../../components/formControl.js";
+import { formLabel } from "../../components/formLabel.js";
+import { getTableRecordSelect } from "../../components/tableRecordSelect.js";
+import { formHelperText } from "../../components/formHelperText.js";
+import { alert } from "../../components/alert.js";
 import { getUniqueUiId } from "../../components/utils.js";
 
-export const name = "simpleLinkRelationCard";
+export const name = "simpleLinkAssociationCard";
 
 export type TableDisplayValue =
   | string
@@ -38,7 +47,7 @@ export type TableDisplayValue =
 
 export interface Opts {
   table: string;
-  fkField?: string;
+  associationTable?: string;
   styles?: Style;
   headerStartDecorator?: Node;
   header?: string;
@@ -101,21 +110,29 @@ export function content(opts: Opts, ctx: RecordGridContext) {
   if (!otherTable.getHrefToRecord) {
     throw new Error(`Table ${opts.table} does not have getHrefToRecord`);
   }
-  const foreignKeyField = Object.values(otherTable.fields).find(
-    (f) => f.type === "ForeignKey" && f.table === ctx.table.name
-  );
-  if (!foreignKeyField) {
+  const assocTableMatch = getAssociationTable(ctx.table.name, opts.table);
+  if (assocTableMatch === "ambiguous") {
     throw new Error(
-      `No foreign key field found for ${ctx.table.name} to ${opts.table}`
+      `Ambiguous association between ${ctx.table.name} and ${opts.table}`
     );
   }
+  if (assocTableMatch === "notFound") {
+    throw new Error(
+      `No association found between ${ctx.table.name} and ${opts.table}`
+    );
+  }
+  const {
+    table: assocTable,
+    toLeft: toCurrentField,
+    toRight: toOtherField,
+  } = assocTableMatch;
   const displayValues = opts.displayValues(ctx);
   let selectFields = "";
   for (let i = 0; i < displayValues.length; i++) {
     const value = displayValues[i];
     selectFields += ", ";
     if (typeof value === "string") {
-      selectFields += ident(value);
+      selectFields += `${ident(otherTable.name)}.${ident(value)}`;
     } else {
       selectFields += `${value.expr} as expr_${i}`;
     }
@@ -126,8 +143,27 @@ export function content(opts: Opts, ctx: RecordGridContext) {
       ...recordDisplayName.fields.map((f) => `${ident(opts.table)}.${ident(f)}`)
     )} as display_name`;
   }
+  const relatedQuery = `select
+    ${ident(otherTable.name)}.${ident(
+    otherTable.primaryKeyFieldName
+  )} as other_id,
+    ${ident(assocTable.name)}.${ident(
+    assocTable.primaryKeyFieldName
+  )} as assoc_id
+  ${selectFields}
+    from db.${ident(assocTable.name)}
+        join db.${ident(otherTable.name)}
+            on ${ident(otherTable.name)}.${ident(
+    otherTable.primaryKeyFieldName
+  )} = ${ident(assocTable.name)}.${ident(toOtherField.name)}
+    where ${ident(assocTable.name)}.${ident(toCurrentField.name)} = ${
+    ctx.recordId
+  } order by ${ident(assocTable.name)}.${ident(
+    assocTable.primaryKeyFieldName
+  )} desc
+  limit row_count`;
   return state({
-    procedure: [scalar(`row_count`, `20`)],
+    procedure: [scalar(`adding`, `false`), scalar(`row_count`, `20`)],
     children: card({
       variant: "outlined",
       styles: opts.styles,
@@ -141,24 +177,97 @@ export function content(opts: Opts, ctx: RecordGridContext) {
               children:
                 opts.header ?? stringLiteral(pluralize(otherTable.displayName)),
             }),
+            element("div", { styles: flexGrowStyles }),
+            iconButton({
+              variant: "soft",
+              color: "primary",
+              size: "sm",
+              children: ifNode(
+                `adding`,
+                materialIcon("Close"),
+                materialIcon("Add")
+              ),
+              on: { click: [setScalar(`adding`, `not adding`)] },
+            }),
           ],
         }),
+        ifNode(
+          `adding`,
+          withInsertFormState({
+            table: assocTable.name,
+            withValues: { [toCurrentField.name]: ctx.recordId },
+            afterTransactionCommit: () => [
+              ctx.triggerRefresh,
+              setScalar(`adding`, `false`),
+            ],
+            fields: [{ field: toOtherField.name }],
+            children: ({ formState, onSubmit }) => [
+              element("div", {
+                styles: {
+                  mb: 2,
+                  display: "flex",
+                  alignItems: "flex-end",
+                  gap: 2,
+                },
+                children: [
+                  formControl({
+                    styles: { flexGrow: 1 },
+                    error: formState.fields.hasError(toOtherField.name),
+                    children: [
+                      formLabel({
+                        children: stringLiteral(toOtherField.displayName),
+                        required: toOtherField.notNull,
+                      }),
+                      getTableRecordSelect(otherTable.name, {
+                        value: formState.fields.get(toOtherField.name),
+                        onSelectValue: (v) => [
+                          formState.fields.set(toOtherField.name, v),
+                        ],
+                        error: formState.fields.hasError(toOtherField.name),
+                      }),
+                      ifNode(
+                        formState.fields.hasError(toOtherField.name),
+                        formHelperText({
+                          children: formState.fields.error(toOtherField.name),
+                        })
+                      ),
+                    ],
+                  }),
+                  button({
+                    children: `'Add ' || ${stringLiteral(
+                      otherTable.displayName
+                    )}`,
+                    loading: formState.submitting,
+                    on: {
+                      click: onSubmit,
+                    },
+                  }),
+                ],
+              }),
+              ifNode(
+                formState.hasFormError,
+                alert({
+                  styles: { mt: 1 },
+                  color: "danger",
+                  children: formState.getFormError,
+                })
+              ),
+            ],
+          })
+        ),
         divider(),
         cardOverflow({
           children: state({
             watch: [ctx.refreshKey, `row_count`],
             procedure: [
-              record(
-                "related",
-                `select id${selectFields} from db.${ident(opts.table)} where ${
-                  foreignKeyField.name
-                } = ${ctx.recordId} order by id desc limit row_count`
-              ),
+              record("related", relatedQuery),
               scalar(`service_row_count`, `row_count`),
             ],
             children: element("ul", {
               styles: styles.list,
-              props: { id: listScrollId },
+              props: {
+                id: listScrollId,
+              },
               on: {
                 scroll: [
                   if_(
@@ -181,14 +290,14 @@ export function content(opts: Opts, ctx: RecordGridContext) {
               children: each({
                 table: "related",
                 recordName: "record",
-                key: "record.id",
+                key: "record.assoc_id",
                 children: element("li", {
                   styles: styles.listItem,
                   children: [
                     recordDisplayName
                       ? element("a", {
                           props: {
-                            href: otherTable.getHrefToRecord("record.id"),
+                            href: otherTable.getHrefToRecord("record.other_id"),
                           },
                           styles: styles.link,
                           children: `record.display_name`,
@@ -196,7 +305,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                       : button({
                           variant: "soft",
                           children: `'View'`,
-                          href: otherTable.getHrefToRecord("record.id"),
+                          href: otherTable.getHrefToRecord("record.other_id"),
                           size: "sm",
                         }),
                     element("div", { styles: flexGrowStyles }),
@@ -250,6 +359,25 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                           ],
                         });
                       }
+                    }),
+                    state({
+                      procedure: [scalar(`deleting`, `false`)],
+                      children: [
+                        iconButton({
+                          variant: "plain",
+                          color: "neutral",
+                          size: "sm",
+                          children: materialIcon("DeleteOutlined"),
+                          on: { click: [setScalar(`deleting`, `true`)] },
+                        }),
+                        deleteRecordDialog({
+                          open: `deleting`,
+                          onClose: [setScalar(`deleting`, `false`)],
+                          recordId: `related.assoc_id`,
+                          table: assocTable.name,
+                          afterDeleteService: [ctx.triggerRefresh],
+                        }),
+                      ],
                     }),
                   ],
                 }),

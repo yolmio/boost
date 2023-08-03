@@ -66,6 +66,7 @@ export class TableBuilder {
   #getHrefToRecord?: (id: string) => string;
   #formControl?: TableControl;
   #displayName: string;
+  #primaryKeyFieldName?: string;
 
   constructor(private name: string) {
     this.#displayName = app.displayNameConfig.table(name);
@@ -365,6 +366,11 @@ export class TableBuilder {
     return this;
   }
 
+  primaryKeyFieldName(name: string) {
+    this.#primaryKeyFieldName = name;
+    return this;
+  }
+
   searchConfig(config: Omit<yom.RankedSearchTable, "table">) {
     this.#searchConfig = { table: this.name, ...config };
     return this;
@@ -500,6 +506,7 @@ export class TableBuilder {
       searchConfig,
       getHrefToRecord: this.#getHrefToRecord,
       control: this.#formControl,
+      primaryKeyFieldName: this.#primaryKeyFieldName ?? "id",
       ext: {},
     };
   }

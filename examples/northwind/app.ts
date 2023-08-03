@@ -768,7 +768,7 @@ recordGridPage({
         gridColumnSpan: 12,
         lg: { gridColumnSpan: 8 },
       },
-      rows: [
+      rows: (ctx) => [
         "order_date",
         "required_date",
         "shipped_date",
@@ -778,7 +778,7 @@ recordGridPage({
         // check if freight needs to be added
         {
           label: "'Total'",
-          expr: `(select sum(cast((unit_price * quantity) * (1 - discount) as decimal(10, 2))) from db.order_detail where order = record_id)`,
+          expr: `(select sum(cast((unit_price * quantity) * (1 - discount) as decimal(10, 2))) from db.order_detail where order = ${ctx.recordId})`,
           display: (v) => `format.currency(${v}, 'usd')`,
         },
       ],

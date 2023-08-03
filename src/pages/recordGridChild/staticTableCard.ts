@@ -10,16 +10,17 @@ import { Style } from "../../styleTypes.js";
 
 export const name = "staticTableCard";
 
+type Row =
+  | string
+  | {
+      label: string;
+      expr: string;
+      display?: (value: string) => Node;
+    };
+
 export interface Opts {
   styles?: Style;
-  rows: (
-    | string
-    | {
-        label: string;
-        expr: string;
-        display?: (value: string) => Node;
-      }
-  )[];
+  rows: ((ctx: RecordGridContext) => Row[]) | Row[];
 }
 
 const styles = createStyles({
@@ -46,8 +47,9 @@ const styles = createStyles({
 
 export function content(opts: Opts, ctx: RecordGridContext) {
   let selectFields = "";
-  for (let i = 0; i < opts.rows.length; i++) {
-    const row = opts.rows[i];
+  const rows = Array.isArray(opts.rows) ? opts.rows : opts.rows(ctx);
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
     selectFields += ", ";
     if (typeof row === "string") {
       const field = ctx.table.fields[row];
@@ -68,7 +70,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
       procedure: [record(`record`, query)],
       children: element("table", {
         children: element("tbody", {
-          children: opts.rows.map((row, i) => {
+          children: rows.map((row, i) => {
             if (typeof row === "string") {
               const field = ctx.table.fields[row];
               const value = inlineFieldDisplay(field, `record.${field.name}`);

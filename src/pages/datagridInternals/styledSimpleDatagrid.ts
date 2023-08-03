@@ -128,9 +128,7 @@ export function styledSimpleDatagrid(config: StyledSimpleGridConfig) {
   }
   let content: Node = simplDatagridBase({
     source: "db." + ident(config.tableModel.name),
-    idFieldSource: config.tableModel.primaryKeyFieldName
-      ? ident(config.tableModel.primaryKeyFieldName)
-      : "id",
+    idFieldSource: ident(config.tableModel.primaryKeyFieldName),
     children: (dg) =>
       ifNode(
         `status = 'failed'`,

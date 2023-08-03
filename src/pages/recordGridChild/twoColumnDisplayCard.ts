@@ -39,22 +39,24 @@ const styles = createStyles({
   },
 });
 
+type Cell =
+  | string
+  | {
+      label: string;
+      expr: string;
+      display?: (value: string) => Node;
+    };
+
 export interface Opts {
   styles?: Style;
-  cells: (
-    | string
-    | {
-        label: string;
-        expr: string;
-        display?: (value: string) => Node;
-      }
-  )[];
+  cells: ((ctx: RecordGridContext) => Cell[]) | Cell[];
 }
 
 export function content(opts: Opts, ctx: RecordGridContext) {
   let selectFields = "";
-  for (let i = 0; i < opts.cells.length; i++) {
-    const cell = opts.cells[i];
+  const cells = Array.isArray(opts.cells) ? opts.cells : opts.cells(ctx);
+  for (let i = 0; i < cells.length; i++) {
+    const cell = cells[i];
     selectFields += ", ";
     if (typeof cell === "string") {
       const field = ctx.table.fields[cell];
@@ -77,7 +79,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
       procedure: [record(`record`, query)],
       children: element("dl", {
         styles: styles.root,
-        children: opts.cells.map((row, i) => {
+        children: cells.map((row, i) => {
           let label: string;
           let value: Node;
           if (typeof row === "string") {

@@ -11,6 +11,7 @@ import * as superSimpleHeader from "./superSimpleHeader.js";
 import * as attachmentsCard from "./attachmentsCard.js";
 import * as singleSourceTimeline from "./singleSourceTimeline.js";
 import * as simpleLinkRelationCard from "./simpleLinkRelationCard.js";
+import * as simpleLinkAssociationCard from "./simpleLinkAssociationCard.js";
 
 export const childFnMap = {
   [addressCard.name]: addressCard.content,
@@ -26,6 +27,7 @@ export const childFnMap = {
   [attachmentsCard.name]: attachmentsCard.content,
   [singleSourceTimeline.name]: singleSourceTimeline.content,
   [simpleLinkRelationCard.name]: simpleLinkRelationCard.content,
+  [simpleLinkAssociationCard.name]: simpleLinkAssociationCard.content,
 };
 
 export type ChildOpts =
@@ -45,4 +47,7 @@ export type ChildOpts =
   | (superSimpleHeader.Opts & { type: typeof superSimpleHeader.name })
   | (simpleLinkRelationCard.Opts & {
       type: typeof simpleLinkRelationCard.name;
+    })
+  | (simpleLinkAssociationCard.Opts & {
+      type: typeof simpleLinkAssociationCard.name;
     });

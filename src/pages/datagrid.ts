@@ -67,14 +67,10 @@ function idColumn(
   startFixedColumns: number
 ): SuperGridColumn {
   const idDisplayName = tableModel.primaryKeyFieldName
-    ? tableModel.primaryKeyFieldName
-        .split("_")
-        .map((v, i) => (i === 0 ? upcaseFirst(v) : v))
-        .join(" ")
-    : `Id`;
-  const sqlName = tableModel.primaryKeyFieldName
-    ? ident(tableModel.primaryKeyFieldName)
-    : `id`;
+    .split("_")
+    .map((v, i) => (i === 0 ? upcaseFirst(v) : v))
+    .join(" ");
+  const sqlName = ident(tableModel.primaryKeyFieldName);
   const sortConfig = {
     ascNode: "'1 → 9'",
     descNode: "'9 → 1'",
@@ -103,7 +99,7 @@ function idColumn(
     cell: ({ value }) => value,
     queryGeneration: {
       expr: sqlName,
-      sqlName,
+      sqlName: tableModel.primaryKeyFieldName,
       alwaysGenerate: true,
     },
     viewStorageName: sqlName,
