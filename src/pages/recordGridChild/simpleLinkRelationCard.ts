@@ -1,13 +1,13 @@
 import { each, element, ifNode, state } from "../../nodeHelpers.js";
 import { record } from "../../procHelpers.js";
 import { app } from "../../singleton.js";
-import { createStyles } from "../../styleUtils.js";
+import { createStyles, flexGrowStyles } from "../../styleUtils.js";
 import { ident, stringLiteral } from "../../utils/sqlHelpers.js";
 import { divider } from "../../components/divider.js";
 import { materialIcon } from "../../components/materialIcon.js";
 import { typography } from "../../components/typography.js";
 import { displayAddressText } from "./displayAddressText.js";
-import { card } from "../../components/card.js";
+import { card, cardOverflow } from "../../components/card.js";
 import { Style } from "../../styleTypes.js";
 import { RecordGridContext } from "./shared.js";
 import { Node } from "../../nodeTypes.js";
@@ -43,9 +43,6 @@ const styles = createStyles({
     alignItems: "flex-start",
     pb: 1.5,
   },
-  divider: {
-    mb: 1.5,
-  },
   list: {
     listStyle: "none",
     p: 0,
@@ -65,6 +62,7 @@ const styles = createStyles({
       mb: 1,
       pb: 1,
     },
+    px: 2,
   },
   itemValue: {
     mr: 0.5,
@@ -77,6 +75,11 @@ const styles = createStyles({
     display: "flex",
     flexDirection: "column",
     mb: 2,
+  },
+  link: {
+    color: "primary-500",
+    textDecoration: "none",
+    "&:hover": { textDecoration: "underline" },
   },
 });
 
@@ -106,6 +109,12 @@ export function content(opts: Opts, ctx: RecordGridContext) {
       selectFields += `${value.expr} as expr_${i}`;
     }
   }
+  const { recordDisplayName } = otherTable;
+  if (recordDisplayName) {
+    selectFields += `, ${recordDisplayName.expr(
+      ...recordDisplayName.fields.map((f) => `${ident(opts.table)}.${ident(f)}`)
+    )} as display_name`;
+  }
   return card({
     variant: "outlined",
     styles: opts.styles,
@@ -121,88 +130,100 @@ export function content(opts: Opts, ctx: RecordGridContext) {
           }),
         ],
       }),
-      divider({ styles: styles.divider }),
-      state({
-        watch: [ctx.refreshKey],
-        procedure: [
-          record(
-            "related",
-            `select id${selectFields} from db.${ident(opts.table)} where ${
-              foreignKeyField.name
-            } = ${ctx.recordId}`
-          ),
-        ],
-        children: element("ul", {
-          styles: styles.list,
-          children: each({
-            table: "related",
-            recordName: "record",
-            key: "record.id",
-            children: element("li", {
-              styles: styles.listItem,
-              children: [
-                button({
-                  variant: "soft",
-                  children: `'View'`,
-                  href: otherTable.getHrefToRecord("record.id"),
-                  size: "sm",
-                }),
-                opts.displayValues.map((displayValue, i) => {
-                  if (typeof displayValue === "string") {
-                    const field = otherTable.fields[displayValue];
-                    if (!field) {
-                      throw new Error(
-                        `Field ${displayValue} does not exist in table ${otherTable.name}`
-                      );
+      divider(),
+      cardOverflow({
+        children: state({
+          watch: [ctx.refreshKey],
+          procedure: [
+            record(
+              "related",
+              `select id${selectFields} from db.${ident(opts.table)} where ${
+                foreignKeyField.name
+              } = ${ctx.recordId}`
+            ),
+          ],
+          children: element("ul", {
+            styles: styles.list,
+            children: each({
+              table: "related",
+              recordName: "record",
+              key: "record.id",
+              children: element("li", {
+                styles: styles.listItem,
+                children: [
+                  recordDisplayName
+                    ? element("a", {
+                        props: {
+                          href: otherTable.getHrefToRecord("record.id"),
+                        },
+                        styles: styles.link,
+                        children: `record.display_name`,
+                      })
+                    : button({
+                        variant: "soft",
+                        children: `'View'`,
+                        href: otherTable.getHrefToRecord("record.id"),
+                        size: "sm",
+                      }),
+                  element("div", { styles: flexGrowStyles }),
+                  opts.displayValues.map((displayValue, i) => {
+                    if (typeof displayValue === "string") {
+                      const field = otherTable.fields[displayValue];
+                      if (!field) {
+                        throw new Error(
+                          `Field ${displayValue} does not exist in table ${otherTable.name}`
+                        );
+                      }
+                      const value = `record.${ident(displayValue)}`;
+                      if (field.type === "Bool") {
+                        return ifNode(
+                          value,
+                          chip({
+                            variant: "soft",
+                            color: "neutral",
+                            size: "sm",
+                            children: stringLiteral(field.displayName),
+                          })
+                        );
+                      }
+                      const content = element("div", {
+                        styles: styles.itemValueWrapper,
+                        children: [
+                          element("p", {
+                            styles: styles.itemValue,
+                            children: `${stringLiteral(
+                              field.displayName
+                            )} || ':'`,
+                          }),
+                          inlineFieldDisplay(field, value),
+                        ],
+                      });
+                      if (field.notNull) {
+                        return content;
+                      }
+                      return ifNode(value + ` is not null`, content);
+                    } else {
+                      return element("div", {
+                        styles: styles.itemValueWrapper,
+                        children: [
+                          element("p", {
+                            styles: styles.itemValue,
+                            children: `${stringLiteral(
+                              displayValue.label
+                            )} || ':'`,
+                          }),
+                          displayValue.display(`record.expr_${i}`),
+                        ],
+                      });
                     }
-                    const value = `record.${ident(displayValue)}`;
-                    if (field.type === "Bool") {
-                      return ifNode(
-                        value,
-                        chip({
-                          variant: "soft",
-                          color: "neutral",
-                          size: "sm",
-                          children: stringLiteral(field.displayName),
-                        })
-                      );
-                    }
-                    const content = element("div", {
-                      styles: styles.itemValueWrapper,
-                      children: [
-                        element("p", {
-                          styles: styles.itemValue,
-                          children: `${stringLiteral(
-                            field.displayName
-                          )} || ':'`,
-                        }),
-                        inlineFieldDisplay(field, value),
-                      ],
-                    });
-                    if (field.notNull) {
-                      return content;
-                    }
-                    return ifNode(value + ` is not null`, content);
-                  } else {
-                    return element("div", {
-                      styles: styles.itemValueWrapper,
-                      children: [
-                        element("p", {
-                          styles: styles.itemValue,
-                          children: `${stringLiteral(
-                            displayValue.label
-                          )} || ':'`,
-                        }),
-                        displayValue.display(`record.expr_${i}`),
-                      ],
-                    });
-                  }
-                }),
-              ],
+                  }),
+                ],
+              }),
             }),
           }),
         }),
       }),
+      ,
     ],
   });
 }

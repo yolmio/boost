@@ -6,6 +6,17 @@ import { recordGridPage } from "@yolm/boost/pages/recordGrid";
 import { simpleDatagridPage } from "@yolm/boost/pages/simpleDatagrid";
 import { app } from "@yolm/boost/singleton";
 
+/*
+
+Boost/platform todos
+
+case folding for search
+immutable datagrid based off current user
+filter/virtual fields
+Different pages/views for different users
+
+*/
+
 app.name = "chinook";
 app.title = "Chinook";
 app.displayName = "Chinook";
@@ -209,7 +220,19 @@ simpleDatagridPage({
 
 recordGridPage({
   table: "album",
-  children: [{ type: "namedHeader" }],
+  children: [
+    { type: "namedHeader" },
+    {
+      type: "simpleLinkRelationCard",
+      table: "track",
+      displayValues: ["media_type", "unit_price"],
+      styles: {
+        alignSelf: "start",
+        gridColumnSpan: 12,
+        lg: { gridColumnSpan: 6 },
+      },
+    },
+  ],
 });
 
 simpleDatagridPage({

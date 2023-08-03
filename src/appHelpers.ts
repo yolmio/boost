@@ -450,16 +450,6 @@ export class TableBuilder {
         );
       }
     }
-    if (!recordDisplayName) {
-      recordDisplayName = {
-        fields: [],
-        expr: () => {
-          throw new Error(
-            `recordDisplayName not provided for table ${this.name}`
-          );
-        },
-      };
-    }
     const tableName = this.name;
     if (this.#createDefaultNameMatch) {
       if (!displayNameFields) {

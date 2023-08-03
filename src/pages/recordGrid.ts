@@ -59,11 +59,6 @@ export function recordGridPage(opts: RecordGridPageOpts) {
     .split(" ")
     .join("-");
   const path = opts.path ?? pathBase + `/{record_id:id}`;
-  if (!tableModel.recordDisplayName) {
-    throw new Error(
-      "Table must have recordDisplayName or you must have an explicit header for cardGridRecordPage"
-    );
-  }
   const props: RecordGridContext = {
     recordId: "ui.record_id",
     refreshKey: "ui.record_grid_refresh_key",
