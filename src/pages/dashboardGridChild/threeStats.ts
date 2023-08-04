@@ -1,6 +1,6 @@
 import { chip } from "../../components/chip.js";
 import { materialIcon } from "../../components/materialIcon.js";
-import { element, ifNode, state } from "../../nodeHelpers.js";
+import { element, ifNode, state, switchNode } from "../../nodeHelpers.js";
 import { scalar } from "../../procHelpers.js";
 import { createStyles } from "../../styleUtils.js";
 import { SqlExpression, StateStatement } from "../../yom.js";
@@ -116,10 +116,10 @@ function createStat(opts: StatOptions) {
                     variant: "soft",
                     isSelected: `trend < 0.0`,
                   },
-                  startDecorator: ifNode(
-                    `trend > 0.0`,
-                    materialIcon("TrendingUp"),
-                    materialIcon("TrendingDown")
+                  startDecorator: switchNode(
+                    [`trend > 0.0`, materialIcon("TrendingUp")],
+                    [`trend = 0.0`, materialIcon("TrendingFlat")],
+                    [`trend < 0.0`, materialIcon("TrendingDown")]
                   ),
                   color: "success",
                   children: `format.percent(trend)`,

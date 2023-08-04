@@ -692,15 +692,47 @@ export function simpleColumnFromVirtual(
   columnIndex: number,
   startFixedColumns: number
 ): SimpleColumn {
+  const toggleColumnSort = if_<ClientProcStatement>(
+    `sort_info.col = ${columnIndex}`,
+    [
+      if_(
+        `sort_info.ascending`,
+        [modify(`update sort_info set ascending = false`)],
+        [modify(`update sort_info set col = null`)]
+      ),
+    ],
+    [modify(`update sort_info set col = ${columnIndex}, ascending = true`)]
+  );
   return {
     cell: ({ value }) => value,
     width: 250,
+    keydownHeaderHandler: [
+      if_(`event.key = 'Enter'`, [toggleColumnSort, triggerQueryRefresh()]),
+    ],
+    headerClickHandler: [toggleColumnSort, triggerQueryRefresh()],
     header: [
       element("span", {
         styles: sharedStyles.headerText,
         children: stringLiteral(virtual.displayName),
       }),
-      // resizeableSeperator(columnIndex, 50),
+      switchNode(
+        [
+          `sort_info.col = ${columnIndex} and sort_info.ascending`,
+          materialIcon("ArrowUpward"),
+        ],
+        [
+          `sort_info.col = ${columnIndex} and not sort_info.ascending`,
+          materialIcon("ArrowDownward"),
+        ]
+      ),
+      resizeableSeperator({
+        minWidth: 50,
+        setWidth: (width) =>
+          modify(
+            `update ui.column_width set width = ${width} where col = ${columnIndex}`
+          ),
+        width: `(select width from ui.column_width where col = ${columnIndex})`,
+      }),
     ],
     queryGeneration: {
       expr: virtual.expr(...virtual.fields.map((f) => `record.${ident(f)}`)),
