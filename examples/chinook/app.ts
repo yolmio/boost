@@ -10,7 +10,6 @@ import { app } from "@yolm/boost/singleton";
 
 Boost/platform todos
 
-case folding for search
 immutable datagrid based off current user
 filter/virtual fields
 Different pages/views for different users

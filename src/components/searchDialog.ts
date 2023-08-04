@@ -476,7 +476,10 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
                       config: {
                         tokenizer: {
                           splitter: { type: "Alphanumeric" },
-                          filters: [{ type: "Lowercase" }],
+                          filters: [
+                            { type: "AsciiFold" },
+                            { type: "Lowercase" },
+                          ],
                         },
                         style: {
                           type: "Fuzzy",
@@ -964,7 +967,10 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
                       config: {
                         tokenizer: {
                           splitter: { type: "Alphanumeric" },
-                          filters: [{ type: "Lowercase" }],
+                          filters: [
+                            { type: "AsciiFold" },
+                            { type: "Lowercase" },
+                          ],
                         },
                         style: {
                           type: "Fuzzy",
@@ -1412,7 +1418,7 @@ export function recordSelectDialog(opts: RecordSelectDialog) {
                     config: {
                       tokenizer: {
                         splitter: { type: "Alphanumeric" },
-                        filters: [{ type: "Lowercase" }],
+                        filters: [{ type: "AsciiFold" }, { type: "Lowercase" }],
                       },
                       style: {
                         type: "Fuzzy",

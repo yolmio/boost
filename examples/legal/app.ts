@@ -31,7 +31,6 @@ import {
   ReportParameter,
   SimpleReportsPageBuilder,
 } from "@yolm/boost/pages/simpleReportPage";
-import { card } from "@yolm/boost/components/card";
 import { ServiceProcStatement } from "@yolm/boost/yom";
 import { colors } from "@yolm/boost/colors";
 import { colorChannel } from "@yolm/boost/colorManipulator";
@@ -112,15 +111,6 @@ setTheme({
     shadowChannel: colorChannel(primaryDarkPalette[900]),
   },
 });
-
-/* 
-
-todos:
-
-Adventure works
-hello world with contact list with datagrid and search
-
-*/
 
 //
 // DATABASE

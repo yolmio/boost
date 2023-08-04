@@ -27,7 +27,7 @@ export const app: BoostAppModel = {
     },
     defaultTokenizer: {
       splitter: { type: "Alphanumeric" },
-      filters: [{ type: "Lowercase" }],
+      filters: [{ type: "AsciiFold" }, { type: "Lowercase" }],
     },
   },
   webAppConfig: {

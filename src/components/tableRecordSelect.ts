@@ -62,7 +62,7 @@ export function getTableRecordSelect(
                   config: {
                     tokenizer: {
                       splitter: { type: "Alphanumeric" },
-                      filters: [{ type: "Lowercase" }],
+                      filters: [{ type: "AsciiFold" }, { type: "Lowercase" }],
                     },
                     style: {
                       type: "Fuzzy",
