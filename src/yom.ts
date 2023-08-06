@@ -28,9 +28,10 @@ export interface Model {
 
 export type Locale = "en_us";
 
-export type OpaqueString = string & {};
-export type SqlExpression = OpaqueString;
-export type SqlQuery = OpaqueString;
+/** This indicates the string is to be treated as a SQL expression */
+export type SqlExpression = string & {};
+/** This indicates the string is to be treated as a SQL query */
+export type SqlQuery = string & {};
 
 export interface TextCastInfo {
   date: string;

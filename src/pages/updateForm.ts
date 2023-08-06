@@ -46,7 +46,7 @@ const styles = createStyles({
 });
 
 export function updateFormPage(opts: EditFormPage) {
-  const table = app.database.tables[opts.table];
+  const table = app.db.tables[opts.table];
   const pathBase = getTableBaseUrl(opts.table);
   const path = opts.path ?? pathBase + `/{record_id:id}/edit`;
   let content: Node = withUpdateFormState({

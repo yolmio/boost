@@ -1,52 +1,45 @@
-import type {
-  BoolEnumLikeConfig,
+import * as yom from "./yom";
+import {
+  app,
+  Table,
   Check,
-  CustomTableControl,
-  Database,
-  DecimalUsage,
-  DecisionTable,
-  DecisionTableOutput,
-  DurationSize,
-  Enum,
-  EnumValue,
-  Field,
-  FieldBase,
-  FieldCheck,
   FieldGroup,
+  VirtualField,
+  TableControl,
+  RecordDisplayName,
+  DurationSize,
+  CustomTableControl,
+  Field,
+  FieldCheck,
   IntegerUsage,
   NumericFields,
-  Page,
-  Parameter,
-  RecordDisplayName,
-  ScalarFunction,
-  ScriptDbDefinition,
+  TinyUintField,
+  TinyIntField,
+  SmallUintField,
+  SmallIntField,
+  UintField,
+  IntField,
+  BigUintField,
+  BigIntField,
+  RealField,
+  DoubleField,
+  DecimalUsage,
+  DecimalField,
+  UuidField,
+  BoolEnumLikeConfig,
+  BoolField,
+  OrderingField,
+  DateField,
+  TimeField,
+  TimestampField,
+  TxField,
   StringUsage,
-  Table,
-  TableControl,
-  VirtualField,
+  StringField,
+  ForeignKeyField,
+  EnumField,
   VirtualType,
-} from "./appTypes.js";
-import type * as yom from "./yom.js";
-import { app } from "./singleton.js";
-import { stringLiteral } from "./utils/sqlHelpers.js";
-import type { Node } from "./nodeTypes.js";
-import { getTableBaseUrl } from "./utils/url.js";
-import {
-  applyFieldGroupCatalog,
-  FieldGroupCatalog,
-} from "./catalog/fieldGroup.js";
-import { applyTableCatalog, TableCatalog } from "./catalog/table.js";
-import {
-  advanceCursor,
-  createQueryCursor,
-  exit,
-  forEachCursor,
-  if_,
-  returnExpr,
-  scalar,
-  setScalar,
-  try_,
-} from "./procHelpers.js";
+  IntegerField,
+} from "./app";
 
 const RECORD_DISPLAY_NAME_FIELD_GROUPS = [["first_name", "last_name"]];
 const RECORD_DISPLAY_NAME_FIELDS = ["name", "title"];
@@ -64,6 +57,7 @@ export class TableBuilder {
   #recordDisplayName?: RecordDisplayName;
   #createDefaultNameMatch = false;
   #getHrefToRecord?: (id: string) => string;
+  #linkable = false;
   #formControl?: TableControl;
   #displayName: string;
   #primaryKeyFieldName?: string;
@@ -308,16 +302,16 @@ export class TableBuilder {
     return this;
   }
 
-  fieldGroupFromCatalog(
-    catalog: FieldGroupCatalog | ((table: TableBuilder) => void)
-  ) {
-    if (typeof catalog === "function") {
-      catalog(this);
-    } else {
-      applyFieldGroupCatalog(catalog, this);
-    }
-    return this;
-  }
+  //   fieldGroupFromCatalog(
+  //     catalog: FieldGroupCatalog | ((table: TableBuilder) => void)
+  //   ) {
+  //     if (typeof catalog === "function") {
+  //       catalog(this);
+  //     } else {
+  //       applyFieldGroupCatalog(catalog, this);
+  //     }
+  //     return this;
+  //   }
 
   check(check: Check): TableBuilder {
     this.#checks.push(check);
@@ -377,10 +371,8 @@ export class TableBuilder {
   }
 
   linkable(f?: (id: string) => string) {
-    this.#getHrefToRecord =
-      f ??
-      ((id) =>
-        `'/' || ${stringLiteral(getTableBaseUrl(this.name))} || '/' || ${id}`);
+    this.#linkable = true;
+    this.#getHrefToRecord = f;
     return this;
   }
 
@@ -463,7 +455,8 @@ export class TableBuilder {
           "createDefaultNameMatch assumes recordDisplayNameFields"
         );
       }
-      addSearchMatch({
+      const name = tableName + "_name";
+      app.db.searchMatches[name] = {
         name: tableName + "_name",
         table: tableName,
         tokenizer: app.searchConfig.defaultTokenizer,
@@ -476,7 +469,7 @@ export class TableBuilder {
             ? [{ fields: displayNameFields }]
             : undefined,
         fields: displayNameFields.length === 1 ? displayNameFields : undefined,
-      });
+      };
     }
     let searchConfig = this.#searchConfig;
     if (!this.#searchConfig) {
@@ -492,30 +485,30 @@ export class TableBuilder {
         };
       }
     }
-    return {
-      name: this.name,
-      displayName: this.#displayName,
-      renameFrom: this.#renameFrom,
-      checks: this.#checks,
-      fields,
-      virtualFields: this.#virtualFields,
-      fieldGroups: this.#fieldGroups,
-      uniqueConstraints: this.#uniques,
-      recordDisplayName,
-      description: this.#description,
-      searchConfig,
-      getHrefToRecord: this.#getHrefToRecord,
-      control: this.#formControl,
-      primaryKeyFieldName: this.#primaryKeyFieldName ?? "id",
-      ext: {},
-    };
+    const table = new Table(
+      this.#primaryKeyFieldName ?? "id",
+      this.name,
+      this.#displayName
+    );
+    table.renameFrom = this.#renameFrom;
+    table.checks = this.#checks;
+    table.fields = fields;
+    table.virtualFields = this.#virtualFields;
+    table.fieldGroups = this.#fieldGroups;
+    table.uniqueConstraints = this.#uniques;
+    table.recordDisplayName = recordDisplayName;
+    table.description = this.#description;
+    table.searchConfig = searchConfig;
+    table.customGetHrefToRecord = this.#getHrefToRecord;
+    table.linkable = this.#linkable;
+    table.control = this.#formControl;
+    return table;
   }
 }
 
 function addMinuteDurationFns() {
-  addScalarFunction({
+  app.addScalarFunction({
     name: `parse_minutes_duration`,
-    bound: false,
     parameters: [
       {
         name: "value",
@@ -523,37 +516,36 @@ function addMinuteDurationFns() {
       },
     ],
     returnType: { type: "BigInt" },
-    procedure: [
-      try_<yom.BasicStatement>({
-        body: [
-          scalar(`total`, { type: "BigInt" }),
-          createQueryCursor(
-            `split`,
-            `select value from string.split(input.value, ':') order by ordinal desc`
-          ),
-          advanceCursor(`split`),
-          setScalar(`total`, `cast(split.value as bigint)`),
-          forEachCursor(`split`, `value`, [
-            setScalar(`total`, `total + cast(split.value as bigint) * 60`),
-          ]),
-          if_(`input.value like '-%'`, [setScalar(`total`, `total * -1`)]),
-          returnExpr(`total`),
-        ],
-        catch: [exit()],
+    procedure: (s) =>
+      s.try({
+        body: (s) =>
+          s
+            .scalar(`total`, { type: "BigInt" })
+            .createQueryCursor(
+              `split`,
+              `select value from string.split(input.value, ':') order by ordinal desc`
+            )
+            .advanceCursor(`split`)
+            .setScalar(`total`, `cast(split.value as bigint)`)
+            .forEachCursor(`split`, (s) =>
+              s.setScalar(`total`, `total + cast(split.value as bigint) * 60`)
+            )
+            .if(`input.value like '-%'`, (s) =>
+              s.setScalar(`total`, `total * -1`)
+            )
+            .returnExpr(`total`),
+        catch: (s) => s.exit(),
       }),
-    ],
   });
-  addScalarFunction({
+  app.addScalarFunction({
     name: `display_minutes_duration`,
-    bound: false,
     parameters: [{ name: "value", type: { type: "BigInt" } }],
     returnType: { type: "String" },
-    procedure: [
-      returnExpr(`case when input.value < 0 then '-' else '' end ||
+    procedure: (s) =>
+      s.returnExpr(`case when input.value < 0 then '-' else '' end ||
     abs(round(input.value / 60)) ||
     ':' ||
     lpad(abs(round(input.value % 60)), 2, 0)`),
-    ],
   });
 }
 
@@ -631,20 +623,15 @@ abstract class BaseFieldBuilder {
     return this;
   }
 
-  finishBase() {
-    return {
-      name: this._name,
-      displayName: this._displayName,
-      renameFrom: this._renameFrom,
-      notNull: this._notNull ?? false,
-      checks: this._checks,
-      description: this._description,
-      unique: this._unique,
-      default: this._default,
-      group: this._group,
-      indexed: this._indexed,
-      ext: {},
-    };
+  writeBaseFields(field: Field) {
+    field.renameFrom = this._renameFrom;
+    field.notNull = this._notNull ?? false;
+    field.checks = this._checks;
+    field.description = this._description;
+    field.unique = this._unique;
+    field.default = this._default;
+    field.group = this._group;
+    field.indexed = this._indexed ?? false;
   }
 
   abstract finish(): Field;
@@ -668,12 +655,10 @@ abstract class BaseNumericBuilder extends BaseFieldBuilder {
     return this;
   }
 
-  finishNumericBase() {
-    return {
-      min: this.#min,
-      max: this.#max,
-      ...this.finishBase(),
-    };
+  writeBaseFields(field: NumericFields) {
+    super.writeBaseFields(field);
+    field.min = this.#min;
+    field.max = this.#max;
   }
 }
 
@@ -685,11 +670,9 @@ abstract class BaseIntegerBuilder extends BaseNumericBuilder {
     this.#usage = usage;
   }
 
-  finishIntegerBase() {
-    return {
-      usage: this.#usage,
-      ...this.finishNumericBase(),
-    };
+  writeBaseFields(field: IntegerField) {
+    super.writeBaseFields(field);
+    field.usage = this.#usage;
   }
 }
 
@@ -702,36 +685,42 @@ interface IntegerFieldBuilder {
 }
 
 function createIntegerBuilder(
-  type: Exclude<NumericFields["type"], "Decimal" | "Real" | "Double">
+  constructor: new (name: string, displayName: string) => IntegerField
 ): IntegerFieldBuilder {
   return class extends BaseIntegerBuilder {
     finish(): Field {
-      return { type, ...this.finishIntegerBase() };
+      const field = new constructor(this._name, this._displayName);
+      this.writeBaseFields(field);
+      return field;
     }
   };
 }
 
-const TinyUintFieldBuilder = createIntegerBuilder("TinyUint");
-const TinyIntFieldBuilder = createIntegerBuilder("TinyInt");
-const SmallUintFieldBuilder = createIntegerBuilder("SmallUint");
-const SmallIntFieldBuilder = createIntegerBuilder("SmallInt");
-const UintFieldBuilder = createIntegerBuilder("Uint");
-const IntFieldBuilder = createIntegerBuilder("Int");
-const BigUintFieldBuilder = createIntegerBuilder("BigUint");
-const BigIntFieldBuilder = createIntegerBuilder("BigInt");
+const TinyUintFieldBuilder = createIntegerBuilder(TinyUintField);
+const TinyIntFieldBuilder = createIntegerBuilder(TinyIntField);
+const SmallUintFieldBuilder = createIntegerBuilder(SmallUintField);
+const SmallIntFieldBuilder = createIntegerBuilder(SmallIntField);
+const UintFieldBuilder = createIntegerBuilder(UintField);
+const IntFieldBuilder = createIntegerBuilder(IntField);
+const BigUintFieldBuilder = createIntegerBuilder(BigUintField);
+const BigIntFieldBuilder = createIntegerBuilder(BigIntField);
 
 class RealFieldBuilder extends BaseNumericBuilder {
   finish(): Field {
-    return { type: "Real", ...this.finishNumericBase() };
+    const field = new RealField(this._name, this._displayName);
+    this.writeBaseFields(field);
+    return field;
   }
 }
 class DoubleFieldBuilder extends BaseNumericBuilder {
   finish(): Field {
-    return { type: "Double", ...this.finishNumericBase() };
+    const field = new DoubleField(this._name, this._displayName);
+    this.writeBaseFields(field);
+    return field;
   }
 }
 
-class DecimalFieldBuilder extends BaseFieldBuilder {
+class DecimalFieldBuilder extends BaseNumericBuilder {
   #precision: number;
   #scale: number;
   #signed: boolean;
@@ -753,20 +742,24 @@ class DecimalFieldBuilder extends BaseFieldBuilder {
   }
 
   finish(): Field {
-    return {
-      type: "Decimal",
-      precision: this.#precision,
-      scale: this.#scale,
-      signed: this.#signed,
-      usage: this.#usage,
-      ...this.finishBase(),
-    };
+    const field = new DecimalField(
+      this._name,
+      this._displayName,
+      this.#precision,
+      this.#scale,
+      this.#signed
+    );
+    this.writeBaseFields(field);
+    field.usage = this.#usage;
+    return field;
   }
 }
 
 class UuidFieldBuilder extends BaseFieldBuilder {
   finish(): Field {
-    return { type: "Uuid", ...this.finishBase() };
+    const field = new UuidField(this._name, this._displayName);
+    this.writeBaseFields(field);
+    return field;
   }
 }
 
@@ -779,37 +772,50 @@ class BoolFieldBuilder extends BaseFieldBuilder {
   }
 
   finish(): Field {
-    return { type: "Bool", enumLike: this.#enumLike, ...this.finishBase() };
+    const field = new BoolField(this._name, this._displayName);
+    this.writeBaseFields(field);
+    field.enumLike = this.#enumLike;
+    return field;
   }
 }
 
 class OrderingFieldBuilder extends BaseFieldBuilder {
   finish(): Field {
-    return { type: "Ordering", ...this.finishBase() };
+    const field = new OrderingField(this._name, this._displayName);
+    this.writeBaseFields(field);
+    return field;
   }
 }
 
 class DateFieldBuilder extends BaseFieldBuilder {
   finish(): Field {
-    return { type: "Date", ...this.finishBase() };
+    const field = new DateField(this._name, this._displayName);
+    this.writeBaseFields(field);
+    return field;
   }
 }
 
 class TimeFieldBuilder extends BaseFieldBuilder {
   finish(): Field {
-    return { type: "Date", ...this.finishBase() };
+    const field = new TimeField(this._name, this._displayName);
+    this.writeBaseFields(field);
+    return field;
   }
 }
 
 class TimestampFieldBuilder extends BaseFieldBuilder {
   finish(): Field {
-    return { type: "Timestamp", ...this.finishBase() };
+    const field = new TimestampField(this._name, this._displayName);
+    this.writeBaseFields(field);
+    return field;
   }
 }
 
 class TxFieldBuilder extends BaseFieldBuilder {
   finish(): Field {
-    return { type: "Tx", ...this.finishBase() };
+    const field = new TxField(this._name, this._displayName);
+    this.writeBaseFields(field);
+    return field;
   }
 }
 
@@ -864,17 +870,19 @@ class StringFieldBuilder extends BaseFieldBuilder {
   }
 
   finish(): Field {
-    return {
-      type: "String",
-      ...this.finishBase(),
-      usage: this.#usage,
-      maxLength: this.#maxLength,
-      minLength: this.#minLength,
-      collation: this.#collation,
-      maxBytesPerChar: this.#maxBytesPerChar,
-      autoTrim: this.#autoTrim,
-      multiline: this.#multiline,
-    };
+    const field = new StringField(
+      this._name,
+      this._displayName,
+      this.#maxLength
+    );
+    this.writeBaseFields(field);
+    field.usage = this.#usage;
+    field.minLength = this.#minLength;
+    field.collation = this.#collation;
+    field.maxBytesPerChar = this.#maxBytesPerChar;
+    field.autoTrim = this.#autoTrim;
+    field.multiline = this.#multiline;
+    return field;
   }
 }
 
@@ -893,12 +901,14 @@ class ForeignKeyFieldBuilder extends BaseFieldBuilder {
   }
 
   finish(): Field {
-    return {
-      type: "ForeignKey",
-      onDelete: this.#onDelete,
-      table: this.#table,
-      ...this.finishBase(),
-    };
+    const field = new ForeignKeyField(
+      this._name,
+      this._displayName,
+      this.#table,
+      this.#onDelete
+    );
+    this.writeBaseFields(field);
+    return field;
   }
 }
 
@@ -911,313 +921,8 @@ class EnumFieldBuilder extends BaseFieldBuilder {
   }
 
   finish(): Field {
-    return {
-      type: "Enum",
-      enum: this.#enum,
-      ...this.finishBase(),
-    };
+    const field = new EnumField(this._name, this._displayName, this.#enum);
+    this.writeBaseFields(field);
+    return field;
   }
 }
-
-export function addSearchMatch(index: yom.SearchMatchConfig) {
-  app.db.searchMatches[index.name] = index;
-}
-
-let inScriptDb: ScriptDbDefinition | undefined;
-
-export function addTable(name: string, f: (table: TableBuilder) => void) {
-  const builder = new TableBuilder(name);
-  f(builder);
-  if (inScriptDb) {
-    inScriptDb.tables[name] = builder.finish();
-  } else {
-    app.db.tables[name] = builder.finish();
-  }
-}
-
-export function addTableFromCatalog(catalog: TableCatalog | (() => void)) {
-  if (typeof catalog === "function") {
-    catalog();
-  } else {
-    applyTableCatalog(catalog);
-  }
-}
-
-export function addDeviceDatabaseTable(
-  name: string,
-  f: (table: TableBuilder) => void
-) {
-  // const builder = new TableBuilder(name);
-  // f(builder);
-  // app.deviceDb.tables[name] = builder.finish();
-}
-
-export interface SimpleDt {
-  name: string;
-  outputType:
-    | yom.ScalarType
-    | "String"
-    | yom.SimpleScalarTypes
-    | yom.ScalarIntegerTypes;
-  fields: [string, string][];
-  default?: string;
-}
-
-export type BoolDt =
-  | {
-      name: string;
-      trues: string[];
-    }
-  | {
-      name: string;
-      falses: string[];
-    };
-
-export interface HelperEnum {
-  name: string;
-  displayName?: string;
-  renameFrom?: string;
-  description?: string;
-  values: (
-    | string
-    | {
-        name: string;
-        displayName?: string;
-        renameFrom?: string;
-        description?: string;
-      }
-  )[];
-  withSimpleDts?: SimpleDt[];
-  withBoolDts?: BoolDt[];
-  withDisplayDt?: boolean;
-}
-
-export function addEnum(enum_: HelperEnum) {
-  const displayName = app.displayNameConfig.enum(enum_.name);
-  const values = enum_.values.map((v) => {
-    if (typeof v === "string") {
-      return { name: v, displayName: app.displayNameConfig.enumValue(v) };
-    }
-    return {
-      displayName: app.displayNameConfig.enumValue(v.name),
-      ...v,
-    };
-  });
-  if (enum_.withDisplayDt) {
-    enum_.withSimpleDts = enum_.withSimpleDts ?? [];
-    enum_.withSimpleDts.push({
-      name: "display_" + enum_.name,
-      outputType: "String",
-      fields: values.map((n) => [n.name, stringLiteral(n.displayName)]),
-    });
-  }
-  if (Array.isArray(enum_.withBoolDts)) {
-    enum_.withSimpleDts = enum_.withSimpleDts ?? [];
-    for (const e of enum_.withBoolDts) {
-      enum_.withSimpleDts.push({
-        name: e.name,
-        outputType: "Bool",
-        fields:
-          "trues" in e
-            ? e.trues.map((n) => [n, `true`] as [string, string])
-            : e.falses.map((n) => [n, "false"] as [string, string]),
-        default: "trues" in e ? `false` : `true`,
-      });
-    }
-  }
-  if (Array.isArray(enum_.withSimpleDts)) {
-    for (const dt of enum_.withSimpleDts) {
-      addDecisionTable({
-        bound: false,
-        name: dt.name,
-        parameters: [
-          {
-            name: "value",
-            type: { type: "Enum", enum: enum_.name },
-          },
-        ],
-        output: { name: "output", type: dt.outputType },
-        csv:
-          `input.value,output\n` +
-          dt.fields.map(([field, value]) => `'${field}',${value}`).join("\n") +
-          (dt.default ? `\nany,` + dt.default : ``),
-      });
-    }
-  }
-  const valuesObject: Record<string, EnumValue> = {};
-  for (const v of values) {
-    valuesObject[v.name] = v;
-  }
-  const modelEnum: Enum = {
-    name: enum_.name,
-    displayName,
-    renameFrom: enum_.renameFrom,
-    description: enum_.description,
-    values: valuesObject,
-  };
-  app.enums[enum_.name] = modelEnum;
-  if (enum_.withDisplayDt) {
-    modelEnum.getDisplayName = (v) => `dt.display_${enum_.name}(${v})`;
-  }
-}
-
-interface HelperDecisionTableInput {
-  name: string;
-  notNull?: boolean;
-  collation?: yom.Collation;
-  type: HelperFieldType;
-}
-
-interface HelperDecisionTableOutput {
-  name: string;
-  collation?: yom.Collation;
-  type:
-    | yom.ScalarType
-    | yom.SimpleScalarTypes
-    | yom.ScalarIntegerTypes
-    | "String";
-}
-
-interface HelperDecisionTable {
-  bound: boolean;
-  name: string;
-  description?: string;
-  setup?: yom.BasicStatement[];
-  parameters?: HelperDecisionTableInput[];
-  outputs?: HelperDecisionTableOutput[];
-  output?: HelperDecisionTableOutput;
-  csv: string;
-  [name: string]: any;
-}
-
-interface HelperScalarFunction {
-  bound: boolean;
-  name: string;
-  description?: string;
-  parameters: HelperDecisionTableInput[];
-  procedure: yom.BasicStatement[];
-  returnType: yom.ScalarType | yom.SimpleScalarTypes | yom.ScalarIntegerTypes;
-  [name: string]: any;
-}
-
-type HelperFieldType =
-  | yom.FieldType
-  | yom.FieldIntegerTypes
-  | yom.SimpleScalarTypes;
-
-function fieldTypeFromHelper(ty: HelperFieldType): yom.FieldType {
-  return typeof ty == "string" ? { type: ty } : ty;
-}
-
-export function addDecisionTable(dt: HelperDecisionTable) {
-  const inputs: { [name: string]: Parameter } = {};
-  const outputs: { [name: string]: DecisionTableOutput } = {};
-  if (dt.output) {
-    outputs[dt.output.name] = {
-      name: dt.output.name,
-      type:
-        typeof dt.output.type === "string"
-          ? { type: dt.output.type }
-          : dt.output.type,
-      collation: dt.output.collation,
-    };
-  }
-  if (dt.outputs) {
-    for (const output of dt.outputs) {
-      outputs[output.name] = {
-        name: output.name,
-        type:
-          typeof output.type === "string" ? { type: output.type } : output.type,
-        collation: output.collation,
-      };
-    }
-  }
-  if (dt.parameters) {
-    for (const input of dt.parameters) {
-      inputs[input.name] = {
-        name: input.name,
-        type: fieldTypeFromHelper(input.type),
-        notNull: input.notNull,
-      };
-    }
-  }
-  const newDt: DecisionTable = {
-    name: dt.name,
-    description: dt.description,
-    csv: dt.csv,
-    outputs,
-    inputs,
-    setup: dt.setup,
-  };
-  if (dt.bound) {
-    app.db.decisionTables[dt.name] = newDt;
-  } else {
-    app.decisionTables[dt.name] = newDt;
-  }
-}
-
-export function addScalarFunction(f: HelperScalarFunction) {
-  const inputs: { [name: string]: Parameter } = {};
-  for (const input of f.parameters) {
-    inputs[input.name] = {
-      name: input.name,
-      type: typeof input.type === "string" ? { type: input.type } : input.type,
-      notNull: input.notNull,
-    };
-  }
-  const newDt: ScalarFunction = {
-    name: f.name,
-    description: f.description,
-    inputs,
-    procedure: f.procedure,
-    returnType:
-      typeof f.returnType === "string" ? { type: f.returnType } : f.returnType,
-  };
-  if (f.bound) {
-    app.db.scalarFunctions[f.name] = newDt;
-  } else {
-    app.scalarFunctions[f.name] = newDt;
-  }
-}
-
-export function addPage(page: Page) {
-  // app.pages.push(page);
-}
-
-export function setShell(node: (pages: Node) => Node) {
-  // app.shell = node;
-}
-
-export function addScript(script: yom.Script) {
-  app.scripts.push(script);
-}
-
-export function addScriptDbFromMappingFile(name: string, mappingFile: string) {
-  app.scriptDbs.push({
-    name,
-    definition: {
-      type: "MappingFile",
-      file: mappingFile,
-    },
-  });
-}
-
-export function addScriptDbDefinition(
-  name: string,
-  define: (db: ScriptDbDefinition) => void
-) {
-  inScriptDb = {
-    autoTrim: app.autoTrim,
-    collation: app.collation,
-    enableTransactionQueries: true,
-    tables: {},
-  };
-  define(inScriptDb);
-  app.scriptDbs.push({
-    name,
-    definition: { type: "Model", db: inScriptDb },
-  });
-  inScriptDb = undefined;
-}
-
-export const DEFAULT_DEV_USER_UUID = "147d4c57-947b-426f-9d81-fac3d9db5d31";

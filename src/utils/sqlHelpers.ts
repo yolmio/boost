@@ -29,7 +29,7 @@ export function ident(s: string): string {
 }
 
 export function recordDisplayNameExpr(table: string, recordName?: string) {
-  const displayNameFn = app.database.tables[table].recordDisplayName;
+  const displayNameFn = app.db.tables[table].recordDisplayName;
   if (!displayNameFn) {
     throw new Error("table " + table + " has no recordDisplayName");
   }
@@ -39,7 +39,7 @@ export function recordDisplayNameExpr(table: string, recordName?: string) {
 }
 
 export function tableFieldSql(tableName: string, field: string) {
-  const table = app.database.tables[tableName];
+  const table = app.db.tables[tableName];
   if (!table) {
     throw new Error(
       `Tried to create sql for table ${tableName} but table does not exist`
@@ -61,7 +61,7 @@ export function tableFieldSql(tableName: string, field: string) {
 }
 
 export function tableIdSql(tableName: string) {
-  const table = app.database.tables[tableName];
+  const table = app.db.tables[tableName];
   if (!table) {
     throw new Error(
       `Tried to create sql for table ${tableName} but table does not exist`

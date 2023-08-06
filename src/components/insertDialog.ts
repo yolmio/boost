@@ -43,7 +43,7 @@ const styles = createStyles({
 const titleId = stringLiteral(getUniqueUiId());
 
 export function insertDialog(opts: InsertDialogOpts) {
-  const tableModel = app.database.tables[opts.table];
+  const tableModel = app.db.tables[opts.table];
   const { fields, relations } = getFieldsAndRelationsFromInsertFormContent(
     opts.content,
     tableModel

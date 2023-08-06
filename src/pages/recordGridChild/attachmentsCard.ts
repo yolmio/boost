@@ -83,7 +83,7 @@ const styles = createStyles({
 
 export function content(opts: Opts, ctx: RecordGridContext) {
   const attachmentTableName = opts.table ?? ctx.table.name + "_attachment";
-  const attachmentTable = app.database.tables[attachmentTableName];
+  const attachmentTable = app.db.tables[attachmentTableName];
   if (!attachmentTable) {
     throw new Error(`Table ${attachmentTableName} does not exist`);
   }

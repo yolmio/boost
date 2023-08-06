@@ -47,7 +47,7 @@ const styles = createStyles({
 });
 
 export function updateDialog(opts: EditDialogOpts) {
-  const tableModel = app.database.tables[opts.table];
+  const tableModel = app.db.tables[opts.table];
   return sourceMap(
     `updateDialog(table: ${opts.table})`,
     modal({

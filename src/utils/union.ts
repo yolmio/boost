@@ -142,7 +142,7 @@ export function createUnionQuery(opts: UnionOpts): Union {
   for (let i = 0; i < opts.sources.length; i++) {
     const source = opts.sources[i];
     if (source.type === "Table") {
-      const table = app.database.tables[source.table];
+      const table = app.db.tables[source.table];
       if (source.fields) {
         for (const f of source.fields) {
           let typeKey: string;

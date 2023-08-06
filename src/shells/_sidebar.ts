@@ -394,3 +394,4 @@ export function sidebarShell(opts: SidebarShellOpts) {
   );
 }
 */
+export const isolatedModules = true;

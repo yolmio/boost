@@ -37,7 +37,7 @@ const styles = createStyles({
 });
 
 export function insertFormPage(opts: SectionedInsertFormPageOpts) {
-  const table = app.database.tables[opts.table];
+  const table = app.db.tables[opts.table];
   const pathBase = getTableBaseUrl(opts.table);
   const path = opts.path ?? pathBase + `/add`;
   const { fields, relations } = getFieldsAndRelationsFromInsertFormContent(

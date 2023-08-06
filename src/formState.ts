@@ -164,8 +164,8 @@ export function withFormState(opts: FormStateOpts): StateNode {
   ];
   if (opts.fields && opts.fields.length !== 0) {
     proc.push(record(FORM_FIELDS_RECORD, createProcFields(opts.fields)));
-    const insertFields = [];
-    const insertValues = [];
+    const insertFields: string[] = [];
+    const insertValues: string[] = [];
     for (const field of opts.fields) {
       insertFields.push(field.name);
       insertFields.push(field.name + TOUCHED_SUFFIX);
@@ -430,8 +430,8 @@ export function withFormState(opts: FormStateOpts): StateNode {
     addRecordToTable: (tableName, fields) => {
       assertTableExists(tableName, `addRecordToTable`);
       const tableObj = opts.tables!.find((t) => t.name === tableName)!;
-      const insertFields = [];
-      const insertValues = [];
+      const insertFields: string[] = [];
+      const insertValues: string[] = [];
       for (const field of tableObj.fields) {
         insertFields.push(field.name);
         insertFields.push(field.name + TOUCHED_SUFFIX);
@@ -613,7 +613,7 @@ export interface WithMultiInsertFormOpts extends FormStateProcedureExtensions {
 export function withMultiInsertFormState(
   opts: WithMultiInsertFormOpts
 ): StateNode {
-  const table = app.database.tables[opts.table];
+  const table = app.db.tables[opts.table];
   if (!table) {
     throw new Error("Table " + opts.table + " does not exist in model");
   }
@@ -773,7 +773,7 @@ export interface WithInsertFormStateOpts extends FormStateProcedureExtensions {
 }
 
 export function withInsertFormState(opts: WithInsertFormStateOpts): StateNode {
-  const table = app.database.tables[opts.table];
+  const table = app.db.tables[opts.table];
   const formFields: FormStateField[] = [];
   interface ComputedField {
     formStateName: string;
@@ -806,7 +806,7 @@ export function withInsertFormState(opts: WithInsertFormStateOpts): StateNode {
   }[] = [];
   if (opts.relations) {
     for (const relation of opts.relations) {
-      const relationTable = app.database.tables[relation.table];
+      const relationTable = app.db.tables[relation.table];
       const sharedFields: ComputedField[] = [];
       if (relation.sharedFields) {
         for (const fieldConfig of relation.sharedFields) {
@@ -885,7 +885,7 @@ export function withInsertFormState(opts: WithInsertFormStateOpts): StateNode {
         ]);
       });
       // todo relation checks
-      const insertRelations = [];
+      const insertRelations: ServiceProcStatement[] = [];
       for (const relation of relations) {
         insertRelations.push(
           formState.iterTable(relation.tableModel.name, (cursor) => {
@@ -1275,7 +1275,7 @@ export interface WithUpdateFormStateOpts extends FormStateProcedureExtensions {
 }
 
 export function withUpdateFormState(opts: WithUpdateFormStateOpts) {
-  const table = app.database.tables[opts.table];
+  const table = app.db.tables[opts.table];
   const fields = opts.fields.map((f) => {
     const fieldSchema = table.fields[f.field];
     let initialValue: string;

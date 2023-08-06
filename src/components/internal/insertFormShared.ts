@@ -275,7 +275,7 @@ function twoColumnSectionedInsertFormContent(
     sections.push(divider());
     let sectionBody: Node;
     if (section.relation) {
-      const relationTable = app.database.tables[section.relation.table];
+      const relationTable = app.db.tables[section.relation.table];
       sectionBody = element("div", {
         styles: twoColumnFormStyles.cardRelation,
         children: [

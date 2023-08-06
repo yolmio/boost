@@ -59,7 +59,7 @@ const styles = createStyles({
 });
 
 export function content(opts: Opts, ctx: RecordGridContext) {
-  const tableModel = app.database.tables[opts.table];
+  const tableModel = app.db.tables[opts.table];
   const foreignKeyField = Object.values(tableModel.fields).find(
     (f) => f.type === "ForeignKey" && f.table === ctx.table.name
   );

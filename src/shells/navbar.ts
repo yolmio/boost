@@ -1,17 +1,16 @@
-import { scalar, setScalar } from "../procHelpers.js";
-import { createHarmonizeVars, createStyles, cssVar } from "../styleUtils.js";
-import { element, state } from "../nodeHelpers.js";
-import type { ColorPaletteProp } from "../theme.js";
-import { getVariantStyle } from "../styleUtils.js";
+import { scalar, setScalar } from "../procHelpers";
+import { createHarmonizeVars, createStyles, cssVar } from "../styleUtils";
+import { element, state } from "../nodeHelpers";
+import type { ColorPaletteProp } from "../theme";
+import { getVariantStyle } from "../styleUtils";
 import {
   button,
   ButtonOpts,
   styles as buttonStyles,
-} from "../components/button.js";
-import { iconButton } from "../components/iconButton.js";
-import { drawer } from "../components/drawer.js";
+} from "../components/button";
+import { iconButton } from "../components/iconButton";
+import { drawer } from "../components/drawer";
 import { materialIcon } from "../components/materialIcon.js";
-import { setShell } from "../appHelpers.js";
 import { upcaseFirst } from "../utils/inflectors.js";
 import { stringLiteral } from "../utils/sqlHelpers.js";
 import { app } from "../singleton.js";
@@ -22,6 +21,7 @@ import { GlobalSearchOpts } from "./internals/types.js";
 import { makeConditionalLink } from "./internals/authLink.js";
 import { globalSearchDialog } from "./internals/globalSearchDialog.js";
 import { SqlExpression } from "../yom.js";
+import { Node } from "../nodeTypes.js";
 
 export interface NavbarProps extends GlobalSearchOpts {
   variant?: "soft" | "solid";
@@ -119,7 +119,7 @@ const styles = createStyles({
   }),
 });
 
-export function navbarShell(opts: NavbarProps) {
+export function navbarShell(opts: NavbarProps): (n: Node) => Node {
   const variant = opts.variant ?? "solid";
   const color = opts.color ?? "neutral";
   const normalizedLabels = opts.links.map((link) => {
@@ -288,5 +288,5 @@ export function navbarShell(opts: NavbarProps) {
       ],
     }),
   });
-  setShell((pages) => [content, pages]);
+  return (pages) => [content, pages];
 }

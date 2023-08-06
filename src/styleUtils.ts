@@ -1,7 +1,7 @@
-import { app } from "./singleton.js";
-import type { Style, StyleObject } from "./styleTypes.js";
-import type { ColorPaletteProp, CssVar, Variant } from "./theme.js";
-import { lazy, memoize } from "./utils/memoize.js";
+import { app } from "./app";
+import type { Style, StyleObject } from "./styleTypes";
+import type { ColorPaletteProp, CssVar, Variant } from "./theme";
+import { lazy, memoize } from "./utils/memoize";
 
 export function cssVar(n: CssVar): string {
   return `var(--${n})`;

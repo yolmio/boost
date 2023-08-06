@@ -54,7 +54,7 @@ const styles = createStyles({
 });
 
 export function recordGridPage(opts: RecordGridPageOpts) {
-  const tableModel = app.database.tables[opts.table];
+  const tableModel = app.db.tables[opts.table];
   const pathBase = pluralize(opts.table.split("_").join(" "))
     .split(" ")
     .join("-");

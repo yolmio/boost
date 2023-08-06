@@ -17,7 +17,7 @@ export function getAssociationTable(
   rightTable: string
 ): GetAssociationTableResult {
   const possibleMatches: AssociationTableMatch[] = [];
-  for (const assocTable of Object.values(app.database.tables)) {
+  for (const assocTable of Object.values(app.db.tables)) {
     const assocTableFields = Object.values(assocTable.fields);
     const toLeft = assocTableFields.find(
       (f) => f.type === "ForeignKey" && f.table === leftTable

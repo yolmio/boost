@@ -113,7 +113,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
       });
     }
   }
-  const tableModel = app.database.tables[opts.table];
+  const tableModel = app.db.tables[opts.table];
   const itemContent = opts.itemContent(ctx);
   const insertDialogOpts = opts.insertDialogOpts?.(ctx);
   const withValues: Record<string, string> = insertDialogOpts?.withValues ?? {};

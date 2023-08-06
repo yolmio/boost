@@ -93,7 +93,7 @@ const styles = createStyles({
 });
 
 export function content(opts: Opts, ctx: RecordGridContext) {
-  const otherTable = app.database.tables[opts.table];
+  const otherTable = app.db.tables[opts.table];
   const listScrollId = stringLiteral(getUniqueUiId());
   if (!otherTable) {
     throw new Error(`Table ${opts.table} not found`);

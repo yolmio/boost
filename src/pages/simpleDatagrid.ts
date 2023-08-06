@@ -73,7 +73,7 @@ function getColumns(
   viewButtonUrl: ((id: string) => string) | undefined,
   opts: DatagridPageOpts
 ): SimpleColumn[] {
-  const tableModel = app.database.tables[tableName];
+  const tableModel = app.db.tables[tableName];
   const columns: SimpleColumn[] = [];
   if (selectable) {
     columns.push({
@@ -172,7 +172,7 @@ function getColumns(
 }
 
 export function simpleDatagridPage(opts: DatagridPageOpts) {
-  const tableModel = app.database.tables[opts.table];
+  const tableModel = app.db.tables[opts.table];
   const path = opts.path ?? getTableBaseUrl(opts.table);
   const selectable = opts.selectable ?? true;
   let getViewButtonUrl: ((id: string) => string) | undefined;

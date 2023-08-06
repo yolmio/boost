@@ -812,7 +812,7 @@ export function makeIdsQuery(
 }
 
 function addViewTables() {
-  if ("datagrid_view" in app.database.tables) {
+  if ("datagrid_view" in app.db.tables) {
     return;
   }
   addEnum({
@@ -822,7 +822,7 @@ function addViewTables() {
   addTable("datagrid_view", (t) => {
     t.string("name", 200).notNull();
     t.enum("datagrid_name", "datagrid_view_name").notNull();
-    t.fk("user", app.database.userTableName);
+    t.fk("user", app.db.userTableName);
     t.bool("root_filter_is_any").notNull();
     t.smallUint("row_height").notNull();
     t.ordering("ordering").notNull();

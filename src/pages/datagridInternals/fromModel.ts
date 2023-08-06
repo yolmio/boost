@@ -179,7 +179,7 @@ function getFieldCellWidth(
   const cellBuffer = 20;
   const headerLength = field.displayName.length * charSize + headerBuffer;
   if (field.type === "Uuid" && field.group) {
-    const tableModel = app.database.tables[table];
+    const tableModel = app.db.tables[table];
     const group = tableModel.fieldGroups[field.group];
     if (group.type === "Image") {
       return 138;
@@ -365,7 +365,7 @@ export function columnFromField({
         break;
       case "Uuid":
         if (field.group) {
-          const tableModel = app.database.tables[table];
+          const tableModel = app.db.tables[table];
           const group = tableModel.fieldGroups[field.group];
           if (group.type === "Image") {
             if (group.variants[field.name].usage !== "square_thumbnail") {
@@ -615,7 +615,7 @@ export function simpleColumnFromField({
         break;
       case "Uuid":
         if (field.group) {
-          const tableModel = app.database.tables[table];
+          const tableModel = app.db.tables[table];
           const group = tableModel.fieldGroups[field.group];
           if (group.type === "Image") {
             if (group.variants[field.name].usage !== "square_thumbnail") {

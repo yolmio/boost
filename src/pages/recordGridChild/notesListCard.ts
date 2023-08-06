@@ -103,7 +103,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
   let foreignKeyField = opts.foreignKeyField;
   const notesTable = opts.notesTable ?? ctx.table.name + "_note";
   if (!foreignKeyField) {
-    const notesTableModel = app.database.tables[notesTable];
+    const notesTableModel = app.db.tables[notesTable];
     if (!notesTableModel) {
       throw new Error(`No notes table found for ${notesTable}`);
     }

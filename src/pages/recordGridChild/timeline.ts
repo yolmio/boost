@@ -106,7 +106,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
     limit: `row_count`,
     orderByFields: ["date", "id"],
     sources: sources.map((source) => {
-      const tableModel = app.database.tables[source.table];
+      const tableModel = app.db.tables[source.table];
       let customFrom = source.customFrom;
       if (!customFrom) {
         let foreignKeyExpr = source.foreignKeyExpr;
@@ -262,7 +262,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                   )
                 ) ?? [])
               ),
-              tableModel: app.database.tables[tableName],
+              tableModel: app.db.tables[tableName],
               customAction: itemContent.customAction?.node(
                 ...itemContent.customAction.values.map((v, valueIdx) => {
                   if (typeof v === "string") {
@@ -372,9 +372,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                           .map((t, i) => ({
                             children:
                               `'Add ' || ` +
-                              stringLiteral(
-                                app.database.tables[t.table].displayName
-                              ),
+                              stringLiteral(app.db.tables[t.table].displayName),
                             onClick: [setScalar(`ui.adding_${i}`, `true`)],
                           })),
                       }),
@@ -382,7 +380,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                     sources
                       .filter((t) => !t.disableInsert)
                       .map((t, i) => {
-                        const tableModel = app.database.tables[t.table];
+                        const tableModel = app.db.tables[t.table];
                         const opts = t.insertDialogOpts ?? {};
                         const withValues: Record<string, string> =
                           opts.withValues ?? {};

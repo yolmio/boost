@@ -146,7 +146,7 @@ const styles = createStyles({
 });
 
 export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
-  const table = app.database.tables[opts.table];
+  const table = app.db.tables[opts.table];
   const formStateFields = opts.cardFields.slice();
   if (opts.cardFooterFields) {
     formStateFields.push(...opts.cardFooterFields);

@@ -1,6 +1,4 @@
-import { navbarShell } from "@yolm/boost/shells/navbar";
-import { addPage, addTable } from "@yolm/boost/appHelpers";
-import { app } from "@yolm/boost/singleton";
+import { app } from "@yolm/boost";
 
 app.name = "hello_world";
 app.title = "Hello World App";
@@ -9,7 +7,7 @@ app.dbRunMode = "BrowserSync";
 
 // db
 
-addTable("user", (table) => {
+app.db.addTable("user", (table) => {
   table.uuid(`global_id`).notNull().unique();
   table.bool("disabled").notNull();
   table.string("email", 70);
@@ -17,23 +15,23 @@ addTable("user", (table) => {
 
 // ui
 
-navbarShell({
-  color: "primary",
-  variant: "solid",
-  links: ["/contacts", "/reports"],
-});
+// app.ui.({
+//   color: "primary",
+//   variant: "solid",
+//   links: ["/contacts", "/reports"],
+// });
 
-addPage({
+app.ui.pages.push({
   path: "/",
   content: "'hello world!'",
 });
 
-addPage({
+app.ui.pages.push({
   path: "/contacts",
   content: "'No contacts yet'",
 });
 
-addPage({
+app.ui.pages.push({
   path: "/reports",
   content: "'No reports yet'",
 });

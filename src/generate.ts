@@ -1,16 +1,10 @@
-import { app } from "./singleton.js";
-import { StyleSerializer, transformNode } from "./nodeTransform.js";
-import { addRootStyles } from "./rootStyles.js";
-import type * as yom from "./yom.js";
-import type {
-  Database,
-  DecisionTable,
-  ScalarFunction,
-  Table,
-} from "./appTypes.js";
-import { default404Page } from "./pages/default404.js";
-import { Node, RouteNode, RoutesNode } from "./nodeTypes.js";
-import { escapeHtml } from "./utils/escapeHtml.js";
+import { app, DecisionTable, ScalarFunction, Table } from "./app";
+import { StyleSerializer, transformNode } from "./nodeTransform";
+import { addRootStyles } from "./rootStyles";
+import type * as yom from "./yom";
+// import { default404Page } from "./pages/default404";
+import { Node, RouteNode, RoutesNode } from "./nodeTypes";
+import { escapeHtml } from "./utils/escapeHtml";
 
 function generateDecisionTable(dt: DecisionTable): yom.DecisionTable {
   return {
@@ -124,31 +118,31 @@ function generateTable(t: Table): yom.Table {
   };
 }
 
-function generateDatabase(database: Database): yom.Database {
+function generateDatabase(): yom.Database {
   return {
-    userTableName: database.userTableName,
-    collation: database.collation,
-    autoTrim: database.autoTrim,
-    enableTransactionQueries: database.enableTransactionQueries,
-    decisionTables: Object.values(database.decisionTables).map(
+    userTableName: app.db.userTableName,
+    collation: app.db.collation,
+    autoTrim: app.db.autoTrim,
+    enableTransactionQueries: app.db.enableTransactionQueries,
+    decisionTables: Object.values(app.db.decisionTables).map(
       generateDecisionTable
     ),
-    scalarFunctions: Object.values(database.scalarFunctions).map(
+    scalarFunctions: Object.values(app.db.scalarFunctions).map(
       generateScalarFunction
     ),
-    tables: Object.values(database.tables).map(generateTable),
-    searchMatches: Object.values(database.searchMatches),
+    tables: Object.values(app.db.tables).map(generateTable),
+    searchMatches: Object.values(app.db.searchMatches),
   };
 }
 
 function getTransformedUi(): [yom.Node, string] {
-  if (!app.pages.some((p) => p.path === "/*" || p.path === "*")) {
-    app.pages.push({
+  if (!app.ui.pages.some((p) => p.path === "/*" || p.path === "*")) {
+    app.ui.pages.push({
       path: "*",
-      content: default404Page(),
+      content: `'todo replace this'`,
     });
   }
-  const pagesWithShell = app.pages
+  const pagesWithShell = app.ui.pages
     .filter((p) => !p.ignoreShell)
     .map(
       (p) =>
@@ -158,7 +152,7 @@ function getTransformedUi(): [yom.Node, string] {
           children: p.content,
         } as RouteNode)
     );
-  const pagesWithoutShell = app.pages
+  const pagesWithoutShell = app.ui.pages
     .filter((p) => p.ignoreShell)
     .map(
       (p) =>
@@ -169,8 +163,8 @@ function getTransformedUi(): [yom.Node, string] {
         } as RouteNode)
     );
   let rootNode: Node;
-  if (app.shell) {
-    const shell = app.shell({
+  if (app.ui.shell) {
+    const shell = app.ui.shell({
       t: "Routes",
       children: pagesWithShell,
     });
@@ -191,7 +185,7 @@ function getTransformedUi(): [yom.Node, string] {
     };
   }
   const serializer = new StyleSerializer();
-  for (const style of app.globalStyles) {
+  for (const style of app.ui.globalStyles) {
     serializer.addGlobalStyle(style);
   }
   addRootStyles(serializer, app.theme);
@@ -216,16 +210,16 @@ export function generateYom(): yom.Model {
     );
     console.log();
   }
-  let htmlHead = app.webAppConfig.htmlHead;
+  let htmlHead = app.ui.webAppConfig.htmlHead;
   if (app.title) {
     htmlHead += `<title>${escapeHtml(app.title)}</title>`;
   }
-  if (app.webAppConfig.viewport) {
+  if (app.ui.webAppConfig.viewport) {
     htmlHead += `<meta name="viewport" content="${escapeHtml(
-      app.webAppConfig.viewport
+      app.ui.webAppConfig.viewport
     )}">`;
   }
-  switch (app.webAppConfig.logoGeneration.type) {
+  switch (app.ui.webAppConfig.logoGeneration.type) {
     case "Default":
       htmlHead += `
   <link rel="apple-touch-icon" sizes="180x180" href="/global_assets/logo/apple-touch-icon.png">
@@ -244,11 +238,11 @@ export function generateYom(): yom.Model {
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/logo/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/assets/logo/favicon-16x16.png">
   <link rel="manifest" href="/assets/logo/site.webmanifest">
-  <link rel="mask-icon" href="/assets/logo/safari-pinned-tab.svg" color="${app.webAppConfig.logoGeneration.safariPinnedTabColor}">
+  <link rel="mask-icon" href="/assets/logo/safari-pinned-tab.svg" color="${app.ui.webAppConfig.logoGeneration.safariPinnedTabColor}">
   <link rel="shortcut icon" href="/assets/logo/favicon.ico">
-  <meta name="msapplication-TileColor" content="${app.webAppConfig.logoGeneration.msTileColor}">
+  <meta name="msapplication-TileColor" content="${app.ui.webAppConfig.logoGeneration.msTileColor}">
   <meta name="msapplication-config" content="/assets/logo/browserconfig.xml">
-  <meta name="theme-color" content="${app.webAppConfig.logoGeneration.themeColor}">`;
+  <meta name="theme-color" content="${app.ui.webAppConfig.logoGeneration.themeColor}">`;
       break;
     case "Account":
       htmlHead += `
@@ -256,17 +250,17 @@ export function generateYom(): yom.Model {
   <link rel="icon" type="image/png" sizes="32x32" href="/account_assets/logo/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/account_assets/logo/favicon-16x16.png">
   <link rel="manifest" href="/account_assets/logo/site.webmanifest">
-  <link rel="mask-icon" href="/account_assets/logo/safari-pinned-tab.svg" color="${app.webAppConfig.logoGeneration.safariPinnedTabColor}">
+  <link rel="mask-icon" href="/account_assets/logo/safari-pinned-tab.svg" color="${app.ui.webAppConfig.logoGeneration.safariPinnedTabColor}">
   <link rel="shortcut icon" href="/account_assets/logo/favicon.ico">
-  <meta name="msapplication-TileColor" content="${app.webAppConfig.logoGeneration.msTileColor}">
+  <meta name="msapplication-TileColor" content="${app.ui.webAppConfig.logoGeneration.msTileColor}">
   <meta name="msapplication-config" content="/account_assets/logo/browserconfig.xml">
-  <meta name="theme-color" content="${app.webAppConfig.logoGeneration.themeColor}">`;
+  <meta name="theme-color" content="${app.ui.webAppConfig.logoGeneration.themeColor}">`;
       break;
     case "Custom":
       break;
   }
-  if (!app.webAppConfig.manifest.name) {
-    app.webAppConfig.manifest.name = app.displayName;
+  if (!app.ui.webAppConfig.manifest.name) {
+    app.ui.webAppConfig.manifest.name = app.displayName;
   }
   return {
     // todo make this part of the model
@@ -282,7 +276,7 @@ export function generateYom(): yom.Model {
       timestamp: "%+",
       time: "%T",
     },
-    db: generateDatabase(app.database),
+    db: generateDatabase(),
     decisionTables: Object.values(app.decisionTables).map(
       generateDecisionTable
     ),
@@ -300,12 +294,12 @@ export function generateYom(): yom.Model {
       })),
     })),
     ui: {
-      pwaManifest: app.webAppConfig.manifest,
+      pwaManifest: app.ui.webAppConfig.manifest,
       htmlHead: htmlHead,
       tree: uiTree,
       css,
       deviceDb: {
-        tables: Object.values(app.deviceDb.tables).map(generateTable),
+        tables: Object.values(app.ui.deviceDb.tables).map(generateTable),
       },
     },
     scripts: app.scripts,
@@ -318,10 +312,7 @@ export function generateYom(): yom.Model {
           definition: {
             type: "Model",
             db: {
-              collation: db.definition.db.collation,
-              autoTrim: db.definition.db.autoTrim,
-              enableTransactionQueries:
-                db.definition.db.enableTransactionQueries,
+              enableTransactionQueries: false,
               tables: Object.values(db.definition.db.tables).map(generateTable),
             },
           },

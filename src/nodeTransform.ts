@@ -1,5 +1,5 @@
-import { SequentialIDGenerator } from "./utils/SequentialIdGenerator.js";
-import type { Style, StyleObject } from "./styleTypes.js";
+import { SequentialIDGenerator } from "./utils/SequentialIdGenerator";
+import type { Style, StyleObject } from "./styleTypes";
 import type {
   FontFamily,
   FontSize,
@@ -11,14 +11,10 @@ import type {
   Theme,
   TypographyKeys,
 } from "./theme";
-import {
-  cssVar,
-  darkSchemeSelector,
-  lightSchemeSelector,
-} from "./styleUtils.js";
-import { app } from "./singleton.js";
-import type { Node } from "./nodeTypes.js";
-import type * as yom from "./yom.js";
+import { cssVar, darkSchemeSelector, lightSchemeSelector } from "./styleUtils";
+import { app } from "./app";
+import type { Node } from "./nodeTypes";
+import type * as yom from "./yom";
 
 /** Function that transform the properties in our Style to real css properties, i.e. px -> paddingLeft, paddingRight */
 type StyleValueMapper = (

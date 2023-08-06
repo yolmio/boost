@@ -8,90 +8,16 @@
     "material-icons/**"
   ],
   "scripts": {
-    "build": "tsc --project tsconfig.json",
-    "dev": "tsc --project tsconfig.json --watch",
+    "build": "esbuild src/index.ts --bundle --outdir=dist --format esm",
+    "build:watch": "esbuild src/index.ts --bundle --outdir=dist --format esm --watch",
+    "create-ts": "tsc --project tsconfig.json",
+    "create-ts:watch": "tsc --project tsconfig.json --watch",
     "lint": "TIMING=1 eslint src --fix",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
     "format": "prettier --write \"**/*.ts\""
   },
-  "exports": {
-    "./yom": "./dist/yom.js",
-    "./appTypes": "./dist/appTypes.js",
-    "./styleTypes": "./dist/styleTypes.js",
-    "./appHelpers": "./dist/appHelpers.js",
-    "./procHelpers": "./dist/procHelpers.js",
-    "./nodeHelpers": "./dist/nodeHelpers.js",
-    "./formState": "./dist/formState.js",
-    "./singleton": "./dist/singleton.js",
-    "./colorManipulator": "./dist/colorManipulator.js",
-    "./colors": "./dist/colors.js",
-    "./migrate": "./dist/migrate.js",
-    "./profile": "./dist/profile.js",
-    "./styleUtils": "./dist/styleUtils.js",
-    "./components/datagrid": "./dist/components/datagrid/index.js",
-    "./utils/*": "./dist/utils/*.js",
-    "./components/*": "./dist/components/*.js",
-    "./pages/*": "./dist/pages/*.js",
-    "./shells/*": "./dist/shells/*.js"
-  },
-  "typesVersions": {
-    "*": {
-      "yom": [
-        "./dist/yom.d.ts"
-      ],
-      "migrate": [
-        "./dist/migrate.d.ts"
-      ],
-      "profile": [
-        "./dist/profile.d.ts"
-      ],
-      "modelTypes": [
-        "./dist/modelTypes.d.ts"
-      ],
-      "styleTypes": [
-        "./dist/styleTypes.d.ts"
-      ],
-      "appHelpers": [
-        "./dist/appHelpers.d.ts"
-      ],
-      "nodeHelpers": [
-        "./dist/nodeHelpers.d.ts"
-      ],
-      "formState": [
-        "./dist/formState.d.ts"
-      ],
-      "styleUtils": [
-        "./dist/styleUtils.d.ts"
-      ],
-      "colorManipulator": [
-        "./dist/colorManipulator.d.ts"
-      ],
-      "colors": [
-        "./dist/colors.d.ts"
-      ],
-      "procHelpers": [
-        "./dist/procHelpers.d.ts"
-      ],
-      "singleton": [
-        "./dist/singleton.d.ts"
-      ],
-      "components/datagrid": [
-        "./dist/components/datagrid/index.d.ts"
-      ],
-      "utils/*": [
-        "./dist/utils/*.d.ts"
-      ],
-      "components/*": [
-        "./dist/components/*.d.ts"
-      ],
-      "pages/*": [
-        "./dist/pages/*.d.ts"
-      ],
-      "shells/*": [
-        "./dist/shells/*.d.ts"
-      ]
-    }
-  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "dependencies": {
     "@types/node": "=20.3.1",
     "@types/which": "^3.0.0",
@@ -102,6 +28,7 @@
   },
   "devDependencies": {
     "@types/toposort": "=2.0.3",
+    "esbuild": "^0.18.18",
     "eslint": "=8.42.0",
     "fast-glob": "=3.2.12",
     "fs-extra": "=11.1.1",

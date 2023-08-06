@@ -35,6 +35,16 @@ import { ServiceProcStatement } from "@yolm/boost/yom";
 import { colors } from "@yolm/boost/colors";
 import { colorChannel } from "@yolm/boost/colorManipulator";
 
+import { app, nodes, statements, utils, components } from "@yolm/boost";
+
+const { button } = components;
+
+components.button({ variant: "solid", color: "primary", children: "Hello" });
+
+app.ui.addDatagridPage({
+  table: "contact",
+});
+
 app.name = "legal";
 app.title = "Legal";
 app.displayName = "Legal";
@@ -189,6 +199,8 @@ addTable("matter", (table) => {
   table.string("notes", 2000).multiline();
   table.linkable();
 });
+
+app.db.catalog.addAttachmentsTable("matter");
 
 addTableFromCatalog({ type: "attachments", mainTable: "matter" });
 

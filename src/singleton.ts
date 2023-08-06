@@ -1,3 +1,4 @@
+import { TableBuilder } from "./appHelpers.js";
 import type { BoostAppModel } from "./appTypes.js";
 import { ThemeOpts, createTheme } from "./createTheme.js";
 import { normalizeCase, upcaseFirst } from "./utils/inflectors.js";
@@ -30,16 +31,24 @@ export const app: BoostAppModel = {
       filters: [{ type: "AsciiFold" }, { type: "Lowercase" }],
     },
   },
-  webAppConfig: {
-    htmlHead: "",
-    viewport: `width=device-width, initial-scale=1`,
-    logoGeneration: { type: "Default" },
-    manifest: {},
+  ui: {
+    deviceDb: { tables: {} },
+    globalStyles: [],
+    pages: [],
+    webAppConfig: {
+      htmlHead: "",
+      viewport: `width=device-width, initial-scale=1`,
+      logoGeneration: { type: "Default" },
+      manifest: {},
+    },
+    useNavbarShell(opts) {
+      throw new Error("Not implemented");
+    },
   },
   dbRunMode: "BrowserSync",
   autoTrim: "None",
   collation: "NoCase",
-  database: {
+  db: {
     userTableName: "user",
     autoTrim: "Both",
     collation: "NoCase",
@@ -48,6 +57,12 @@ export const app: BoostAppModel = {
     scalarFunctions: {},
     searchMatches: {},
     tables: {},
+
+    addTable: (name, f) => {
+      const builder = new TableBuilder(name);
+      f(builder);
+      app.db.tables[name] = builder.finish();
+    },
   },
   decisionTables: {},
   enums: {},
@@ -60,10 +75,6 @@ export const app: BoostAppModel = {
   },
   scripts: [],
   scriptDbs: [],
-
-  deviceDb: { tables: {} },
-  globalStyles: [],
-  pages: [],
 };
 
 function defaultGetDisplayName(sqlName: string) {

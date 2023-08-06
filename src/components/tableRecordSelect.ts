@@ -17,7 +17,7 @@ export function getTableRecordSelect(
   tableName: string,
   opts: TableControlOpts
 ) {
-  const tableModel = app.database.tables[tableName];
+  const tableModel = app.db.tables[tableName];
   let selectInfo = tableModel.control ?? { type: "Combobox" };
   switch (selectInfo.type) {
     case "Combobox": {

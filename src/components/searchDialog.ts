@@ -217,7 +217,7 @@ function prepareDisplayValue(
   if (typeof value === "string") {
     const field = table.fields[value];
     if (field.type === "ForeignKey") {
-      const toTable = app.database.tables[field.table];
+      const toTable = app.db.tables[field.table];
       if (toTable.recordDisplayName) {
         const nameExpr = toTable.recordDisplayName.expr(
           ...toTable.recordDisplayName.fields.map((f) => `other.${f}`)
@@ -341,7 +341,7 @@ function addDisplayValueToTable(
 }
 
 export function tableSearchDialog(opts: TableSearchDialogOpts) {
-  const tableModel = app.database.tables[opts.table];
+  const tableModel = app.db.tables[opts.table];
   if (!tableModel.recordDisplayName) {
     throw new Error("tableSearchDialog expects recordDisplayName to exist");
   }
@@ -762,7 +762,7 @@ function calcMultiTable(tables: PreparedMultiTableSearchDialogTable[]) {
   let labelExpr = "case ";
   let urlExpr = "case ";
   for (const table of tables) {
-    const tableModel = app.database.tables[table.name];
+    const tableModel = app.db.tables[table.name];
     if (!tableModel.recordDisplayName) {
       throw new Error(
         "multiTableSearchDialog expects recordDisplayName to exist"
@@ -832,7 +832,7 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
   const containerId = stringLiteral(getUniqueUiId());
   const optionId = (id: string) => `${inputId} || '-' || ${id}`;
   const tables = opts.tables.map((t): PreparedMultiTableSearchDialogTable => {
-    const tableModel = app.database.tables[t.name];
+    const tableModel = app.db.tables[t.name];
     return {
       name: t.name,
       icon: t.icon,
@@ -1154,9 +1154,7 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
                               size: "sm",
                               checked: `not ${t.name}_disabled`,
                               label: stringLiteral(
-                                pluralize(
-                                  app.database.tables[t.name].displayName
-                                )
+                                pluralize(app.db.tables[t.name].displayName)
                               ),
                               color: "neutral",
                               variant: "outlined",
@@ -1330,7 +1328,7 @@ export interface RecordSelectDialog {
 }
 
 export function recordSelectDialog(opts: RecordSelectDialog) {
-  const tableModel = app.database.tables[opts.table];
+  const tableModel = app.db.tables[opts.table];
   if (!tableModel.recordDisplayName) {
     throw new Error("tableSearchDialog expects recordDisplayName to exist");
   }

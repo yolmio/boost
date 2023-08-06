@@ -76,7 +76,7 @@ const styles = createStyles({
 });
 
 export function imageDalog(opts: ImageDialogOptions) {
-  const table = app.database.tables[opts.tableName];
+  const table = app.db.tables[opts.tableName];
   const fieldGroup = table.fieldGroups[opts.group];
   if (fieldGroup.type !== "Image") {
     throw new Error("Invalid field group type for image dialog");

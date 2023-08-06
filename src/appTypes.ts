@@ -4,6 +4,8 @@ import type { Style } from "./styleTypes.js";
 import { ComponentOpts } from "./components/types.js";
 import { Theme } from "./theme.js";
 import { WebAppManifest } from "./pwaManifest.js";
+import { TableBuilder } from "./appHelpers.js";
+import { navbarShell, NavbarProps } from "./shells/navbar.js";
 
 export interface ExtensibleObject {
   /**
@@ -388,6 +390,12 @@ export interface Database {
   //todo: table functions
   tables: { [name: string]: Table };
   searchMatches: { [name: string]: yom.SearchMatchConfig };
+
+  //
+  // Helper methods
+  //
+
+  addTable(name: string, f: (builder: TableBuilder) => void): void;
 }
 
 export interface ScriptDbDefinition {
@@ -459,6 +467,19 @@ export interface WebAppConfig {
     | { type: "Custom" };
 }
 
+export interface Ui {
+  webAppConfig: WebAppConfig;
+  deviceDb: DeviceDb;
+  globalStyles: Style[];
+  shell?: (pages: Node) => Node;
+  pages: Page[];
+
+  //
+  // Helper methods
+  //
+  useNavbarShell: (opts: NavbarProps) => void;
+}
+
 /**
  * A model that is easier to code generate with and has more information.
  */
@@ -473,7 +494,7 @@ export interface BoostAppModel {
   appDomain?: string;
   collation: yom.Collation;
   autoTrim: yom.AutoTrim;
-  database: Database;
+  db: Database;
   enums: { [name: string]: Enum };
   decisionTables: { [name: string]: DecisionTable };
   scalarFunctions: { [name: string]: ScalarFunction };
@@ -481,12 +502,7 @@ export interface BoostAppModel {
   test: yom.TestModel;
   scripts: yom.Script[];
   scriptDbs: ScriptDb[];
-
-  webAppConfig: WebAppConfig;
-  deviceDb: DeviceDb;
-  globalStyles: Style[];
-  shell?: (pages: Node) => Node;
-  pages: Page[];
+  ui: Ui;
 }
 
 export * from "./nodeTypes.js";

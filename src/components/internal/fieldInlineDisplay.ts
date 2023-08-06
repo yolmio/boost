@@ -20,7 +20,7 @@ export function inlineFieldDisplay(field: Field, expr: string) {
       return `format.date(${expr}, ${formatString})`;
     }
     case "ForeignKey": {
-      const toTable = app.database.tables[field.table];
+      const toTable = app.db.tables[field.table];
       if (toTable.inlineRecordDisplay) {
         return toTable.inlineRecordDisplay(expr);
       }

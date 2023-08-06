@@ -185,7 +185,7 @@ export function settingsDrawer(opts: SettingsDrawerOpts) {
         procedure: [
           scalar(
             `email`,
-            `(select email from db.${app.database.userTableName} where id = current_user())`
+            `(select email from db.${app.db.userTableName} where id = current_user())`
           ),
         ],
         statusScalar: `status`,

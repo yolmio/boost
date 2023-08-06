@@ -545,7 +545,7 @@ function collapse(label: string, node: Node) {
 }
 
 function transactionQueryReference(): Node[] {
-  const userFk = app.database.userTableName;
+  const userFk = app.db.userTableName;
   return [
     typography({ level: "h5", children: "'Transaction Queries'" }),
     divider(),
@@ -733,7 +733,7 @@ function transactionQueryReference(): Node[] {
       "sys_db_table",
       element("div", {
         styles: styles.enumValues,
-        children: Object.keys(app.database.tables).map((name) =>
+        children: Object.keys(app.db.tables).map((name) =>
           element("div", {
             styles: styles.enumValue,
             children: stringLiteral(name),
@@ -752,7 +752,7 @@ function schemaReference() {
       children: [
         typography({ level: "h5", children: "'Tables'" }),
         divider(),
-        Object.values(app.database.tables).map((table) => {
+        Object.values(app.db.tables).map((table) => {
           const fields = Object.values(table.fields).map((field) => {
             let typeString = field.type.toLowerCase();
             if (field.type === "ForeignKey") {
@@ -768,7 +768,7 @@ function schemaReference() {
               type: typeString,
             });
           });
-          if (app.database.enableTransactionQueries) {
+          if (app.db.enableTransactionQueries) {
             fields.unshift(
               displayField({
                 name: "last_modified_by_tx",
@@ -798,7 +798,7 @@ function schemaReference() {
         divider(),
         Object.values(app.enums)
           .filter((enum_) =>
-            Object.values(app.database.tables).some((t) =>
+            Object.values(app.db.tables).some((t) =>
               Object.values(t.fields).some(
                 (f) => f.type === "Enum" && f.enum === enum_.name
               )
@@ -818,9 +818,7 @@ function schemaReference() {
               })
             );
           }),
-        ...(app.database.enableTransactionQueries
-          ? transactionQueryReference()
-          : []),
+        ...(app.db.enableTransactionQueries ? transactionQueryReference() : []),
       ],
     }),
   });

@@ -21,7 +21,7 @@ export interface DeleteRecordDialog {
 }
 
 export function deleteRecordDialog(opts: DeleteRecordDialog) {
-  const table = app.database.tables[opts.table];
+  const table = app.db.tables[opts.table];
   return confirmDangerDialog({
     open: opts.open,
     onClose: opts.onClose,

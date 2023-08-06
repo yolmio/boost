@@ -112,7 +112,7 @@ const styles = createStyles({
 });
 
 function foreignKeyCell(opts: BaseFieldCellOpts, field: ForeignKeyField): Cell {
-  const toTable = app.database.tables[field.table];
+  const toTable = app.db.tables[field.table];
   const nameExpr = toTable.recordDisplayName!.expr(
     ...toTable.recordDisplayName!.fields.map((f) => `r.${f}`)
   );
@@ -907,7 +907,7 @@ export function fieldCell(opts: FieldCellOpts): Cell {
       return numericField(opts, opts.field);
     case "Uuid":
       if (opts.field.group) {
-        const table = app.database.tables[opts.tableName];
+        const table = app.db.tables[opts.tableName];
         const group = table.fieldGroups[opts.field.group];
         if (group.type === "Image") {
           return imageCell(opts, group);
