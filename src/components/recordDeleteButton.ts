@@ -1,11 +1,11 @@
-import { state } from "../nodeHelpers.js";
-import { navigate, scalar, setScalar } from "../procHelpers.js";
-import { stringLiteral } from "../utils/sqlHelpers.js";
-import { ServiceProcStatement } from "../yom.js";
-import { button } from "./button.js";
-import { deleteRecordDialog } from "./deleteRecordDialog.js";
-import { materialIcon } from "./materialIcon.js";
-import { ComponentOpts } from "./types.js";
+import { state } from "../nodeHelpers";
+import { navigate, scalar, setScalar } from "../procHelpers";
+import { stringLiteral } from "../utils/sqlHelpers";
+import { ServiceProcStatement } from "../yom";
+import { button } from "./button";
+import { deleteRecordDialog } from "./deleteRecordDialog";
+import { materialIcon } from "./materialIcon";
+import { ComponentOpts } from "./types";
 
 export interface RecordDeleteButtonOpts extends ComponentOpts {
   table: string;

@@ -1,22 +1,18 @@
-import { alert } from "../components/alert.js";
-import { circularProgress } from "../components/circularProgress.js";
-import { addPage } from "../appHelpers.js";
-import { element, sourceMap, state, switchNode } from "../nodeHelpers.js";
-import { Node } from "../nodeTypes.js";
-import { navigate, scalar, setScalar } from "../procHelpers.js";
-import { app } from "../singleton.js";
-import { Style } from "../styleTypes.js";
-import {
-  baseGridStyles,
-  containerStyles,
-  createStyles,
-} from "../styleUtils.js";
-import { pluralize } from "../utils/inflectors.js";
-import { stringLiteral } from "../utils/sqlHelpers.js";
-import { updateFormPage } from "./updateForm.js";
-import { ChildOpts, childFnMap } from "./recordGridChild/index.js";
-import { RecordGridContext } from "./recordGridChild/shared.js";
-import { materialIcon } from "../components/materialIcon.js";
+import { alert } from "../components/alert";
+import { circularProgress } from "../components/circularProgress";
+import { addPage } from "../appHelpers";
+import { element, sourceMap, state, switchNode } from "../nodeHelpers";
+import { Node } from "../nodeTypes";
+import { navigate, scalar, setScalar } from "../procHelpers";
+import { app } from "../app";
+import { Style } from "../styleTypes";
+import { baseGridStyles, containerStyles, createStyles } from "../styleUtils";
+import { pluralize } from "../utils/inflectors";
+import { stringLiteral } from "../utils/sqlHelpers";
+import { updateFormPage } from "./updateForm";
+import { ChildOpts, childFnMap } from "./recordGridChild/index";
+import { RecordGridContext } from "./recordGridChild/shared";
+import { materialIcon } from "../components/materialIcon";
 
 export type { RecordGridContext };
 

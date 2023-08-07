@@ -1,16 +1,16 @@
-import { ifNode, portal, state } from "../nodeHelpers.js";
-import { Node } from "../nodeTypes.js";
-import { debugExpr, delay, if_, scalar, setScalar } from "../procHelpers.js";
-import { createStyles, cssVar, getVariantStyle } from "../styleUtils.js";
-import { SequentialIDGenerator } from "../utils/SequentialIdGenerator.js";
-import { stringLiteral } from "../utils/sqlHelpers.js";
-import { ElementEventHandlers, ElementProps } from "../yom.js";
-import { Color, ComponentOpts, Size, Variant } from "./types.js";
+import { ifNode, portal, state } from "../nodeHelpers";
+import { Node } from "../nodeTypes";
+import { debugExpr, delay, if_, scalar, setScalar } from "../procHelpers";
+import { createStyles, cssVar, getVariantStyle } from "../styleUtils";
+import { SequentialIDGenerator } from "../utils/SequentialIdGenerator";
+import { stringLiteral } from "../utils/sqlHelpers";
+import { ElementEventHandlers, ElementProps } from "../yom";
+import { Color, ComponentOpts, Size, Variant } from "./types";
 import {
   createSlotsFn,
   getUniqueUiId,
   SlottedComponentWithSlotNames,
-} from "./utils.js";
+} from "./utils";
 
 export interface TooltipOpts
   extends ComponentOpts,

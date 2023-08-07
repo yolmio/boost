@@ -1,29 +1,29 @@
-import { FormState, UpdateFormField } from "../../formState.js";
-import { Table } from "../../appTypes.js";
-import { element, ifNode } from "../../nodeHelpers.js";
-import { Node } from "../../nodeTypes.js";
-import { Style } from "../../styleTypes.js";
-import { baseGridStyles, createStyles } from "../../styleUtils.js";
-import { downcaseFirst } from "../../utils/inflectors.js";
-import { stringLiteral } from "../../utils/sqlHelpers.js";
-import { ClientProcStatement, EventHandler } from "../../yom.js";
-import { alert } from "../alert.js";
-import { button } from "../button.js";
-import { checkbox } from "../checkbox.js";
-import { divider } from "../divider.js";
-import { formControl } from "../formControl.js";
-import { formHelperText } from "../formHelperText.js";
-import { formLabel } from "../formLabel.js";
-import { materialIcon } from "../materialIcon.js";
-import { typography } from "../typography.js";
-import { getUniqueUiId } from "../utils.js";
-import { fieldFormControl } from "./fieldFormControl.js";
-import { labelOnLeftFormField } from "./labelOnLeftFormField.js";
+import { FormState, UpdateFormField } from "../../formState";
+import { Table } from "../../appTypes";
+import { element, ifNode } from "../../nodeHelpers";
+import { Node } from "../../nodeTypes";
+import { Style } from "../../styleTypes";
+import { baseGridStyles, createStyles } from "../../styleUtils";
+import { downcaseFirst } from "../../utils/inflectors";
+import { stringLiteral } from "../../utils/sqlHelpers";
+import { ClientProcStatement, EventHandler } from "../../yom";
+import { alert } from "../alert";
+import { button } from "../button";
+import { checkbox } from "../checkbox";
+import { divider } from "../divider";
+import { formControl } from "../formControl";
+import { formHelperText } from "../formHelperText";
+import { formLabel } from "../formLabel";
+import { materialIcon } from "../materialIcon";
+import { typography } from "../typography";
+import { getUniqueUiId } from "../utils";
+import { fieldFormControl } from "./fieldFormControl";
+import { labelOnLeftFormField } from "./labelOnLeftFormField";
 import {
   genericFormStyles,
   labelOnLeftStyles,
   twoColumnFormStyles,
-} from "./sharedFormStyles.js";
+} from "./sharedFormStyles";
 
 export interface UpdateGridFormPart {
   styles?: Style;

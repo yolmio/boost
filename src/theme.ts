@@ -1,4 +1,4 @@
-import type { CSSObject } from "./styleTypes.js";
+import type { CSSObject } from "./styleTypes";
 
 export interface Focus {
   thickness: string;

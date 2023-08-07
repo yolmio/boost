@@ -1,10 +1,10 @@
-import { element, ifNode } from "../../nodeHelpers.js";
-import { Node } from "../../nodeTypes.js";
-import { createStyles, cssVar } from "../../styleUtils.js";
-import { stringLiteral } from "../../utils/sqlHelpers.js";
-import { checkbox } from "../checkbox.js";
-import { formLabel } from "../formLabel.js";
-import { fieldFormControl, FieldFormControlOpts } from "./fieldFormControl.js";
+import { element, ifNode } from "../../nodeHelpers";
+import { Node } from "../../nodeTypes";
+import { createStyles, cssVar } from "../../styleUtils";
+import { stringLiteral } from "../../utils/sqlHelpers";
+import { checkbox } from "../checkbox";
+import { formLabel } from "../formLabel";
+import { fieldFormControl, FieldFormControlOpts } from "./fieldFormControl";
 
 export interface LabelOnLeftFormFieldOpts extends FieldFormControlOpts {
   label?: string;

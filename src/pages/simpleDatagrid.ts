@@ -1,4 +1,4 @@
-import { InsertDialogOpts } from "../components/insertDialog.js";
+import { InsertDialogOpts } from "../components/insertDialog";
 import {
   debugExpr,
   if_,
@@ -6,26 +6,26 @@ import {
   scalar,
   setScalar,
   table,
-} from "../procHelpers.js";
-import { app } from "../singleton.js";
-import { pluralize } from "../utils/inflectors.js";
-import { ident, stringLiteral } from "../utils/sqlHelpers.js";
-import { getTableBaseUrl } from "../utils/url.js";
-import { SqlExpression, StateStatement } from "../yom.js";
+} from "../procHelpers";
+import { app } from "../app";
+import { pluralize } from "../utils/inflectors";
+import { ident, stringLiteral } from "../utils/sqlHelpers";
+import { getTableBaseUrl } from "../utils/url";
+import { SqlExpression, StateStatement } from "../yom";
 import {
   simpleColumnFromField,
   simpleColumnFromVirtual,
-} from "./datagridInternals/fromModel.js";
+} from "./datagridInternals/fromModel";
 import {
   SimpleColumn,
   styledSimpleDatagrid,
   ToolbarConfig,
-} from "./datagridInternals/styledSimpleDatagrid.js";
-import { checkbox } from "../components/checkbox.js";
-import { FieldEditProcConfig } from "./datagridInternals/editHelper.js";
-import { button } from "../components/button.js";
-import { RowHeight } from "./datagridInternals/types.js";
-import { addPage } from "../appHelpers.js";
+} from "./datagridInternals/styledSimpleDatagrid";
+import { checkbox } from "../components/checkbox";
+import { FieldEditProcConfig } from "./datagridInternals/editHelper";
+import { button } from "../components/button";
+import { RowHeight } from "./datagridInternals/types";
+import { addPage } from "../appHelpers";
 
 export interface ToolbarOpts {
   delete?: boolean;

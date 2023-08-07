@@ -1,7 +1,7 @@
-import { addScript, addScriptDbFromMappingFile } from "./appHelpers.js";
-import { loadDb, modify, saveDb, table } from "./procHelpers.js";
-import { app } from "./singleton.js";
-import { ScriptStatement } from "./yom.js";
+import { addScript, addScriptDbFromMappingFile } from "./appHelpers";
+import { loadDb, modify, saveDb, table } from "./procHelpers";
+import { app } from "./singleton";
+import { ScriptStatement } from "./yom";
 import * as path from "path";
 import toposort from "toposort";
 

@@ -2,25 +2,25 @@ import {
   FormState,
   FormStateProcedureExtensions,
   withUpdateFormState,
-} from "../formState.js";
-import { app } from "../singleton.js";
-import { createStyles } from "../styleUtils.js";
-import { ident, stringLiteral } from "../utils/sqlHelpers.js";
-import { ClientProcStatement, ServiceProcStatement } from "../yom.js";
-import { divider } from "./divider.js";
-import { modal, modalDialog } from "./modal.js";
-import { typography } from "./typography.js";
-import { getUniqueUiId } from "./utils.js";
+} from "../formState";
+import { app } from "../app";
+import { createStyles } from "../styleUtils";
+import { ident, stringLiteral } from "../utils/sqlHelpers";
+import { ClientProcStatement, ServiceProcStatement } from "../yom";
+import { divider } from "./divider";
+import { modal, modalDialog } from "./modal";
+import { typography } from "./typography";
+import { getUniqueUiId } from "./utils";
 import {
   getFieldsFromUpdateFormContent,
   UpdateFormContent,
   updateFormContent,
-} from "./internal/updateFormShared.js";
-import { element, sourceMap, state, switchNode } from "../nodeHelpers.js";
-import { record } from "../procHelpers.js";
-import { alert } from "./alert.js";
-import { circularProgress } from "./circularProgress.js";
-import { materialIcon } from "./materialIcon.js";
+} from "./internal/updateFormShared";
+import { element, sourceMap, state, switchNode } from "../nodeHelpers";
+import { record } from "../procHelpers";
+import { alert } from "./alert";
+import { circularProgress } from "./circularProgress";
+import { materialIcon } from "./materialIcon";
 
 export interface EditDialogOpts extends FormStateProcedureExtensions {
   open: string;

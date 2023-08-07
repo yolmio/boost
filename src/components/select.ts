@@ -1,13 +1,13 @@
-import { lazy, memoize } from "../utils/memoize.js";
-import { DynamicClass, ElementEventHandlers, ElementProps } from "../yom.js";
-import { element } from "../nodeHelpers.js";
-import type { Node } from "../nodeTypes.js";
-import { Style, StyleObject } from "../styleTypes.js";
-import { ColorPaletteProp, Variant } from "../theme.js";
-import { createStyles, cssVar, getVariantStyle } from "../styleUtils.js";
-import { svgIcon } from "./svgIcon.js";
-import { createSlotsFn, SlottedComponentWithSlotNames } from "./utils.js";
-import { Color, ComponentOpts, Size } from "./types.js";
+import { lazy, memoize } from "../utils/memoize";
+import { DynamicClass, ElementEventHandlers, ElementProps } from "../yom";
+import { element } from "../nodeHelpers";
+import type { Node } from "../nodeTypes";
+import { Style, StyleObject } from "../styleTypes";
+import { ColorPaletteProp, Variant } from "../theme";
+import { createStyles, cssVar, getVariantStyle } from "../styleUtils";
+import { svgIcon } from "./svgIcon";
+import { createSlotsFn, SlottedComponentWithSlotNames } from "./utils";
+import { Color, ComponentOpts, Size } from "./types";
 
 export interface SelectOpts
   extends ComponentOpts,

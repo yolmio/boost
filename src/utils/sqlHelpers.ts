@@ -1,4 +1,4 @@
-import { app } from "../singleton.js";
+import { app } from "../app";
 
 export function escapeStringLiteral(s: string) {
   return s.replace(/[\0\x08\x09\x1a\n\r"'\\\%]/g, function (char: string) {

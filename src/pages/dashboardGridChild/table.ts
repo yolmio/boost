@@ -1,9 +1,9 @@
-import { card } from "../../components/card.js";
-import { each, element, state } from "../../nodeHelpers.js";
-import { Node } from "../../nodeTypes.js";
-import { table } from "../../procHelpers.js";
-import { createStyles } from "../../styleUtils.js";
-import { stringLiteral } from "../../utils/sqlHelpers.js";
+import { card } from "../../components/card";
+import { each, element, state } from "../../nodeHelpers";
+import { Node } from "../../nodeTypes";
+import { table } from "../../procHelpers";
+import { createStyles } from "../../styleUtils";
+import { stringLiteral } from "../../utils/sqlHelpers";
 
 export const name = "table";
 

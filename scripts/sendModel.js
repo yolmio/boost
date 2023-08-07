@@ -1,16 +1,15 @@
-import { runAppTs } from "./utils";
-import { app } from "../dist/index";
+import { getAppModel } from "./utils.js";
 import * as dns from "dns";
 
 dns.setDefaultResultOrder("ipv4first");
 
-await runAppTs();
+const model = await getAppModel();
 
 try {
   const res = await fetch("http://localhost:3000/api/update_app_model", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(app.generateYom()),
+    body: JSON.stringify(model),
   });
   if (!res.ok) {
     const errorMessage = await res.text();

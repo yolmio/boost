@@ -15,11 +15,11 @@ app.db.addTable("user", (table) => {
 
 // ui
 
-// app.ui.({
-//   color: "primary",
-//   variant: "solid",
-//   links: ["/contacts", "/reports"],
-// });
+app.ui.useNavbarShell({
+  color: "primary",
+  variant: "solid",
+  links: ["/contacts", "/reports"],
+});
 
 app.ui.pages.push({
   path: "/",

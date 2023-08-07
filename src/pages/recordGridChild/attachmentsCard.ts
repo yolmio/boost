@@ -1,4 +1,4 @@
-import { each, element, ifNode, state } from "../../nodeHelpers.js";
+import { each, element, ifNode, state } from "../../nodeHelpers";
 import {
   addFile,
   commitUiChanges,
@@ -12,26 +12,26 @@ import {
   setScalar,
   spawn,
   try_,
-} from "../../procHelpers.js";
-import { app } from "../../singleton.js";
+} from "../../procHelpers";
+import { app } from "../../singleton";
 import {
   createStyles,
   flexGrowStyles,
   visuallyHiddenStyles,
-} from "../../styleUtils.js";
-import { ident } from "../../utils/sqlHelpers.js";
-import { divider } from "../../components/divider.js";
-import { materialIcon } from "../../components/materialIcon.js";
-import { typography } from "../../components/typography.js";
-import { card } from "../../components/card.js";
-import { Style } from "../../styleTypes.js";
-import { RecordGridContext } from "./shared.js";
-import { iconButton } from "../../components/iconButton.js";
-import { ClientProcStatement } from "../../yom.js";
-import { deleteRecordDialog } from "../../components/deleteRecordDialog.js";
-import { input } from "../../components/input.js";
-import { circularProgress } from "../../components/circularProgress.js";
-import { alert } from "../../components/alert.js";
+} from "../../styleUtils";
+import { ident } from "../../utils/sqlHelpers";
+import { divider } from "../../components/divider";
+import { materialIcon } from "../../components/materialIcon";
+import { typography } from "../../components/typography";
+import { card } from "../../components/card";
+import { Style } from "../../styleTypes";
+import { RecordGridContext } from "./shared";
+import { iconButton } from "../../components/iconButton";
+import { ClientProcStatement } from "../../yom";
+import { deleteRecordDialog } from "../../components/deleteRecordDialog";
+import { input } from "../../components/input";
+import { circularProgress } from "../../components/circularProgress";
+import { alert } from "../../components/alert";
 
 export const name = "attachmentsCard";
 

@@ -1,25 +1,23 @@
-import { portal } from "../nodeHelpers.js";
-import { registerKeyframes } from "../nodeTransform.js";
-import { Node } from "../nodeTypes.js";
-import { if_, stopPropagation } from "../procHelpers.js";
-import { app } from "../singleton.js";
-import { createStyles, cssVar } from "../styleUtils.js";
-import { Variant } from "../theme.js";
-import { lazy } from "../utils/memoize.js";
-import { ClientProcStatement } from "../yom.js";
+import { nodes } from "../nodeHelpers";
+import { registerKeyframes } from "../nodeTransform";
+import { Node } from "../nodeTypes";
+import { app } from "../app";
+import { createStyles, cssVar } from "../styleUtils";
+import { Variant } from "../theme";
 import {
   createSlotsFn,
   mergeEls,
   SingleElementComponentOpts,
   SlottedComponentWithSlotNames,
-} from "./utils.js";
-import { withExitTransition } from "./withExitTransition.js";
+} from "./utils";
+import { withExitTransition } from "./withExitTransition";
+import { DomStatements, DomStatementsOrFn } from "../statements";
 
 export interface ModalOpts
   extends SlottedComponentWithSlotNames<"backdrop" | "overflow"> {
   open: string;
-  onClose: ClientProcStatement[];
-  children: (close: ClientProcStatement[]) => Node;
+  onClose: DomStatementsOrFn;
+  children: (close: DomStatements) => Node;
 }
 
 export const styles = createStyles({
@@ -145,22 +143,21 @@ export function modal(opts: ModalOpts) {
   const slot = createSlotsFn(opts);
   return withExitTransition(
     200,
-    ({ transitionIfNode, dynamicClasses, startCloseTransition }) =>
-      transitionIfNode(
+    ({ transitionIfNode, dynamicClasses, startCloseTransition }) => {
+      const close = new DomStatements().statements(
+        opts.onClose,
+        startCloseTransition
+      );
+      return transitionIfNode(
         opts.open,
-        portal(
+        nodes.portal(
           slot("root", {
             tag: "div",
             styles: styles.root(),
             dynamicClasses,
             on: {
-              click: [...opts.onClose, ...startCloseTransition],
-              keydown: [
-                if_("event.key = 'Escape'", [
-                  ...opts.onClose,
-                  ...startCloseTransition,
-                ]),
-              ],
+              click: close,
+              keydown: (s) => s.if("event.key = 'Escape'", close),
             },
             children: [
               slot("backdrop", {
@@ -172,15 +169,13 @@ export function modal(opts: ModalOpts) {
               slot("overflow", {
                 tag: "div",
                 styles: styles.overflow,
-                children: opts.children([
-                  ...opts.onClose,
-                  ...startCloseTransition,
-                ]),
+                children: opts.children(close),
               }),
             ],
           })
         )
-      )
+      );
+    }
   );
 }
 
@@ -202,7 +197,7 @@ export function modalDialog(opts: ModalDialogOpts) {
         opts.size ?? "md",
         opts.layout ?? "fullscreenOnMobile"
       ),
-      on: { click: [stopPropagation()] },
+      on: { click: (s) => s.stopPropagation() },
       focusLock: {},
       scrollLock: { enabled: `true` },
       children: opts.children,

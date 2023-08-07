@@ -1,4 +1,4 @@
-import { getScriptModel, runScript, writeAppModelToDisk } from "./utils.js";
+import { getScriptModel, runScript, writeAppModelToDisk } from "./utils";
 
 const appModel = await getScriptModel();
 writeAppModelToDisk(appModel);

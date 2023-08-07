@@ -1,17 +1,17 @@
-import * as addressCard from "./addressCard.js";
-import * as addressesCard from "./addressesCard.js";
-import * as namedHeader from "./namedPageHeader.js";
-import * as notesListCard from "./notesListCard.js";
-import * as staticTableCard from "./staticTableCard.js";
-import * as twoColumnDisplayCard from "./twoColumnDisplayCard.js";
-import * as notesCard from "./notesCard.js";
-import * as relatedTable from "./relatedTable.js";
-import * as relatedRecordsTimeline from "./timeline.js";
-import * as superSimpleHeader from "./superSimpleHeader.js";
-import * as attachmentsCard from "./attachmentsCard.js";
-import * as singleSourceTimeline from "./singleSourceTimeline.js";
-import * as simpleLinkRelationCard from "./simpleLinkRelationCard.js";
-import * as simpleLinkAssociationCard from "./simpleLinkAssociationCard.js";
+import * as addressCard from "./addressCard";
+import * as addressesCard from "./addressesCard";
+import * as namedHeader from "./namedPageHeader";
+import * as notesListCard from "./notesListCard";
+import * as staticTableCard from "./staticTableCard";
+import * as twoColumnDisplayCard from "./twoColumnDisplayCard";
+import * as notesCard from "./notesCard";
+import * as relatedTable from "./relatedTable";
+import * as relatedRecordsTimeline from "./timeline";
+import * as superSimpleHeader from "./superSimpleHeader";
+import * as attachmentsCard from "./attachmentsCard";
+import * as singleSourceTimeline from "./singleSourceTimeline";
+import * as simpleLinkRelationCard from "./simpleLinkRelationCard";
+import * as simpleLinkAssociationCard from "./simpleLinkAssociationCard";
 
 export const childFnMap = {
   [addressCard.name]: addressCard.content,

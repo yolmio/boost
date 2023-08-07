@@ -1,9 +1,9 @@
-import type { Node } from "../nodeTypes.js";
-import { StyleObject } from "../styleTypes.js";
-import { Variant } from "../theme.js";
-import { createStyles, cssVar, getVariantStyle } from "../styleUtils.js";
-import { Color, ComponentOpts, Size } from "./types.js";
-import { createSlotsFn, SlottedComponentWithSlotNames } from "./utils.js";
+import type { Node } from "../nodeTypes";
+import { StyleObject } from "../styleTypes";
+import { Variant } from "../theme";
+import { createStyles, cssVar, getVariantStyle } from "../styleUtils";
+import { Color, ComponentOpts, Size } from "./types";
+import { createSlotsFn, SlottedComponentWithSlotNames } from "./utils";
 
 export interface TextareaOpts
   extends ComponentOpts,

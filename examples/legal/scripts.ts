@@ -1,7 +1,7 @@
-import "./app.js";
+import "./app";
 import { modify, saveDb } from "@yolm/boost/procHelpers";
 import { addScript } from "@yolm/boost/modelHelpers";
-import { stringLiteral } from "../../dist/utils/sqlHelpers.js";
+import { stringLiteral } from "../../dist/utils/sqlHelpers";
 import { faker } from "@faker-js/faker";
 
 faker.seed(123);

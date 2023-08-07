@@ -1,10 +1,6 @@
-import type { StyleSerializer } from "./nodeTransform.js";
-import type { ColorScheme, Theme } from "./theme.js";
-import {
-  cssVar,
-  darkSchemeSelector,
-  lightSchemeSelector,
-} from "./styleUtils.js";
+import type { StyleSerializer } from "./nodeTransform";
+import type { ColorScheme, Theme } from "./theme";
+import { cssVar, darkSchemeSelector, lightSchemeSelector } from "./styleUtils";
 
 export function addRootStyles(serializer: StyleSerializer, theme: Theme) {
   serializer.addGlobalStyle({

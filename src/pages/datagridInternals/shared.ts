@@ -1,4 +1,4 @@
-import { element, eventHandlers, ifNode, state } from "../../nodeHelpers.js";
+import { element, eventHandlers, ifNode, state } from "../../nodeHelpers";
 import {
   commitUiChanges,
   delay,
@@ -8,14 +8,10 @@ import {
   setScalar,
   spawn,
   stopPropagation,
-} from "../../procHelpers.js";
-import { createStyles } from "../../styleUtils.js";
-import {
-  BaseStatement,
-  ClientProcStatement,
-  StateStatement,
-} from "../../yom.js";
-import { ColumnEventHandlers, RowHeight } from "./types.js";
+} from "../../procHelpers";
+import { createStyles } from "../../styleUtils";
+import { BaseStatement, ClientProcStatement, StateStatement } from "../../yom";
+import { ColumnEventHandlers, RowHeight } from "./types";
 
 export function rowHeightInPixels(height: RowHeight) {
   switch (height) {

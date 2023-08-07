@@ -1,19 +1,19 @@
-import { lazy } from "../utils/memoize.js";
-import { app } from "../singleton.js";
-import { element } from "../nodeHelpers.js";
-import type { Node } from "../nodeTypes.js";
-import { StyleObject } from "../styleTypes.js";
-import { Variant } from "../theme.js";
-import { createStyles, cssVar, getVariantStyle } from "../styleUtils.js";
-import { Color, ComponentOpts, Size } from "./types.js";
+import { lazy } from "../utils/memoize";
+import { app } from "../app";
+import { nodes } from "../nodeHelpers";
+import type { Node } from "../nodeTypes";
+import { StyleObject } from "../styleTypes";
+import { Variant } from "../theme";
+import { createStyles, cssVar, getVariantStyle } from "../styleUtils";
+import { Color, ComponentOpts, Size } from "./types";
 import {
   createSlotsFn,
   SingleElementComponentOpts,
   SlottedComponentWithSlotNames,
-} from "./utils.js";
-import { mergeEls } from "./utils.js";
-import { svgIcon } from "./svgIcon.js";
-import { SqlExpression } from "../yom.js";
+} from "./utils";
+import { mergeEls } from "./utils";
+import { svgIcon } from "./svgIcon";
+import { SqlExpression } from "../yom";
 
 export interface SelectedVariation extends SelectedVariationBase {
   isSelected: SqlExpression;
@@ -293,7 +293,7 @@ export function chip(opts: ChipOpts) {
     );
   }
   if (opts.startDecorator) {
-    children.push(
+    children.unshift(
       slot("startDecorator", {
         tag: "span",
         styles: styles.startDecorator,
@@ -328,7 +328,7 @@ export interface ChipDeleteOpts
 
 export const deleteIcon = lazy(() =>
   svgIcon({
-    children: element("path", {
+    children: nodes.element("path", {
       props: {
         d: "'M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'",
       },

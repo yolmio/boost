@@ -1,5 +1,5 @@
-import { deepmerge } from "./utils/deepmerge.js";
-import { colors } from "./colors.js";
+import { deepmerge } from "./utils/deepmerge";
+import { colors } from "./colors";
 import type {
   Breakpoint,
   Breakpoints,
@@ -18,9 +18,9 @@ import type {
   SpacingTransform,
   Theme,
   TypographySystem,
-} from "./theme.js";
-import { colorChannel } from "./colorManipulator.js";
-import { cssVar } from "./styleUtils.js";
+} from "./theme";
+import { colorChannel } from "./colorManipulator";
+import { cssVar } from "./styleUtils";
 
 type Partial3Level<T> = {
   [K in keyof T]?: {

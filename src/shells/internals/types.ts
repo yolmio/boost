@@ -1,7 +1,7 @@
 import {
   MultiTableSearchDialogTable,
   TableSearchDisplay,
-} from "../../components/searchDialog.js";
+} from "../../components/searchDialog";
 
 export interface GlobalSearchOpts {
   searchDialog?: {

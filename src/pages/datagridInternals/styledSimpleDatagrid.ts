@@ -1,15 +1,12 @@
-import { alert } from "../../components/alert.js";
-import { confirmDangerDialog } from "../../components/confirmDangerDialog.js";
-import { iconButton } from "../../components/iconButton.js";
-import {
-  insertDialog,
-  InsertDialogOpts,
-} from "../../components/insertDialog.js";
-import { materialIcon } from "../../components/materialIcon.js";
-import { typography } from "../../components/typography.js";
-import { Table } from "../../appTypes.js";
-import { element, ifNode, sourceMap, state } from "../../nodeHelpers.js";
-import { Node } from "../../nodeTypes.js";
+import { alert } from "../../components/alert";
+import { confirmDangerDialog } from "../../components/confirmDangerDialog";
+import { iconButton } from "../../components/iconButton";
+import { insertDialog, InsertDialogOpts } from "../../components/insertDialog";
+import { materialIcon } from "../../components/materialIcon";
+import { typography } from "../../components/typography";
+import { Table } from "../../appTypes";
+import { element, ifNode, sourceMap, state } from "../../nodeHelpers";
+import { Node } from "../../nodeTypes";
 import {
   commitTransaction,
   if_,
@@ -18,20 +15,20 @@ import {
   serviceProc,
   setScalar,
   startTransaction,
-} from "../../procHelpers.js";
-import { createStyles, flexGrowStyles } from "../../styleUtils.js";
-import { ident, stringLiteral } from "../../utils/sqlHelpers.js";
-import { SqlExpression, StateStatement } from "../../yom.js";
+} from "../../procHelpers";
+import { createStyles, flexGrowStyles } from "../../styleUtils";
+import { ident, stringLiteral } from "../../utils/sqlHelpers";
+import { SqlExpression, StateStatement } from "../../yom";
 import {
   getCountQuery,
   SimpleBaseColumn,
   SimpleBaseColumnQueryGeneration,
   simplDatagridBase,
-} from "./simpleDatgridBase.js";
-import { styles as sharedStyles } from "./styles.js";
-import { triggerQueryRefresh } from "./shared.js";
-import { Cell, ColumnEventHandlers, RowHeight } from "./types.js";
-import { circularProgress } from "../../components/circularProgress.js";
+} from "./simpleDatgridBase";
+import { styles as sharedStyles } from "./styles";
+import { triggerQueryRefresh } from "./shared";
+import { Cell, ColumnEventHandlers, RowHeight } from "./types";
+import { circularProgress } from "../../components/circularProgress";
 
 export interface ToolbarConfig {
   header: Node;

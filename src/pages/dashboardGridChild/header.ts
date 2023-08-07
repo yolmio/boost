@@ -1,7 +1,7 @@
-import { element } from "../../nodeHelpers.js";
-import { Style } from "../../styleTypes.js";
-import { createStyles } from "../../styleUtils.js";
-import { SqlExpression } from "../../yom.js";
+import { element } from "../../nodeHelpers";
+import { Style } from "../../styleTypes";
+import { createStyles } from "../../styleUtils";
+import { SqlExpression } from "../../yom";
 
 export const name = "header";
 

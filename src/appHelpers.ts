@@ -25,17 +25,17 @@ import type {
   TableControl,
   VirtualField,
   VirtualType,
-} from "./appTypes.js";
-import type * as yom from "./yom.js";
-import { app } from "./singleton.js";
-import { stringLiteral } from "./utils/sqlHelpers.js";
-import type { Node } from "./nodeTypes.js";
-import { getTableBaseUrl } from "./utils/url.js";
+} from "./appTypes";
+import type * as yom from "./yom";
+import { app } from "./singleton";
+import { stringLiteral } from "./utils/sqlHelpers";
+import type { Node } from "./nodeTypes";
+import { getTableBaseUrl } from "./utils/url";
 import {
   applyFieldGroupCatalog,
   FieldGroupCatalog,
-} from "./catalog/fieldGroup.js";
-import { applyTableCatalog, TableCatalog } from "./catalog/table.js";
+} from "./catalog/fieldGroup";
+import { applyTableCatalog, TableCatalog } from "./catalog/table";
 import {
   advanceCursor,
   createQueryCursor,
@@ -46,7 +46,7 @@ import {
   scalar,
   setScalar,
   try_,
-} from "./procHelpers.js";
+} from "./procHelpers";
 
 const RECORD_DISPLAY_NAME_FIELD_GROUPS = [["first_name", "last_name"]];
 const RECORD_DISPLAY_NAME_FIELDS = ["name", "title"];

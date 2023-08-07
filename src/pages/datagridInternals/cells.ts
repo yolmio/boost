@@ -1,7 +1,7 @@
-import { checkbox } from "../../components/checkbox.js";
-import { recordSelectDialog } from "../../components/searchDialog.js";
-import { selectIcon } from "../../components/select.js";
-import { mergeElEventHandlers } from "../../components/utils.js";
+import { checkbox } from "../../components/checkbox";
+import { recordSelectDialog } from "../../components/searchDialog";
+import { selectIcon } from "../../components/select";
+import { mergeElEventHandlers } from "../../components/utils";
 import {
   BoolField,
   DateField,
@@ -18,8 +18,8 @@ import {
   StringField,
   TimestampField,
   UuidField,
-} from "../../appTypes.js";
-import { element, ifNode, state } from "../../nodeHelpers.js";
+} from "../../appTypes";
+import { element, ifNode, state } from "../../nodeHelpers";
 import {
   commitUiChanges,
   debugExpr,
@@ -33,22 +33,22 @@ import {
   setScalar,
   spawn,
   try_,
-} from "../../procHelpers.js";
-import { app } from "../../singleton.js";
-import { createStyles, visuallyHiddenStyles } from "../../styleUtils.js";
-import { enumLikeDisplayName } from "../../utils/enumLike.js";
-import { stringLiteral } from "../../utils/sqlHelpers.js";
-import { FieldEditProcConfig, displayEditError, doEdit } from "./editHelper.js";
-import { triggerQueryRefresh } from "./shared.js";
-import { fieldEditorEventHandlers } from "./editHelper.js";
-import { ClientProcStatement, ServiceProcStatement } from "../../yom.js";
-import { button } from "../../components/button.js";
-import { materialIcon } from "../../components/materialIcon.js";
-import { imageDalog } from "../../components/imageDialog.js";
-import { getUploadStatements } from "../../utils/image.js";
-import { Cell, CellProps } from "./types.js";
-import { styles as sharedStyles } from "./styles.js";
-import { iconButton } from "../../components/iconButton.js";
+} from "../../procHelpers";
+import { app } from "../../singleton";
+import { createStyles, visuallyHiddenStyles } from "../../styleUtils";
+import { enumLikeDisplayName } from "../../utils/enumLike";
+import { stringLiteral } from "../../utils/sqlHelpers";
+import { FieldEditProcConfig, displayEditError, doEdit } from "./editHelper";
+import { triggerQueryRefresh } from "./shared";
+import { fieldEditorEventHandlers } from "./editHelper";
+import { ClientProcStatement, ServiceProcStatement } from "../../yom";
+import { button } from "../../components/button";
+import { materialIcon } from "../../components/materialIcon";
+import { imageDalog } from "../../components/imageDialog";
+import { getUploadStatements } from "../../utils/image";
+import { Cell, CellProps } from "./types";
+import { styles as sharedStyles } from "./styles";
+import { iconButton } from "../../components/iconButton";
 
 const styles = createStyles({
   select: {

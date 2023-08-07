@@ -1,6 +1,6 @@
-import { addDecisionTable, addEnum, addTable } from "../../appHelpers.js";
-import { queryParams, state } from "../../nodeHelpers.js";
-import { DataGridStyles, Node } from "../../nodeTypes.js";
+import { addDecisionTable, addEnum, addTable } from "../../appHelpers";
+import { queryParams, state } from "../../nodeHelpers";
+import { DataGridStyles, Node } from "../../nodeTypes";
 import {
   block,
   commitTransaction,
@@ -15,10 +15,10 @@ import {
   startTransaction,
   table,
   while_,
-} from "../../procHelpers.js";
-import { app } from "../../singleton.js";
-import { ident, stringLiteral } from "../../utils/sqlHelpers.js";
-import { ServiceProcStatement, StateStatement } from "../../yom.js";
+} from "../../procHelpers";
+import { app } from "../../singleton";
+import { ident, stringLiteral } from "../../utils/sqlHelpers";
+import { ServiceProcStatement, StateStatement } from "../../yom";
 import {
   colClickHandlers,
   colKeydownHandlers,
@@ -26,8 +26,8 @@ import {
   refreshKeyState,
   rowHeightInPixels,
   triggerQueryRefresh,
-} from "./shared.js";
-import { Cell, ColumnEventHandlers, RowHeight } from "./types.js";
+} from "./shared";
+import { Cell, ColumnEventHandlers, RowHeight } from "./types";
 
 export interface DefaultView {
   columnOrder?: string[];

@@ -1,4 +1,4 @@
-import { VirtualType } from "../../appTypes.js";
+import { VirtualType } from "../../appTypes";
 import {
   each,
   element,
@@ -6,7 +6,7 @@ import {
   ifNode,
   sourceMap,
   state,
-} from "../../nodeHelpers.js";
+} from "../../nodeHelpers";
 import {
   exit,
   getElProperty,
@@ -15,24 +15,24 @@ import {
   scalar,
   setScalar,
   table,
-} from "../../procHelpers.js";
-import { app } from "../../singleton.js";
-import { Style } from "../../styleTypes.js";
-import { ident, stringLiteral } from "../../utils/sqlHelpers.js";
-import { UnionExpr, createUnionQuery } from "../../utils/union.js";
-import { materialIcon } from "../../components/materialIcon.js";
-import { popoverMenu } from "../../components/menu.js";
-import { typography } from "../../components/typography.js";
-import { button } from "../../components/button.js";
-import { insertDialog } from "../../components/insertDialog.js";
-import { divider } from "../../components/divider.js";
-import { DynamicClass, SqlExpression, StateStatement } from "../../yom.js";
-import { Node } from "../../nodeTypes.js";
-import { FormStateProcedureExtensions } from "../../formState.js";
-import { getUniqueUiId } from "../../components/utils.js";
-import { AutoLabelOnLeftFieldOverride } from "../../components/internal/updateFormShared.js";
-import { RecordGridContext } from "./shared.js";
-import { recordDefaultItemContent, styles } from "./timelineShared.js";
+} from "../../procHelpers";
+import { app } from "../../singleton";
+import { Style } from "../../styleTypes";
+import { ident, stringLiteral } from "../../utils/sqlHelpers";
+import { UnionExpr, createUnionQuery } from "../../utils/union";
+import { materialIcon } from "../../components/materialIcon";
+import { popoverMenu } from "../../components/menu";
+import { typography } from "../../components/typography";
+import { button } from "../../components/button";
+import { insertDialog } from "../../components/insertDialog";
+import { divider } from "../../components/divider";
+import { DynamicClass, SqlExpression, StateStatement } from "../../yom";
+import { Node } from "../../nodeTypes";
+import { FormStateProcedureExtensions } from "../../formState";
+import { getUniqueUiId } from "../../components/utils";
+import { AutoLabelOnLeftFieldOverride } from "../../components/internal/updateFormShared";
+import { RecordGridContext } from "./shared";
+import { recordDefaultItemContent, styles } from "./timelineShared";
 
 export const name = "timeline";
 

@@ -1,4 +1,4 @@
-import { deploy } from "./utils.js";
+import { deploy } from "./utils";
 
 const args = process.argv;
 

@@ -1,11 +1,11 @@
-import { Node } from "../nodeTypes.js";
-import { app } from "../singleton.js";
-import { StyleObject } from "../styleTypes.js";
-import { createStyles, cssVar, getVariantStyle } from "../styleUtils.js";
-import { TypographyKeys, Variant } from "../theme.js";
-import { AllHtmlTags } from "../yom.js";
-import { Color } from "./types.js";
-import { createSlotsFn, SlottedComponentWithSlotNames } from "./utils.js";
+import { Node } from "../nodeTypes";
+import { app } from "../app";
+import { StyleObject } from "../styleTypes";
+import { createStyles, cssVar, getVariantStyle } from "../styleUtils";
+import { TypographyKeys, Variant } from "../theme";
+import { AllHtmlTags } from "../yom";
+import { Color } from "./types";
+import { createSlotsFn, SlottedComponentWithSlotNames } from "./utils";
 
 type Level = TypographyKeys | "inherit";
 

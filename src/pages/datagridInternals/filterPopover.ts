@@ -1,5 +1,5 @@
-import { each, element, ifNode, state, switchNode } from "../../nodeHelpers.js";
-import { Node } from "../../nodeTypes.js";
+import { each, element, ifNode, state, switchNode } from "../../nodeHelpers";
+import { Node } from "../../nodeTypes";
 import {
   abortTask,
   commitUiChanges,
@@ -10,29 +10,29 @@ import {
   scalar,
   setScalar,
   spawn,
-} from "../../procHelpers.js";
-import { app } from "../../singleton.js";
-import { stringLiteral } from "../../utils/sqlHelpers.js";
-import { ClientProcStatement } from "../../yom.js";
-import { button } from "../../components/button.js";
-import { iconButton } from "../../components/iconButton.js";
-import { input } from "../../components/input.js";
-import { materialIcon } from "../../components/materialIcon.js";
-import { popoverMenu } from "../../components/menu.js";
-import { select } from "../../components/select.js";
-import { getTableRecordSelect } from "../../components/tableRecordSelect.js";
+} from "../../procHelpers";
+import { app } from "../../singleton";
+import { stringLiteral } from "../../utils/sqlHelpers";
+import { ClientProcStatement } from "../../yom";
+import { button } from "../../components/button";
+import { iconButton } from "../../components/iconButton";
+import { input } from "../../components/input";
+import { materialIcon } from "../../components/materialIcon";
+import { popoverMenu } from "../../components/menu";
+import { select } from "../../components/select";
+import { getTableRecordSelect } from "../../components/tableRecordSelect";
 import {
   defaultOpForFieldType,
   eqFilterType,
   FilterType,
-} from "./styledDatagrid.js";
-import { triggerQueryRefresh } from "./shared.js";
-import { checkbox } from "../../components/checkbox.js";
-import { durationInput } from "../../components/durationInput.js";
-import { createStyles, flexGrowStyles } from "../../styleUtils.js";
-import { styles as sharedStyles } from "./styles.js";
-import { getUniqueUiId } from "../../components/utils.js";
-import { SuperGridColumn, SuperGridDts } from "./styledDatagrid.js";
+} from "./styledDatagrid";
+import { triggerQueryRefresh } from "./shared";
+import { checkbox } from "../../components/checkbox";
+import { durationInput } from "../../components/durationInput";
+import { createStyles, flexGrowStyles } from "../../styleUtils";
+import { styles as sharedStyles } from "./styles";
+import { getUniqueUiId } from "../../components/utils";
+import { SuperGridColumn, SuperGridDts } from "./styledDatagrid";
 
 const styles = createStyles({
   checkboxWrapper: {

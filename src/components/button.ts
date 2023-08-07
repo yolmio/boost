@@ -1,17 +1,17 @@
-import { app } from "../singleton.js";
-import { ifNode } from "../nodeHelpers.js";
-import type { Node } from "../nodeTypes.js";
-import { StyleObject } from "../styleTypes.js";
-import { Variant } from "../theme.js";
-import { createStyles, cssVar, getVariantStyle } from "../styleUtils.js";
+import { app } from "../app";
+import { nodes } from "../nodeHelpers";
+import type { Node } from "../nodeTypes";
+import { StyleObject } from "../styleTypes";
+import { Variant } from "../theme";
+import { createStyles, cssVar, getVariantStyle } from "../styleUtils";
 import {
   createSlotsFn,
   getComponentOverwrite,
   SlottedComponentWithSlotNames,
-} from "./utils.js";
-import { Color, ComponentOpts, Size } from "./types.js";
-import { circularProgress } from "./circularProgress.js";
-import { DynamicClass } from "../yom.js";
+} from "./utils";
+import { Color, ComponentOpts, Size } from "./types";
+import { circularProgress } from "./circularProgress";
+import * as yom from "../yom";
 
 export interface ButtonOpts
   extends SlottedComponentWithSlotNames<
@@ -148,14 +148,14 @@ export function button(opts: ButtonOpts) {
     opts.fullWidth ?? false
   );
   const children: Node[] = [opts.children];
-  const dynamicClasses: DynamicClass[] = [];
+  const dynamicClasses: yom.DynamicClass[] = [];
   const loadingIndicator = opts.loading
     ? circularProgress({ color: color === "harmonize" ? undefined : color })
     : null;
   if (opts.loading && loadingPosition === "center") {
     dynamicClasses.push({ classes: "loading", condition: opts.loading });
     children.push(
-      ifNode(
+      nodes.if(
         opts.loading,
         slot("loadingIndicatorCenter", {
           tag: "span",
@@ -171,7 +171,7 @@ export function button(opts: ButtonOpts) {
   if (opts.startDecorator || (opts.loading && loadingPosition === "start")) {
     if (!opts.startDecorator) {
       children.unshift(
-        ifNode(
+        nodes.if(
           opts.loading!,
           slot("startDecorator", {
             tag: "span",
@@ -193,7 +193,7 @@ export function button(opts: ButtonOpts) {
         slot("startDecorator", {
           tag: "span",
           styles: styles.startDecorator,
-          children: ifNode(
+          children: nodes.if(
             opts.loading,
             loadingIndicator!,
             opts.startDecorator
@@ -205,7 +205,7 @@ export function button(opts: ButtonOpts) {
   if (opts.endDecorator || (opts.loading && loadingPosition === "end")) {
     if (!opts.endDecorator) {
       children.push(
-        ifNode(
+        nodes.if(
           opts.loading!,
           slot("endDecorator", {
             tag: "span",
@@ -227,7 +227,11 @@ export function button(opts: ButtonOpts) {
         slot("endDecorator", {
           tag: "span",
           styles: styles.endDecorator,
-          children: ifNode(opts.loading, loadingIndicator!, opts.endDecorator),
+          children: nodes.if(
+            opts.loading,
+            loadingIndicator!,
+            opts.endDecorator
+          ),
         })
       );
     }

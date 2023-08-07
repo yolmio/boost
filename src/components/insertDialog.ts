@@ -1,21 +1,21 @@
 import {
   FormStateProcedureExtensions,
   withInsertFormState,
-} from "../formState.js";
-import { sourceMap } from "../nodeHelpers.js";
-import { app } from "../singleton.js";
-import { createStyles } from "../styleUtils.js";
-import { stringLiteral } from "../utils/sqlHelpers.js";
-import { ClientProcStatement } from "../yom.js";
-import { divider } from "./divider.js";
-import { modal, modalDialog } from "./modal.js";
-import { typography } from "./typography.js";
-import { getUniqueUiId } from "./utils.js";
+} from "../formState";
+import { sourceMap } from "../nodeHelpers";
+import { app } from "../app";
+import { createStyles } from "../styleUtils";
+import { stringLiteral } from "../utils/sqlHelpers";
+import { ClientProcStatement } from "../yom";
+import { divider } from "./divider";
+import { modal, modalDialog } from "./modal";
+import { typography } from "./typography";
+import { getUniqueUiId } from "./utils";
 import {
   getFieldsAndRelationsFromInsertFormContent,
   InsertFormContent,
   insertFormContent,
-} from "./internal/insertFormShared.js";
+} from "./internal/insertFormShared";
 
 export interface InsertDialogOpts extends FormStateProcedureExtensions {
   open: string;

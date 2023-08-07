@@ -1,19 +1,19 @@
 import {
   FormStateProcedureExtensions,
   withInsertFormState,
-} from "../formState.js";
-import { addPage } from "../appHelpers.js";
-import { element } from "../nodeHelpers.js";
-import { Node } from "../nodeTypes.js";
-import { app } from "../singleton.js";
-import { containerStyles, createStyles } from "../styleUtils.js";
-import { stringLiteral } from "../utils/sqlHelpers.js";
+} from "../formState";
+import { addPage } from "../appHelpers";
+import { element } from "../nodeHelpers";
+import { Node } from "../nodeTypes";
+import { app } from "../app";
+import { containerStyles, createStyles } from "../styleUtils";
+import { stringLiteral } from "../utils/sqlHelpers";
 import {
   getFieldsAndRelationsFromInsertFormContent,
   InsertFormContent,
   insertFormContent,
-} from "../components/internal/insertFormShared.js";
-import { getTableBaseUrl } from "../utils/url.js";
+} from "../components/internal/insertFormShared";
+import { getTableBaseUrl } from "../utils/url";
 
 export interface SectionedInsertFormPageOpts
   extends FormStateProcedureExtensions {

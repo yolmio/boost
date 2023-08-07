@@ -1,29 +1,29 @@
-import { button } from "../components/button.js";
-import { InsertDialogOpts } from "../components/insertDialog.js";
-import { Table } from "../appTypes.js";
-import { element } from "../nodeHelpers.js";
-import { if_, modify, scalar, setScalar, table } from "../procHelpers.js";
-import { app } from "../singleton.js";
-import { upcaseFirst } from "../utils/inflectors.js";
-import { ident, stringLiteral } from "../utils/sqlHelpers.js";
-import { getTableBaseUrl } from "../utils/url.js";
-import { StateStatement } from "../yom.js";
+import { button } from "../components/button";
+import { InsertDialogOpts } from "../components/insertDialog";
+import { Table } from "../appTypes";
+import { element } from "../nodeHelpers";
+import { if_, modify, scalar, setScalar, table } from "../procHelpers";
+import { app } from "../app";
+import { upcaseFirst } from "../utils/inflectors";
+import { ident, stringLiteral } from "../utils/sqlHelpers";
+import { getTableBaseUrl } from "../utils/url";
+import { StateStatement } from "../yom";
 import {
   columnFromField,
   columnFromVirtual,
-} from "./datagridInternals/fromModel.js";
+} from "./datagridInternals/fromModel";
 import {
   columnPopover,
   styledDatagrid,
   SuperGridColumn,
   ToolbarConfig,
-} from "./datagridInternals/styledDatagrid.js";
-import { styles as sharedStyles } from "./datagridInternals/styles.js";
-import { checkbox } from "../components/checkbox.js";
-import { DefaultView } from "./datagridInternals/datagridBase.js";
-import { resizeableSeperator } from "./datagridInternals/shared.js";
-import { FieldEditProcConfig } from "./datagridInternals/editHelper.js";
-import { addPage } from "../appHelpers.js";
+} from "./datagridInternals/styledDatagrid";
+import { styles as sharedStyles } from "./datagridInternals/styles";
+import { checkbox } from "../components/checkbox";
+import { DefaultView } from "./datagridInternals/datagridBase";
+import { resizeableSeperator } from "./datagridInternals/shared";
+import { FieldEditProcConfig } from "./datagridInternals/editHelper";
+import { addPage } from "../appHelpers";
 
 export interface ToolbarOpts {
   views?: boolean;

@@ -1,5 +1,5 @@
-import { Node } from "../../nodeTypes.js";
-import { BaseStatement, ClientProcStatement } from "../../yom.js";
+import { Node } from "../../nodeTypes";
+import { BaseStatement, ClientProcStatement } from "../../yom";
 
 export interface CellProps {
   value: string;

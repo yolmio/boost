@@ -1,11 +1,11 @@
-import type * as yom from "./yom.js";
-import type { Node } from "./nodeTypes.js";
-import type { Style } from "./styleTypes.js";
-import { ComponentOpts } from "./components/types.js";
-import { Theme } from "./theme.js";
-import { WebAppManifest } from "./pwaManifest.js";
-import { TableBuilder } from "./appHelpers.js";
-import { navbarShell, NavbarProps } from "./shells/navbar.js";
+import type * as yom from "./yom";
+import type { Node } from "./nodeTypes";
+import type { Style } from "./styleTypes";
+import { ComponentOpts } from "./components/types";
+import { Theme } from "./theme";
+import { WebAppManifest } from "./pwaManifest";
+import { TableBuilder } from "./appHelpers";
+import { navbarShell, NavbarProps } from "./shells/navbar";
 
 export interface ExtensibleObject {
   /**
@@ -35,14 +35,14 @@ export interface TableControlOpts extends ComponentOpts {
   id?: string;
   immediateFocus?: boolean;
   value: string;
-  onSelectValue: (newValue: string) => yom.ClientProcStatement[];
+  onSelectValue: (newValue: string) => yom.DomProcStatement[];
   emptyQuery?: string;
   initialInputText?: string;
   error?: string;
   onComboboxSelectValue?: (
     newId: string,
     newLabel: string
-  ) => yom.ClientProcStatement[];
+  ) => yom.DomProcStatement[];
 }
 
 export interface AddressFieldGroup {
@@ -364,7 +364,7 @@ export type EnumControl =
 export interface EnumControlOpts extends ComponentOpts {
   id: string;
   value: string;
-  onSelectValue: (newValue: string) => yom.ClientProcStatement[];
+  onSelectValue: (newValue: string) => yom.DomProcStatement[];
   initialInputText?: string;
 }
 
@@ -505,4 +505,4 @@ export interface BoostAppModel {
   ui: Ui;
 }
 
-export * from "./nodeTypes.js";
+export * from "./nodeTypes";

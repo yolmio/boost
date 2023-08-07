@@ -1,4 +1,4 @@
-import { each, element, ifNode, sourceMap, state } from "../../nodeHelpers.js";
+import { each, element, ifNode, sourceMap, state } from "../../nodeHelpers";
 import {
   commitUiChanges,
   exit,
@@ -9,23 +9,23 @@ import {
   setScalar,
   table,
   try_,
-} from "../../procHelpers.js";
-import { createStyles, flexGrowStyles } from "../../styleUtils.js";
-import { alert } from "../../components/alert.js";
-import { button } from "../../components/button.js";
-import { deleteRecordDialog } from "../../components/deleteRecordDialog.js";
-import { divider } from "../../components/divider.js";
-import { formControl } from "../../components/formControl.js";
-import { formLabel } from "../../components/formLabel.js";
-import { iconButton } from "../../components/iconButton.js";
-import { input } from "../../components/input.js";
-import { materialIcon } from "../../components/materialIcon.js";
-import { textarea } from "../../components/textarea.js";
-import { typography } from "../../components/typography.js";
-import { RecordGridContext } from "./shared.js";
-import { app } from "../../singleton.js";
-import { card } from "../../components/card.js";
-import { Style } from "../../styleTypes.js";
+} from "../../procHelpers";
+import { createStyles, flexGrowStyles } from "../../styleUtils";
+import { alert } from "../../components/alert";
+import { button } from "../../components/button";
+import { deleteRecordDialog } from "../../components/deleteRecordDialog";
+import { divider } from "../../components/divider";
+import { formControl } from "../../components/formControl";
+import { formLabel } from "../../components/formLabel";
+import { iconButton } from "../../components/iconButton";
+import { input } from "../../components/input";
+import { materialIcon } from "../../components/materialIcon";
+import { textarea } from "../../components/textarea";
+import { typography } from "../../components/typography";
+import { RecordGridContext } from "./shared";
+import { app } from "../../singleton";
+import { card } from "../../components/card";
+import { Style } from "../../styleTypes";
 
 export const name = "notesListCard";
 

@@ -4,31 +4,31 @@ import {
   FormStateTableCursor,
   InsertFormField,
   withMultiInsertFormState,
-} from "../formState.js";
-import { addPage } from "../appHelpers.js";
-import { element, ifNode, state } from "../nodeHelpers.js";
-import { Node } from "../nodeTypes.js";
-import { scalar, setScalar } from "../procHelpers.js";
-import { app } from "../singleton.js";
-import { downcaseFirst, pluralize } from "../utils/inflectors.js";
-import { stringLiteral } from "../utils/sqlHelpers.js";
-import { ClientProcStatement, StateStatement } from "../yom.js";
-import { button } from "../components/button.js";
-import { card } from "../components/card.js";
-import { checkbox } from "../components/checkbox.js";
-import { iconButton } from "../components/iconButton.js";
-import { materialIcon } from "../components/materialIcon.js";
-import { typography } from "../components/typography.js";
-import { fieldFormControl } from "../components/internal/fieldFormControl.js";
-import { createStyles } from "../styleUtils.js";
-import { containerStyles } from "../styleUtils.js";
-import { flexGrowStyles } from "../styleUtils.js";
-import { alert } from "../components/alert.js";
-import { formHelperText } from "../components/formHelperText.js";
-import { formControl } from "../components/formControl.js";
-import { getTableBaseUrl } from "../utils/url.js";
-import { getUniqueUiId } from "../components/utils.js";
-import { labelOnLeftFormField } from "../components/internal/labelOnLeftFormField.js";
+} from "../formState";
+import { addPage } from "../appHelpers";
+import { element, ifNode, state } from "../nodeHelpers";
+import { Node } from "../nodeTypes";
+import { scalar, setScalar } from "../procHelpers";
+import { app } from "../app";
+import { downcaseFirst, pluralize } from "../utils/inflectors";
+import { stringLiteral } from "../utils/sqlHelpers";
+import { ClientProcStatement, StateStatement } from "../yom";
+import { button } from "../components/button";
+import { card } from "../components/card";
+import { checkbox } from "../components/checkbox";
+import { iconButton } from "../components/iconButton";
+import { materialIcon } from "../components/materialIcon";
+import { typography } from "../components/typography";
+import { fieldFormControl } from "../components/internal/fieldFormControl";
+import { createStyles } from "../styleUtils";
+import { containerStyles } from "../styleUtils";
+import { flexGrowStyles } from "../styleUtils";
+import { alert } from "../components/alert";
+import { formHelperText } from "../components/formHelperText";
+import { formControl } from "../components/formControl";
+import { getTableBaseUrl } from "../utils/url";
+import { getUniqueUiId } from "../components/utils";
+import { labelOnLeftFormField } from "../components/internal/labelOnLeftFormField";
 
 export interface CardFormField extends InsertFormField {
   emptyComboboxQuery?: (

@@ -1,5 +1,5 @@
-import { sourceMap, state } from "../../nodeHelpers.js";
-import { DataGridStyles, Node } from "../../nodeTypes.js";
+import { sourceMap, state } from "../../nodeHelpers";
+import { DataGridStyles, Node } from "../../nodeTypes";
 import {
   if_,
   modify,
@@ -7,14 +7,14 @@ import {
   scalar,
   setScalar,
   table,
-} from "../../procHelpers.js";
-import { ident } from "../../utils/sqlHelpers.js";
+} from "../../procHelpers";
+import { ident } from "../../utils/sqlHelpers";
 import {
   FieldType,
   ProcTableField,
   SqlExpression,
   StateStatement,
-} from "../../yom.js";
+} from "../../yom";
 import {
   colClickHandlers,
   colKeydownHandlers,
@@ -22,8 +22,8 @@ import {
   refreshKeyState,
   rowHeightInPixels,
   triggerQueryRefresh,
-} from "./shared.js";
-import { Cell, ColumnEventHandlers, RowHeight } from "./types.js";
+} from "./shared";
+import { Cell, ColumnEventHandlers, RowHeight } from "./types";
 
 export interface SimpleDatagridBaseOpts {
   datagridStyles: DataGridStyles;

@@ -1,14 +1,14 @@
-import { chip } from "../../components/chip.js";
-import { confirmDangerDialog } from "../../components/confirmDangerDialog.js";
-import { iconButton } from "../../components/iconButton.js";
-import { inlineFieldDisplay } from "../../components/internal/fieldInlineDisplay.js";
-import { materialIcon } from "../../components/materialIcon.js";
-import { popoverMenu } from "../../components/menu.js";
-import { typography } from "../../components/typography.js";
-import { updateDialog } from "../../components/updateDialog.js";
-import { getUniqueUiId } from "../../components/utils.js";
-import { Node, Table, VirtualType } from "../../appTypes.js";
-import { element, ifNode, state } from "../../nodeHelpers.js";
+import { chip } from "../../components/chip";
+import { confirmDangerDialog } from "../../components/confirmDangerDialog";
+import { iconButton } from "../../components/iconButton";
+import { inlineFieldDisplay } from "../../components/internal/fieldInlineDisplay";
+import { materialIcon } from "../../components/materialIcon";
+import { popoverMenu } from "../../components/menu";
+import { typography } from "../../components/typography";
+import { updateDialog } from "../../components/updateDialog";
+import { getUniqueUiId } from "../../components/utils";
+import { Node, Table, VirtualType } from "../../appTypes";
+import { element, ifNode, state } from "../../nodeHelpers";
 import {
   commitTransaction,
   commitUiChanges,
@@ -19,11 +19,11 @@ import {
   setScalar,
   startTransaction,
   try_,
-} from "../../procHelpers.js";
-import { createStyles } from "../../styleUtils.js";
-import { ident, stringLiteral } from "../../utils/sqlHelpers.js";
-import { ClientProcStatement, SqlExpression } from "../../yom.js";
-import { RecordGridContext } from "./shared.js";
+} from "../../procHelpers";
+import { createStyles } from "../../styleUtils";
+import { ident, stringLiteral } from "../../utils/sqlHelpers";
+import { ClientProcStatement, SqlExpression } from "../../yom";
+import { RecordGridContext } from "./shared";
 
 export const styles = createStyles({
   root: {

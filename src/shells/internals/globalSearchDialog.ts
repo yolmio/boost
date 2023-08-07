@@ -1,22 +1,22 @@
 import {
   multiTableSearchDialog,
   tableSearchDialog,
-} from "../../components/searchDialog.js";
-import { eventHandlers } from "../../nodeHelpers.js";
-import { if_, setScalar } from "../../procHelpers.js";
-import { BaseStatement } from "../../yom.js";
-import { GlobalSearchOpts } from "./types.js";
+} from "../../components/searchDialog";
+import { nodes } from "../../nodeHelpers";
+import { BasicStatements } from "../../statements";
+import { GlobalSearchOpts } from "./types";
 
 export function globalSearchDialog(
   opts: GlobalSearchOpts,
   open: string,
-  setOpen: (open: string) => BaseStatement
+  setOpen: (open: string, s: BasicStatements) => BasicStatements
 ) {
   let searchDialog;
+  const toggleOpen = setOpen(`not ${open}`, new BasicStatements());
   if (opts.searchDialog) {
     searchDialog = tableSearchDialog({
       open,
-      onClose: [setOpen(`not ${open}`)],
+      onClose: toggleOpen,
       table: opts.searchDialog.table,
       displayValues: opts.searchDialog?.displayValues,
     });
@@ -24,7 +24,7 @@ export function globalSearchDialog(
   if (opts.multiTableSearchDialog) {
     searchDialog = multiTableSearchDialog({
       open,
-      onClose: [setOpen(`not ${open}`)],
+      onClose: toggleOpen,
       tables: opts.multiTableSearchDialog.tables,
     });
   }
@@ -33,13 +33,13 @@ export function globalSearchDialog(
   }
   return [
     searchDialog,
-    eventHandlers({
+    nodes.eventHandlers({
       document: {
-        keydown: [
-          if_(`event.key = 'k' and (event.ctrl_key or event.meta_key)`, [
-            setOpen(`not ${open}`),
-          ]),
-        ],
+        keydown: (s) =>
+          s.if(
+            `event.key = 'k' and (event.ctrl_key or event.meta_key)`,
+            toggleOpen
+          ),
       },
     }),
   ];

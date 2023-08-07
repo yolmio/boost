@@ -1,15 +1,15 @@
-import { element, state } from "../../nodeHelpers.js";
-import { record } from "../../procHelpers.js";
-import { app } from "../../singleton.js";
-import { createStyles } from "../../styleUtils.js";
-import { ident } from "../../utils/sqlHelpers.js";
-import { divider } from "../../components/divider.js";
-import { materialIcon } from "../../components/materialIcon.js";
-import { typography } from "../../components/typography.js";
-import { displayAddressText } from "./displayAddressText.js";
-import { card } from "../../components/card.js";
-import { Style } from "../../styleTypes.js";
-import { RecordGridContext } from "./shared.js";
+import { element, state } from "../../nodeHelpers";
+import { record } from "../../procHelpers";
+import { app } from "../../singleton";
+import { createStyles } from "../../styleUtils";
+import { ident } from "../../utils/sqlHelpers";
+import { divider } from "../../components/divider";
+import { materialIcon } from "../../components/materialIcon";
+import { typography } from "../../components/typography";
+import { displayAddressText } from "./displayAddressText";
+import { card } from "../../components/card";
+import { Style } from "../../styleTypes";
+import { RecordGridContext } from "./shared";
 
 export const name = "addressCard";
 

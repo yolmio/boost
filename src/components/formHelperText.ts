@@ -1,6 +1,6 @@
-import type { Node } from "../nodeTypes.js";
-import { createStyles, cssVar } from "../styleUtils.js";
-import { mergeEls, SingleElementComponentOpts } from "./utils.js";
+import type { Node } from "../nodeTypes";
+import { createStyles, cssVar } from "../styleUtils";
+import { mergeEls, SingleElementComponentOpts } from "./utils";
 
 export interface FormHelperTextOpts extends SingleElementComponentOpts {
   children: Node;

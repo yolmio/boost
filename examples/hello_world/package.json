@@ -11,7 +11,7 @@
   },
   "scripts": {
     "start": "node node_modules/@yolm/boost/scripts/startEntry.js",
-    "save": "node node_modules/@yolm/boost/dist/scripts/saveEntry.js",
+    "save": "node node_modules/@yolm/boost/scripts/saveEntry.js",
     "save-script": "node node_modules/@yolm/boost/dist/scripts/saveScriptEntry.js",
     "script": "node node_modules/@yolm/boost/dist/scripts/scriptEntry.js"
   }

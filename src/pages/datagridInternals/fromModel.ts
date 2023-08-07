@@ -1,35 +1,31 @@
-import { Field, VirtualField, VirtualType } from "../../appTypes.js";
-import { element, switchNode } from "../../nodeHelpers.js";
+import { Field, VirtualField, VirtualType } from "../../appTypes";
+import { element, switchNode } from "../../nodeHelpers";
 import {
   commitUiChanges,
   if_,
   modify,
   scalar,
   setScalar,
-} from "../../procHelpers.js";
-import { app } from "../../singleton.js";
-import { ident, stringLiteral } from "../../utils/sqlHelpers.js";
-import { ClientProcStatement, FieldType } from "../../yom.js";
-import { fieldCell } from "./cells.js";
-import {
-  FieldEditProcConfig,
-  FieldEditStatements,
-  doEdit,
-} from "./editHelper.js";
+} from "../../procHelpers";
+import { app } from "../../singleton";
+import { ident, stringLiteral } from "../../utils/sqlHelpers";
+import { ClientProcStatement, FieldType } from "../../yom";
+import { fieldCell } from "./cells";
+import { FieldEditProcConfig, FieldEditStatements, doEdit } from "./editHelper";
 import {
   columnPopover,
   FilterType,
   SortConfig,
   SuperGridColumn,
-} from "./styledDatagrid.js";
-import { styles as sharedStyles } from "./styles.js";
-import { SimpleColumn } from "./styledSimpleDatagrid.js";
-import { normalizeCase, upcaseFirst } from "../../utils/inflectors.js";
-import { lazy } from "../../utils/memoize.js";
-import { materialIcon } from "../../components/materialIcon.js";
-import { Style } from "../../styleTypes.js";
-import { triggerQueryRefresh, resizeableSeperator } from "./shared.js";
-import { Cell } from "./types.js";
+} from "./styledDatagrid";
+import { styles as sharedStyles } from "./styles";
+import { SimpleColumn } from "./styledSimpleDatagrid";
+import { normalizeCase, upcaseFirst } from "../../utils/inflectors";
+import { lazy } from "../../utils/memoize";
+import { materialIcon } from "../../components/materialIcon";
+import { Style } from "../../styleTypes";
+import { triggerQueryRefresh, resizeableSeperator } from "./shared";
+import { Cell } from "./types";
 
 function filterTypeFromField(type: Field): FilterType {
   switch (type.type) {

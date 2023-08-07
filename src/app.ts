@@ -3,11 +3,11 @@ import { Theme } from "./theme";
 import { createTheme, ThemeOpts } from "./createTheme";
 import { normalizeCase, pluralize, upcaseFirst } from "./utils/inflectors";
 import { TableBuilder } from "./tableBuilder";
-import { BasicStatementArray } from "./statements";
+import { BasicStatements, BasicStatementsOrFn } from "./statements";
 import { stringLiteral } from "./utils/sqlHelpers";
 import { Style } from "./styleTypes";
 import { WebAppManifest } from "./pwaManifest";
-// import { navbarShell, NavbarProps } from "./shells/navbar";
+import { navbarShell, NavbarProps } from "./shells/navbar";
 import { Node } from "./nodeTypes";
 import { generateYom } from "./generate";
 
@@ -80,7 +80,7 @@ export class App {
       name: f.name,
       description: f.description,
       inputs,
-      procedure: f.procedure(new BasicStatementArray()),
+      procedure: BasicStatements.normalizeToArray(f.procedure),
       returnType:
         typeof f.returnType === "string"
           ? { type: f.returnType }
@@ -126,9 +126,9 @@ export class Ui {
   // Helper methods
   //
 
-  //   useNavbarShell(opts: NavbarProps) {
-  //     this.shell = navbarShell(opts);
-  //   }
+  useNavbarShell(opts: NavbarProps) {
+    this.shell = navbarShell(opts);
+  }
 }
 
 export interface WebAppConfig {
@@ -230,14 +230,14 @@ export interface TableControlOpts {
   id?: string;
   immediateFocus?: boolean;
   value: string;
-  onSelectValue: (newValue: string) => yom.ClientProcStatement[];
+  onSelectValue: (newValue: string) => yom.DomProcStatement[];
   emptyQuery?: string;
   initialInputText?: string;
   error?: string;
   onComboboxSelectValue?: (
     newId: string,
     newLabel: string
-  ) => yom.ClientProcStatement[];
+  ) => yom.DomProcStatement[];
 }
 
 export interface AddressFieldGroup {
@@ -645,7 +645,7 @@ export type EnumControl =
 export interface EnumControlOpts {
   id: string;
   value: string;
-  onSelectValue: (newValue: string) => yom.ClientProcStatement[];
+  onSelectValue: (newValue: string) => yom.DomProcStatement[];
   initialInputText?: string;
 }
 
@@ -677,7 +677,7 @@ interface HelperScalarFunction {
   name: string;
   description?: string;
   parameters: HelperFunctionParam[];
-  procedure: (s: BasicStatementArray) => BasicStatementArray;
+  procedure: BasicStatementsOrFn;
   returnType: yom.ScalarType | yom.SimpleScalarTypes | yom.ScalarIntegerTypes;
 }
 

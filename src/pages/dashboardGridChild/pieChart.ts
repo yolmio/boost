@@ -1,11 +1,11 @@
-import { circularProgress } from "../../components/circularProgress.js";
-import { element, ifNode, state } from "../../nodeHelpers.js";
-import { PieChartNode } from "../../nodeTypes.js";
-import { table } from "../../procHelpers.js";
-import { Style } from "../../styleTypes.js";
-import { createStyles, cssVar } from "../../styleUtils.js";
-import { stringLiteral } from "../../utils/sqlHelpers.js";
-import { StateStatement } from "../../yom.js";
+import { circularProgress } from "../../components/circularProgress";
+import { element, ifNode, state } from "../../nodeHelpers";
+import { PieChartNode } from "../../nodeTypes";
+import { table } from "../../procHelpers";
+import { Style } from "../../styleTypes";
+import { createStyles, cssVar } from "../../styleUtils";
+import { stringLiteral } from "../../utils/sqlHelpers";
+import { StateStatement } from "../../yom";
 
 export const name = "pieChart";
 

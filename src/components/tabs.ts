@@ -1,12 +1,12 @@
-import { app } from "../singleton.js";
-import { element, state } from "../nodeHelpers.js";
-import type { Node } from "../nodeTypes.js";
-import { Style, StyleObject } from "../styleTypes.js";
-import { Variant } from "../theme.js";
-import { createStyles, cssVar, getVariantStyle } from "../styleUtils.js";
-import { scopedVariables, styles as listStyles } from "./list.js";
-import { Color, ComponentOpts, Size } from "./types.js";
-import { focusEl, if_, scalar, setScalar } from "../procHelpers.js";
+import { app } from "../app";
+import { element, state } from "../nodeHelpers";
+import type { Node } from "../nodeTypes";
+import { Style, StyleObject } from "../styleTypes";
+import { Variant } from "../theme";
+import { createStyles, cssVar, getVariantStyle } from "../styleUtils";
+import { scopedVariables, styles as listStyles } from "./list";
+import { Color, ComponentOpts, Size } from "./types";
+import { focusEl, if_, scalar, setScalar } from "../procHelpers";
 
 const styles = createStyles({
   tab: (

@@ -1,4 +1,4 @@
-import type * as yom from "./yom.js";
+import type * as yom from "./yom";
 
 ///
 /// PROCEDURE
@@ -311,7 +311,7 @@ export function logOut(): yom.LogOutStatment {
 }
 
 export function spawn(
-  statements: yom.ClientProcStatement[] | Omit<yom.SpawnStatement, "t">
+  statements: yom.DomProcStatement[] | Omit<yom.SpawnStatement, "t">
 ): yom.SpawnStatement {
   if (Array.isArray(statements)) {
     return { t: "Spawn", statements };

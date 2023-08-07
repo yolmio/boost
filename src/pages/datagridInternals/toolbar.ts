@@ -1,4 +1,4 @@
-import { element, ifNode, state } from "../../nodeHelpers.js";
+import { element, ifNode, state } from "../../nodeHelpers";
 import {
   commitTransaction,
   debugExpr,
@@ -10,35 +10,31 @@ import {
   setScalar,
   startTransaction,
   stopPropagation,
-} from "../../procHelpers.js";
-import { downcaseFirst, pluralize } from "../../utils/inflectors.js";
-import { alert } from "../../components/alert.js";
-import { button } from "../../components/button.js";
-import { circularProgress } from "../../components/circularProgress.js";
-import { divider } from "../../components/divider.js";
-import { iconButton } from "../../components/iconButton.js";
-import { input } from "../../components/input.js";
-import { materialIcon } from "../../components/materialIcon.js";
-import { typography } from "../../components/typography.js";
-import { columnsPopover as columnsPopover } from "./columnsPopover.js";
-import { filterPopover } from "./filterPopover.js";
-import { sortPopover as sortPopover } from "./sortPopover.js";
-import { triggerQueryRefresh } from "./shared.js";
-import { toolbarPopover } from "./toolbarPopover.js";
-import { confirmDangerDialog } from "../../components/confirmDangerDialog.js";
-import { ident, stringLiteral } from "../../utils/sqlHelpers.js";
-import { getUniqueUiId } from "../../components/utils.js";
-import { createStyles, flexGrowStyles } from "../../styleUtils.js";
-import {
-  SuperGridColumn,
-  SuperGridDts,
-  ToolbarConfig,
-} from "./styledDatagrid.js";
-import { DatagridDts, makeCountQuery, makeIdsQuery } from "./datagridBase.js";
-import { Table } from "../../appTypes.js";
-import { select } from "../../components/select.js";
-import { Node } from "../../nodeTypes.js";
-import { insertDialog } from "../../components/insertDialog.js";
+} from "../../procHelpers";
+import { downcaseFirst, pluralize } from "../../utils/inflectors";
+import { alert } from "../../components/alert";
+import { button } from "../../components/button";
+import { circularProgress } from "../../components/circularProgress";
+import { divider } from "../../components/divider";
+import { iconButton } from "../../components/iconButton";
+import { input } from "../../components/input";
+import { materialIcon } from "../../components/materialIcon";
+import { typography } from "../../components/typography";
+import { columnsPopover as columnsPopover } from "./columnsPopover";
+import { filterPopover } from "./filterPopover";
+import { sortPopover as sortPopover } from "./sortPopover";
+import { triggerQueryRefresh } from "./shared";
+import { toolbarPopover } from "./toolbarPopover";
+import { confirmDangerDialog } from "../../components/confirmDangerDialog";
+import { ident, stringLiteral } from "../../utils/sqlHelpers";
+import { getUniqueUiId } from "../../components/utils";
+import { createStyles, flexGrowStyles } from "../../styleUtils";
+import { SuperGridColumn, SuperGridDts, ToolbarConfig } from "./styledDatagrid";
+import { DatagridDts, makeCountQuery, makeIdsQuery } from "./datagridBase";
+import { Table } from "../../appTypes";
+import { select } from "../../components/select";
+import { Node } from "../../nodeTypes";
+import { insertDialog } from "../../components/insertDialog";
 
 const columnsButtonId = stringLiteral(getUniqueUiId());
 const sortButtonId = stringLiteral(getUniqueUiId());

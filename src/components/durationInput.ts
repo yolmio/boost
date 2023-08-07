@@ -1,7 +1,7 @@
-import { if_, preventDefault } from "../procHelpers.js";
-import { ClientProcStatement } from "../yom.js";
-import { input, InputOpts } from "./input.js";
-import { mergeElEventHandlers } from "./utils.js";
+import { if_, preventDefault } from "../procHelpers";
+import { ClientProcStatement } from "../yom";
+import { input, InputOpts } from "./input";
+import { mergeElEventHandlers } from "./utils";
 
 export interface DurationInputOpts extends InputOpts {
   fullWidth?: boolean;

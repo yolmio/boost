@@ -1,10 +1,10 @@
-import type { Node } from "../nodeTypes.js";
-import { Style, StyleObject } from "../styleTypes.js";
-import { Variant } from "../theme.js";
-import { createStyles, cssVar, getVariantStyle } from "../styleUtils.js";
-import { createSlotsFn, SlottedComponentWithSlotNames } from "./utils.js";
-import { Color, ComponentOpts, Size } from "./types.js";
-import { DynamicClass } from "../yom.js";
+import type { Node } from "../nodeTypes";
+import { Style, StyleObject } from "../styleTypes";
+import { Variant } from "../theme";
+import { createStyles, cssVar, getVariantStyle } from "../styleUtils";
+import { createSlotsFn, SlottedComponentWithSlotNames } from "./utils";
+import { Color, ComponentOpts, Size } from "./types";
+import { DynamicClass } from "../yom";
 
 export interface InputOpts
   extends ComponentOpts,

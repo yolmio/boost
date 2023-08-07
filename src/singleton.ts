@@ -1,7 +1,7 @@
-import { TableBuilder } from "./appHelpers.js";
-import type { BoostAppModel } from "./appTypes.js";
-import { ThemeOpts, createTheme } from "./createTheme.js";
-import { normalizeCase, upcaseFirst } from "./utils/inflectors.js";
+import { TableBuilder } from "./appHelpers";
+import type { BoostAppModel } from "./appTypes";
+import { ThemeOpts, createTheme } from "./createTheme";
+import { normalizeCase, upcaseFirst } from "./utils/inflectors";
 
 export const app: BoostAppModel = {
   name: "please-rename",

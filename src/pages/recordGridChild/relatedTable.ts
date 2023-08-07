@@ -1,19 +1,19 @@
-import { each, element, sourceMap, state } from "../../nodeHelpers.js";
-import { Node } from "../../nodeTypes.js";
-import { scalar, setScalar, table } from "../../procHelpers.js";
-import { createStyles } from "../../styleUtils.js";
-import { ident, stringLiteral } from "../../utils/sqlHelpers.js";
-import { inlineFieldDisplay } from "../../components/internal/fieldInlineDisplay.js";
-import { deleteRecordDialog } from "../../components/deleteRecordDialog.js";
-import { updateDialog } from "../../components/updateDialog.js";
-import { iconButton } from "../../components/iconButton.js";
-import { materialIcon } from "../../components/materialIcon.js";
-import { button } from "../../components/button.js";
-import { insertDialog } from "../../components/insertDialog.js";
-import { AutoLabelOnLeftInsertFormContent } from "../../components/internal/insertFormShared.js";
-import { deepmerge } from "../../utils/deepmerge.js";
-import { RecordGridContext } from "./shared.js";
-import { app } from "../../singleton.js";
+import { each, element, sourceMap, state } from "../../nodeHelpers";
+import { Node } from "../../nodeTypes";
+import { scalar, setScalar, table } from "../../procHelpers";
+import { createStyles } from "../../styleUtils";
+import { ident, stringLiteral } from "../../utils/sqlHelpers";
+import { inlineFieldDisplay } from "../../components/internal/fieldInlineDisplay";
+import { deleteRecordDialog } from "../../components/deleteRecordDialog";
+import { updateDialog } from "../../components/updateDialog";
+import { iconButton } from "../../components/iconButton";
+import { materialIcon } from "../../components/materialIcon";
+import { button } from "../../components/button";
+import { insertDialog } from "../../components/insertDialog";
+import { AutoLabelOnLeftInsertFormContent } from "../../components/internal/insertFormShared";
+import { deepmerge } from "../../utils/deepmerge";
+import { RecordGridContext } from "./shared";
+import { app } from "../../singleton";
 
 export const name = "relatedTable";
 

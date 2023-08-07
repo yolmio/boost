@@ -1,4 +1,4 @@
-import { each, element, ifNode, state, switchNode } from "../nodeHelpers.js";
+import { each, element, ifNode, state, switchNode } from "../nodeHelpers";
 import {
   commitTransaction,
   debugQuery,
@@ -15,24 +15,24 @@ import {
   startTransaction,
   throwError,
   try_,
-} from "../procHelpers.js";
-import { alert } from "../components/alert.js";
-import { button } from "../components/button.js";
-import { circularProgress } from "../components/circularProgress.js";
-import { materialIcon } from "../components/materialIcon.js";
-import { tabs } from "../components/tabs.js";
-import { textarea } from "../components/textarea.js";
-import { typography } from "../components/typography.js";
-import { ClientProcStatement, SqlExpression } from "../yom.js";
-import { input } from "../components/input.js";
-import { addPage } from "../appHelpers.js";
-import { Node } from "../nodeTypes.js";
-import { app } from "../singleton.js";
-import { stringLiteral } from "../utils/sqlHelpers.js";
-import { createStyles, flexGrowStyles } from "../styleUtils.js";
-import { chip } from "../components/chip.js";
-import { divider } from "../components/divider.js";
-import { isDeploy } from "../utils/env.js";
+} from "../procHelpers";
+import { alert } from "../components/alert";
+import { button } from "../components/button";
+import { circularProgress } from "../components/circularProgress";
+import { materialIcon } from "../components/materialIcon";
+import { tabs } from "../components/tabs";
+import { textarea } from "../components/textarea";
+import { typography } from "../components/typography";
+import { ClientProcStatement, SqlExpression } from "../yom";
+import { input } from "../components/input";
+import { addPage } from "../appHelpers";
+import { Node } from "../nodeTypes";
+import { app } from "../app";
+import { stringLiteral } from "../utils/sqlHelpers";
+import { createStyles, flexGrowStyles } from "../styleUtils";
+import { chip } from "../components/chip";
+import { divider } from "../components/divider";
+import { isDeploy } from "../utils/env";
 
 const styles = createStyles({
   root: {

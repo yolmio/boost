@@ -1,5 +1,5 @@
-import { ImageSetFieldGroup, Table } from "../../appTypes.js";
-import { element, ifNode, state } from "../../nodeHelpers.js";
+import { ImageSetFieldGroup, Table } from "../../appTypes";
+import { element, ifNode, state } from "../../nodeHelpers";
 import {
   commitUiChanges,
   delay,
@@ -12,25 +12,22 @@ import {
   setScalar,
   spawn,
   try_,
-} from "../../procHelpers.js";
-import { app } from "../../singleton.js";
-import { createStyles, visuallyHiddenStyles } from "../../styleUtils.js";
-import {
-  getUploadStatements,
-  getVariantFromImageSet,
-} from "../../utils/image.js";
-import { stringLiteral } from "../../utils/sqlHelpers.js";
-import { ClientProcStatement, SqlExpression } from "../../yom.js";
-import { alert } from "../../components/alert.js";
-import { button } from "../../components/button.js";
-import { chip } from "../../components/chip.js";
-import { imageDalog } from "../../components/imageDialog.js";
-import { materialIcon } from "../../components/materialIcon.js";
-import { recordDeleteButton } from "../../components/recordDeleteButton.js";
-import { typography } from "../../components/typography.js";
-import { RecordGridContext } from "./shared.js";
-import { circularProgress } from "../../components/circularProgress.js";
-import { Color, Size, Variant } from "../../components/types.js";
+} from "../../procHelpers";
+import { app } from "../../singleton";
+import { createStyles, visuallyHiddenStyles } from "../../styleUtils";
+import { getUploadStatements, getVariantFromImageSet } from "../../utils/image";
+import { stringLiteral } from "../../utils/sqlHelpers";
+import { ClientProcStatement, SqlExpression } from "../../yom";
+import { alert } from "../../components/alert";
+import { button } from "../../components/button";
+import { chip } from "../../components/chip";
+import { imageDalog } from "../../components/imageDialog";
+import { materialIcon } from "../../components/materialIcon";
+import { recordDeleteButton } from "../../components/recordDeleteButton";
+import { typography } from "../../components/typography";
+import { RecordGridContext } from "./shared";
+import { circularProgress } from "../../components/circularProgress";
+import { Color, Size, Variant } from "../../components/types";
 
 export const name = "namedHeader";
 

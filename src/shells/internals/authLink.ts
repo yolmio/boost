@@ -1,13 +1,12 @@
-import { ifNode, state } from "../../nodeHelpers.js";
-import { Node } from "../../nodeTypes.js";
-import { scalar } from "../../procHelpers.js";
+import { nodes } from "../../nodeHelpers";
+import { Node } from "../../nodeTypes";
 
 export function makeConditionalLink(node: Node, showIf?: string) {
   if (showIf) {
-    return state({
-      procedure: [scalar(`show_link`, showIf)],
+    return nodes.state({
+      procedure: (s) => s.scalar(`show_link`, showIf),
       statusScalar: `status`,
-      children: ifNode(`status = 'received' and show_link`, node),
+      children: nodes.if(`status = 'received' and show_link`, node),
     });
   } else {
     return node;

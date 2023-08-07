@@ -1,4 +1,4 @@
-import { element, ifNode, state } from "../nodeHelpers.js";
+import { element, ifNode, state } from "../nodeHelpers";
 import {
   commitUiChanges,
   exit,
@@ -8,18 +8,18 @@ import {
   serviceProc,
   setScalar,
   try_,
-} from "../procHelpers.js";
-import { app } from "../singleton.js";
-import { createStyles, visuallyHiddenStyles } from "../styleUtils.js";
-import { getUploadStatements, getVariantFromImageSet } from "../utils/image.js";
-import { ident } from "../utils/sqlHelpers.js";
-import { ClientProcStatement, ServiceProcStatement } from "../yom.js";
-import { alert } from "./alert.js";
-import { button } from "./button.js";
-import { divider } from "./divider.js";
-import { iconButton } from "./iconButton.js";
-import { materialIcon } from "./materialIcon.js";
-import { modal, modalDialog } from "./modal.js";
+} from "../procHelpers";
+import { app } from "../app";
+import { createStyles, visuallyHiddenStyles } from "../styleUtils";
+import { getUploadStatements, getVariantFromImageSet } from "../utils/image";
+import { ident } from "../utils/sqlHelpers";
+import { ClientProcStatement, ServiceProcStatement } from "../yom";
+import { alert } from "./alert";
+import { button } from "./button";
+import { divider } from "./divider";
+import { iconButton } from "./iconButton";
+import { materialIcon } from "./materialIcon";
+import { modal, modalDialog } from "./modal";
 
 export interface ImageDialogOptions {
   tableName: string;

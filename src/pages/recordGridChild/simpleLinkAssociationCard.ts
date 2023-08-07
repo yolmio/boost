@@ -1,4 +1,4 @@
-import { each, element, ifNode, state } from "../../nodeHelpers.js";
+import { each, element, ifNode, state } from "../../nodeHelpers";
 import {
   debugExpr,
   exit,
@@ -8,32 +8,32 @@ import {
   record,
   scalar,
   setScalar,
-} from "../../procHelpers.js";
-import { app } from "../../singleton.js";
-import { createStyles, flexGrowStyles } from "../../styleUtils.js";
-import { ident, stringLiteral } from "../../utils/sqlHelpers.js";
-import { divider } from "../../components/divider.js";
-import { typography } from "../../components/typography.js";
-import { card, cardOverflow } from "../../components/card.js";
-import { Style } from "../../styleTypes.js";
-import { RecordGridContext } from "./shared.js";
-import { Node } from "../../nodeTypes.js";
-import { pluralize } from "../../utils/inflectors.js";
-import { button } from "../../components/button.js";
-import { SqlExpression } from "../../yom.js";
-import { chip } from "../../components/chip.js";
-import { inlineFieldDisplay } from "../../components/internal/fieldInlineDisplay.js";
-import { getAssociationTable } from "../../utils/association.js";
-import { iconButton } from "../../components/iconButton.js";
-import { materialIcon } from "../../components/materialIcon.js";
-import { deleteRecordDialog } from "../../components/deleteRecordDialog.js";
-import { withInsertFormState } from "../../formState.js";
-import { formControl } from "../../components/formControl.js";
-import { formLabel } from "../../components/formLabel.js";
-import { getTableRecordSelect } from "../../components/tableRecordSelect.js";
-import { formHelperText } from "../../components/formHelperText.js";
-import { alert } from "../../components/alert.js";
-import { getUniqueUiId } from "../../components/utils.js";
+} from "../../procHelpers";
+import { app } from "../../singleton";
+import { createStyles, flexGrowStyles } from "../../styleUtils";
+import { ident, stringLiteral } from "../../utils/sqlHelpers";
+import { divider } from "../../components/divider";
+import { typography } from "../../components/typography";
+import { card, cardOverflow } from "../../components/card";
+import { Style } from "../../styleTypes";
+import { RecordGridContext } from "./shared";
+import { Node } from "../../nodeTypes";
+import { pluralize } from "../../utils/inflectors";
+import { button } from "../../components/button";
+import { SqlExpression } from "../../yom";
+import { chip } from "../../components/chip";
+import { inlineFieldDisplay } from "../../components/internal/fieldInlineDisplay";
+import { getAssociationTable } from "../../utils/association";
+import { iconButton } from "../../components/iconButton";
+import { materialIcon } from "../../components/materialIcon";
+import { deleteRecordDialog } from "../../components/deleteRecordDialog";
+import { withInsertFormState } from "../../formState";
+import { formControl } from "../../components/formControl";
+import { formLabel } from "../../components/formLabel";
+import { getTableRecordSelect } from "../../components/tableRecordSelect";
+import { formHelperText } from "../../components/formHelperText";
+import { alert } from "../../components/alert";
+import { getUniqueUiId } from "../../components/utils";
 
 export const name = "simpleLinkAssociationCard";
 

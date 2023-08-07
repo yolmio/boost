@@ -1,5 +1,5 @@
-import type * as yom from "./yom.js";
-import type { Style } from "./styleTypes.js";
+import type * as yom from "./yom";
+import type { Style } from "./styleTypes";
 
 export type Node =
   | string

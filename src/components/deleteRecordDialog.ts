@@ -5,10 +5,10 @@ import {
   serviceProc,
   setScalar,
   startTransaction,
-} from "../procHelpers.js";
-import { app } from "../singleton.js";
-import { ClientProcStatement, ServiceProcStatement } from "../yom.js";
-import { confirmDangerDialog } from "./confirmDangerDialog.js";
+} from "../procHelpers";
+import { app } from "../app";
+import { ClientProcStatement, ServiceProcStatement } from "../yom";
+import { confirmDangerDialog } from "./confirmDangerDialog";
 
 export interface DeleteRecordDialog {
   open: string;

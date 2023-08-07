@@ -1,14 +1,14 @@
-import { ClientProcStatement } from "../yom.js";
-import { if_ } from "../procHelpers.js";
-import { portal } from "../nodeHelpers.js";
-import type { Node } from "../nodeTypes.js";
-import { registerKeyframes } from "../nodeTransform.js";
-import { StyleObject } from "../styleTypes.js";
-import { createStyles, cssVar } from "../styleUtils.js";
-import { SlottedComponentWithSlotNames } from "./utils.js";
-import { createSlotsFn } from "./utils.js";
-import { styles as modalStyles } from "./modal.js";
-import { withExitTransition } from "./withExitTransition.js";
+import * as yom from "../yom";
+import { nodes } from "../nodeHelpers";
+import type { Node } from "../nodeTypes";
+import { registerKeyframes } from "../nodeTransform";
+import { StyleObject } from "../styleTypes";
+import { createStyles, cssVar } from "../styleUtils";
+import { SlottedComponentWithSlotNames } from "./utils";
+import { createSlotsFn } from "./utils";
+import { styles as modalStyles } from "./modal";
+import { withExitTransition } from "./withExitTransition";
+import { DomStatementsOrFn, DomStatements } from "../statements";
 
 type Direction = "left" | "right";
 
@@ -17,8 +17,8 @@ export interface DrawerOpts
   open: string;
   direction: Direction;
 
-  onClose: ClientProcStatement[];
-  children: (close: ClientProcStatement[]) => Node;
+  onClose: DomStatementsOrFn;
+  children: (close: DomStatements) => Node;
 }
 
 const styles = createStyles({
@@ -86,20 +86,18 @@ export function drawer(opts: DrawerOpts) {
   const slot = createSlotsFn(opts);
   return withExitTransition(
     200,
-    ({ dynamicClasses, transitionIfNode, startCloseTransition }) =>
-      transitionIfNode(opts.open, [
-        portal(
+    ({ dynamicClasses, transitionIfNode, startCloseTransition }) => {
+      const onClose = new DomStatements()
+        .statements(opts.onClose)
+        .statements(startCloseTransition);
+      return transitionIfNode(opts.open, [
+        nodes.portal(
           slot("root", {
             tag: "div",
             styles: modalStyles.root(),
             dynamicClasses,
             on: {
-              keydown: [
-                if_("event.key = 'Escape'", [
-                  ...opts.onClose,
-                  ...startCloseTransition,
-                ]),
-              ],
+              keydown: (s) => s.if("event.key = 'Escape'", onClose),
             },
             children: [
               slot("backdrop", {
@@ -111,18 +109,16 @@ export function drawer(opts: DrawerOpts) {
               slot("drawer", {
                 tag: "div",
                 on: {
-                  clickAway: [...opts.onClose, ...startCloseTransition],
+                  clickAway: onClose,
                 },
                 styles: styles.drawerStyles(opts.direction),
                 dynamicClasses,
-                children: opts.children([
-                  ...opts.onClose,
-                  ...startCloseTransition,
-                ]),
+                children: opts.children(onClose),
               }),
             ],
           })
         ),
-      ])
+      ]);
+    }
   );
 }

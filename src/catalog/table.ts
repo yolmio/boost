@@ -1,4 +1,4 @@
-import { addTable } from "../appHelpers.js";
+import { addTable } from "../appHelpers";
 
 export interface Notes {
   type: "notes";

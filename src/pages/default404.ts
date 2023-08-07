@@ -1,8 +1,8 @@
-import { button } from "../components/button.js";
-import { materialIcon } from "../components/materialIcon.js";
-import { typography } from "../components/typography.js";
-import { element } from "../nodeHelpers.js";
-import { createStyles } from "../styleUtils.js";
+import { button } from "../components/button";
+import { materialIcon } from "../components/materialIcon";
+import { typography } from "../components/typography";
+import { element } from "../nodeHelpers";
+import { createStyles } from "../styleUtils";
 
 const styles = createStyles({
   root: {

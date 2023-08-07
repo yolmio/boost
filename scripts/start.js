@@ -119,7 +119,7 @@ if (hasBun()) {
     shell: true,
   });
 } else {
-  spawn("tsx", ["watch", sendModelPath], {
+  spawn("tsx", ["watch", "--clear-screen=false", sendModelPath], {
     stdio: "inherit",
     shell: true,
   });

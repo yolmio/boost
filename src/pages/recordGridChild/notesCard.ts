@@ -1,4 +1,4 @@
-import { element, ifNode, state } from "../../nodeHelpers.js";
+import { element, ifNode, state } from "../../nodeHelpers";
 import {
   commitUiChanges,
   debugExpr,
@@ -10,19 +10,19 @@ import {
   serviceProc,
   setScalar,
   try_,
-} from "../../procHelpers.js";
-import { createStyles } from "../../styleUtils.js";
-import { ident } from "../../utils/sqlHelpers.js";
-import { alert } from "../../components/alert.js";
-import { button } from "../../components/button.js";
-import { divider } from "../../components/divider.js";
-import { iconButton } from "../../components/iconButton.js";
-import { materialIcon } from "../../components/materialIcon.js";
-import { textarea } from "../../components/textarea.js";
-import { typography } from "../../components/typography.js";
-import { RecordGridContext } from "./shared.js";
-import { card } from "../../components/card.js";
-import { Style } from "../../styleTypes.js";
+} from "../../procHelpers";
+import { createStyles } from "../../styleUtils";
+import { ident } from "../../utils/sqlHelpers";
+import { alert } from "../../components/alert";
+import { button } from "../../components/button";
+import { divider } from "../../components/divider";
+import { iconButton } from "../../components/iconButton";
+import { materialIcon } from "../../components/materialIcon";
+import { textarea } from "../../components/textarea";
+import { typography } from "../../components/typography";
+import { RecordGridContext } from "./shared";
+import { card } from "../../components/card";
+import { Style } from "../../styleTypes";
 
 export const name = "notesCard";
 

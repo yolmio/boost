@@ -1,13 +1,13 @@
-import { app } from "../singleton.js";
-import { element, ifNode } from "../nodeHelpers.js";
-import { Variant } from "../theme.js";
-import { createStyles, cssVar, getVariantStyle } from "../styleUtils.js";
-import { lazy } from "../utils/memoize.js";
-import { StyleObject } from "../styleTypes.js";
-import { svgIcon } from "./svgIcon.js";
-import { Color, ComponentOpts, Size } from "./types.js";
-import { createSlotsFn, SlottedComponentWithSlotNames } from "./utils.js";
-import { DynamicClass } from "../yom.js";
+import { app } from "../app";
+import { nodes } from "../nodeHelpers";
+import { Variant } from "../theme";
+import { createStyles, cssVar, getVariantStyle } from "../styleUtils";
+import { lazy } from "../utils/memoize";
+import { StyleObject } from "../styleTypes";
+import { svgIcon } from "./svgIcon";
+import { Color, ComponentOpts, Size } from "./types";
+import { createSlotsFn, SlottedComponentWithSlotNames } from "./utils";
+import { DynamicClass } from "../yom";
 
 export interface CheckedVariation {
   variant: Variant;
@@ -201,7 +201,7 @@ const styles = createStyles({
 
 const getIcon = lazy(() =>
   svgIcon({
-    children: element("path", {
+    children: nodes.element("path", {
       props: {
         d: "'M9 16.17 5.53 12.7a.9959.9959 0 0 0-1.41 0c-.39.39-.39 1.02 0 1.41l4.18 4.18c.39.39 1.02.39 1.41 0L20.29 7.71c.39-.39.39-1.02 0-1.41a.9959.9959 0 0 0-1.41 0L9 16.17z'",
       },
@@ -262,11 +262,11 @@ export function checkbox(opts: CheckboxOpts) {
               styles: styles.input,
             }),
           }),
-          opts.disableIcon ? undefined : ifNode(opts.checked, getIcon()),
+          opts.disableIcon ? undefined : nodes.if(opts.checked, getIcon()),
         ],
       }),
       opts.label &&
-        element("label", {
+        nodes.element("label", {
           styles: styles.label(disableIcon),
           children: opts.label,
         }),

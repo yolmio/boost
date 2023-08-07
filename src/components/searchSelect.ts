@@ -1,5 +1,5 @@
-import { each, element, ifNode, mode, portal, state } from "../nodeHelpers.js";
-import { Node } from "../nodeTypes.js";
+import { each, element, ifNode, mode, portal, state } from "../nodeHelpers";
+import { Node } from "../nodeTypes";
 import {
   exit,
   getBoundingClientRect,
@@ -9,23 +9,19 @@ import {
   scalar,
   setScalar,
   table,
-} from "../procHelpers.js";
-import { Style, StyleObject } from "../styleTypes.js";
-import { createStyles, cssVar } from "../styleUtils.js";
-import { ClientProcStatement, StateStatement } from "../yom.js";
-import {
-  getUniqueUiId,
-  mergeEls,
-  SingleElementComponentOpts,
-} from "./utils.js";
-import { styles as iconButtonStyles } from "./iconButton.js";
-import { input } from "./input.js";
-import { listItemButton, styles as listStyles } from "./list.js";
-import { materialIcon } from "./materialIcon.js";
-import { svgIcon } from "./svgIcon.js";
-import { Color, ComponentOpts, Size, Variant } from "./types.js";
-import { stringLiteral } from "../utils/sqlHelpers.js";
-import { circularProgress } from "./circularProgress.js";
+} from "../procHelpers";
+import { Style, StyleObject } from "../styleTypes";
+import { createStyles, cssVar } from "../styleUtils";
+import { ClientProcStatement, StateStatement } from "../yom";
+import { getUniqueUiId, mergeEls, SingleElementComponentOpts } from "./utils";
+import { styles as iconButtonStyles } from "./iconButton";
+import { input } from "./input";
+import { listItemButton, styles as listStyles } from "./list";
+import { materialIcon } from "./materialIcon";
+import { svgIcon } from "./svgIcon";
+import { Color, ComponentOpts, Size, Variant } from "./types";
+import { stringLiteral } from "../utils/sqlHelpers";
+import { circularProgress } from "./circularProgress";
 
 const styles = createStyles({
   root: { position: "relative" },

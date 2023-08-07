@@ -1,4 +1,4 @@
-import { each, element, ifNode, state, switchNode } from "../../nodeHelpers.js";
+import { each, element, ifNode, state, switchNode } from "../../nodeHelpers";
 import {
   commitUiChanges,
   debugQuery,
@@ -12,29 +12,29 @@ import {
   stopPropagation,
   table,
   try_,
-} from "../../procHelpers.js";
-import { stringLiteral } from "../../utils/sqlHelpers.js";
-import { button } from "../../components/button.js";
-import { iconButton } from "../../components/iconButton.js";
-import { materialIcon } from "../../components/materialIcon.js";
-import { popoverMenu } from "../../components/menu.js";
-import { typography } from "../../components/typography.js";
-import { input } from "../../components/input.js";
-import { ClientProcStatement } from "../../yom.js";
-import { deleteRecordDialog } from "../../components/deleteRecordDialog.js";
-import { Node } from "../../nodeTypes.js";
-import { createStyles, flexGrowStyles } from "../../styleUtils.js";
-import { divider } from "../../components/divider.js";
-import { circularProgress } from "../../components/circularProgress.js";
-import { getUniqueUiId } from "../../components/utils.js";
+} from "../../procHelpers";
+import { stringLiteral } from "../../utils/sqlHelpers";
+import { button } from "../../components/button";
+import { iconButton } from "../../components/iconButton";
+import { materialIcon } from "../../components/materialIcon";
+import { popoverMenu } from "../../components/menu";
+import { typography } from "../../components/typography";
+import { input } from "../../components/input";
+import { ClientProcStatement } from "../../yom";
+import { deleteRecordDialog } from "../../components/deleteRecordDialog";
+import { Node } from "../../nodeTypes";
+import { createStyles, flexGrowStyles } from "../../styleUtils";
+import { divider } from "../../components/divider";
+import { circularProgress } from "../../components/circularProgress";
+import { getUniqueUiId } from "../../components/utils";
 import {
   DatagridDts,
   duplicateView,
   saveAsNewView,
   saveToExistingView,
-} from "./datagridBase.js";
-import { alert } from "../../components/alert.js";
-import { checkbox } from "../../components/checkbox.js";
+} from "./datagridBase";
+import { alert } from "../../components/alert";
+import { checkbox } from "../../components/checkbox";
 
 function withViewDrawerState(datagridName: string, children: Node) {
   return state({

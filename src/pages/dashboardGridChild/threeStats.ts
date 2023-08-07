@@ -1,9 +1,9 @@
-import { chip } from "../../components/chip.js";
-import { materialIcon } from "../../components/materialIcon.js";
-import { element, ifNode, state, switchNode } from "../../nodeHelpers.js";
-import { scalar } from "../../procHelpers.js";
-import { createStyles } from "../../styleUtils.js";
-import { SqlExpression, StateStatement } from "../../yom.js";
+import { chip } from "../../components/chip";
+import { materialIcon } from "../../components/materialIcon";
+import { element, ifNode, state, switchNode } from "../../nodeHelpers";
+import { scalar } from "../../procHelpers";
+import { createStyles } from "../../styleUtils";
+import { SqlExpression, StateStatement } from "../../yom";
 
 export const name = "threeStats";
 

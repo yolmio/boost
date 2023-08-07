@@ -1,5 +1,5 @@
-import { Table } from "../../appTypes.js";
-import { BaseStatement } from "../../yom.js";
+import { Table } from "../../appTypes";
+import { BaseStatement } from "../../yom";
 
 export interface RecordGridContext {
   table: Table;

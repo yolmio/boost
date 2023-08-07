@@ -1,5 +1,5 @@
-import { Field, Table } from "../appTypes.js";
-import { app } from "../singleton.js";
+import { Field, Table } from "../appTypes";
+import { app } from "../app";
 
 interface AssociationTableMatch {
   table: Table;

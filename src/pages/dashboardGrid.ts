@@ -1,9 +1,9 @@
-import { addPage } from "../appHelpers.js";
-import { element } from "../nodeHelpers.js";
-import { Node } from "../nodeTypes.js";
-import { baseGridStyles, createStyles } from "../styleUtils.js";
-import { containerStyles } from "../styleUtils.js";
-import { ChildOpts, childFnMap } from "./dashboardGridChild/index.js";
+import { addPage } from "../appHelpers";
+import { element } from "../nodeHelpers";
+import { Node } from "../nodeTypes";
+import { baseGridStyles, createStyles } from "../styleUtils";
+import { containerStyles } from "../styleUtils";
+import { ChildOpts, childFnMap } from "./dashboardGridChild/index";
 
 const styles = createStyles({
   header: {

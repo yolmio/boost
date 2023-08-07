@@ -1,6 +1,6 @@
-import { Style } from "../styleTypes.js";
-import { ColorPaletteProp } from "../theme.js";
-import { Variant } from "../theme.js";
+import { Style } from "../styleTypes";
+import { ColorPaletteProp } from "../theme";
+import { Variant } from "../theme";
 
 export type Color = ColorPaletteProp | "harmonize";
 export type Size = "sm" | "md" | "lg";

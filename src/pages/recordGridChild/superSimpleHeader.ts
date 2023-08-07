@@ -1,13 +1,13 @@
-import { button } from "../../components/button.js";
-import { materialIcon } from "../../components/materialIcon.js";
-import { recordDeleteButton } from "../../components/recordDeleteButton.js";
-import { typography } from "../../components/typography.js";
-import { element } from "../../nodeHelpers.js";
-import { navigate } from "../../procHelpers.js";
-import { Style } from "../../styleTypes.js";
-import { createStyles, flexGrowStyles } from "../../styleUtils.js";
-import { stringLiteral } from "../../utils/sqlHelpers.js";
-import { RecordGridContext } from "./shared.js";
+import { button } from "../../components/button";
+import { materialIcon } from "../../components/materialIcon";
+import { recordDeleteButton } from "../../components/recordDeleteButton";
+import { typography } from "../../components/typography";
+import { element } from "../../nodeHelpers";
+import { navigate } from "../../procHelpers";
+import { Style } from "../../styleTypes";
+import { createStyles, flexGrowStyles } from "../../styleUtils";
+import { stringLiteral } from "../../utils/sqlHelpers";
+import { RecordGridContext } from "./shared";
 
 export const name = "superSimpleHeader";
 

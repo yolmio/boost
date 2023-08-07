@@ -1,6 +1,6 @@
-import type { Node } from "../nodeTypes.js";
-import { createStyles, cssVar } from "../styleUtils.js";
-import { createSlotsFn, SlottedComponentWithSlotNames } from "./utils.js";
+import type { Node } from "../nodeTypes";
+import { createStyles, cssVar } from "../styleUtils";
+import { createSlotsFn, SlottedComponentWithSlotNames } from "./utils";
 
 export interface FormLabelOpts
   extends SlottedComponentWithSlotNames<"asterisk"> {

@@ -2,23 +2,23 @@
 I was building this, but in any app that has a datagrid, using a sidebar limits the amount of space you have for the datagrid.
 I'll just keep it here for future reference.
 
-import { alpha } from "../colorManipulator.js";
-import { drawer } from "../components/drawer.js";
-import { iconButton } from "../components/iconButton.js";
-import { materialIcon } from "../components/materialIcon.js";
-import { IconName } from "../components/materialIconNames.js";
-import { setShell } from "../modelHelpers.js";
-import { Authorization } from "../modelTypes.js";
-import { element, ifNode, state } from "../nodeHelpers.js";
-import { Node } from "../nodeTypes.js";
-import { scalar, setScalar } from "../procHelpers.js";
-import { theme } from "../singleton.js";
-import { createStyles, cssVar, flexGrowStyles } from "../styleUtils.js";
-import { stringLiteral } from "../utils/sqlHelpers.js";
-import { makeAuthorizedLink } from "./internals/authLink.js";
-import { globalSearchDialog } from "./internals/globalSearchDialog.js";
-import { settingsDrawer } from "./internals/settingsDrawer.js";
-import { GlobalSearchOpts } from "./internals/types.js";
+import { alpha } from "../colorManipulator";
+import { drawer } from "../components/drawer";
+import { iconButton } from "../components/iconButton";
+import { materialIcon } from "../components/materialIcon";
+import { IconName } from "../components/materialIconNames";
+import { setShell } from "../modelHelpers";
+import { Authorization } from "../modelTypes";
+import { element, ifNode, state } from "../nodeHelpers";
+import { Node } from "../nodeTypes";
+import { scalar, setScalar } from "../procHelpers";
+import { theme } from "../singleton";
+import { createStyles, cssVar, flexGrowStyles } from "../styleUtils";
+import { stringLiteral } from "../utils/sqlHelpers";
+import { makeAuthorizedLink } from "./internals/authLink";
+import { globalSearchDialog } from "./internals/globalSearchDialog";
+import { settingsDrawer } from "./internals/settingsDrawer";
+import { GlobalSearchOpts } from "./internals/types";
 
 export interface SidebarLink {
   label: string;

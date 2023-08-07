@@ -1,13 +1,13 @@
-import { each, element, state } from "../../nodeHelpers.js";
-import { exit, if_, modify, scalar, setScalar } from "../../procHelpers.js";
-import { button } from "../../components/button.js";
-import { checkbox } from "../../components/checkbox.js";
-import { input } from "../../components/input.js";
-import { triggerQueryRefresh } from "./shared.js";
-import { createStyles } from "../../styleUtils.js";
-import { divider } from "../../components/divider.js";
-import { styles as sharedStyles } from "./styles.js";
-import { SuperGridDts } from "./styledDatagrid.js";
+import { each, element, state } from "../../nodeHelpers";
+import { exit, if_, modify, scalar, setScalar } from "../../procHelpers";
+import { button } from "../../components/button";
+import { checkbox } from "../../components/checkbox";
+import { input } from "../../components/input";
+import { triggerQueryRefresh } from "./shared";
+import { createStyles } from "../../styleUtils";
+import { divider } from "../../components/divider";
+import { styles as sharedStyles } from "./styles";
+import { SuperGridDts } from "./styledDatagrid";
 
 const styles = createStyles({
   columnsWrapper: {

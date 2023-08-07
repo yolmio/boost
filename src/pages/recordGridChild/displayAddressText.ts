@@ -1,8 +1,8 @@
-import { typography } from "../../components/typography.js";
-import { AddressFieldGroup } from "../../appTypes.js";
-import { ifNode } from "../../nodeHelpers.js";
-import { createStyles } from "../../styleUtils.js";
-import { ident } from "../../utils/sqlHelpers.js";
+import { typography } from "../../components/typography";
+import { AddressFieldGroup } from "../../appTypes";
+import { ifNode } from "../../nodeHelpers";
+import { createStyles } from "../../styleUtils";
+import { ident } from "../../utils/sqlHelpers";
 
 const styles = createStyles({
   addressName: {

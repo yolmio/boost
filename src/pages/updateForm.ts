@@ -2,24 +2,24 @@ import {
   FormState,
   FormStateProcedureExtensions,
   withUpdateFormState,
-} from "../formState.js";
-import { addPage } from "../appHelpers.js";
-import { element, state, switchNode } from "../nodeHelpers.js";
-import { Node } from "../nodeTypes.js";
-import { record } from "../procHelpers.js";
-import { app } from "../singleton.js";
-import { containerStyles, createStyles } from "../styleUtils.js";
-import { stringLiteral } from "../utils/sqlHelpers.js";
-import { ClientProcStatement, ServiceProcStatement } from "../yom.js";
+} from "../formState";
+import { addPage } from "../appHelpers";
+import { element, state, switchNode } from "../nodeHelpers";
+import { Node } from "../nodeTypes";
+import { record } from "../procHelpers";
+import { app } from "../app";
+import { containerStyles, createStyles } from "../styleUtils";
+import { stringLiteral } from "../utils/sqlHelpers";
+import { ClientProcStatement, ServiceProcStatement } from "../yom";
 import {
   getFieldsFromUpdateFormContent,
   UpdateFormContent,
   updateFormContent,
-} from "../components/internal/updateFormShared.js";
-import { getTableBaseUrl } from "../utils/url.js";
-import { circularProgress } from "../components/circularProgress.js";
-import { alert } from "../components/alert.js";
-import { materialIcon } from "../components/materialIcon.js";
+} from "../components/internal/updateFormShared";
+import { getTableBaseUrl } from "../utils/url";
+import { circularProgress } from "../components/circularProgress";
+import { alert } from "../components/alert";
+import { materialIcon } from "../components/materialIcon";
 
 export interface EditFormPage extends FormStateProcedureExtensions {
   table: string;

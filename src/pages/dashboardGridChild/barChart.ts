@@ -1,9 +1,9 @@
-import { circularProgress } from "../../components/circularProgress.js";
-import { element, ifNode, state } from "../../nodeHelpers.js";
-import { table } from "../../procHelpers.js";
-import { Styles, createStyles, cssVar } from "../../styleUtils.js";
-import { stringLiteral } from "../../utils/sqlHelpers.js";
-import { SqlExpression, SqlQuery, StateStatement } from "../../yom.js";
+import { circularProgress } from "../../components/circularProgress";
+import { element, ifNode, state } from "../../nodeHelpers";
+import { table } from "../../procHelpers";
+import { Styles, createStyles, cssVar } from "../../styleUtils";
+import { stringLiteral } from "../../utils/sqlHelpers";
+import { SqlExpression, SqlQuery, StateStatement } from "../../yom";
 
 export const name = "barChart";
 

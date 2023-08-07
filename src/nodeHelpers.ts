@@ -1,48 +1,59 @@
-import type * as ui from "./nodeTypes.js";
-import type * as yom from "./yom.js";
+import type * as ui from "./nodeTypes";
+import {
+  BasicStatements,
+  DomStatements,
+  DomStatementsOrFn,
+  StateStatements,
+  StateStatementsOrFn,
+} from "./statements";
+import type * as yom from "./yom";
 
-export function each(props: Omit<ui.EachNode, "t">): ui.EachNode {
+function each(props: Omit<ui.EachNode, "t">): ui.EachNode {
   return { t: "Each", ...props };
 }
 
-export function state(props: Omit<ui.StateNode, "t">): ui.StateNode {
-  return { t: "State", ...props };
+interface StateNodeOpts extends Omit<ui.StateNode, "t" | "procedure"> {
+  procedure: StateStatementsOrFn;
 }
 
-export function mode(props: Omit<ui.ModeNode, "t">): ui.ModeNode {
-  return { t: "Mode", ...props };
-}
-
-export function ifNode(
-  expr: string,
-  then: ui.Node,
-  else_?: ui.Node
-): ui.IfNode {
-  return { t: "If", expr, then, else: else_ };
-}
-
-export function switchNode(
-  ...cases: [string, ui.Node | undefined][]
-): ui.SwitchNode {
+function state(props: StateNodeOpts): ui.StateNode {
   return {
-    t: "Switch",
-    cases: cases.map(([condition, node]) => ({ condition, node })),
+    t: "State",
+    ...props,
+    procedure: StateStatements.normalizeToArray(props.procedure),
   };
 }
 
-export function route(props: Omit<ui.RouteNode, "t">): ui.RouteNode {
+function mode(props: Omit<ui.ModeNode, "t">): ui.ModeNode {
+  return { t: "Mode", ...props };
+}
+
+function if_(expr: string, then: ui.Node, else_?: ui.Node): ui.IfNode {
+  return { t: "If", expr, then, else: else_ };
+}
+
+function switch_(
+  ...cases: { condition: string; node: ui.Node | undefined }[]
+): ui.SwitchNode {
+  return {
+    t: "Switch",
+    cases: cases,
+  };
+}
+
+function route(props: Omit<ui.RouteNode, "t">): ui.RouteNode {
   return { t: "Route", ...props };
 }
 
-export function routes(...routes: ui.RouteNode[]): ui.RoutesNode {
+function routes(...routes: ui.RouteNode[]): ui.RoutesNode {
   return { t: "Routes", children: routes };
 }
 
-export function portal(children: ui.Node): ui.PortalNode {
+function portal(children: ui.Node): ui.PortalNode {
   return { t: "Portal", children };
 }
 
-export function queryParams(
+function queryParams(
   params: yom.QueryParam[],
   children: ui.Node
 ): ui.QueryParamsNode {
@@ -53,23 +64,99 @@ export function queryParams(
   };
 }
 
-export function element(
-  tag: yom.AllHtmlTags,
-  el: Omit<ui.ElementNode, "t" | "tag">
-): ui.ElementNode {
-  return { t: "Element", tag, ...el };
+export type HelperEventHandler = DomStatementsOrFn | HelperEventHandlerObject;
+
+export interface HelperEventHandlerObject
+  extends Omit<yom.EventHandlerObject, "procedure"> {
+  procedure: DomStatementsOrFn;
 }
 
-export function dataGrid(opts: Omit<ui.DataGridNode, "t">): ui.DataGridNode {
+export type HelperEventHandlers = Partial<
+  Record<yom.EventHandlerName, HelperEventHandler>
+>;
+
+interface ElementOpts extends Omit<ui.ElementNode, "t" | "tag" | "on"> {
+  on?: HelperEventHandlers;
+}
+
+function normalizeEventHandler(
+  helper: HelperEventHandler | undefined
+): yom.EventHandler | undefined {
+  if (!helper) {
+    return undefined;
+  }
+  if (typeof helper === "function") {
+    return DomStatements.normalizeToArray(helper);
+  } else if (
+    helper instanceof DomStatements ||
+    helper instanceof BasicStatements
+  ) {
+    return DomStatements.normalizeToArray(helper);
+  } else {
+    return {
+      ...helper,
+      procedure: DomStatements.normalizeToArray(helper.procedure),
+    };
+  }
+}
+
+function normalizeEventHandlers(
+  helper: HelperEventHandlers | undefined
+): yom.ElementEventHandlers | undefined {
+  if (!helper) {
+    return undefined;
+  }
+  const result: yom.ElementEventHandlers = {};
+  for (const [k, v] of Object.entries(helper)) {
+    result[k as yom.EventHandlerName] = normalizeEventHandler(v);
+  }
+  return result;
+}
+
+function element(tag: yom.AllHtmlTags, el: ElementOpts): ui.ElementNode {
+  return {
+    t: "Element",
+    tag,
+    ...el,
+    on: normalizeEventHandlers(el.on),
+  };
+}
+
+function dataGrid(opts: Omit<ui.DataGridNode, "t">): ui.DataGridNode {
   return { t: "DataGrid", ...opts };
 }
 
-export function eventHandlers(
-  node: Omit<yom.EventHandlersNode, "t">
-): yom.EventHandlersNode {
-  return { t: "EventHandlers", ...node };
+interface EventHandlersOpts {
+  window?: HelperEventHandlers;
+  document?: HelperEventHandlers;
+  mount?: HelperEventHandler;
 }
 
-export function sourceMap(source: string, children: ui.Node): ui.SourceMapNode {
+function eventHandlers(opts: EventHandlersOpts): yom.EventHandlersNode {
+  return {
+    t: "EventHandlers",
+    window: normalizeEventHandlers(opts.window),
+    document: normalizeEventHandlers(opts.document),
+    mount: normalizeEventHandler(opts.mount),
+  };
+}
+
+function sourceMap(source: string, children: ui.Node): ui.SourceMapNode {
   return { t: "SourceMap", source, children };
 }
+
+export const nodes = {
+  each,
+  state,
+  mode,
+  if: if_,
+  switch: switch_,
+  route,
+  routes,
+  portal,
+  queryParams,
+  element,
+  dataGrid,
+  eventHandlers,
+  sourceMap,
+};

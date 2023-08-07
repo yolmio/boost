@@ -1,7 +1,7 @@
-import { element, ifNode, portal } from "../../nodeHelpers.js";
-import { Node } from "../../nodeTypes.js";
-import { if_, setScalar } from "../../procHelpers.js";
-import { createStyles } from "../../styleUtils.js";
+import { element, ifNode, portal } from "../../nodeHelpers";
+import { Node } from "../../nodeTypes";
+import { if_, setScalar } from "../../procHelpers";
+import { createStyles } from "../../styleUtils";
 
 export interface Opts {
   openScalar: string;

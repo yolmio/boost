@@ -1,8 +1,8 @@
-import type { ElementNode, Node } from "../nodeTypes.js";
-import { StyleObject } from "../styleTypes.js";
-import { createStyles, cssVar } from "../styleUtils.js";
-import { Color, Size } from "./types.js";
-import { mergeEls, SingleElementComponentOpts } from "./utils.js";
+import type { ElementNode, Node } from "../nodeTypes";
+import { StyleObject } from "../styleTypes";
+import { createStyles, cssVar } from "../styleUtils";
+import { Color, Size } from "./types";
+import { mergeEls, SingleElementComponentOpts } from "./utils";
 
 type Orientation = "horizontal" | "vertical";
 

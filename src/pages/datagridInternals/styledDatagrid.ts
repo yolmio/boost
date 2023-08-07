@@ -1,28 +1,28 @@
-import { iconButton } from "../../components/iconButton.js";
-import { InsertDialogOpts } from "../../components/insertDialog.js";
-import { list, listItem, listItemButton } from "../../components/list.js";
-import { materialIcon } from "../../components/materialIcon.js";
-import { getUniqueUiId } from "../../components/utils.js";
-import { addDecisionTable, addPage } from "../../appHelpers.js";
-import { BoolEnumLikeConfig, DurationSize, Table } from "../../appTypes.js";
-import { element, eventHandlers, ifNode, state } from "../../nodeHelpers.js";
-import { Node } from "../../nodeTypes.js";
-import { exit, if_, modify, scalar, setScalar } from "../../procHelpers.js";
-import { createStyles } from "../../styleUtils.js";
-import { ident, stringLiteral } from "../../utils/sqlHelpers.js";
-import { StateStatement } from "../../yom.js";
+import { iconButton } from "../../components/iconButton";
+import { InsertDialogOpts } from "../../components/insertDialog";
+import { list, listItem, listItemButton } from "../../components/list";
+import { materialIcon } from "../../components/materialIcon";
+import { getUniqueUiId } from "../../components/utils";
+import { addDecisionTable, addPage } from "../../appHelpers";
+import { BoolEnumLikeConfig, DurationSize, Table } from "../../appTypes";
+import { element, eventHandlers, ifNode, state } from "../../nodeHelpers";
+import { Node } from "../../nodeTypes";
+import { exit, if_, modify, scalar, setScalar } from "../../procHelpers";
+import { createStyles } from "../../styleUtils";
+import { ident, stringLiteral } from "../../utils/sqlHelpers";
+import { StateStatement } from "../../yom";
 import {
   addDatagridDts,
   BaseColumn,
   BaseColumnQueryGeneration,
   datagridBase,
   DefaultView,
-} from "./datagridBase.js";
-import { styles as sharedStyles } from "./styles.js";
-import { toolbar } from "./toolbar.js";
-import { Cell, ColumnEventHandlers } from "./types.js";
-import { viewDrawer } from "./viewDrawer.js";
-import { triggerQueryRefresh } from "./shared.js";
+} from "./datagridBase";
+import { styles as sharedStyles } from "./styles";
+import { toolbar } from "./toolbar";
+import { Cell, ColumnEventHandlers } from "./types";
+import { viewDrawer } from "./viewDrawer";
+import { triggerQueryRefresh } from "./shared";
 
 export interface ToolbarConfig {
   views: boolean;

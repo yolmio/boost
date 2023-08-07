@@ -1,5 +1,5 @@
-import { app } from "../../singleton.js";
-import { createStyles } from "../../styleUtils.js";
+import { app } from "../../singleton";
+import { createStyles } from "../../styleUtils";
 
 export const styles = createStyles({
   root: {

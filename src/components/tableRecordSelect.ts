@@ -1,17 +1,10 @@
-import { TableControlOpts } from "../appTypes.js";
-import { each, element, ifNode, state } from "../nodeHelpers.js";
-import {
-  if_,
-  modify,
-  scalar,
-  search,
-  setScalar,
-  table,
-} from "../procHelpers.js";
-import { app } from "../singleton.js";
-import { circularProgress } from "./circularProgress.js";
-import { queryCombobox } from "./searchSelect.js";
-import { select } from "./select.js";
+import { TableControlOpts } from "../appTypes";
+import { each, element, ifNode, state } from "../nodeHelpers";
+import { if_, modify, scalar, search, setScalar, table } from "../procHelpers";
+import { app } from "../app";
+import { circularProgress } from "./circularProgress";
+import { queryCombobox } from "./searchSelect";
+import { select } from "./select";
 
 export function getTableRecordSelect(
   tableName: string,

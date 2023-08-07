@@ -14,15 +14,15 @@ import {
   startTransaction,
   stopPropagation,
   try_,
-} from "../../procHelpers.js";
-import { ident, parenWrap, stringLiteral } from "../../utils/sqlHelpers.js";
+} from "../../procHelpers";
+import { ident, parenWrap, stringLiteral } from "../../utils/sqlHelpers";
 import {
   BaseStatement,
   ClientProcStatement,
   ElementEventHandlers,
   ServiceProcStatement,
-} from "../../yom.js";
-import { triggerQueryRefresh } from "./shared.js";
+} from "../../yom";
+import { triggerQueryRefresh } from "./shared";
 
 export type FieldEditStatements = (
   newValue: string,

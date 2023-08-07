@@ -1,4 +1,4 @@
-import { each, element, ifNode, state } from "../../nodeHelpers.js";
+import { each, element, ifNode, state } from "../../nodeHelpers";
 import {
   exit,
   getBoundingClientRect,
@@ -7,24 +7,24 @@ import {
   record,
   scalar,
   setScalar,
-} from "../../procHelpers.js";
-import { app } from "../../singleton.js";
-import { createStyles, flexGrowStyles } from "../../styleUtils.js";
-import { ident, stringLiteral } from "../../utils/sqlHelpers.js";
-import { divider } from "../../components/divider.js";
-import { materialIcon } from "../../components/materialIcon.js";
-import { typography } from "../../components/typography.js";
-import { displayAddressText } from "./displayAddressText.js";
-import { card, cardOverflow } from "../../components/card.js";
-import { Style } from "../../styleTypes.js";
-import { RecordGridContext } from "./shared.js";
-import { Node } from "../../nodeTypes.js";
-import { pluralize } from "../../utils/inflectors.js";
-import { button } from "../../components/button.js";
-import { SqlExpression } from "../../yom.js";
-import { chip } from "../../components/chip.js";
-import { inlineFieldDisplay } from "../../components/internal/fieldInlineDisplay.js";
-import { getUniqueUiId } from "../../components/utils.js";
+} from "../../procHelpers";
+import { app } from "../../singleton";
+import { createStyles, flexGrowStyles } from "../../styleUtils";
+import { ident, stringLiteral } from "../../utils/sqlHelpers";
+import { divider } from "../../components/divider";
+import { materialIcon } from "../../components/materialIcon";
+import { typography } from "../../components/typography";
+import { displayAddressText } from "./displayAddressText";
+import { card, cardOverflow } from "../../components/card";
+import { Style } from "../../styleTypes";
+import { RecordGridContext } from "./shared";
+import { Node } from "../../nodeTypes";
+import { pluralize } from "../../utils/inflectors";
+import { button } from "../../components/button";
+import { SqlExpression } from "../../yom";
+import { chip } from "../../components/chip";
+import { inlineFieldDisplay } from "../../components/internal/fieldInlineDisplay";
+import { getUniqueUiId } from "../../components/utils";
 
 export const name = "simpleLinkRelationCard";
 

@@ -1,7 +1,7 @@
-import { BarChartNode, LineChartNode } from "../nodeTypes.js";
-import { StyleObject } from "../styleTypes.js";
-import { cssVar, getVariantStyle } from "../styleUtils.js";
-import { ColorPaletteProp, Variant } from "../theme.js";
+import { BarChartNode, LineChartNode } from "../nodeTypes";
+import { StyleObject } from "../styleTypes";
+import { cssVar, getVariantStyle } from "../styleUtils";
+import { ColorPaletteProp, Variant } from "../theme";
 
 type Color = ColorPaletteProp;
 type Size = "sm" | "md" | "lg";

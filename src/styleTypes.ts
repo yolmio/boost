@@ -5,7 +5,7 @@ import type {
   PaletteCssVars,
   Shadow,
   TypographyKeys,
-} from "./theme.js";
+} from "./theme";
 
 type SkipPalette<T extends string> = T extends `palette-${infer R}` ? R : T;
 

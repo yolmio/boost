@@ -1,16 +1,13 @@
-import { element } from "../nodeHelpers.js";
-import { Node } from "../nodeTypes.js";
-import { Style, StyleObject } from "../styleTypes.js";
-import { SequentialIDGenerator } from "../utils/SequentialIdGenerator.js";
+import { nodes, HelperEventHandlers, HelperEventHandler } from "../nodeHelpers";
+import { Node } from "../nodeTypes";
 import {
-  AllHtmlTags,
-  DynamicClass,
-  ElementEventHandlers,
-  ElementProps,
-  EventHandler,
-  FloatingOpts,
-  ScrollLockOpts,
-} from "../yom.js";
+  BasicStatements,
+  DomStatements,
+  DomStatementsOrFn,
+} from "../statements";
+import { Style } from "../styleTypes";
+import { SequentialIDGenerator } from "../utils/SequentialIdGenerator";
+import * as yom from "../yom";
 
 export interface SlottedComponentOpts extends SingleElementComponentOpts {
   slots?: Record<string, SingleElementComponentOpts>;
@@ -23,15 +20,15 @@ export type SlottedComponentWithSlotNames<T extends string> =
 
 /** Options for a component concerned with only a single component */
 export interface SingleElementComponentOpts {
-  tag?: AllHtmlTags;
-  props?: ElementProps;
+  tag?: yom.AllHtmlTags;
+  props?: yom.ElementProps;
   styles?: Style;
   testId?: string;
-  dynamicClasses?: DynamicClass[];
-  floating?: FloatingOpts;
+  dynamicClasses?: yom.DynamicClass[];
+  floating?: yom.FloatingOpts;
   focusLock?: {};
-  scrollLock?: ScrollLockOpts;
-  on?: ElementEventHandlers;
+  scrollLock?: yom.ScrollLockOpts;
+  on?: HelperEventHandlers;
   style?: Record<string, string>;
 }
 
@@ -64,7 +61,7 @@ function mergeStyle(
 }
 
 export interface SingleElementComponentBase extends SingleElementComponentOpts {
-  tag: AllHtmlTags;
+  tag: yom.AllHtmlTags;
   children?: Node;
 }
 
@@ -72,7 +69,7 @@ export function mergeEls(
   opts: SingleElementComponentBase,
   overwriteOpts: SingleElementComponentOpts = {}
 ) {
-  return element(overwriteOpts.tag ?? opts.tag, {
+  return nodes.element(overwriteOpts.tag ?? opts.tag, {
     props: { ...opts.props, ...overwriteOpts.props },
     styles: overwriteOpts.styles
       ? mergeStyle(opts.styles, overwriteOpts.styles)
@@ -114,12 +111,12 @@ export function createSlotsFn<T extends SlottedComponentOpts>(
 }
 
 export function mergeElEventHandlers(
-  a: ElementEventHandlers,
-  b: ElementEventHandlers
+  a: HelperEventHandlers,
+  b: HelperEventHandlers
 ) {
-  const newHandlers: ElementEventHandlers = {};
+  const newHandlers: HelperEventHandlers = {};
   for (const [key, value] of Object.entries(a)) {
-    const typedKey = key as keyof ElementEventHandlers;
+    const typedKey = key as keyof HelperEventHandlers;
     if (key in b) {
       newHandlers[typedKey] = mergeEventHandler(value, b[typedKey]!);
     } else {
@@ -128,32 +125,48 @@ export function mergeElEventHandlers(
   }
   for (const [key, value] of Object.entries(b)) {
     if (!(key in a)) {
-      newHandlers[key as keyof ElementEventHandlers] = value;
+      newHandlers[key as keyof HelperEventHandlers] = value;
     }
   }
   return newHandlers;
 }
 
+function mergeEventHandlerProc(a: DomStatementsOrFn, b: DomStatementsOrFn) {
+  return (s: DomStatements) => s.statements(a).statements(b);
+}
+
 export function mergeEventHandler(
-  a: EventHandler,
-  b: EventHandler
-): EventHandler {
-  if (Array.isArray(a)) {
-    if (Array.isArray(b)) {
-      return [...a, ...b];
+  a: HelperEventHandler,
+  b: HelperEventHandler
+): HelperEventHandler {
+  if (
+    typeof a === "function" ||
+    a instanceof DomStatements ||
+    a instanceof BasicStatements
+  ) {
+    if (
+      typeof b === "function" ||
+      b instanceof DomStatements ||
+      b instanceof BasicStatements
+    ) {
+      return mergeEventHandlerProc(a, b);
     }
     const newHandler = { ...b };
-    newHandler.procedure = [...a, ...b.procedure];
+    newHandler.procedure = mergeEventHandlerProc(a, b.procedure);
     return newHandler;
   }
-  if (Array.isArray(b)) {
+  if (
+    typeof b === "function" ||
+    b instanceof DomStatements ||
+    b instanceof BasicStatements
+  ) {
     const newHandler = { ...a };
-    newHandler.procedure = [...a.procedure, ...b];
+    newHandler.procedure = mergeEventHandlerProc(a.procedure, b);
     return newHandler;
   }
   return {
     detachedFromNode: a.detachedFromNode || b.detachedFromNode,
-    procedure: [...a.procedure, ...b.procedure],
+    procedure: mergeEventHandlerProc(a.procedure, b.procedure),
   };
 }
 

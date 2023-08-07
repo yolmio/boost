@@ -1,10 +1,10 @@
-import { app } from "../singleton.js";
-import type { ElementNode, Node } from "../nodeTypes.js";
-import type { Style, StyleObject } from "../styleTypes.js";
-import { Variant } from "../theme.js";
-import { createStyles, cssVar, getVariantStyle } from "../styleUtils.js";
-import { Color, ComponentOpts, Size } from "./types.js";
-import { mergeEls, SingleElementComponentOpts } from "./utils.js";
+import { app } from "../app";
+import type { ElementNode, Node } from "../nodeTypes";
+import type { Style, StyleObject } from "../styleTypes";
+import { Variant } from "../theme";
+import { createStyles, cssVar, getVariantStyle } from "../styleUtils";
+import { Color, ComponentOpts, Size } from "./types";
+import { mergeEls, SingleElementComponentOpts } from "./utils";
 
 export interface IconButtonOpts
   extends ComponentOpts,

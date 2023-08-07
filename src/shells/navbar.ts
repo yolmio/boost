@@ -1,6 +1,5 @@
-import { scalar, setScalar } from "../procHelpers";
 import { createHarmonizeVars, createStyles, cssVar } from "../styleUtils";
-import { element, state } from "../nodeHelpers";
+import { nodes } from "../nodeHelpers";
 import type { ColorPaletteProp } from "../theme";
 import { getVariantStyle } from "../styleUtils";
 import {
@@ -10,23 +9,26 @@ import {
 } from "../components/button";
 import { iconButton } from "../components/iconButton";
 import { drawer } from "../components/drawer";
-import { materialIcon } from "../components/materialIcon.js";
-import { upcaseFirst } from "../utils/inflectors.js";
-import { stringLiteral } from "../utils/sqlHelpers.js";
-import { app } from "../singleton.js";
-import { typography } from "../components/typography.js";
-import { divider } from "../components/divider.js";
-import { settingsDrawer } from "./internals/settingsDrawer.js";
-import { GlobalSearchOpts } from "./internals/types.js";
-import { makeConditionalLink } from "./internals/authLink.js";
-import { globalSearchDialog } from "./internals/globalSearchDialog.js";
-import { SqlExpression } from "../yom.js";
-import { Node } from "../nodeTypes.js";
+import { materialIcon } from "../components/materialIcon";
+import { upcaseFirst } from "../utils/inflectors";
+import { stringLiteral } from "../utils/sqlHelpers";
+import { typography } from "../components/typography";
+import { divider } from "../components/divider";
+import { settingsDrawer } from "./internals/settingsDrawer";
+import { GlobalSearchOpts } from "./internals/types";
+import { makeConditionalLink } from "./internals/authLink";
+import { globalSearchDialog } from "./internals/globalSearchDialog";
+import * as yom from "../yom";
+import { Node } from "../nodeTypes";
+import { app } from "../app";
 
 export interface NavbarProps extends GlobalSearchOpts {
   variant?: "soft" | "solid";
   color?: ColorPaletteProp;
-  links: (string | { label?: string; url: string; showIf?: SqlExpression })[];
+  links: (
+    | string
+    | { label?: string; url: string; showIf?: yom.SqlExpression }
+  )[];
   primaryActionButton?: ButtonOpts;
 }
 
@@ -140,16 +142,18 @@ export function navbarShell(opts: NavbarProps): (n: Node) => Node {
   }
   const hasSearchDialog =
     Boolean(opts.searchDialog) || Boolean(opts.multiTableSearchDialog);
-  const content = state({
-    procedure: [
-      scalar("showing_mobile_menu", "false"),
-      scalar("showing_settings", "false"),
-      hasSearchDialog ? scalar("searching", "false") : undefined,
-    ],
-    children: element("nav", {
+  const content = nodes.state({
+    procedure: (s) =>
+      s
+        .scalar("showing_mobile_menu", "false")
+        .scalar("showing_settings", "false")
+        .conditionalStatements(hasSearchDialog, (s) =>
+          s.scalar("searching", "false")
+        ),
+    children: nodes.element("nav", {
       styles: styles.root(variant, color),
       children: [
-        element("div", {
+        nodes.element("div", {
           styles: styles.menuIcon,
           children: iconButton({
             color: "harmonize",
@@ -159,10 +163,10 @@ export function navbarShell(opts: NavbarProps): (n: Node) => Node {
               title: "'Menu'",
               name: "Menu",
             }),
-            on: { click: [setScalar(`ui.showing_mobile_menu`, `true`)] },
+            on: { click: (s) => s.setScalar(`ui.showing_mobile_menu`, `true`) },
           }),
         }),
-        element("div", {
+        nodes.element("div", {
           styles: styles.links,
           children: [
             iconButton({
@@ -177,7 +181,7 @@ export function navbarShell(opts: NavbarProps): (n: Node) => Node {
             }),
             normalizedLabels.map((link) =>
               makeConditionalLink(
-                element("a", {
+                nodes.element("a", {
                   props: { href: stringLiteral(link.url) },
                   styles: styles.link(),
                   dynamicClasses: [
@@ -195,28 +199,28 @@ export function navbarShell(opts: NavbarProps): (n: Node) => Node {
             ),
           ],
         }),
-        element("div", {
+        nodes.element("div", {
           styles: styles.navRight,
           children: [
             opts.primaryActionButton
               ? button(opts.primaryActionButton)
               : undefined,
             hasSearchDialog
-              ? element("button", {
+              ? nodes.element("button", {
                   styles: styles.searchButton(),
                   children: [
-                    element("span", {
+                    nodes.element("span", {
                       styles: styles.searchButtonStartIcon,
                       children: materialIcon("Search"),
                     }),
-                    element("span", {
+                    nodes.element("span", {
                       styles: styles.searchButtonLabel,
                       children: opts.searchDialog
                         ? `'Find ${opts.searchDialog.table}…'`
                         : `'Search…'`,
                     }),
                   ],
-                  on: { click: [setScalar(`ui.searching`, `true`)] },
+                  on: { click: (s) => s.setScalar(`ui.searching`, `true`) },
                 })
               : undefined,
             iconButton({
@@ -227,17 +231,17 @@ export function navbarShell(opts: NavbarProps): (n: Node) => Node {
                 title: "'Settings'",
                 name: "Settings",
               }),
-              on: { click: [setScalar(`ui.showing_settings`, `true`)] },
+              on: { click: (s) => s.setScalar(`ui.showing_settings`, `true`) },
             }),
           ],
         }),
         drawer({
           open: `ui.showing_mobile_menu`,
-          onClose: [setScalar(`ui.showing_mobile_menu`, `false`)],
+          onClose: (s) => s.setScalar(`ui.showing_mobile_menu`, `false`),
           direction: "left",
           slots: { drawer: { styles: styles.linksDrawer } },
           children: (closeDrawer) => [
-            element("div", {
+            nodes.element("div", {
               styles: styles.linksHeader,
               children: [
                 typography({
@@ -280,10 +284,10 @@ export function navbarShell(opts: NavbarProps): (n: Node) => Node {
         }),
         settingsDrawer({
           open: `ui.showing_settings`,
-          onClose: [setScalar(`ui.showing_settings`, `false`)],
+          onClose: (s) => s.setScalar(`ui.showing_settings`, `false`),
         }),
-        globalSearchDialog(opts, `searching`, (open) =>
-          setScalar(`searching`, open)
+        globalSearchDialog(opts, `searching`, (open, s) =>
+          s.setScalar(`searching`, open)
         ),
       ],
     }),

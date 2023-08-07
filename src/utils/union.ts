@@ -1,8 +1,8 @@
-import { Field, VirtualType } from "../appTypes.js";
-import { app } from "../singleton.js";
-import { SequentialIDGenerator } from "../utils/SequentialIdGenerator.js";
-import { FieldIntegerTypes, SqlExpression } from "../yom.js";
-import { tableFieldSql } from "./sqlHelpers.js";
+import { Field, VirtualType } from "../appTypes";
+import { app } from "../app";
+import { SequentialIDGenerator } from "../utils/SequentialIdGenerator";
+import { FieldIntegerTypes, SqlExpression } from "../yom";
+import { tableFieldSql } from "./sqlHelpers";
 
 export interface TableUnionSource {
   type: "Table";

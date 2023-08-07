@@ -8,12 +8,12 @@ import {
   sleep,
   writeAppModelToDisk,
   yolmPath,
-} from "./utils.js";
+} from "./utils";
 import * as dns from "dns";
 import { Request } from "node-fetch";
 import * as fs from "fs";
-import { createProfiles } from "../profile.js";
-import { hasBun } from "./transpileUtils.js";
+import { createProfiles } from "../profile";
+import { hasBun } from "./transpileUtils";
 
 dns.setDefaultResultOrder("ipv4first");
 

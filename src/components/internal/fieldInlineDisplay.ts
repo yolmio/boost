@@ -1,9 +1,9 @@
-import { Field } from "../../appTypes.js";
-import { element, state } from "../../nodeHelpers.js";
-import { scalar } from "../../procHelpers.js";
-import { app } from "../../singleton.js";
-import { createStyles } from "../../styleUtils.js";
-import { stringLiteral } from "../../utils/sqlHelpers.js";
+import { Field } from "../../appTypes";
+import { nodes } from "../../nodeHelpers";
+import { scalar } from "../../procHelpers";
+import { app } from "../../singleton";
+import { createStyles } from "../../styleUtils";
+import { stringLiteral } from "../../utils/sqlHelpers";
 
 const styles = createStyles({
   link: {
@@ -34,7 +34,7 @@ export function inlineFieldDisplay(field: Field, expr: string) {
       );
       let innerDisplay;
       if (toTable.getHrefToRecord) {
-        innerDisplay = element("a", {
+        innerDisplay = nodes.element("a", {
           styles: styles.link,
           props: {
             href: toTable.getHrefToRecord(expr),
@@ -44,14 +44,13 @@ export function inlineFieldDisplay(field: Field, expr: string) {
       } else {
         innerDisplay = `name`;
       }
-      return state({
+      return nodes.state({
         watch: [expr],
-        procedure: [
-          scalar(
+        procedure: (s) =>
+          s.scalar(
             `name`,
             `(select ${nameExpr} from db.${field.table} as other where other.id = ${expr})`
           ),
-        ],
         children: innerDisplay,
       });
     }

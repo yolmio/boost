@@ -8,8 +8,8 @@
     "material-icons/**"
   ],
   "scripts": {
-    "build": "esbuild src/index.ts --bundle --outdir=dist --format esm",
-    "build:watch": "esbuild src/index.ts --bundle --outdir=dist --format esm --watch",
+    "build": "esbuild src/index.ts --bundle --outdir=dist --format=esm --platform=node",
+    "build:watch": "esbuild src/index.ts --bundle --outdir=dist --format=esm --platform=node --watch",
     "create-ts": "tsc --project tsconfig.json",
     "create-ts:watch": "tsc --project tsconfig.json --watch",
     "lint": "TIMING=1 eslint src --fix",

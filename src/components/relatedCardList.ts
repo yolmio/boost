@@ -1,18 +1,18 @@
-import { each, element, state } from "../nodeHelpers.js";
-import { Node } from "../nodeTypes.js";
-import { scalar, setScalar, table } from "../procHelpers.js";
-import { app } from "../singleton.js";
-import { flexGrowStyles } from "../styleUtils.js";
-import { pluralize } from "../utils/inflectors.js";
-import { stringLiteral } from "../utils/sqlHelpers.js";
-import { inlineFieldDisplay } from "./internal/fieldInlineDisplay.js";
-import { button } from "./button.js";
-import { card } from "./card.js";
-import { deleteRecordDialog } from "./deleteRecordDialog.js";
-import { updateDialog } from "./updateDialog.js";
-import { iconButton } from "./iconButton.js";
-import { materialIcon } from "./materialIcon.js";
-import { typography } from "./typography.js";
+import { each, element, state } from "../nodeHelpers";
+import { Node } from "../nodeTypes";
+import { scalar, setScalar, table } from "../procHelpers";
+import { app } from "../app";
+import { flexGrowStyles } from "../styleUtils";
+import { pluralize } from "../utils/inflectors";
+import { stringLiteral } from "../utils/sqlHelpers";
+import { inlineFieldDisplay } from "./internal/fieldInlineDisplay";
+import { button } from "./button";
+import { card } from "./card";
+import { deleteRecordDialog } from "./deleteRecordDialog";
+import { updateDialog } from "./updateDialog";
+import { iconButton } from "./iconButton";
+import { materialIcon } from "./materialIcon";
+import { typography } from "./typography";
 
 export interface RelatedCardOpts {
   table: string;

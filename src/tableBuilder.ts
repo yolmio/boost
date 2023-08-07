@@ -533,8 +533,8 @@ function addMinuteDurationFns() {
             .if(`input.value like '-%'`, (s) =>
               s.setScalar(`total`, `total * -1`)
             )
-            .returnExpr(`total`),
-        catch: (s) => s.exit(),
+            .return(`total`),
+        catch: (s) => s.return(),
       }),
   });
   app.addScalarFunction({
@@ -542,7 +542,7 @@ function addMinuteDurationFns() {
     parameters: [{ name: "value", type: { type: "BigInt" } }],
     returnType: { type: "String" },
     procedure: (s) =>
-      s.returnExpr(`case when input.value < 0 then '-' else '' end ||
+      s.return(`case when input.value < 0 then '-' else '' end ||
     abs(round(input.value / 60)) ||
     ':' ||
     lpad(abs(round(input.value % 60)), 2, 0)`),

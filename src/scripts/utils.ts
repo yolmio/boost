@@ -1,8 +1,8 @@
 import { homedir } from "os";
 import * as path from "path";
 import * as fs from "fs";
-import { generateYom } from "../generate.js";
-import { Model } from "../yom.js";
+import { generateYom } from "../generate";
+import { Model } from "../yom";
 import { spawn, spawnSync } from "child_process";
 import fetch, { Request } from "node-fetch";
 

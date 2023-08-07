@@ -1,9 +1,9 @@
-import * as threeStats from "./threeStats.js";
-import * as table from "./table.js";
-import * as header from "./header.js";
-import * as lineChart from "./lineChart.js";
-import * as pieChart from "./pieChart.js";
-import * as barChart from "./barChart.js";
+import * as threeStats from "./threeStats";
+import * as table from "./table";
+import * as header from "./header";
+import * as lineChart from "./lineChart";
+import * as pieChart from "./pieChart";
+import * as barChart from "./barChart";
 
 export const childFnMap = {
   [threeStats.name]: threeStats.content,

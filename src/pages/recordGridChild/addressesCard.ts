@@ -1,15 +1,15 @@
-import { AddressFieldGroup } from "../../appTypes.js";
-import { element, state } from "../../nodeHelpers.js";
-import { record } from "../../procHelpers.js";
-import { createStyles } from "../../styleUtils.js";
-import { ident } from "../../utils/sqlHelpers.js";
-import { displayAddressText } from "./displayAddressText.js";
-import { divider } from "../../components/divider.js";
-import { materialIcon } from "../../components/materialIcon.js";
-import { typography } from "../../components/typography.js";
-import { RecordGridContext } from "./shared.js";
-import { card } from "../../components/card.js";
-import { Style } from "../../styleTypes.js";
+import { AddressFieldGroup } from "../../appTypes";
+import { element, state } from "../../nodeHelpers";
+import { record } from "../../procHelpers";
+import { createStyles } from "../../styleUtils";
+import { ident } from "../../utils/sqlHelpers";
+import { displayAddressText } from "./displayAddressText";
+import { divider } from "../../components/divider";
+import { materialIcon } from "../../components/materialIcon";
+import { typography } from "../../components/typography";
+import { RecordGridContext } from "./shared";
+import { card } from "../../components/card";
+import { Style } from "../../styleTypes";
 
 export const name = "addressesCard";
 

@@ -1,12 +1,12 @@
-import { element, state } from "../../nodeHelpers.js";
-import { Node } from "../../nodeTypes.js";
-import { record } from "../../procHelpers.js";
-import { createStyles } from "../../styleUtils.js";
-import { stringLiteral } from "../../utils/sqlHelpers.js";
-import { inlineFieldDisplay } from "../../components/internal/fieldInlineDisplay.js";
-import { RecordGridContext } from "./shared.js";
-import { card } from "../../components/card.js";
-import { Style } from "../../styleTypes.js";
+import { element, state } from "../../nodeHelpers";
+import { Node } from "../../nodeTypes";
+import { record } from "../../procHelpers";
+import { createStyles } from "../../styleUtils";
+import { stringLiteral } from "../../utils/sqlHelpers";
+import { inlineFieldDisplay } from "../../components/internal/fieldInlineDisplay";
+import { RecordGridContext } from "./shared";
+import { card } from "../../components/card";
+import { Style } from "../../styleTypes";
 
 export const name = "staticTableCard";
 

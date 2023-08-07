@@ -1,10 +1,10 @@
-import { memoize } from "../utils/memoize.js";
-import { ElementEventHandlers, ElementProps } from "../yom.js";
-import { element } from "../nodeHelpers.js";
-import type { ElementNode, Node } from "../nodeTypes.js";
-import { Variant } from "../theme.js";
-import { cssVar, getVariantStyle } from "../styleUtils.js";
-import { Color, ComponentOpts } from "./types.js";
+import { memoize } from "../utils/memoize";
+import { ElementEventHandlers, ElementProps } from "../yom";
+import { element } from "../nodeHelpers";
+import type { ElementNode, Node } from "../nodeTypes";
+import { Variant } from "../theme";
+import { cssVar, getVariantStyle } from "../styleUtils";
+import { Color, ComponentOpts } from "./types";
 
 export interface SheetOpts extends Omit<ComponentOpts, "size"> {
   props?: ElementProps;

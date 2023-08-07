@@ -1,5 +1,5 @@
 import fetch from "node-fetch";
-import { getAppModel } from "./utils.js";
+import { getAppModel } from "./utils";
 import * as dns from "dns";
 
 dns.setDefaultResultOrder("ipv4first");

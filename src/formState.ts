@@ -10,7 +10,7 @@ import type {
   ServiceProcStatement,
   SqlExpression,
   StateStatement,
-} from "./yom.js";
+} from "./yom";
 import {
   block,
   commitTransaction,
@@ -28,10 +28,10 @@ import {
   startTransaction,
   table,
   try_,
-} from "./procHelpers.js";
-import { app } from "./singleton.js";
-import { EachNode, Node, StateNode } from "./nodeTypes.js";
-import { ident, stringLiteral } from "./utils/sqlHelpers.js";
+} from "./procHelpers";
+import { app } from "./singleton";
+import { EachNode, Node, StateNode } from "./nodeTypes";
+import { ident, stringLiteral } from "./utils/sqlHelpers";
 
 export interface ErrorState {
   touched: string;

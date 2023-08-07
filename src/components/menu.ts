@@ -1,20 +1,14 @@
-import { ifNode, portal, state } from "../nodeHelpers.js";
-import { Node } from "../nodeTypes.js";
-import {
-  exit,
-  if_,
-  preventDefault,
-  scalar,
-  setScalar,
-} from "../procHelpers.js";
-import { StyleObject } from "../styleTypes.js";
-import { createStyles, cssVar } from "../styleUtils.js";
-import { Variant } from "../theme.js";
-import { deepmerge } from "../utils/deepmerge.js";
-import { ClientProcStatement, ElementProps, FloatingOpts } from "../yom.js";
-import { listItemButton, ListOpts, styles as listStyles } from "./list.js";
-import { Color, Size } from "./types.js";
-import { mergeEls } from "./utils.js";
+import { ifNode, portal, state } from "../nodeHelpers";
+import { Node } from "../nodeTypes";
+import { exit, if_, preventDefault, scalar, setScalar } from "../procHelpers";
+import { StyleObject } from "../styleTypes";
+import { createStyles, cssVar } from "../styleUtils";
+import { Variant } from "../theme";
+import { deepmerge } from "../utils/deepmerge";
+import { ClientProcStatement, ElementProps, FloatingOpts } from "../yom";
+import { listItemButton, ListOpts, styles as listStyles } from "./list";
+import { Color, Size } from "./types";
+import { mergeEls } from "./utils";
 
 export interface MenuListOpts extends ListOpts {
   getItemId: (id: string) => string;

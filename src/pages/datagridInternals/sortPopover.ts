@@ -1,14 +1,14 @@
-import { each, element, ifNode, state } from "../../nodeHelpers.js";
-import { if_, modify, scalar, setScalar } from "../../procHelpers.js";
-import { stringLiteral } from "../../utils/sqlHelpers.js";
-import { button } from "../../components/button.js";
-import { iconButton } from "../../components/iconButton.js";
-import { materialIcon } from "../../components/materialIcon.js";
-import { select } from "../../components/select.js";
-import { triggerQueryRefresh } from "./shared.js";
-import { createStyles } from "../../styleUtils.js";
-import { SortConfig, SuperGridColumn } from "./styledDatagrid.js";
-import { Node, SwitchNodeCase } from "../../nodeTypes.js";
+import { each, element, ifNode, state } from "../../nodeHelpers";
+import { if_, modify, scalar, setScalar } from "../../procHelpers";
+import { stringLiteral } from "../../utils/sqlHelpers";
+import { button } from "../../components/button";
+import { iconButton } from "../../components/iconButton";
+import { materialIcon } from "../../components/materialIcon";
+import { select } from "../../components/select";
+import { triggerQueryRefresh } from "./shared";
+import { createStyles } from "../../styleUtils";
+import { SortConfig, SuperGridColumn } from "./styledDatagrid";
+import { Node, SwitchNodeCase } from "../../nodeTypes";
 
 const styles = createStyles({
   columns: {

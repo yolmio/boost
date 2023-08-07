@@ -197,8 +197,6 @@ export interface PopSourceStatement {
 }
 
 export type BaseStatement =
-  | null
-  | undefined
   | ModifyStatement
   | ThrowStatement
   | TableDeclaration
@@ -1231,7 +1229,7 @@ export interface SpawnStatement {
   t: "Spawn";
   detached?: boolean;
   handleScalar?: string;
-  statements: ClientProcStatement[];
+  statements: DomProcStatement[];
 }
 
 export interface WaitOnTaskStatement {
@@ -1350,14 +1348,14 @@ export interface AddImageStatement {
   resize?: ImageResize;
 }
 
-export type ClientProcStatement =
-  | IfStatement<ClientProcStatement>
-  | WhileStatement<ClientProcStatement>
-  | BlockStatement<ClientProcStatement>
-  | ForEachCursorStatement<ClientProcStatement>
-  | ForEachQueryStatement<ClientProcStatement>
-  | ForEachTableStatement<ClientProcStatement>
-  | TryStatement<ClientProcStatement>
+export type DomProcStatement =
+  | IfStatement<DomProcStatement>
+  | WhileStatement<DomProcStatement>
+  | BlockStatement<DomProcStatement>
+  | ForEachCursorStatement<DomProcStatement>
+  | ForEachQueryStatement<DomProcStatement>
+  | ForEachTableStatement<DomProcStatement>
+  | TryStatement<DomProcStatement>
   | BaseStatement
   | NavigateStatement
   | PreventDefault
@@ -1934,7 +1932,7 @@ export interface DataGridColumn {
 }
 
 export interface EventHandlerObject {
-  procedure: ClientProcStatement[];
+  procedure: DomProcStatement[];
   /**
    * This indicates that the event handler should not be aborted when the node
    * is removed.
@@ -1946,7 +1944,7 @@ export interface EventHandlerObject {
   disableAutoCommit?: boolean;
 }
 
-export type EventHandler = EventHandlerObject | ClientProcStatement[];
+export type EventHandler = EventHandlerObject | DomProcStatement[];
 
 export type ElementProps = Partial<
   Record<AllHtmlPropNames | SvgPropNames, SqlExpression>

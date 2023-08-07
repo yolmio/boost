@@ -1,22 +1,21 @@
-import { alert } from "../../components/alert.js";
-import { button } from "../../components/button.js";
-import { circularProgress } from "../../components/circularProgress.js";
-import { divider } from "../../components/divider.js";
-import { drawer } from "../../components/drawer.js";
-import { formControl } from "../../components/formControl.js";
-import { formLabel } from "../../components/formLabel.js";
-import { iconButton } from "../../components/iconButton.js";
-import { materialIcon } from "../../components/materialIcon.js";
-import { typography } from "../../components/typography.js";
-import { element, state, switchNode } from "../../nodeHelpers.js";
-import { logOut, scalar, setScalar } from "../../procHelpers.js";
-import { app } from "../../singleton.js";
-import { createStyles, cssVar } from "../../styleUtils.js";
-import { ClientProcStatement } from "../../yom.js";
+import { alert } from "../../components/alert";
+import { button } from "../../components/button";
+import { circularProgress } from "../../components/circularProgress";
+import { divider } from "../../components/divider";
+import { drawer } from "../../components/drawer";
+import { formControl } from "../../components/formControl";
+import { formLabel } from "../../components/formLabel";
+import { iconButton } from "../../components/iconButton";
+import { materialIcon } from "../../components/materialIcon";
+import { typography } from "../../components/typography";
+import { nodes } from "../../nodeHelpers";
+import { app } from "../../app";
+import { createStyles, cssVar } from "../../styleUtils";
+import { DomStatementsOrFn } from "../../statements";
 
 export interface SettingsDrawerOpts {
   open: string;
-  onClose: ClientProcStatement[];
+  onClose: DomStatementsOrFn;
 }
 
 const styles = createStyles({
@@ -100,7 +99,7 @@ export function settingsDrawer(opts: SettingsDrawerOpts) {
     direction: "right",
     slots: { drawer: { styles: styles.root } },
     children: (closeDrawer) => [
-      element("div", {
+      nodes.element("div", {
         styles: styles.settingsHeader,
         children: [
           typography({
@@ -123,27 +122,27 @@ export function settingsDrawer(opts: SettingsDrawerOpts) {
           formLabel({
             children: `'Color mode'`,
           }),
-          element("div", {
+          nodes.element("div", {
             styles: styles.colorModeSwitcher,
             children: [
-              element("button", {
+              nodes.element("button", {
                 styles: styles.colorModeButton(),
                 dynamicClasses: [
                   {
                     classes: "selected",
-                    condition: `ui.color_scheme = 'light'`,
+                    condition: `color_scheme = 'light'`,
                   },
                 ],
                 children: [
-                  element("span", {
+                  nodes.element("span", {
                     styles: styles.colorModeIcon,
                     children: materialIcon("LightMode"),
                   }),
                   `'Light'`,
                 ],
-                on: { click: [setScalar(`ui.color_scheme`, `'light'`)] },
+                on: { click: (s) => s.setScalar(`color_scheme`, `'light'`) },
               }),
-              element("button", {
+              nodes.element("button", {
                 styles: styles.colorModeButton(),
                 dynamicClasses: [
                   {
@@ -152,15 +151,17 @@ export function settingsDrawer(opts: SettingsDrawerOpts) {
                   },
                 ],
                 children: [
-                  element("span", {
+                  nodes.element("span", {
                     styles: styles.colorModeIcon,
                     children: materialIcon("SettingsBrightness"),
                   }),
                   `'System'`,
                 ],
-                on: { click: [setScalar(`ui.color_scheme`, `'system'`)] },
+                on: {
+                  click: (s) => s.setScalar(`ui.color_scheme`, `'system'`),
+                },
               }),
-              element("button", {
+              nodes.element("button", {
                 styles: styles.colorModeButton(),
                 dynamicClasses: [
                   {
@@ -169,53 +170,55 @@ export function settingsDrawer(opts: SettingsDrawerOpts) {
                   },
                 ],
                 children: [
-                  element("span", {
+                  nodes.element("span", {
                     styles: styles.colorModeIcon,
                     children: materialIcon("DarkModeOutlined"),
                   }),
                   `'Dark'`,
                 ],
-                on: { click: [setScalar(`ui.color_scheme`, `'dark'`)] },
+                on: { click: (s) => s.setScalar(`ui.color_scheme`, `'dark'`) },
               }),
             ],
           }),
         ],
       }),
-      state({
-        procedure: [
-          scalar(
+      nodes.state({
+        procedure: (s) =>
+          s.scalar(
             `email`,
             `(select email from db.${app.db.userTableName} where id = current_user())`
           ),
-        ],
         statusScalar: `status`,
-        children: switchNode(
-          [
-            `status = 'received'`,
-            typography({
+        children: nodes.switch(
+          {
+            condition: `status = 'received'`,
+            node: typography({
               level: "body1",
               children: [
                 `'Logged in as: '`,
-                element("strong", {
+                nodes.element("strong", {
                   children: `coalesce(email, 'email')`,
                 }),
               ],
             }),
-          ],
-          [`status = 'fallback_triggered'`, circularProgress({ size: "sm" })],
-          [
-            `status = 'failed'`,
-            alert({ children: `'Unable to get current user'` }),
-          ]
+          },
+          {
+            condition: `status = 'fallback_triggered'`,
+            node: circularProgress({ size: "sm" }),
+          },
+          {
+            condition: `status = 'failed'`,
+            node: alert({ children: `'Unable to get current user'` }),
+          }
         ),
       }),
-      element("div", {
+      nodes.element("div", {
         styles: styles.logoutWrapper,
         children: button({
           variant: "soft",
           startDecorator: materialIcon("Logout"),
           children: `'Log out'`,
-          on: { click: [logOut()] },
+          on: { click: (s) => s.logout() },
         }),
       }),
     ],

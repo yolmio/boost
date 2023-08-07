@@ -1,9 +1,9 @@
-import { element } from "../nodeHelpers.js";
-import { app } from "../singleton.js";
-import { select, SelectOpts } from "./select.js";
-import { stringLiteral } from "../utils/sqlHelpers.js";
-import { BoolEnumLikeConfig } from "../appTypes.js";
-import { memoize } from "../utils/memoize.js";
+import { element } from "../nodeHelpers";
+import { app } from "../app";
+import { select, SelectOpts } from "./select";
+import { stringLiteral } from "../utils/sqlHelpers";
+import { BoolEnumLikeConfig } from "../appTypes";
+import { memoize } from "../utils/memoize";
 
 export type EnumSelectOpts = Omit<SelectOpts, "children"> & {
   enum: string;

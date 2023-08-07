@@ -1,14 +1,14 @@
-import { alert } from "../components/alert.js";
-import { button } from "../components/button.js";
-import { circularProgress } from "../components/circularProgress.js";
-import { formControl } from "../components/formControl.js";
-import { formLabel } from "../components/formLabel.js";
-import { iconButton } from "../components/iconButton.js";
-import { input } from "../components/input.js";
-import { materialIcon } from "../components/materialIcon.js";
-import { getTableRecordSelect } from "../components/tableRecordSelect.js";
-import { typography } from "../components/typography.js";
-import { addPage } from "../appHelpers.js";
+import { alert } from "../components/alert";
+import { button } from "../components/button";
+import { circularProgress } from "../components/circularProgress";
+import { formControl } from "../components/formControl";
+import { formLabel } from "../components/formLabel";
+import { iconButton } from "../components/iconButton";
+import { input } from "../components/input";
+import { materialIcon } from "../components/materialIcon";
+import { getTableRecordSelect } from "../components/tableRecordSelect";
+import { typography } from "../components/typography";
+import { addPage } from "../appHelpers";
 import {
   each,
   element,
@@ -18,8 +18,8 @@ import {
   sourceMap,
   state,
   switchNode,
-} from "../nodeHelpers.js";
-import { Node, RouteNode } from "../nodeTypes.js";
+} from "../nodeHelpers";
+import { Node, RouteNode } from "../nodeTypes";
 import {
   debugExpr,
   download,
@@ -30,12 +30,12 @@ import {
   scalar,
   setScalar,
   table,
-} from "../procHelpers.js";
-import { createStyles, cssVar } from "../styleUtils.js";
-import { normalizeCase, upcaseFirst } from "../utils/inflectors.js";
-import { lazy } from "../utils/memoize.js";
-import { stringLiteral } from "../utils/sqlHelpers.js";
-import { FieldType, StateStatement } from "../yom.js";
+} from "../procHelpers";
+import { createStyles, cssVar } from "../styleUtils";
+import { normalizeCase, upcaseFirst } from "../utils/inflectors";
+import { lazy } from "../utils/memoize";
+import { stringLiteral } from "../utils/sqlHelpers";
+import { FieldType, StateStatement } from "../yom";
 
 export type SimpleTableReportOpts = {
   name: string;

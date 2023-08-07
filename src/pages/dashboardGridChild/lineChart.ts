@@ -1,8 +1,8 @@
-import { circularProgress } from "../../components/circularProgress.js";
-import { element, ifNode, state } from "../../nodeHelpers.js";
-import { debugExpr, debugQuery, table } from "../../procHelpers.js";
-import { createStyles, cssVar } from "../../styleUtils.js";
-import { stringLiteral } from "../../utils/sqlHelpers.js";
+import { circularProgress } from "../../components/circularProgress";
+import { element, ifNode, state } from "../../nodeHelpers";
+import { debugExpr, debugQuery, table } from "../../procHelpers";
+import { createStyles, cssVar } from "../../styleUtils";
+import { stringLiteral } from "../../utils/sqlHelpers";
 
 export const name = "lineChart";
 

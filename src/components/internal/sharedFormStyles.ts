@@ -1,4 +1,4 @@
-import { baseGridStyles, createStyles } from "../../styleUtils.js";
+import { baseGridStyles, createStyles } from "../../styleUtils";
 
 export const genericFormStyles = createStyles({
   actionButtons: {

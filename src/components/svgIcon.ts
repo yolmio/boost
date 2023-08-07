@@ -1,9 +1,9 @@
-import { memoize } from "../utils/memoize.js";
-import { element } from "../nodeHelpers.js";
-import type { Node } from "../nodeTypes.js";
-import { StyleObject } from "../styleTypes.js";
-import type { ColorPaletteProp, FontSize } from "../theme.js";
-import { cssVar } from "../styleUtils.js";
+import { memoize } from "../utils/memoize";
+import { nodes } from "../nodeHelpers";
+import type { Node } from "../nodeTypes";
+import { StyleObject } from "../styleTypes";
+import type { ColorPaletteProp, FontSize } from "../theme";
+import { cssVar } from "../styleUtils";
 
 export type SvgIconColor = ColorPaletteProp | "harmonize" | "inherit";
 export type SvgIconFontSize = keyof FontSize | "inherit";
@@ -43,9 +43,9 @@ export function svgIcon(opts: SvgIconOpts): Node {
   const styles = svgStyles(opts.color ?? "inherit", opts.fontSize ?? "inherit");
   let children = opts.children;
   if (opts.title) {
-    children = [children, element("title", { children: opts.title })];
+    children = [children, nodes.element("title", { children: opts.title })];
   }
-  return element("svg", {
+  return nodes.element("svg", {
     props: {
       xmlns: "'http://www.w3.org/2000/svg'",
       viewBox: "'0 0 24 24'",

@@ -2,7 +2,8 @@ import { spawnSync } from "child_process";
 import which from "which";
 
 export function hasBun() {
-  return Boolean(which.sync("bun", { nothrow: true }));
+  // return Boolean(which.sync("bun", { nothrow: true }));
+  return false;
 }
 
 export function execWithTranspiler(file) {

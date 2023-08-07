@@ -1,4 +1,4 @@
-import { ImageSetFieldGroup, ImageUsage } from "../appTypes.js";
+import { ImageSetFieldGroup, ImageUsage } from "../appTypes";
 import {
   addImage,
   joinTasks,
@@ -6,8 +6,8 @@ import {
   scalar,
   setScalar,
   spawn,
-} from "../procHelpers.js";
-import { ident } from "./sqlHelpers.js";
+} from "../procHelpers";
+import { ident } from "./sqlHelpers";
 
 export function getUploadStatements(
   tableName: string,

@@ -1,10 +1,10 @@
 import { readFileSync } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import type { IconName } from "./materialIconNames.js";
-import { Node } from "../nodeTypes.js";
-import { memoize } from "../utils/memoize.js";
-import { svgIcon, SvgIconColor, SvgIconFontSize } from "./svgIcon.js";
+import type { IconName } from "./materialIconNames";
+import { Node } from "../nodeTypes";
+import { memoize } from "../utils/memoize";
+import { svgIcon, SvgIconColor, SvgIconFontSize } from "./svgIcon";
 
 export interface MaterialIconOpts {
   color?: SvgIconColor;
@@ -14,7 +14,7 @@ export interface MaterialIconOpts {
 }
 
 const currentDirectory = fileURLToPath(new URL(".", import.meta.url));
-const iconsDir = path.resolve(currentDirectory, "..", "..", "material-icons");
+const iconsDir = path.resolve(currentDirectory, "..", "material-icons");
 const loadedIcons = new Map<IconName, Node>();
 
 export const materialIcon = memoize((opts: MaterialIconOpts | IconName) => {

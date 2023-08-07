@@ -1,19 +1,16 @@
-import { button } from "../../components/button.js";
-import { chip } from "../../components/chip.js";
-import { confirmDangerDialog } from "../../components/confirmDangerDialog.js";
-import { divider } from "../../components/divider.js";
-import { iconButton } from "../../components/iconButton.js";
-import {
-  InsertDialogOpts,
-  insertDialog,
-} from "../../components/insertDialog.js";
-import { inlineFieldDisplay } from "../../components/internal/fieldInlineDisplay.js";
-import { AutoLabelOnLeftFieldOverride } from "../../components/internal/insertFormShared.js";
-import { materialIcon } from "../../components/materialIcon.js";
-import { popoverMenu } from "../../components/menu.js";
-import { typography } from "../../components/typography.js";
-import { updateDialog } from "../../components/updateDialog.js";
-import { getUniqueUiId } from "../../components/utils.js";
+import { button } from "../../components/button";
+import { chip } from "../../components/chip";
+import { confirmDangerDialog } from "../../components/confirmDangerDialog";
+import { divider } from "../../components/divider";
+import { iconButton } from "../../components/iconButton";
+import { InsertDialogOpts, insertDialog } from "../../components/insertDialog";
+import { inlineFieldDisplay } from "../../components/internal/fieldInlineDisplay";
+import { AutoLabelOnLeftFieldOverride } from "../../components/internal/insertFormShared";
+import { materialIcon } from "../../components/materialIcon";
+import { popoverMenu } from "../../components/menu";
+import { typography } from "../../components/typography";
+import { updateDialog } from "../../components/updateDialog";
+import { getUniqueUiId } from "../../components/utils";
 import {
   each,
   element,
@@ -21,8 +18,8 @@ import {
   ifNode,
   sourceMap,
   state,
-} from "../../nodeHelpers.js";
-import { Node } from "../../nodeTypes.js";
+} from "../../nodeHelpers";
+import { Node } from "../../nodeTypes";
 import {
   commitTransaction,
   commitUiChanges,
@@ -37,17 +34,13 @@ import {
   startTransaction,
   table,
   try_,
-} from "../../procHelpers.js";
-import { app } from "../../singleton.js";
-import { Style } from "../../styleTypes.js";
-import { ident, stringLiteral } from "../../utils/sqlHelpers.js";
-import {
-  ClientProcStatement,
-  SqlExpression,
-  StateStatement,
-} from "../../yom.js";
-import { RecordGridContext } from "./shared.js";
-import { recordDefaultItemContent, styles } from "./timelineShared.js";
+} from "../../procHelpers";
+import { app } from "../../singleton";
+import { Style } from "../../styleTypes";
+import { ident, stringLiteral } from "../../utils/sqlHelpers";
+import { ClientProcStatement, SqlExpression, StateStatement } from "../../yom";
+import { RecordGridContext } from "./shared";
+import { recordDefaultItemContent, styles } from "./timelineShared";
 
 export const name = "singleSourceTimeline";
 

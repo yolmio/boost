@@ -1,14 +1,14 @@
-import { FormStateFieldHelper } from "../../formState.js";
-import { Field } from "../../appTypes.js";
-import { Node } from "../../nodeTypes.js";
-import { debugExpr } from "../../procHelpers.js";
-import { ClientProcStatement } from "../../yom.js";
-import { durationInput } from "../durationInput.js";
-import { enumLikeSelect, enumSelect } from "../enumSelect.js";
-import { input } from "../input.js";
-import { materialIcon } from "../materialIcon.js";
-import { getTableRecordSelect } from "../tableRecordSelect.js";
-import { textarea } from "../textarea.js";
+import { FormStateFieldHelper } from "../../formState";
+import { Field } from "../../appTypes";
+import { Node } from "../../nodeTypes";
+import { debugExpr } from "../../procHelpers";
+import { ClientProcStatement } from "../../yom";
+import { durationInput } from "../durationInput";
+import { enumLikeSelect, enumSelect } from "../enumSelect";
+import { input } from "../input";
+import { materialIcon } from "../materialIcon";
+import { getTableRecordSelect } from "../tableRecordSelect";
+import { textarea } from "../textarea";
 
 export interface FieldFormControlOpts {
   field: Field;

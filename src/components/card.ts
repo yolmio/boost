@@ -1,14 +1,14 @@
-import type { ElementNode, Node } from "../nodeTypes.js";
-import { StyleObject } from "../styleTypes.js";
-import { Variant } from "../theme.js";
+import type { ElementNode, Node } from "../nodeTypes";
+import { StyleObject } from "../styleTypes";
+import { Variant } from "../theme";
 import {
   createHarmonizeVars,
   createStyles,
   cssVar,
   getVariantStyle,
-} from "../styleUtils.js";
-import { Color, ComponentOpts, Size } from "./types.js";
-import { mergeEls, SingleElementComponentOpts } from "./utils.js";
+} from "../styleUtils";
+import { Color, ComponentOpts, Size } from "./types";
+import { mergeEls, SingleElementComponentOpts } from "./utils";
 
 type Orientation = "vertical" | "horizontal";
 

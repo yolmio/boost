@@ -1,15 +1,15 @@
-import { element, ifNode, state } from "../nodeHelpers.js";
-import { Node } from "../nodeTypes.js";
-import { scalar } from "../procHelpers.js";
-import { createStyles, flexGrowStyles } from "../styleUtils.js";
-import { lazy } from "../utils/memoize.js";
-import { ClientProcStatement, EventHandler } from "../yom.js";
-import { alert } from "./alert.js";
-import { button } from "./button.js";
-import { divider } from "./divider.js";
-import { materialIcon } from "./materialIcon.js";
-import { modal, modalDialog } from "./modal.js";
-import { typography } from "./typography.js";
+import { element, ifNode, state } from "../nodeHelpers";
+import { Node } from "../nodeTypes";
+import { scalar } from "../procHelpers";
+import { createStyles, flexGrowStyles } from "../styleUtils";
+import { lazy } from "../utils/memoize";
+import { ClientProcStatement, EventHandler } from "../yom";
+import { alert } from "./alert";
+import { button } from "./button";
+import { divider } from "./divider";
+import { materialIcon } from "./materialIcon";
+import { modal, modalDialog } from "./modal";
+import { typography } from "./typography";
 
 export interface ConfirmDangerDialogOpts {
   open: string;

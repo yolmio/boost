@@ -1,29 +1,24 @@
-import { memoize } from "../utils/memoize.js";
-import { stringLiteral } from "../utils/sqlHelpers.js";
-import { ElementEventHandlers, ElementProps } from "../yom.js";
-import { app } from "../singleton.js";
-import { element } from "../nodeHelpers.js";
-import type { ElementNode, Node } from "../nodeTypes.js";
-import { Style } from "../styleTypes.js";
-import { cssVar } from "../styleUtils.js";
+import { stringLiteral } from "../utils/sqlHelpers";
+import { app } from "../app";
+import type { ElementNode, Node } from "../nodeTypes";
+import { Style } from "../styleTypes";
+import { createStyles, cssVar } from "../styleUtils";
+import { SingleElementComponentOpts, mergeEls } from "./utils";
 
 type Orientation = "vertical" | "horizontal";
 type Inset = "none" | "context";
 
-export interface DividerOpts {
+export interface IconButtonOpts extends SingleElementComponentOpts {
   orientation?: "vertical" | "horizontal";
   inset?: "none" | "context";
 
   role?: "seperator" | "presentation";
-  props?: ElementProps;
-  on?: ElementEventHandlers;
-  styles?: Style;
 
   children?: Node;
 }
 
-const getDividerStyles = memoize(
-  (
+const styles = createStyles({
+  root: (
     orientation: Orientation,
     hasChildren: boolean,
     inset: Inset | undefined
@@ -102,28 +97,31 @@ const getDividerStyles = memoize(
       });
     }
     return styles;
-  }
-);
+  },
+});
 
-export function divider(opts: DividerOpts = {}): ElementNode {
+export function divider(opts: IconButtonOpts = {}): ElementNode {
   const role = opts.role ?? (opts.children ? undefined : "seperator");
   const orientation = opts.orientation ?? "horizontal";
-  const styles = getDividerStyles(
+  const rootStyles = styles.root(
     orientation,
     Boolean(opts.children),
     opts.inset
   );
-  return element(opts.children ? "div" : "hr", {
-    props: {
-      role: role ? stringLiteral(role) : undefined,
-      "aria-orientation":
-        role === "seperator" && opts.orientation === "vertical"
-          ? "'vertical'"
-          : undefined,
-      ...opts.props,
+  return mergeEls(
+    {
+      tag: opts.children ? "div" : "hr",
+      props: {
+        role: role ? stringLiteral(role) : undefined,
+        "aria-orientation":
+          role === "seperator" && opts.orientation === "vertical"
+            ? "'vertical'"
+            : undefined,
+        ...opts.props,
+      },
+      children: opts.children,
+      styles: rootStyles,
     },
-    styles: opts.styles ? [styles, opts.styles] : styles,
-    children: opts.children,
-    on: opts.on,
-  });
+    opts
+  );
 }
