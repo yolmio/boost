@@ -1,8 +1,7 @@
-import { TableBuilder, addDeviceDatabaseTable } from "../appHelpers";
-import { Table } from "../appTypes";
+import { TableBuilder } from "../app";
 import { nodes } from "../nodeHelpers";
 import { Node } from "../nodeTypes";
-import { app } from "../app";
+import { app, Table } from "../app";
 import { DomStatements, DomStatementsOrFn } from "../statements";
 import { createStyles, cssVar } from "../styleUtils";
 import { SequentialIDGenerator } from "../utils/SequentialIdGenerator";
@@ -187,6 +186,9 @@ function prepareDisplayValue(
 ): PreparedTableSearchDisplay {
   if (typeof value === "string") {
     const field = table.fields[value];
+    if (!field) {
+      throw new Error(`Field ${value} does not exist on table ${table.name}`);
+    }
     if (field.type === "ForeignKey") {
       const toTable = app.db.tables[field.table];
       if (toTable.recordDisplayName) {
@@ -322,7 +324,7 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
   const displayValues = opts.displayValues?.map((value) =>
     prepareDisplayValue(tableModel, value)
   );
-  addDeviceDatabaseTable(`recent_${opts.table}_search`, (table) => {
+  app.ui.deviceDb.addTable(`recent_${opts.table}_search`, (table) => {
     table.bigUint("recent_search_id").notNull();
     table.string("recent_search_label", 500).notNull();
     table.timestamp("recent_search_timestamp").notNull();
@@ -811,9 +813,13 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
   const inputId = stringLiteral(getUniqueUiId());
   const listboxId = stringLiteral(getUniqueUiId());
   const containerId = stringLiteral(getUniqueUiId());
-  const optionId = (id: string) => `${inputId} || '-' || ${id}`;
+  const optionId = (id: yom.SqlExpression): yom.SqlExpression =>
+    `${inputId} || '-' || ${id}`;
   const tables = opts.tables.map((t): PreparedMultiTableSearchDialogTable => {
     const tableModel = app.db.tables[t.name];
+    if (!tableModel) {
+      throw new Error(`Table ${t.name} does not exist`);
+    }
     return {
       name: t.name,
       icon: t.icon,
@@ -823,7 +829,7 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
       ),
     };
   });
-  addDeviceDatabaseTable("recent_multi_table_search", (table) => {
+  app.ui.deviceDb.addTable("recent_multi_table_search", (table) => {
     table.bigUint("recent_search_id").notNull();
     table.string("recent_search_table", 200).notNull();
     table.string("recent_search_label", 500).notNull();
@@ -893,8 +899,57 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
   return modal({
     open: opts.open,
     onClose: opts.onClose,
-    children: (closeModal) =>
-      nodes.element("div", {
+    children: (closeModal) => {
+      const tableFilters = nodes.element("div", {
+        styles: {
+          display: "flex",
+          p: 1,
+          gap: 1,
+          flexWrap: "wrap",
+        },
+        children: [
+          typography({
+            level: "body2",
+            children: `'Filter results:'`,
+          }),
+          ...opts.tables.map((t) => {
+            return chip({
+              color: "neutral",
+              variant: "plain",
+              size: "sm",
+              selected: {
+                variant: "soft",
+                color: "primary",
+                isSelected: `not ${t.name}_disabled`,
+              },
+              startDecorator: nodes.if(
+                `not ${t.name}_disabled`,
+                materialIcon("Check")
+              ),
+              children: checkbox({
+                size: "sm",
+                checked: `not ${t.name}_disabled`,
+                label: stringLiteral(
+                  pluralize(app.db.tables[t.name].displayName)
+                ),
+                color: "neutral",
+                variant: "outlined",
+                checkedVariation: {
+                  color: "primary",
+                  variant: "outlined",
+                },
+                disableIcon: true,
+                overlay: true,
+                on: {
+                  checkboxChange: (s) =>
+                    s.setScalar(`${t.name}_disabled`, `not ${t.name}_disabled`),
+                },
+              }),
+            });
+          }),
+        ],
+      });
+      return nodes.element("div", {
         styles: styles.dialog(),
         on: { click: (s) => s.stopPropagation() },
         focusLock: {},
@@ -1113,58 +1168,7 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
                   styles: styles.resultsContainer,
                   props: { id: containerId },
                   children: [
-                    nodes.element("div", {
-                      styles: {
-                        display: "flex",
-                        p: 1,
-                        gap: 1,
-                        flexWrap: "wrap",
-                      },
-                      children: [
-                        typography({
-                          level: "body2",
-                          children: `'Filter results:'`,
-                        }),
-                        ...opts.tables.map((t) => {
-                          return chip({
-                            color: "neutral",
-                            variant: "plain",
-                            size: "sm",
-                            selected: {
-                              variant: "soft",
-                              color: "primary",
-                              isSelected: `not ${t.name}_disabled`,
-                            },
-                            startDecorator: nodes.if(
-                              `not ${t.name}_disabled`,
-                              materialIcon("Check")
-                            ),
-                            children: checkbox({
-                              size: "sm",
-                              checked: `not ${t.name}_disabled`,
-                              label: stringLiteral(
-                                pluralize(app.db.tables[t.name].displayName)
-                              ),
-                              color: "neutral",
-                              variant: "outlined",
-                              checkedVariation: {
-                                color: "primary",
-                                variant: "outlined",
-                              },
-                              disableIcon: true,
-                              overlay: true,
-                              on: {
-                                checkboxChange: (s) =>
-                                  s.setScalar(
-                                    `${t.name}_disabled`,
-                                    `not ${t.name}_disabled`
-                                  ),
-                              },
-                            }),
-                          });
-                        }),
-                      ],
-                    }),
+                    tableFilters,
                     nodes.element("ul", {
                       props: {
                         id: listboxId,
@@ -1304,7 +1308,8 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
             }),
           }),
         }),
-      }),
+      });
+    },
   });
 }
 

@@ -66,6 +66,7 @@ export async function runScriptTs() {
 }
 
 export async function getScriptModel() {
+  const start = performance.now();
   await runScriptTs();
   const { app } = await import("../dist/index");
   const yom = app.generateYom();

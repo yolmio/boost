@@ -1,7 +1,5 @@
-import { Field } from "../../appTypes";
 import { nodes } from "../../nodeHelpers";
-import { scalar } from "../../procHelpers";
-import { app } from "../../singleton";
+import { app, Field } from "../../app";
 import { createStyles } from "../../styleUtils";
 import { stringLiteral } from "../../utils/sqlHelpers";
 

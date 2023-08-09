@@ -1,21 +1,21 @@
 import type * as yom from "./yom";
 
-export const INNER_ARRAY = Symbol("INNER_ARRAY");
+export const BACKING_ARRAY = Symbol("BACKING_ARRAY");
 
 abstract class StatementsBase<Statement extends object> {
-  private [INNER_ARRAY]: Statement[] = [];
+  private [BACKING_ARRAY]: Statement[] = [];
 
-  protected push(statement: Statement) {
-    this[INNER_ARRAY].push(statement);
+  protected pushToBacking(statement: Statement) {
+    this[BACKING_ARRAY].push(statement);
   }
 
   modify(sql: string) {
-    this.push({ t: "Modify", sql } as yom.ModifyStatement as any);
+    this.pushToBacking({ t: "Modify", sql } as yom.ModifyStatement as any);
     return this;
   }
 
   return(expr?: yom.SqlExpression) {
-    this.push({
+    this.pushToBacking({
       t: "ReturnExpr",
       expr: expr ?? "null",
     } as yom.ReturnExprStatement as any);
@@ -30,7 +30,7 @@ abstract class StatementsBase<Statement extends object> {
     queryOrFields: string | yom.ProcTableField[],
     query?: string
   ): this {
-    this.push({
+    this.pushToBacking({
       t: "TableDeclaration",
       name,
       query:
@@ -45,7 +45,7 @@ abstract class StatementsBase<Statement extends object> {
   }
 
   record(name: string, queryOrFields: string | yom.ProcTableField[]) {
-    this.push({
+    this.pushToBacking({
       t: "RecordDeclaration",
       name,
       query: typeof queryOrFields === "string" ? queryOrFields : undefined,
@@ -62,7 +62,7 @@ abstract class StatementsBase<Statement extends object> {
     exprOrTy: yom.SqlExpression | yom.FieldType,
     expr?: yom.SqlExpression
   ) {
-    this.push({
+    this.pushToBacking({
       t: "ScalarDeclaration",
       name,
       expr: typeof exprOrTy === "string" ? exprOrTy : expr,
@@ -72,12 +72,12 @@ abstract class StatementsBase<Statement extends object> {
   }
 
   setScalar(name: string, expr: yom.SqlExpression) {
-    this.push({ t: "SetScalar", name, expr } as yom.SetScalar as any);
+    this.pushToBacking({ t: "SetScalar", name, expr } as yom.SetScalar as any);
     return this;
   }
 
   createQueryCursor(name: string, query: yom.SqlQuery) {
-    this.push({
+    this.pushToBacking({
       t: "CreateQueryCursor",
       name,
       query,
@@ -86,7 +86,7 @@ abstract class StatementsBase<Statement extends object> {
   }
 
   advanceCursor(cursor: string) {
-    this.push({
+    this.pushToBacking({
       t: "AdvanceCursor",
       cursor,
     } as yom.AdvanceCursorStatement as any);
@@ -103,9 +103,9 @@ abstract class StatementsBase<Statement extends object> {
       statements(this);
       return;
     }
-    if (statements[INNER_ARRAY]) {
-      for (const statement of statements[INNER_ARRAY]) {
-        this.push(statement as any);
+    if (statements[BACKING_ARRAY]) {
+      for (const statement of statements[BACKING_ARRAY]) {
+        this.pushToBacking(statement as any);
       }
     }
   }
@@ -116,9 +116,9 @@ abstract class StatementsBase<Statement extends object> {
     if (typeof s === "function") {
       const arr = new (this.constructor as any)();
       s(arr);
-      return arr[INNER_ARRAY];
+      return arr[BACKING_ARRAY];
     } else if (s) {
-      return s[INNER_ARRAY] as any;
+      return s[BACKING_ARRAY] as any;
     }
   }
 
@@ -136,12 +136,9 @@ abstract class StatementsBase<Statement extends object> {
     return this;
   }
 
-  mapArrayToStatements<T>(
-    arr: Array<T>,
-    fn: (item: T, s: this) => StatementsOrFn<this>
-  ) {
+  mapArrayToStatements<T>(arr: Array<T>, fn: (item: T, s: this) => this) {
     for (const item of arr) {
-      this.addGenericStatements(fn(item, this));
+      fn(item, this);
     }
     return this;
   }
@@ -153,13 +150,13 @@ abstract class StatementsBase<Statement extends object> {
     then?: StatementsOrFn<this>
   ) {
     if (typeof condition === "string") {
-      this.push({
+      this.pushToBacking({
         t: "If",
         condition,
         onTrue: this.normalizeGenericStatements(then),
       } as yom.IfStatement<any> as any);
     } else {
-      this.push({
+      this.pushToBacking({
         t: "If",
         condition: condition.condition,
         onTrue: this.normalizeGenericStatements(condition.then),
@@ -170,7 +167,7 @@ abstract class StatementsBase<Statement extends object> {
   }
 
   forEachCursor(cursor: string, body: StatementsOrFn<this>) {
-    this.push({
+    this.pushToBacking({
       t: "ForEachCursor",
       cursor,
       body: this.normalizeGenericStatements(body),
@@ -179,7 +176,7 @@ abstract class StatementsBase<Statement extends object> {
   }
 
   try(opts: Try<StatementsOrFn<this>>) {
-    this.push({
+    this.pushToBacking({
       t: "Try",
       body: this.normalizeGenericStatements(opts.body),
       errorName: opts.errorName,
@@ -190,7 +187,7 @@ abstract class StatementsBase<Statement extends object> {
   }
 
   block(body: StatementsOrFn<this>) {
-    this.push({
+    this.pushToBacking({
       t: "Block",
       body: this.normalizeGenericStatements(body),
     } as yom.BlockStatement<any> as any);
@@ -198,7 +195,7 @@ abstract class StatementsBase<Statement extends object> {
   }
 
   [Symbol.iterator]() {
-    return this[INNER_ARRAY][Symbol.iterator]();
+    return this[BACKING_ARRAY][Symbol.iterator]();
   }
 }
 
@@ -227,7 +224,7 @@ export class BasicStatements extends StatementsBase<yom.BasicStatement> {
   }
 
   static normalizeToArray(p: BasicStatementsOrFn) {
-    return BasicStatements.normalize(p)[INNER_ARRAY];
+    return BasicStatements.normalize(p)[BACKING_ARRAY];
   }
 }
 
@@ -239,55 +236,55 @@ export class DomStatements extends StatementsBase<yom.DomProcStatement> {
   }
 
   static normalizeToArray(p: DomStatementsOrFn) {
-    return DomStatements.normalize(p)[INNER_ARRAY];
+    return DomStatements.normalize(p)[BACKING_ARRAY];
   }
 
   navigate(to: string, replace?: string) {
-    this.push({ t: "Navigate", to, replace });
+    this.pushToBacking({ t: "Navigate", to, replace });
     return this;
   }
 
   download(filename: string, content: string) {
-    this.push({ t: "Download", filename, content });
+    this.pushToBacking({ t: "Download", filename, content });
     return this;
   }
 
   preventDefault() {
-    this.push({ t: "PreventDefault" });
+    this.pushToBacking({ t: "PreventDefault" });
     return this;
   }
 
   stopPropagation() {
-    this.push({ t: "StopPropagation" });
+    this.pushToBacking({ t: "StopPropagation" });
     return this;
   }
 
   delay(ms: string) {
-    this.push({ t: "Delay", ms });
+    this.pushToBacking({ t: "Delay", ms });
     return this;
   }
 
   commitUiChanges() {
-    this.push({ t: "CommitUiChanges" });
+    this.pushToBacking({ t: "CommitUiChanges" });
     return this;
   }
 
   logOut() {
-    this.push({ t: "LogOut" });
+    this.pushToBacking({ t: "LogOut" });
     return this;
   }
 
   spawn(procedure: StatementsOrFn<this>): this;
   spawn(opts: SpawnOpts<this>): this;
   spawn(proc: StatementsOrFn<this> | SpawnOpts<this>) {
-    if (typeof proc === "function" || INNER_ARRAY in proc) {
-      this.push({
+    if (typeof proc === "function" || BACKING_ARRAY in proc) {
+      this.pushToBacking({
         t: "Spawn",
         statements: DomStatements.normalizeToArray(proc as any),
       });
       return this;
     }
-    this.push({
+    this.pushToBacking({
       t: "Spawn",
       statements: DomStatements.normalizeToArray(proc.procedure as any),
       detached: proc.detached,
@@ -297,32 +294,32 @@ export class DomStatements extends StatementsBase<yom.DomProcStatement> {
   }
 
   waitOnTask(handle: string) {
-    this.push({ t: "WaitOnTask", handle });
+    this.pushToBacking({ t: "WaitOnTask", handle });
     return this;
   }
 
   joinTasks(tasks: string[]) {
-    this.push({ t: "JoinTasks", tasks });
+    this.pushToBacking({ t: "JoinTasks", tasks });
     return this;
   }
 
   selectTasks(tasks: string[]) {
-    this.push({ t: "SelectTasks", tasks });
+    this.pushToBacking({ t: "SelectTasks", tasks });
     return this;
   }
 
   abortTask(handle: string) {
-    this.push({ t: "Abort", handle });
+    this.pushToBacking({ t: "Abort", handle });
     return this;
   }
 
   setQueryParam(param: string, value: string, replace?: string) {
-    this.push({ t: "SetQueryParam", param, value, replace });
+    this.pushToBacking({ t: "SetQueryParam", param, value, replace });
     return this;
   }
 
   serviceProc(statements: StatementsOrFn<ServiceStatements>) {
-    this.push({
+    this.pushToBacking({
       t: "ServiceProc",
       statements: ServiceStatements.normalizeToArray(statements),
     });
@@ -332,7 +329,7 @@ export class DomStatements extends StatementsBase<yom.DomProcStatement> {
   scrollElIntoView(
     el: yom.SqlExpression | Omit<yom.ScrollIntoViewStatement, "t">
   ) {
-    this.push(
+    this.pushToBacking(
       typeof el === "string"
         ? { t: "ScrollElIntoView", elementId: el }
         : { t: "ScrollElIntoView", ...el }
@@ -341,42 +338,42 @@ export class DomStatements extends StatementsBase<yom.DomProcStatement> {
   }
 
   focusEl(el: string) {
-    this.push({ t: "FocusEl", elementId: el });
+    this.pushToBacking({ t: "FocusEl", elementId: el });
     return this;
   }
 
   queryToCsv(query: string, scalar: string) {
-    this.push({ t: "QueryToCsv", query, scalar });
+    this.pushToBacking({ t: "QueryToCsv", query, scalar });
     return this;
   }
 
   addImage(opts: Omit<yom.AddImageStatement, "t">) {
-    this.push({ t: "AddImage", ...opts });
+    this.pushToBacking({ t: "AddImage", ...opts });
     return this;
   }
 
   addFile(opts: Omit<yom.AddFileStatement, "t">) {
-    this.push({ t: "AddFile", ...opts });
+    this.pushToBacking({ t: "AddFile", ...opts });
     return this;
   }
 
   getWindowProperty(property: yom.WindowProperty, scalar: string) {
-    this.push({ t: "GetWindowProperty", property, scalar });
+    this.pushToBacking({ t: "GetWindowProperty", property, scalar });
     return this;
   }
 
   getBoundingClientRect(el: string, record: string) {
-    this.push({ t: "GetBoundingClientRect", elementId: el, record });
+    this.pushToBacking({ t: "GetBoundingClientRect", elementId: el, record });
     return this;
   }
 
   getElProperty(property: yom.ElProperty, scalar: string, el: string) {
-    this.push({ t: "GetElProperty", property, scalar, elementId: el });
+    this.pushToBacking({ t: "GetElProperty", property, scalar, elementId: el });
     return this;
   }
 
   logout() {
-    this.push({ t: "LogOut" });
+    this.pushToBacking({ t: "LogOut" });
     return this;
   }
 }
@@ -397,7 +394,7 @@ export class ServiceStatements extends StatementsBase<yom.ServiceProcStatement> 
   }
 
   static normalizeToArray(p: ServiceStatementsOrFn) {
-    return ServiceStatements.normalize(p)[INNER_ARRAY];
+    return ServiceStatements.normalize(p)[BACKING_ARRAY];
   }
 }
 
@@ -411,11 +408,60 @@ export class StateStatements extends StatementsBase<yom.StateStatement> {
   }
 
   static normalizeToArray(p: StateStatementsOrFn) {
-    return StateStatements.normalize(p)[INNER_ARRAY];
+    return StateStatements.normalize(p)[BACKING_ARRAY];
   }
 
   search(opts: Omit<yom.SearchStatement, "t">) {
-    this.push({ t: "Search", ...opts });
+    this.pushToBacking({ t: "Search", ...opts });
+    return this;
+  }
+}
+
+export type ScriptStatementsOrFn = StatementsOrFn<ScriptStatements>;
+
+export class ScriptStatements extends StatementsBase<yom.ScriptStatement> {
+  static normalize(p: ScriptStatementsOrFn) {
+    return p instanceof ScriptStatements
+      ? p
+      : new ScriptStatements().statements(p);
+  }
+
+  static normalizeToArray(p: ScriptStatementsOrFn) {
+    return ScriptStatements.normalize(p)[BACKING_ARRAY];
+  }
+
+  importCsv(db: string, dir: string) {
+    this.pushToBacking({ t: "ImportCsv", db, dir });
+    return this;
+  }
+
+  saveDb(dir: string, db?: string) {
+    this.pushToBacking({ t: "SaveDb", dir, db });
+    return this;
+  }
+
+  loadDb(dir: string, db?: string) {
+    this.pushToBacking({ t: "LoadDb", dir, db });
+    return this;
+  }
+
+  pull(dir?: string) {
+    this.pushToBacking({ t: "Pull", dir });
+    return this;
+  }
+
+  push() {
+    this.pushToBacking({ t: "Push" });
+    return this;
+  }
+
+  addUsers(query: string, outputTable?: string) {
+    this.pushToBacking({ t: "AddUsers", query, outputTable });
+    return this;
+  }
+
+  setDb(opts?: Omit<yom.SetDbStatement, "t">) {
+    this.pushToBacking({ t: "SetDb", ...opts });
     return this;
   }
 }
