@@ -1,19 +1,22 @@
 import { circularProgress } from "../../components/circularProgress";
-import { element, ifNode, state } from "../../nodeHelpers";
+import { nodes } from "../../nodeHelpers";
 import { PieChartNode } from "../../nodeTypes";
-import { table } from "../../procHelpers";
 import { Style } from "../../styleTypes";
 import { createStyles, cssVar } from "../../styleUtils";
 import { stringLiteral } from "../../utils/sqlHelpers";
-import { StateStatement } from "../../yom";
-
-export const name = "pieChart";
+import { StateStatementsOrFn } from "../../statements";
+import * as yom from "../../yom";
 
 export interface Opts {
   styles?: Style;
   cardStyles?: Style;
   stateQuery?: string;
-  state?: StateStatement[];
+  /**
+   * Adds a state node wrapper around the bar chart where you can query the database.
+   *
+   * If as string is passed, a table `result` is created with the result of the query
+   */
+  state: yom.SqlQuery | StateStatementsOrFn;
   header: string;
   pieChartOpts: Omit<PieChartNode, "t" | "styles">;
 }
@@ -94,21 +97,22 @@ export function content(opts: Opts) {
   if (!opts.stateQuery && !opts.state) {
     throw new Error("pieChart expects either stateQuery or state");
   }
-  return element("div", {
+  return nodes.element("div", {
     styles: opts.styles ? [styles.root, opts.styles] : styles.root,
     children: [
-      element("h3", {
+      nodes.element("h3", {
         styles: styles.header,
         children: stringLiteral(opts.header),
       }),
-      element("div", {
+      nodes.element("div", {
         styles: opts.cardStyles ? [styles.card, opts.cardStyles] : styles.card,
-        children: state({
-          procedure: opts.stateQuery
-            ? [table(`result`, opts.stateQuery)]
-            : opts.state!,
+        children: nodes.state({
+          procedure:
+            typeof opts.state === "string"
+              ? (s) => s.table(`result`, opts.state as string)
+              : opts.state,
           statusScalar: `status`,
-          children: ifNode(
+          children: nodes.if(
             `status = 'fallback_triggered'`,
             circularProgress({ size: "md" }),
             {

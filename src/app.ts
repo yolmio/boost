@@ -14,6 +14,7 @@ import { WebAppManifest } from "./pwaManifest";
 import { navbarShell, NavbarProps } from "./shells/navbar";
 import { Node } from "./nodeTypes";
 import { generateYom } from "./generate";
+import { dashboardGridPage, DashboardGridBuilder } from "./pages/dashboardGrid";
 
 /**
  * The app singleton.
@@ -254,6 +255,10 @@ export class Ui {
 
   useNavbarShell(opts: NavbarProps) {
     this.shell = navbarShell(opts);
+  }
+
+  addDashboardGridPage(fn: (page: DashboardGridBuilder) => any) {
+    dashboardGridPage(fn);
   }
 }
 

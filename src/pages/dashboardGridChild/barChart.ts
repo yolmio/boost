@@ -1,11 +1,9 @@
 import { circularProgress } from "../../components/circularProgress";
-import { element, ifNode, state } from "../../nodeHelpers";
-import { table } from "../../procHelpers";
+import { nodes } from "../../nodeHelpers";
+import { StateStatementsOrFn } from "../../statements";
 import { Styles, createStyles, cssVar } from "../../styleUtils";
 import { stringLiteral } from "../../utils/sqlHelpers";
-import { SqlExpression, SqlQuery, StateStatement } from "../../yom";
-
-export const name = "barChart";
+import * as yom from "../../yom";
 
 export interface Opts {
   styles?: Styles;
@@ -14,13 +12,13 @@ export interface Opts {
    *
    * If as string is passed, a table `result` is created with the result of the query
    */
-  state: SqlQuery | StateStatement[];
-  series: { query: SqlQuery; name: string }[];
-  labels: SqlQuery;
+  state: yom.SqlQuery | StateStatementsOrFn;
+  series: { query: yom.SqlQuery; name: string }[];
+  labels: yom.SqlQuery;
   header: string;
   reverseData?: string;
   axisY?: {
-    labelInterpolation?: SqlExpression;
+    labelInterpolation?: yom.SqlExpression;
   };
 }
 
@@ -112,37 +110,37 @@ const styles = createStyles({
 });
 
 export function content(opts: Opts) {
-  return element("div", {
+  return nodes.element("div", {
     styles: opts.styles ? [styles.root, opts.styles] : styles.root,
     children: [
-      element("h3", {
+      nodes.element("h3", {
         styles: styles.header,
         children: stringLiteral(opts.header),
       }),
-      element("div", {
+      nodes.element("div", {
         styles: styles.card,
-        children: state({
+        children: nodes.state({
           procedure:
             typeof opts.state === "string"
-              ? [table(`result`, opts.state)]
+              ? (s) => s.table(`result`, opts.state as string)
               : opts.state,
           statusScalar: `status`,
-          children: ifNode(
+          children: nodes.if(
             `status = 'fallback_triggered'`,
             circularProgress({ size: "md" }),
-            element("div", {
+            nodes.element("div", {
               children: [
-                element("div", {
+                nodes.element("div", {
                   styles: styles.legends,
                   children: opts.series.map(({ name }, i) =>
-                    element("div", {
+                    nodes.element("div", {
                       styles: styles.legend,
                       children: [
-                        element("span", {
+                        nodes.element("span", {
                           styles: styles.legendBall,
                           classes: `ct-series-${i}`,
                         }),
-                        element("span", {
+                        nodes.element("span", {
                           styles: styles.legendText,
                           children: stringLiteral(name),
                         }),

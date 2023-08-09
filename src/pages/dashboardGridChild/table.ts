@@ -1,11 +1,7 @@
-import { card } from "../../components/card";
-import { each, element, state } from "../../nodeHelpers";
+import { nodes } from "../../nodeHelpers";
 import { Node } from "../../nodeTypes";
-import { table } from "../../procHelpers";
 import { createStyles } from "../../styleUtils";
 import { stringLiteral } from "../../utils/sqlHelpers";
-
-export const name = "table";
 
 export interface TableColumn {
   header: string;
@@ -76,37 +72,37 @@ const styles = createStyles({
 });
 
 export function content(opts: Opts) {
-  return element("div", {
+  return nodes.element("div", {
     styles: styles.root,
     children: [
-      element("h4", {
+      nodes.element("h4", {
         styles: styles.header,
         children: stringLiteral(opts.header),
       }),
-      state({
-        procedure: [table(`table`, opts.query)],
-        children: element("table", {
+      nodes.state({
+        procedure: (s) => s.table(`table`, opts.query),
+        children: nodes.element("table", {
           styles: styles.table,
           children: [
-            element("thead", {
+            nodes.element("thead", {
               children: opts.columns.map((col) =>
-                element("th", {
+                nodes.element("th", {
                   styles: styles.eachHeaderCell,
                   children: stringLiteral(col.header),
                 })
               ),
             }),
-            element("tbody", {
-              children: each({
+            nodes.element("tbody", {
+              children: nodes.each({
                 table: `table`,
                 recordName: `each_record`,
-                children: element("tr", {
+                children: nodes.element("tr", {
                   children: opts.columns.map((col) =>
-                    element("td", {
+                    nodes.element("td", {
                       styles: styles.cell,
 
                       children: col.href
-                        ? element("a", {
+                        ? nodes.element("a", {
                             styles: styles.cellLink,
                             props: {
                               href: col.href(`each_record`),

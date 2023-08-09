@@ -1,9 +1,7 @@
-import { element } from "../../nodeHelpers";
+import { nodes } from "../../nodeHelpers";
 import { Style } from "../../styleTypes";
 import { createStyles } from "../../styleUtils";
 import { SqlExpression } from "../../yom";
-
-export const name = "header";
 
 export interface Opts {
   logo?: {
@@ -43,21 +41,21 @@ const styles = createStyles({
 
 export function content(opts: Opts) {
   if (opts.logo) {
-    return element("div", {
+    return nodes.element("div", {
       styles: styles.rootWithLogo,
       children: [
-        element("img", {
+        nodes.element("img", {
           props: { src: opts.logo.src },
           styles: opts.logo.styles,
         }),
-        element("div", {
+        nodes.element("div", {
           styles: styles.headerWrapper,
           children: [
-            element("h1", {
+            nodes.element("h1", {
               styles: styles.header,
               children: opts.header,
             }),
-            element("h2", {
+            nodes.element("h2", {
               styles: styles.subHeader,
               children: opts.subHeader,
             }),
@@ -66,14 +64,14 @@ export function content(opts: Opts) {
       ],
     });
   } else {
-    return element("div", {
+    return nodes.element("div", {
       styles: styles.root,
       children: [
-        element("h1", {
+        nodes.element("h1", {
           styles: styles.header,
           children: opts.header,
         }),
-        element("h2", {
+        nodes.element("h2", {
           styles: styles.subHeader,
           children: opts.subHeader,
         }),

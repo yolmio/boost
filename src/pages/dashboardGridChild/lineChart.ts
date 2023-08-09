@@ -1,13 +1,17 @@
 import { circularProgress } from "../../components/circularProgress";
-import { element, ifNode, state } from "../../nodeHelpers";
-import { debugExpr, debugQuery, table } from "../../procHelpers";
+import { nodes } from "../../nodeHelpers";
+import { StateStatementsOrFn } from "../../statements";
 import { createStyles, cssVar } from "../../styleUtils";
 import { stringLiteral } from "../../utils/sqlHelpers";
-
-export const name = "lineChart";
+import * as yom from "../../yom";
 
 export interface Opts {
-  stateQuery: string;
+  /**
+   * Adds a state node wrapper around the bar chart where you can query the database.
+   *
+   * If as string is passed, a table `result` is created with the result of the query
+   */
+  state: yom.SqlQuery | StateStatementsOrFn;
   lineChartQuery: string;
   labels: string;
   header: string;
@@ -74,19 +78,22 @@ const styles = createStyles({
 });
 
 export function content(opts: Opts) {
-  return element("div", {
+  return nodes.element("div", {
     styles: styles.root,
     children: [
-      element("h3", {
+      nodes.element("h3", {
         styles: styles.header,
         children: stringLiteral(opts.header),
       }),
-      element("div", {
+      nodes.element("div", {
         styles: styles.card,
-        children: state({
-          procedure: [table(`result`, opts.stateQuery)],
+        children: nodes.state({
+          procedure:
+            typeof opts.state === "string"
+              ? (s) => s.table(`result`, opts.state as string)
+              : opts.state,
           statusScalar: `status`,
-          children: ifNode(
+          children: nodes.if(
             `status = 'fallback_triggered'`,
             circularProgress({ size: "md" }),
             {

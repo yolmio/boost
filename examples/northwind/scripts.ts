@@ -1,25 +1,23 @@
 import "./app.ts";
-import { importCsv, modify, saveDb } from "@yolm/boost/procHelpers";
-import { addScript } from "@yolm/boost/modelHelpers";
 import "./csvScriptDb.ts";
+import { app } from "@yolm/boost";
 
-addScript({
-  name: "init-dev-db",
-  procedure: [
-    importCsv(`csv`, `data/csv`),
-    modify(
+app.addScript("init-dev-db", (s) =>
+  s
+    .importCsv(`csv`, `data/csv`)
+    .modify(
       `insert into db.user (global_id, is_sys_admin, is_admin, disabled, email) values (random.uuid(), true, true, false, 'coolguy@coolemail.com')`
-    ),
-    modify(
+    )
+    .modify(
       `insert into db.shipper select companyName as name, phone from csv.Shipper`
-    ),
-    modify(
+    )
+    .modify(
       `insert into db.category select categoryName as name, description from csv.Category`
-    ),
-    modify(
+    )
+    .modify(
       `insert into db.supplier select companyName as company_name, contactName as contact_name, contactTitle as contact_title, address, city, region as state, postalCode as zip, country, phone, fax from csv.Supplier`
-    ),
-    modify(
+    )
+    .modify(
       `insert into db.customer
       select companyName as company_name,
             contactName as contact_name,
@@ -32,8 +30,8 @@ addScript({
             phone,
             fax
       from csv.Customer`
-    ),
-    modify(
+    )
+    .modify(
       `insert into db.product
         select productName as name,
           (select id from csv.Supplier where Supplier.supplierID = Product.supplierID) as supplier,
@@ -45,8 +43,8 @@ addScript({
           reorderLevel as reorder_level,
           discontinued = 1 as discontinued
         from csv.Product`
-    ),
-    modify(
+    )
+    .modify(
       `insert into db.employee
         select lastName as last_name,
           firstName as first_name,
@@ -64,8 +62,8 @@ addScript({
           reportsTo - 1 as reports_to,
           firstName || ' ' || lastName || '@yolmail.com' as email
           from csv.Employee`
-    ),
-    modify(
+    )
+    .modify(
       `insert into db.order
         select 
           (select id from csv.Customer where Customer.customerID = Order.customerID) as customer,
@@ -81,8 +79,8 @@ addScript({
           shipPostalCode as ship_zip,
           shipCountry as ship_country
         from csv.Order`
-    ),
-    modify(
+    )
+    .modify(
       `insert into db.order_detail
         select 
           (select id from csv.Order where Order.orderID = OrderDetails.orderID) as order,
@@ -91,7 +89,6 @@ addScript({
           quantity,
           discount
         from csv.OrderDetails`
-    ),
-    saveDb(`data/dev`),
-  ],
-});
+    )
+    .saveDb(`data/dev`)
+);

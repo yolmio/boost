@@ -1,18 +1,16 @@
 import { chip } from "../../components/chip";
 import { materialIcon } from "../../components/materialIcon";
-import { element, ifNode, state, switchNode } from "../../nodeHelpers";
-import { scalar } from "../../procHelpers";
+import { nodes } from "../../nodeHelpers";
+import { StateStatementsOrFn } from "../../statements";
 import { createStyles } from "../../styleUtils";
-import { SqlExpression, StateStatement } from "../../yom";
-
-export const name = "threeStats";
+import * as yom from "../../yom";
 
 interface StatOptions {
   title: string;
-  procedure?: StateStatement[];
-  value: SqlExpression;
-  previous?: SqlExpression;
-  trend?: SqlExpression;
+  procedure?: StateStatementsOrFn;
+  value: yom.SqlExpression;
+  previous?: yom.SqlExpression;
+  trend?: yom.SqlExpression;
 }
 
 export interface Opts {
@@ -74,38 +72,42 @@ const styles = createStyles({
 });
 
 function createStat(opts: StatOptions) {
-  const value = element("p", {
+  const value = nodes.element("p", {
     styles: styles.statValue,
     children: "value",
   });
   const valueAndPrevious = opts.previous
-    ? element("div", {
+    ? nodes.element("div", {
         styles: { display: "flex", alignItems: "baseline" },
         children: [
           value,
-          element("span", {
+          nodes.element("span", {
             styles: styles.prevValue,
             children: "'from ' || previous",
           }),
         ],
       })
     : value;
-  return element("div", {
+  return nodes.element("div", {
     styles: styles.stat,
     children: [
-      element("p", {
+      nodes.element("p", {
         styles: styles.statTitle,
         children: opts.title,
       }),
-      state({
-        procedure: [
-          ...(opts.procedure ?? []),
-          scalar(`value`, opts.value),
-          opts.previous ? scalar(`previous`, opts.previous) : null,
-          opts.trend ? scalar(`trend`, opts.trend) : null,
-        ],
+      nodes.state({
+        procedure: (s) =>
+          s
+            .statements(opts.procedure)
+            .scalar("value", opts.value)
+            .conditionalStatements(Boolean(opts.previous), (s) =>
+              s.scalar("previous", opts.previous!)
+            )
+            .conditionalStatements(Boolean(opts.trend), (s) =>
+              s.scalar("trend", opts.trend!)
+            ),
         children: opts.trend
-          ? element("div", {
+          ? nodes.element("div", {
               styles: { display: "flex", justifyContent: "space-between" },
               children: [
                 valueAndPrevious,
@@ -116,10 +118,19 @@ function createStat(opts: StatOptions) {
                     variant: "soft",
                     isSelected: `trend < 0.0`,
                   },
-                  startDecorator: switchNode(
-                    [`trend > 0.0`, materialIcon("TrendingUp")],
-                    [`trend = 0.0`, materialIcon("TrendingFlat")],
-                    [`trend < 0.0`, materialIcon("TrendingDown")]
+                  startDecorator: nodes.switch(
+                    {
+                      condition: `trend > 0.0`,
+                      node: materialIcon("TrendingUp"),
+                    },
+                    {
+                      condition: `trend = 0.0`,
+                      node: materialIcon("TrendingFlat"),
+                    },
+                    {
+                      condition: `trend < 0.0`,
+                      node: materialIcon("TrendingDown"),
+                    }
                   ),
                   color: "success",
                   children: `format.percent(trend)`,
@@ -134,14 +145,14 @@ function createStat(opts: StatOptions) {
 
 export function content(opts: Opts) {
   if (opts.header) {
-    return element("div", {
+    return nodes.element("div", {
       styles: styles.root,
       children: [
-        element("h3", {
+        nodes.element("h3", {
           styles: styles.header,
           children: opts.header,
         }),
-        element("div", {
+        nodes.element("div", {
           styles: styles.card,
           children: [
             createStat(opts.left),

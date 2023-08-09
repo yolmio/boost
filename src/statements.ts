@@ -122,7 +122,9 @@ abstract class StatementsBase<Statement extends object> {
     }
   }
 
-  statements(...statements: StatementsOrFn<this>[]) {
+  statements(
+    ...statements: (StatementsOrFn<this> | undefined | null | false)[]
+  ) {
     for (const s of statements) {
       this.addGenericStatements(s);
     }
