@@ -688,4 +688,4 @@ app.ui.addDashboardGridPage((page) =>
 //   createUpdatePage: true,
 // });
 
-// dbManagementPage();
+ui.addDbManagementPage();

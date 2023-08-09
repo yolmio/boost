@@ -164,7 +164,7 @@ ui.useNavbarShell({
     "/reports",
     { showIf: isAdmin, url: "/employees" },
     { showIf: isAdmin, url: "/users" },
-    { showIf: isSysAdmin, url: "/db-management" },
+    { showIf: isSysAdmin, label: "DB", url: "/db-management" },
   ],
   multiTableSearchDialog: {
     tables: [
@@ -1095,4 +1095,4 @@ ui.addDashboardGridPage((page) =>
 
 // reportsPage.finish();
 
-// dbManagementPage();
+ui.addDbManagementPage();

@@ -15,6 +15,7 @@ import { navbarShell, NavbarProps } from "./shells/navbar";
 import { Node } from "./nodeTypes";
 import { generateYom } from "./generate";
 import { dashboardGridPage, DashboardGridBuilder } from "./pages/dashboardGrid";
+import { dbManagementPage, DbManagmentPageOpts } from "./pages/dbManagement";
 
 /**
  * The app singleton.
@@ -259,6 +260,10 @@ export class Ui {
 
   addDashboardGridPage(fn: (page: DashboardGridBuilder) => any) {
     dashboardGridPage(fn);
+  }
+
+  addDbManagementPage(opts: DbManagmentPageOpts = {}) {
+    dbManagementPage(opts);
   }
 }
 

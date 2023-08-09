@@ -398,6 +398,41 @@ export class ServiceStatements extends StatementsBase<yom.ServiceProcStatement> 
   static normalizeToArray(p: ServiceStatementsOrFn) {
     return ServiceStatements.normalize(p)[BACKING_ARRAY];
   }
+
+  startTransaction(opts: Omit<yom.StartTransactionStatement, "t"> = {}) {
+    this.pushToBacking({ t: "StartTransaction", ...opts });
+    return this;
+  }
+
+  commitTransaction() {
+    this.pushToBacking({ t: "CommitTransaction" });
+    return this;
+  }
+
+  dynamicQueryToCsv(query: yom.SqlExpression, scalar: string) {
+    this.pushToBacking({ t: "DynamicQueryToCsv", query, scalar });
+    return this;
+  }
+
+  dynamicQuery(props: Omit<yom.DynamicQueryStatement, "t">) {
+    this.pushToBacking({ t: "DynamicQuery", ...props });
+    return this;
+  }
+
+  dynamicModify(sql: yom.SqlExpression) {
+    this.pushToBacking({ t: "DynamicModify", sql });
+    return this;
+  }
+
+  undoTx(txId: yom.SqlExpression) {
+    this.pushToBacking({ t: "UndoTx", tx: txId });
+    return this;
+  }
+
+  search(opts: Omit<yom.SearchStatement, "t">) {
+    this.pushToBacking({ t: "Search", ...opts });
+    return this;
+  }
 }
 
 export type StateStatementsOrFn = StatementsOrFn<StateStatements>;
@@ -415,6 +450,11 @@ export class StateStatements extends StatementsBase<yom.StateStatement> {
 
   search(opts: Omit<yom.SearchStatement, "t">) {
     this.pushToBacking({ t: "Search", ...opts });
+    return this;
+  }
+
+  dynamicQuery(props: Omit<yom.DynamicQueryStatement, "t">) {
+    this.pushToBacking({ t: "DynamicQuery", ...props });
     return this;
   }
 }

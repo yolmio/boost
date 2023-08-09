@@ -1,12 +1,11 @@
 import { app } from "../app";
-import { element, state } from "../nodeHelpers";
+import { nodes } from "../nodeHelpers";
 import type { Node } from "../nodeTypes";
 import { Style, StyleObject } from "../styleTypes";
 import { Variant } from "../theme";
 import { createStyles, cssVar, getVariantStyle } from "../styleUtils";
 import { scopedVariables, styles as listStyles } from "./list";
 import { Color, ComponentOpts, Size } from "./types";
-import { focusEl, if_, scalar, setScalar } from "../procHelpers";
 
 const styles = createStyles({
   tab: (
@@ -172,16 +171,16 @@ export function tabs(opts: BetterTabsOpts) {
   const getTabId = (idx: number | string) => `${opts.idBase} || 't' || ${idx}`;
   const getPanelId = (idx: number | string) =>
     `${opts.idBase} || 'p' || ${idx}`;
-  return state({
-    procedure: [scalar(`selected_tab`, `0`), scalar(`focus_tab`, `0`)],
-    children: element("div", {
+  return nodes.state({
+    procedure: (s) => s.scalar(`selected_tab`, `0`).scalar(`focus_tab`, `0`),
+    children: nodes.element("div", {
       styles: opts.styles ? [opts.styles, rootStyle] : rootStyle,
       children: [
-        element("div", {
+        nodes.element("div", {
           props: { role: "'tablist'" },
           styles: tabListStyles,
           children: opts.tabs.map((t, i) =>
-            element("div", {
+            nodes.element("div", {
               styles: tabStyles,
               children: t.tabButton,
               props: {
@@ -194,59 +193,64 @@ export function tabs(opts: BetterTabsOpts) {
                 )} end`,
               },
               on: {
-                click: [
-                  setScalar(`ui.selected_tab`, `${i}`),
-                  setScalar(`ui.focus_tab`, `${i}`),
-                ],
+                click: (s) =>
+                  s
+                    .setScalar(`ui.selected_tab`, `${i}`)
+                    .setScalar(`ui.focus_tab`, `${i}`),
               },
             })
           ),
           on: {
-            keydown: [
-              if_(
-                `event.key = ${
-                  orientation === "horizontal" ? "'ArrowLeft'" : "'ArrowUp'"
-                }`,
-                [
-                  setScalar(
-                    `ui.focus_tab`,
-                    `case when ui.focus_tab = 0 then ${lastTabIdx} else ui.focus_tab - 1 end`
-                  ),
-                  focusEl(getTabId(`ui.focus_tab`)),
-                ]
-              ),
-              if_(
-                `event.key = ${
-                  orientation === "horizontal" ? "'ArrowRight'" : "'ArrowDown'"
-                }`,
-                [
-                  setScalar(
-                    `ui.focus_tab`,
-                    `case when ui.focus_tab = ${lastTabIdx} then 0 else ui.focus_tab + 1 end`
-                  ),
-                  focusEl(getTabId(`ui.focus_tab`)),
-                ]
-              ),
-              if_(`event.key = 'Enter' or event.key = ' '`, [
-                setScalar(`ui.selected_tab`, `ui.focus_tab`),
-                focusEl(getTabId(`ui.focus_tab`)),
-              ]),
-              if_(`event.key = 'Home'`, [
-                setScalar(`ui.focus_tab`, `0`),
-                focusEl(getTabId(`ui.focus_tab`)),
-              ]),
-              if_(`event.key = 'End'`, [
-                setScalar(`ui.focus_tab`, `${lastTabIdx}`),
-                focusEl(getTabId(`ui.focus_tab`)),
-              ]),
-            ],
+            keydown: (s) =>
+              s
+                .if(
+                  `event.key = ${
+                    orientation === "horizontal" ? "'ArrowLeft'" : "'ArrowUp'"
+                  }`,
+
+                  (s) =>
+                    s
+                      .setScalar(
+                        `ui.focus_tab`,
+                        `case when ui.focus_tab = 0 then ${lastTabIdx} else ui.focus_tab - 1 end`
+                      )
+                      .focusEl(getTabId(`ui.focus_tab`))
+                )
+                .if(
+                  `event.key = ${
+                    orientation === "horizontal"
+                      ? "'ArrowRight'"
+                      : "'ArrowDown'"
+                  }`,
+                  (s) =>
+                    s
+                      .setScalar(
+                        `ui.focus_tab`,
+                        `case when ui.focus_tab = ${lastTabIdx} then 0 else ui.focus_tab + 1 end`
+                      )
+                      .focusEl(getTabId(`ui.focus_tab`))
+                )
+                .if(`event.key = 'Enter' or event.key = ' '`, (s) =>
+                  s
+                    .setScalar(`ui.selected_tab`, `ui.focus_tab`)
+                    .focusEl(getTabId(`ui.focus_tab`))
+                )
+                .if(`event.key = 'Home'`, (s) =>
+                  s
+                    .setScalar(`ui.focus_tab`, `0`)
+                    .focusEl(getTabId(`ui.focus_tab`))
+                )
+                .if(`event.key = 'End'`, (s) =>
+                  s
+                    .setScalar(`ui.focus_tab`, `${lastTabIdx}`)
+                    .focusEl(getTabId(`ui.focus_tab`))
+                ),
           },
         }),
-        {
-          t: "Switch",
-          cases: opts.tabs.map((t, i) => ({
+        nodes.switch(
+          ...opts.tabs.map((t, i) => ({
             condition: `selected_tab = ${i}`,
-            node: element("div", {
+            node: nodes.element("div", {
               styles: tabPanelStyles,
               props: {
                 role: `'tabpanel'`,
@@ -255,8 +259,8 @@ export function tabs(opts: BetterTabsOpts) {
               },
               children: t.content,
             }),
-          })),
-        },
+          }))
+        ),
       ],
     }),
   });

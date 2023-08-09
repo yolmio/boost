@@ -2,7 +2,7 @@ import { app, DecisionTable, ScalarFunction, Table } from "./app";
 import { StyleSerializer, transformNode } from "./nodeTransform";
 import { addRootStyles } from "./rootStyles";
 import type * as yom from "./yom";
-// import { default404Page } from "./pages/default404";
+import { default404Page } from "./pages/default404";
 import { Node, RouteNode, RoutesNode } from "./nodeTypes";
 import { escapeHtml } from "./utils/escapeHtml";
 
@@ -139,7 +139,7 @@ function getTransformedUi(): [yom.Node, string] {
   if (!app.ui.pages.some((p) => p.path === "/*" || p.path === "*")) {
     app.ui.pages.push({
       path: "*",
-      content: `'todo replace this'`,
+      content: default404Page(),
     });
   }
   const pagesWithShell = app.ui.pages

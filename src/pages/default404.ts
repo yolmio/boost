@@ -1,7 +1,7 @@
 import { button } from "../components/button";
 import { materialIcon } from "../components/materialIcon";
 import { typography } from "../components/typography";
-import { element } from "../nodeHelpers";
+import { nodes } from "../nodeHelpers";
 import { createStyles } from "../styleUtils";
 
 const styles = createStyles({
@@ -16,7 +16,7 @@ const styles = createStyles({
 });
 
 export function default404Page() {
-  return element("div", {
+  return nodes.element("div", {
     styles: styles.root,
     children: [
       typography({
