@@ -1,4 +1,4 @@
-import { element, ifNode } from "../../nodeHelpers";
+import { nodes } from "../../nodeHelpers";
 import { Node } from "../../nodeTypes";
 import { createStyles, cssVar } from "../../styleUtils";
 import { stringLiteral } from "../../utils/sqlHelpers";
@@ -40,14 +40,14 @@ const styles = createStyles({
 
 export function labelOnLeftFormField(opts: LabelOnLeftFormFieldOpts): Node {
   if (opts.field.type === "Bool" && !opts.field.enumLike) {
-    return element("div", {
+    return nodes.element("div", {
       styles: styles.root,
       children: [
         formLabel({
           props: { htmlFor: opts.id },
           children: opts.label ?? stringLiteral(opts.field.displayName),
         }),
-        element("div", {
+        nodes.element("div", {
           styles: styles.controlWrapper,
           children: [
             checkbox({
@@ -55,16 +55,14 @@ export function labelOnLeftFormField(opts: LabelOnLeftFormFieldOpts): Node {
               checked: opts.fieldHelper.value,
               slots: { input: { props: { id: opts.id } } },
               on: {
-                checkboxChange: [
-                  opts.fieldHelper.setValue(
-                    `coalesce(not ` + opts.fieldHelper.value + `, true)`
-                  ),
-                ],
+                checkboxChange: opts.fieldHelper.setValue(
+                  `coalesce(not ` + opts.fieldHelper.value + `, true)`
+                ),
               },
             }),
-            ifNode(
+            nodes.if(
               opts.fieldHelper.hasError,
-              element("div", {
+              nodes.element("div", {
                 styles: styles.errorText,
                 children: opts.fieldHelper.error,
               })
@@ -82,20 +80,20 @@ export function labelOnLeftFormField(opts: LabelOnLeftFormFieldOpts): Node {
         "for card fields"
     );
   }
-  return element("div", {
+  return nodes.element("div", {
     styles: styles.root,
     children: [
       formLabel({
         props: { htmlFor: opts.id },
         children: opts.label ?? stringLiteral(opts.field.displayName),
       }),
-      element("div", {
+      nodes.element("div", {
         styles: styles.controlWrapper,
         children: [
           control,
-          ifNode(
+          nodes.if(
             opts.fieldHelper.hasError,
-            element("div", {
+            nodes.element("div", {
               styles: styles.errorText,
               children: opts.fieldHelper.error,
             })

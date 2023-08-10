@@ -1,5 +1,5 @@
-import { if_, preventDefault } from "../procHelpers";
-import { ClientProcStatement } from "../yom";
+import { DomStatementsOrFn } from "../statements";
+import * as yom from "../yom";
 import { input, InputOpts } from "./input";
 import { mergeElEventHandlers } from "./utils";
 
@@ -7,7 +7,7 @@ export interface DurationInputOpts extends InputOpts {
   fullWidth?: boolean;
 
   durationSize: "seconds" | "minutes" | "hours";
-  onChange: (value: string) => ClientProcStatement[];
+  onChange: (value: yom.SqlExpression) => DomStatementsOrFn;
 }
 
 export function durationInput(opts: DurationInputOpts) {
@@ -24,12 +24,11 @@ export function durationInput(opts: DurationInputOpts) {
         },
         on: mergeElEventHandlers(
           {
-            keydown: [
-              if_(
+            keydown: (s) =>
+              s.if(
                 `not event.ctrl_key and not event.meta_key and char_length(event.key) = 1 and event.key not in ('1', '2', '3', '4', '5', '6', '7', '8', '9', '0', ':')`,
-                [preventDefault()]
+                (s) => s.preventDefault()
               ),
-            ],
             change: opts.onChange(
               `sfn.display_minutes_duration(sfn.parse_minutes_duration(target_value))`
             ),

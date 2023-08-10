@@ -573,152 +573,165 @@ ui.addDashboardGridPage((page) =>
 //   viewButton: true,
 // });
 
-// const orderFormPartStyles = { gridColumnSpan: 12, lg: { gridColumnSpan: 3 } };
+const orderFormPartStyles = { gridColumnSpan: 12, lg: { gridColumnSpan: 3 } };
 
-// insertFormPage({
-//   table: "order",
-//   withValues: { employee: "current_user()" },
-//   content: {
-//     type: "TwoColumnSectioned",
-//     sections: [
-//       {
-//         header: "General Information",
-//         parts: [
-//           {
-//             field: "customer",
-//             styles: orderFormPartStyles,
-//             onChange: (state) => [
-//               spawn({
-//                 detached: true,
-//                 statements: [
-//                   record(`customer`, [
-//                     { name: "name", type: { type: "String", maxLength: 2000 } },
-//                     {
-//                       name: "address",
-//                       type: { type: "String", maxLength: 2000 },
-//                     },
-//                     { name: "city", type: { type: "String", maxLength: 2000 } },
-//                     {
-//                       name: "zip",
-//                       type: { type: "String", maxLength: 2000 },
-//                     },
-//                     {
-//                       name: "state",
-//                       type: { type: "String", maxLength: 2000 },
-//                     },
-//                     {
-//                       name: "country",
-//                       type: { type: "String", maxLength: 2000 },
-//                     },
-//                   ]),
-//                   serviceProc([
-//                     modify(
-//                       `insert into customer select company_name as name, * from db.customer where id = ${state.fields.get(
-//                         "customer"
-//                       )}`
-//                     ),
-//                   ]),
-//                   if_(`not ` + state.fields.touched("ship_address"), [
-//                     state.fields.set("ship_address", "customer.address"),
-//                   ]),
-//                   if_(`not ` + state.fields.touched("ship_name"), [
-//                     state.fields.set("ship_name", "customer.name"),
-//                   ]),
-//                   if_(`not ` + state.fields.touched("ship_city"), [
-//                     state.fields.set("ship_city", "customer.city"),
-//                   ]),
-//                   if_(`not ` + state.fields.touched("ship_zip"), [
-//                     state.fields.set("ship_zip", "customer.zip"),
-//                   ]),
-//                   if_(`not ` + state.fields.touched("ship_state"), [
-//                     state.fields.set("ship_state", "customer.state"),
-//                   ]),
-//                   if_(`not ` + state.fields.touched("ship_country"), [
-//                     state.fields.set("ship_country", "customer.country"),
-//                   ]),
-//                   commitUiChanges(),
-//                 ],
-//               }),
-//             ],
-//           },
-//           {
-//             field: "order_date",
-//             initialValue: `current_date()`,
-//             styles: orderFormPartStyles,
-//           },
-//           { field: "required_date", styles: orderFormPartStyles },
-//           { field: "ship_via", styles: orderFormPartStyles },
-//           { field: "freight", styles: orderFormPartStyles },
-//         ],
-//       },
-//       {
-//         header: "Shipping Information",
-//         description:
-//           "Auto-populated when you choose a customer, make changes if needed.",
-//         parts: [
-//           { field: "ship_name", styles: orderFormPartStyles },
-//           { field: "ship_address", styles: orderFormPartStyles },
-//           { field: "ship_city", styles: orderFormPartStyles },
-//           { field: "ship_zip", styles: orderFormPartStyles },
-//           { field: "ship_state", styles: orderFormPartStyles },
-//           { field: "ship_country", styles: orderFormPartStyles },
-//         ],
-//       },
-//       {
-//         header: "Order Details",
-//         description: "Add products to the order.",
-//         relation: {
-//           type: "Card",
-//           table: "order_detail",
-//           fields: [
-//             {
-//               field: "product",
-//               onChange: (_, cursor) => [
-//                 spawn({
-//                   detached: true,
-//                   statements: [
-//                     if_(`not ` + cursor.field("unit_price").touched, [
-//                       scalar(`product_unit_price`, {
-//                         type: "Decimal",
-//                         precision: 10,
-//                         scale: 2,
-//                         signed: true,
-//                       }),
-//                       serviceProc([
-//                         setScalar(
-//                           "product_unit_price",
-//                           `(select unit_price from db.product where id = ${
-//                             cursor.field("product").value
-//                           })`
-//                         ),
-//                       ]),
-//                       if_(
-//                         `product_unit_price is not null and not ` +
-//                           cursor.field("unit_price").touched,
-//                         [
-//                           cursor
-//                             .field("unit_price")
-//                             .setValue("cast(product_unit_price as string)"),
-//                           commitUiChanges(),
-//                         ]
-//                       ),
-//                     ]),
-//                   ],
-//                 }),
-//               ],
-//             },
-//             "unit_price",
-//             "quantity",
-//             "discount",
-//           ],
-//         },
-//       },
-//     ],
-//   },
-//   afterTransactionCommit: () => [
-//     navigate(`'/orders/' || last_record_id(db.order)`),
-//   ],
-// });
+ui.addInsertFormPage({
+  table: "order",
+  withValues: { employee: "current_user()" },
+  content: {
+    type: "TwoColumnSectioned",
+    sections: [
+      {
+        header: "General Information",
+        parts: [
+          {
+            field: "customer",
+            styles: orderFormPartStyles,
+            onChange: (state, s) =>
+              s.spawn({
+                detached: true,
+                procedure: (s) =>
+                  s
+                    .record(`customer`, [
+                      {
+                        name: "name",
+                        type: { type: "String", maxLength: 2000 },
+                      },
+                      {
+                        name: "address",
+                        type: { type: "String", maxLength: 2000 },
+                      },
+                      {
+                        name: "city",
+                        type: { type: "String", maxLength: 2000 },
+                      },
+                      {
+                        name: "zip",
+                        type: { type: "String", maxLength: 2000 },
+                      },
+                      {
+                        name: "state",
+                        type: { type: "String", maxLength: 2000 },
+                      },
+                      {
+                        name: "country",
+                        type: { type: "String", maxLength: 2000 },
+                      },
+                    ])
+                    .serviceProc((s) =>
+                      s.modify(
+                        `insert into customer select company_name as name, * from db.customer where id = ${
+                          state.field("customer").value
+                        }`
+                      )
+                    )
+                    .if(
+                      `not ` + state.field("ship_address").touched,
+                      state.field("ship_address").setValue("customer.address")
+                    )
+                    .if(
+                      `not ` + state.field("ship_name").touched,
+                      state.field("ship_name").setValue("customer.name")
+                    )
+                    .if(
+                      `not ` + state.field("ship_city").touched,
+                      state.field("ship_city").setValue("customer.city")
+                    )
+                    .if(
+                      `not ` + state.field("ship_zip").touched,
+                      state.field("ship_zip").setValue("customer.zip")
+                    )
+                    .if(
+                      `not ` + state.field("ship_state").touched,
+                      state.field("ship_state").setValue("customer.state")
+                    )
+                    .if(
+                      `not ` + state.field("ship_country").touched,
+                      state.field("ship_country").setValue("customer.country")
+                    )
+                    .commitUiChanges(),
+              }),
+          },
+          {
+            field: "order_date",
+            initialValue: `current_date()`,
+            styles: orderFormPartStyles,
+          },
+          { field: "required_date", styles: orderFormPartStyles },
+          { field: "ship_via", styles: orderFormPartStyles },
+          { field: "freight", styles: orderFormPartStyles },
+        ],
+      },
+      {
+        header: "Shipping Information",
+        description:
+          "Auto-populated when you choose a customer, make changes if needed.",
+        parts: [
+          { field: "ship_name", styles: orderFormPartStyles },
+          { field: "ship_address", styles: orderFormPartStyles },
+          { field: "ship_city", styles: orderFormPartStyles },
+          { field: "ship_zip", styles: orderFormPartStyles },
+          { field: "ship_state", styles: orderFormPartStyles },
+          { field: "ship_country", styles: orderFormPartStyles },
+        ],
+      },
+      {
+        header: "Order Details",
+        description: "Add products to the order.",
+        relation: {
+          type: "Card",
+          table: "order_detail",
+          fields: [
+            {
+              field: "product",
+              onChange: (_, cursor, s) =>
+                s.spawn({
+                  detached: true,
+                  procedure: (s) =>
+                    s.if(`not ` + cursor.field("unit_price").touched, (s) =>
+                      s
+                        .scalar(`product_unit_price`, {
+                          type: "Decimal",
+                          precision: 10,
+                          scale: 2,
+                          signed: true,
+                        })
+                        .serviceProc((s) =>
+                          s.setScalar(
+                            "product_unit_price",
+                            `(select unit_price from db.product where id = ${
+                              cursor.field("product").value
+                            })`
+                          )
+                        )
+                        .if(
+                          `product_unit_price is not null and not ` +
+                            cursor.field("unit_price").touched,
+                          (s) =>
+                            s
+                              .statements(
+                                cursor
+                                  .field("unit_price")
+                                  .setValue(
+                                    "cast(product_unit_price as string)"
+                                  )
+                              )
+                              .commitUiChanges()
+                        )
+                    ),
+                }),
+            },
+            "unit_price",
+            "quantity",
+            "discount",
+          ],
+        },
+      },
+    ],
+  },
+  afterTransactionCommit: (_, s) =>
+    s.navigate(`'/orders/' || last_record_id(db.order)`),
+});
 
 // recordGridPage({
 //   table: "order",

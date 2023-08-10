@@ -1,14 +1,13 @@
 import { FormStateFieldHelper } from "../../formState";
-import { Field } from "../../appTypes";
+import { Field } from "../../app";
 import { Node } from "../../nodeTypes";
-import { debugExpr } from "../../procHelpers";
-import { ClientProcStatement } from "../../yom";
 import { durationInput } from "../durationInput";
 import { enumLikeSelect, enumSelect } from "../enumSelect";
 import { input } from "../input";
 import { materialIcon } from "../materialIcon";
 import { getTableRecordSelect } from "../tableRecordSelect";
 import { textarea } from "../textarea";
+import { DomStatementsOrFn } from "../../statements";
 
 export interface FieldFormControlOpts {
   field: Field;
@@ -18,7 +17,7 @@ export interface FieldFormControlOpts {
   /** For combobox */
   comboboxEmptyQuery?: string;
 
-  onChange?: ClientProcStatement[];
+  onChange?: DomStatementsOrFn;
 }
 
 export function fieldFormControl(opts: FieldFormControlOpts): Node | undefined {
@@ -26,10 +25,8 @@ export function fieldFormControl(opts: FieldFormControlOpts): Node | undefined {
   switch (field.type) {
     case "ForeignKey":
       return getTableRecordSelect(field.table, {
-        onSelectValue: (value) => [
-          fieldHelper.setValue(value),
-          ...(opts.onChange ?? []),
-        ],
+        onSelectValue: (value) => (s) =>
+          s.statements(fieldHelper.setValue(value), opts.onChange),
         id,
         value: fieldHelper.value,
         emptyQuery: opts.comboboxEmptyQuery,
@@ -46,8 +43,8 @@ export function fieldFormControl(opts: FieldFormControlOpts): Node | undefined {
               id,
             },
             on: {
-              input: [fieldHelper.setValue("target_value")],
-              blur: [fieldHelper.setTouched],
+              input: fieldHelper.setValue("target_value"),
+              blur: fieldHelper.setTouched("true"),
             },
           },
         },
@@ -63,10 +60,10 @@ export function fieldFormControl(opts: FieldFormControlOpts): Node | undefined {
               id,
             },
             on: {
-              input: [
-                fieldHelper.setValue("try_cast(target_value as timestamp)"),
-              ],
-              blur: [fieldHelper.setTouched],
+              input: fieldHelper.setValue(
+                "try_cast(target_value as timestamp)"
+              ),
+              blur: fieldHelper.setTouched("true"),
             },
           },
         },
@@ -82,8 +79,8 @@ export function fieldFormControl(opts: FieldFormControlOpts): Node | undefined {
               id,
             },
             on: {
-              input: [fieldHelper.setValue("try_cast(target_value as date)")],
-              blur: [fieldHelper.setTouched],
+              input: fieldHelper.setValue("try_cast(target_value as date)"),
+              blur: fieldHelper.setTouched("true"),
             },
           },
         },
@@ -112,16 +109,17 @@ export function fieldFormControl(opts: FieldFormControlOpts): Node | undefined {
                   value: fieldHelper.value,
                 },
                 on: {
-                  blur: [fieldHelper.setTouched],
+                  blur: fieldHelper.setTouched("true"),
                 },
               },
             },
             durationSize: field.usage.size,
-            onChange: (v) => [
-              fieldHelper.setValue(v),
-              fieldHelper.setTouched,
-              ...(opts.onChange ?? []),
-            ],
+            onChange: (v) => (s) =>
+              s.statements(
+                fieldHelper.setValue(v),
+                fieldHelper.setTouched("true"),
+                opts.onChange
+              ),
           });
         }
       }
@@ -136,8 +134,8 @@ export function fieldFormControl(opts: FieldFormControlOpts): Node | undefined {
               id,
             },
             on: {
-              input: [fieldHelper.setValue("target_value")],
-              blur: [fieldHelper.setTouched],
+              input: fieldHelper.setValue("target_value"),
+              blur: fieldHelper.setTouched("true"),
             },
           },
         },
@@ -150,11 +148,9 @@ export function fieldFormControl(opts: FieldFormControlOpts): Node | undefined {
         emptyOption: field.notNull ? undefined : "'No value'",
         slots: { select: { props: { id, value: fieldHelper.value } } },
         on: {
-          input: [
-            fieldHelper.setValue(
-              `try_cast(target_value as enums.${field.enum})`
-            ),
-          ],
+          input: fieldHelper.setValue(
+            `try_cast(target_value as enums.${field.enum})`
+          ),
         },
       });
     case "Uuid":
@@ -168,8 +164,8 @@ export function fieldFormControl(opts: FieldFormControlOpts): Node | undefined {
               maxLength: "36",
             },
             on: {
-              input: [fieldHelper.setValue("target_value")],
-              blur: [fieldHelper.setTouched],
+              input: fieldHelper.setValue("target_value"),
+              blur: fieldHelper.setTouched("true"),
             },
           },
         },
@@ -184,8 +180,8 @@ export function fieldFormControl(opts: FieldFormControlOpts): Node | undefined {
                 id,
               },
               on: {
-                input: [fieldHelper.setValue("target_value")],
-                blur: [fieldHelper.setTouched],
+                input: fieldHelper.setValue("target_value"),
+                blur: fieldHelper.setTouched("true"),
               },
             },
           },
@@ -215,8 +211,8 @@ export function fieldFormControl(opts: FieldFormControlOpts): Node | undefined {
                 inputMode,
               },
               on: {
-                input: [fieldHelper.setValue("target_value")],
-                blur: [fieldHelper.setTouched],
+                input: fieldHelper.setValue("target_value"),
+                blur: fieldHelper.setTouched("true"),
               },
             },
           },
@@ -238,11 +234,9 @@ export function fieldFormControl(opts: FieldFormControlOpts): Node | undefined {
           },
         },
         on: {
-          input: [
-            fieldHelper.setValue(
-              `case when target_value = '' then null else target_value = 'true' end`
-            ),
-          ],
+          input: fieldHelper.setValue(
+            `case when target_value = '' then null else target_value = 'true' end`
+          ),
         },
       });
   }

@@ -1,4 +1,4 @@
-import { each, element, ifNode, mode, portal, state } from "../nodeHelpers";
+import { nodes } from "../nodeHelpers";
 import { Node } from "../nodeTypes";
 import {
   exit,
@@ -12,7 +12,6 @@ import {
 } from "../procHelpers";
 import { Style, StyleObject } from "../styleTypes";
 import { createStyles, cssVar } from "../styleUtils";
-import { ClientProcStatement, StateStatement } from "../yom";
 import { getUniqueUiId, mergeEls, SingleElementComponentOpts } from "./utils";
 import { styles as iconButtonStyles } from "./iconButton";
 import { input } from "./input";
@@ -22,6 +21,12 @@ import { svgIcon } from "./svgIcon";
 import { Color, ComponentOpts, Size, Variant } from "./types";
 import { stringLiteral } from "../utils/sqlHelpers";
 import { circularProgress } from "./circularProgress";
+import {
+  DomStatements,
+  DomStatementsOrFn,
+  StateStatementsOrFn,
+} from "../statements";
+import * as yom from "../yom";
 
 const styles = createStyles({
   root: { position: "relative" },
@@ -89,69 +94,74 @@ export interface QueryComboboxOpts extends ComponentOpts {
   id?: string;
   error?: string;
 
-  loading?: string;
+  loading?: yom.SqlExpression;
   immediateFocus?: boolean;
   styles?: Style;
 
-  onSelect: (result: string) => ClientProcStatement[];
-  onClear: ClientProcStatement[];
-  onBlur: ClientProcStatement[];
+  onSelect: (result: string) => DomStatementsOrFn;
+  onClear: DomStatementsOrFn;
+  onBlur: DomStatementsOrFn;
 
-  populateResultTable: (query: string, resultTable: string) => StateStatement[];
+  populateResultTable: (
+    query: string,
+    resultTable: string
+  ) => StateStatementsOrFn;
 
   initialInputText?: string;
 }
 
 function withComboboxState(opts: QueryComboboxOpts, children: Node) {
-  return state({
-    procedure: [
-      scalar("showing_list", `false`),
-      scalar("clicking_on_list", `false`),
-      scalar(
-        "input_focus_key",
-        { type: "BigInt" },
-        opts.immediateFocus ? `0` : `null`
-      ),
-      scalar(
-        "query",
-        { type: "String", maxLength: 2000 },
-        opts.initialInputText ? `null` : `''`
-      ),
-      scalar("active_descendant", { type: "String", maxLength: 100 }),
-      scalar(
-        "last_valid_query",
-        { type: "String", maxLength: 2000 },
-        opts.initialInputText ? `null` : `''`
-      ),
-      scalar(`combobox_width`, "0"),
-    ],
-    children: state({
+  return nodes.state({
+    procedure: (s) =>
+      s
+        .scalar("showing_list", `false`)
+        .scalar("clicking_on_list", `false`)
+        .scalar(
+          "input_focus_key",
+          { type: "BigInt" },
+          opts.immediateFocus ? `0` : `null`
+        )
+        .scalar(
+          "query",
+          { type: "String", maxLength: 2000 },
+          opts.initialInputText ? `null` : `''`
+        )
+        .scalar("active_descendant", { type: "String", maxLength: 100 })
+        .scalar(
+          "last_valid_query",
+          { type: "String", maxLength: 2000 },
+          opts.initialInputText ? `null` : `''`
+        )
+        .scalar(`combobox_width`, "0"),
+    children: nodes.state({
       watch: opts.initialInputText
         ? ["query", `showing_list`, opts.initialInputText]
         : ["query", `showing_list`],
       statusScalar: `combobox_query_status`,
-      procedure: [
-        table("result", [
-          { name: "label", type: { type: "String", maxLength: 1000 } },
-          { name: "index", type: { type: "BigInt" } },
-          { name: "id", type: { type: "BigInt" } },
-        ]),
-        if_(`not showing_list`, [exit()]),
-        ...opts.populateResultTable(
-          opts.initialInputText
-            ? `coalesce(query, ${opts.initialInputText}, '')`
-            : `query`,
-          `ui.result`
-        ),
-        scalar(`selected_index`, { type: "BigInt" }),
-      ],
+      procedure: (s) =>
+        s
+          .table("result", [
+            { name: "label", type: { type: "String", maxLength: 1000 } },
+            { name: "index", type: { type: "BigInt" } },
+            { name: "id", type: { type: "BigInt" } },
+          ])
+          .if(`not showing_list`, (s) => s.return())
+          .statements(
+            opts.populateResultTable(
+              opts.initialInputText
+                ? `coalesce(query, ${opts.initialInputText}, '')`
+                : `query`,
+              `ui.result`
+            )
+          )
+          .scalar(`selected_index`, { type: "BigInt" }),
       children,
     }),
   });
 }
 
 const arrowIcon = svgIcon({
-  children: element("path", { props: { d: "'M7 10l5 5 5-5z'" } }),
+  children: nodes.element("path", { props: { d: "'M7 10l5 5 5-5z'" } }),
 });
 
 /**
@@ -164,26 +174,24 @@ export function queryCombobox(opts: QueryComboboxOpts) {
   const inputWrapperId = `${id} || '-input-wrapper'`;
   const listboxId = `${id} || '-listbox'`;
   const optionId = (itemId: string) => `${id} || '-opt-' || ${itemId}`;
-  const doSelection = [
-    record(
+  const doSelection = new DomStatements()
+    .record(
       `result`,
       `select id, index, label from ui.result where index = ui.selected_index`
-    ),
-    ...opts.onSelect(`result`),
-    setScalar(`ui.showing_list`, `false`),
-    setScalar(`ui.query`, `result.label`),
-    setScalar(`ui.last_valid_query`, `result.label`),
-    setScalar(`ui.active_descendant`, `null`),
-    setScalar(`ui.input_focus_key`, `null`),
-  ];
-  const updateComboboxWidth = [
-    getBoundingClientRect(inputWrapperId, `rect`),
-    setScalar(`ui.combobox_width`, `rect.width`),
-  ];
-  const content = element("div", {
+    )
+    .statements(opts.onSelect(`result`))
+    .setScalar(`ui.showing_list`, `false`)
+    .setScalar(`ui.query`, `result.label`)
+    .setScalar(`ui.last_valid_query`, `result.label`)
+    .setScalar(`ui.active_descendant`, `null`)
+    .setScalar(`ui.input_focus_key`, `null`);
+  const updateComboboxWidth = new DomStatements()
+    .getBoundingClientRect(inputWrapperId, `rect`)
+    .setScalar(`ui.combobox_width`, `rect.width`);
+  const content = nodes.element("div", {
     styles: opts.styles ? [styles.root, opts.styles] : styles.root,
     children: [
-      mode({
+      nodes.mode({
         render: "'immediate'",
         children: input({
           size: opts.size,
@@ -211,84 +219,88 @@ export function queryCombobox(opts: QueryComboboxOpts) {
                 yolmFocusKey: `input_focus_key`,
               },
               on: {
-                input: [
-                  setScalar("ui.query", "target_value"),
-                  setScalar(`ui.showing_list`, `true`),
-                  setScalar(`ui.active_descendant`, `null`),
-                ],
-                focus: [
-                  setScalar("ui.showing_list", "true"),
-                  ...updateComboboxWidth,
-                ],
-                blur: [
-                  if_(
-                    "not ui.clicking_on_list",
-                    setScalar("ui.showing_list", "false")
-                  ),
-                  scalar(
-                    `return_to`,
-                    opts.initialInputText
-                      ? `coalesce(${opts.initialInputText}, last_valid_query, '')`
-                      : `coalesce(last_valid_query, '')`
-                  ),
-                  if_<ClientProcStatement>(
-                    `ui.query is not null and ui.query != return_to`,
-                    [setScalar(`ui.query`, `ui.last_valid_query`)]
-                  ),
-                ],
-                keydown: [
-                  if_(
-                    `not ui.showing_list or event.is_composing or event.shift_key or event.meta_key or event.alt_key or event.ctrl_key`,
-                    exit()
-                  ),
-                  if_(`event.key in ('Enter', 'Tab')`, [
-                    if_(`ui.active_descendant is not null`, [
-                      preventDefault(),
-                      ...doSelection,
-                    ]),
-                    exit(),
-                  ]),
-                  if_(`event.key = 'ArrowDown'`, [
-                    preventDefault(),
-                    if_(`not exists (select index from ui.result)`, exit()),
-                    setScalar(
-                      `ui.selected_index`,
-                      `case
+                input: (s) =>
+                  s
+                    .setScalar("ui.query", "target_value")
+                    .setScalar(`ui.showing_list`, `true`)
+                    .setScalar(`ui.active_descendant`, `null`),
+                focus: (s) =>
+                  s
+                    .setScalar("ui.showing_list", "true")
+                    .statements(updateComboboxWidth),
+                blur: (s) =>
+                  s
+                    .if("not ui.clicking_on_list", (s) =>
+                      s.setScalar("ui.showing_list", "false")
+                    )
+                    .scalar(
+                      `return_to`,
+                      opts.initialInputText
+                        ? `coalesce(${opts.initialInputText}, last_valid_query, '')`
+                        : `coalesce(last_valid_query, '')`
+                    )
+                    .if(`ui.query is not null and ui.query != return_to`, (s) =>
+                      s.setScalar(`ui.query`, `ui.last_valid_query`)
+                    ),
+                keydown: (s) =>
+                  s
+                    .if(
+                      `not ui.showing_list or event.is_composing or event.shift_key or event.meta_key or event.alt_key or event.ctrl_key`,
+                      (s) => s.return()
+                    )
+                    .if(`event.key in ('Enter', 'Tab')`, (s) =>
+                      s
+                        .if(`ui.active_descendant is not null`, (s) =>
+                          s.preventDefault().statements(doSelection)
+                        )
+                        .return()
+                    )
+                    .if(`event.key = 'ArrowDown'`, (s) =>
+                      s
+                        .preventDefault()
+                        .if(`not exists (select index from ui.result)`, (s) =>
+                          s.return()
+                        )
+                        .setScalar(
+                          `ui.selected_index`,
+                          `case
                         when ui.selected_index is null or ui.selected_index = (select count(*) from ui.result) - 1
                             then 0
                         else ui.selected_index + 1
                     end`
-                    ),
-                    setScalar(
-                      `ui.active_descendant`,
-                      optionId(`ui.selected_index`)
-                    ),
-                    exit(),
-                  ]),
-                  if_(`event.key = 'ArrowUp'`, [
-                    preventDefault(),
-                    if_(`not exists (select index from ui.result)`, exit()),
-                    setScalar(
-                      `ui.selected_index`,
-                      `case
+                        )
+                        .setScalar(
+                          `ui.active_descendant`,
+                          optionId(`ui.selected_index`)
+                        )
+                        .return()
+                    )
+                    .if(`event.key = 'ArrowUp'`, (s) =>
+                      s
+                        .preventDefault()
+                        .if(`not exists (select index from ui.result)`, (s) =>
+                          s.return()
+                        )
+                        .setScalar(
+                          `ui.selected_index`,
+                          `case
                         when ui.selected_index is null or ui.selected_index = 0
                             then (select count(*) from ui.result)
                         else ui.selected_index - 1
                     end`
-                    ),
-                    setScalar(
-                      `ui.active_descendant`,
-                      optionId(`ui.selected_index`)
-                    ),
-                    exit(),
-                  ]),
-                  setScalar(`ui.active_descendant`, `null`),
-                ],
+                        )
+                        .setScalar(
+                          `ui.active_descendant`,
+                          optionId(`ui.selected_index`)
+                        )
+                        .return()
+                    )
+                    .setScalar(`ui.active_descendant`, `null`),
               },
             },
           },
           endDecorator: [
-            element("button", {
+            nodes.element("button", {
               styles: styles.clearIconButton(
                 opts.size ?? "md",
                 opts.color ?? "neutral"
@@ -303,28 +315,27 @@ export function queryCombobox(opts: QueryComboboxOpts) {
               ],
               props: { tabIndex: `-1` },
               on: {
-                click: [
-                  setScalar(`ui.query`, `''`),
-                  setScalar(`ui.last_valid_query`, `''`),
-                  ...opts.onClear,
-                  if_(
-                    `not ui.showing_list`,
-                    setScalar(
-                      `ui.input_focus_key`,
-                      `coalesce(ui.input_focus_key + 1, 0)`
-                    )
-                  ),
-                ],
+                click: (s) =>
+                  s
+                    .setScalar(`ui.query`, `''`)
+                    .setScalar(`ui.last_valid_query`, `''`)
+                    .statements(opts.onClear)
+                    .if(`not ui.showing_list`, (s) =>
+                      s.setScalar(
+                        `ui.input_focus_key`,
+                        `coalesce(ui.input_focus_key + 1, 0)`
+                      )
+                    ),
               },
               children: materialIcon({ fontSize: "md", name: "Clear" }),
             }),
-            ifNode(
+            nodes.if(
               opts.loading
                 ? `${opts.loading} or combobox_query_status = 'fallback_triggered'`
                 : `combobox_query_status = 'fallback_triggered'`,
               circularProgress({ size: "sm" })
             ),
-            element("button", {
+            nodes.element("button", {
               styles: styles.arrowIconButton(
                 opts.size ?? "md",
                 opts.color ?? "neutral"
@@ -338,28 +349,29 @@ export function queryCombobox(opts: QueryComboboxOpts) {
               props: { tabIndex: `-1` },
               children: arrowIcon,
               on: {
-                click: [
-                  if_(`not ui.showing_list`, [
-                    setScalar(
-                      `ui.input_focus_key`,
-                      `coalesce(ui.input_focus_key + 1, 0)`
-                    ),
-                    ...updateComboboxWidth,
-                  ]),
-                  setScalar(`ui.showing_list`, `not ui.showing_list`),
-                ],
+                click: (s) =>
+                  s
+                    .if(`not ui.showing_list`, (s) =>
+                      s
+                        .setScalar(
+                          `ui.input_focus_key`,
+                          `coalesce(ui.input_focus_key + 1, 0)`
+                        )
+                        .statements(updateComboboxWidth)
+                    )
+                    .setScalar(`ui.showing_list`, `not ui.showing_list`),
               },
             }),
           ],
         }),
       }),
-      portal(
+      nodes.portal(
         comboboxListbox({
           anchorEl: inputWrapperId,
           props: { id: listboxId },
           style: { width: `ui.combobox_width || 'px'` },
           size: opts.size,
-          children: each({
+          children: nodes.each({
             table: "result",
             recordName: "record",
             key: "id",
@@ -372,10 +384,10 @@ export function queryCombobox(opts: QueryComboboxOpts) {
                 tabIndex: `-1`,
               },
               on: {
-                click: [
-                  setScalar(`ui.selected_index`, `record.iteration_index `),
-                  ...doSelection,
-                ],
+                click: (s) =>
+                  s
+                    .setScalar(`ui.selected_index`, `record.iteration_index `)
+                    .statements(doSelection),
               },
               children: "record.label",
             }),
@@ -423,8 +435,8 @@ export function comboboxListbox(opts: ComboboxListboxOpts) {
         },
       },
       on: {
-        mouseDown: [setScalar("ui.clicking_on_list", "true")],
-        mouseUp: [setScalar("ui.clicking_on_list", "false")],
+        mouseDown: (s) => s.setScalar("ui.clicking_on_list", "true"),
+        mouseUp: (s) => s.setScalar("ui.clicking_on_list", "false"),
       },
       children: opts.children,
     },

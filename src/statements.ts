@@ -2,7 +2,7 @@ import type * as yom from "./yom";
 
 export const BACKING_ARRAY = Symbol("BACKING_ARRAY");
 
-abstract class StatementsBase<Statement extends object> {
+export abstract class StatementsBase<Statement extends object> {
   private [BACKING_ARRAY]: Statement[] = [];
 
   protected pushToBacking(statement: Statement) {
@@ -73,6 +73,22 @@ abstract class StatementsBase<Statement extends object> {
 
   setScalar(name: string, expr: yom.SqlExpression) {
     this.pushToBacking({ t: "SetScalar", name, expr } as yom.SetScalar as any);
+    return this;
+  }
+
+  debugExpr(expr: yom.SqlExpression) {
+    this.pushToBacking({
+      t: "DebugExpr",
+      expr,
+    } as yom.DebugExprStatement as any);
+    return this;
+  }
+
+  debugQuery(query: yom.SqlQuery) {
+    this.pushToBacking({
+      t: "DebugQuery",
+      query,
+    } as yom.DebugQueryStatement as any);
     return this;
   }
 
@@ -168,12 +184,107 @@ abstract class StatementsBase<Statement extends object> {
     return this;
   }
 
-  forEachCursor(cursor: string, body: StatementsOrFn<this>) {
-    this.pushToBacking({
-      t: "ForEachCursor",
-      cursor,
-      body: this.normalizeGenericStatements(body),
-    } as yom.ForEachCursorStatement<any> as any);
+  while(condition: yom.SqlExpression, body: StatementsOrFn<this>): this;
+  while(opts: While<StatementsOrFn<this>>): this;
+  while(
+    condition: yom.SqlExpression | While<StatementsOrFn<this>>,
+    body?: StatementsOrFn<this>
+  ) {
+    if (typeof condition === "string") {
+      this.pushToBacking({
+        t: "While",
+        condition,
+        body: this.normalizeGenericStatements(body),
+      } as yom.WhileStatement<any> as any);
+    } else {
+      this.pushToBacking({
+        t: "While",
+        condition: condition.condition,
+        body: this.normalizeGenericStatements(condition.body),
+        label: condition.label,
+      } as yom.WhileStatement<any> as any);
+    }
+    return this;
+  }
+
+  forEachCursor(cursor: string, body: StatementsOrFn<this>): this;
+  forEachCursor(opts: ForEachCursor<StatementsOrFn<this>>): this;
+  forEachCursor(
+    cursor: string | ForEachCursor<StatementsOrFn<this>>,
+    body?: StatementsOrFn<this>
+  ) {
+    if (typeof cursor === "string") {
+      this.pushToBacking({
+        t: "ForEachCursor",
+        cursor,
+        body: this.normalizeGenericStatements(body),
+      } as yom.ForEachCursorStatement<any> as any);
+    } else {
+      this.pushToBacking({
+        t: "ForEachCursor",
+        cursor: cursor.cursor,
+        body: this.normalizeGenericStatements(cursor.body),
+        label: cursor.label,
+      } as yom.ForEachCursorStatement<any> as any);
+    }
+    return this;
+  }
+
+  forEachTable(
+    table: string,
+    cursorName: string,
+    body: StatementsOrFn<this>
+  ): this;
+  forEachTable(opts: ForEachTable<StatementsOrFn<this>>): this;
+  forEachTable(
+    table: string | ForEachTable<StatementsOrFn<this>>,
+    cursorName?: string,
+    body?: StatementsOrFn<this>
+  ) {
+    if (typeof table === "string") {
+      this.pushToBacking({
+        t: "ForEachTable",
+        table,
+        cursorName,
+        body: this.normalizeGenericStatements(body),
+      } as yom.ForEachTableStatement<any> as any);
+    } else {
+      this.pushToBacking({
+        t: "ForEachTable",
+        table: table.table,
+        cursorName: table.cursorName,
+        body: this.normalizeGenericStatements(table.body),
+      } as yom.ForEachTableStatement<any> as any);
+    }
+    return this;
+  }
+
+  forEachQuery(
+    table: string,
+    cursorName: string,
+    body: StatementsOrFn<this>
+  ): this;
+  forEachQuery(opts: ForEachQuery<StatementsOrFn<this>>): this;
+  forEachQuery(
+    query: yom.SqlQuery | ForEachQuery<StatementsOrFn<this>>,
+    cursorName?: string,
+    body?: StatementsOrFn<this>
+  ) {
+    if (typeof query === "string") {
+      this.pushToBacking({
+        t: "ForEachQuery",
+        query,
+        cursorName,
+        body: this.normalizeGenericStatements(body),
+      } as yom.ForEachQueryStatement<any> as any);
+    } else {
+      this.pushToBacking({
+        t: "ForEachQuery",
+        query: query.query,
+        cursorName: query.cursorName,
+        body: this.normalizeGenericStatements(query.body),
+      } as yom.ForEachQueryStatement<any> as any);
+    }
     return this;
   }
 
@@ -201,7 +312,7 @@ abstract class StatementsBase<Statement extends object> {
   }
 }
 
-type StatementsOrFn<S> = ((statements: S) => S) | S | BasicStatements;
+type StatementsOrFn<S> = ((statements: S) => unknown) | S | BasicStatements;
 
 interface Try<S> {
   body: S;
@@ -214,6 +325,32 @@ interface If<S> {
   condition: yom.SqlExpression;
   then: S;
   else?: S;
+}
+
+interface While<S> {
+  condition: yom.SqlExpression;
+  label?: string;
+  body?: S;
+}
+
+interface ForEachCursor<S> {
+  cursor: string;
+  label?: string;
+  body?: S;
+}
+
+interface ForEachTable<S> {
+  table: string;
+  cursorName: string;
+  label?: string;
+  body?: S;
+}
+
+interface ForEachQuery<S> {
+  query: string;
+  cursorName: string;
+  label?: string;
+  body?: S;
 }
 
 export type BasicStatementsOrFn = StatementsOrFn<BasicStatements>;
@@ -431,6 +568,11 @@ export class ServiceStatements extends StatementsBase<yom.ServiceProcStatement> 
 
   search(opts: Omit<yom.SearchStatement, "t">) {
     this.pushToBacking({ t: "Search", ...opts });
+    return this;
+  }
+
+  navigate(to: string, replace?: string) {
+    this.pushToBacking({ t: "Navigate", to, replace });
     return this;
   }
 }

@@ -1,9 +1,9 @@
 import { lazy, memoize } from "../utils/memoize";
-import { DynamicClass, ElementEventHandlers, ElementProps } from "../yom";
-import { element } from "../nodeHelpers";
+import * as yom from "../yom";
+import { nodes } from "../nodeHelpers";
 import type { Node } from "../nodeTypes";
-import { Style, StyleObject } from "../styleTypes";
-import { ColorPaletteProp, Variant } from "../theme";
+import { StyleObject } from "../styleTypes";
+import { Variant } from "../theme";
 import { createStyles, cssVar, getVariantStyle } from "../styleUtils";
 import { svgIcon } from "./svgIcon";
 import { createSlotsFn, SlottedComponentWithSlotNames } from "./utils";
@@ -205,7 +205,7 @@ const styles = createStyles({
 
 export const selectIcon = lazy(() =>
   svgIcon({
-    children: element("path", {
+    children: nodes.element("path", {
       props: {
         d: "'m12 5.83 2.46 2.46c.39.39 1.02.39 1.41 0 .39-.39.39-1.02 0-1.41L12.7 3.7a.9959.9959 0 0 0-1.41 0L8.12 6.88c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0L12 5.83zm0 12.34-2.46-2.46a.9959.9959 0 0 0-1.41 0c-.39.39-.39 1.02 0 1.41l3.17 3.18c.39.39 1.02.39 1.41 0l3.17-3.17c.39-.39.39-1.02 0-1.41a.9959.9959 0 0 0-1.41 0L12 18.17z'",
       },
@@ -214,7 +214,7 @@ export const selectIcon = lazy(() =>
 );
 
 export const getIconSpan = memoize((size: Size) => {
-  return element("span", {
+  return nodes.element("span", {
     styles: styles.iconSpan(size),
     children: selectIcon(),
   });
@@ -226,7 +226,7 @@ export function select(opts: SelectOpts) {
   const variant = opts.variant ?? "outlined";
   const color = opts.color ?? "neutral";
   const rootStyles = styles.root(variant, color, size, opts.fullWidth ?? false);
-  const dynamicClasses: DynamicClass[] = [];
+  const dynamicClasses: yom.DynamicClass[] = [];
   if (opts.error) {
     dynamicClasses.push({ classes: "error", condition: opts.error });
   }

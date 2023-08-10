@@ -3,15 +3,14 @@ import {
   FormStateTableCursor,
   InsertFormField,
   InsertFormRelation,
+  InsertFormState,
 } from "../../formState";
-import { Table } from "../../appTypes";
-import { element, ifNode } from "../../nodeHelpers";
+import { Table, app } from "../../app";
+import { nodes } from "../../nodeHelpers";
 import { Node } from "../../nodeTypes";
-import { app } from "../../singleton";
 import { Style } from "../../styleTypes";
 import { downcaseFirst } from "../../utils/inflectors";
 import { stringLiteral } from "../../utils/sqlHelpers";
-import { ClientProcStatement, EventHandler } from "../../yom";
 import { alert } from "../alert";
 import { button } from "../button";
 import { card } from "../card";
@@ -32,13 +31,14 @@ import {
   multiCardInsertStyles,
   twoColumnFormStyles,
 } from "./sharedFormStyles";
+import { DomStatements, DomStatementsOrFn } from "../../statements";
 
 export interface InsertGridFormPart {
   styles?: Style;
   field?: string;
   initialValue?: string;
   label?: string;
-  onChange?: (formState: FormState) => ClientProcStatement[];
+  onChange?: (formState: FormState, s: DomStatements) => unknown;
 }
 
 export type InsertRelationFormPart = {
@@ -50,8 +50,9 @@ export type InsertRelationFormPart = {
         field: string;
         onChange?: (
           formState: FormState,
-          cursor: FormStateTableCursor
-        ) => ClientProcStatement[];
+          cursor: FormStateTableCursor,
+          s: DomStatements
+        ) => unknown;
       }
   )[];
 };
@@ -69,7 +70,7 @@ export interface LabelOnLeftPart {
   field: string;
   initialValue?: string;
   label?: string;
-  onChange?: (formState: FormState) => ClientProcStatement[];
+  onChange?: (formState: FormState, s: DomStatements) => DomStatements;
 }
 
 export interface LabelOnLeftInsertFormContent {
@@ -110,14 +111,13 @@ export type InsertFormContent =
 
 export interface InsertFormContentOpts {
   table: Table;
-  formState: FormState;
+  formState: InsertFormState;
   cancel:
     | { type: "Href"; href: string }
     | {
         type: "Proc";
-        proc: ClientProcStatement[];
+        proc: DomStatementsOrFn;
       };
-  onSubmit: EventHandler;
 }
 
 export function getFieldsAndRelationsFromInsertFormContent(
@@ -196,33 +196,30 @@ function gridPart(
   table: Table
 ) {
   if (!part.field) {
-    return element("div", { styles: part.styles });
+    return nodes.element("div", { styles: part.styles });
   }
   const field = table.fields[part.field];
   const id = stringLiteral(getUniqueUiId());
-  const fieldHelper = formState.fieldHelper(part.field);
+  const fieldHelper = formState.field(part.field);
   if (field.type === "Bool" && !field.enumLike) {
-    return element("div", {
+    return nodes.element("div", {
       styles: part.styles,
       children: [
         checkbox({
           error: fieldHelper.hasError,
           label: stringLiteral(field.displayName),
           variant: "outlined",
-          checked: formState.fields.get(part.field),
+          checked: fieldHelper.value,
           props: { id },
           on: {
-            checkboxChange: [
-              formState.fields.set(
-                part.field,
-                `coalesce(not ` + formState.fields.get(part.field) + `, true)`
-              ),
-            ],
+            checkboxChange: fieldHelper.setValue(
+              `coalesce(not ` + fieldHelper.value + `, true)`
+            ),
           },
         }),
-        ifNode(
+        nodes.if(
           fieldHelper.hasError,
-          element("div", {
+          nodes.element("div", {
             styles: genericFormStyles.errorText,
             children: fieldHelper.error,
           })
@@ -234,7 +231,7 @@ function gridPart(
     id,
     field,
     fieldHelper,
-    onChange: part.onChange?.(formState),
+    onChange: (s) => part.onChange?.(formState, s),
   });
   if (!fieldValue) {
     throw new Error(
@@ -250,7 +247,7 @@ function gridPart(
         children: stringLiteral(part.label ?? field.displayName),
       }),
       fieldValue,
-      ifNode(
+      nodes.if(
         fieldHelper.hasError,
         formHelperText({ children: fieldHelper.error })
       ),
@@ -260,13 +257,13 @@ function gridPart(
 
 function twoColumnSectionedInsertFormContent(
   content: TwoColumnSectionedInsertFormContent,
-  { table, formState, onSubmit, cancel }: InsertFormContentOpts
+  { table, formState, cancel }: InsertFormContentOpts
 ): Node {
   const header = stringLiteral(
     content.header ?? downcaseFirst(table.displayName)
   );
   const sections: Node[] = [
-    element("h1", {
+    nodes.element("h1", {
       styles: genericFormStyles.pageHeader,
       children: `'Add new ' || ${header}`,
     }),
@@ -276,7 +273,7 @@ function twoColumnSectionedInsertFormContent(
     let sectionBody: Node;
     if (section.relation) {
       const relationTable = app.db.tables[section.relation.table];
-      sectionBody = element("div", {
+      sectionBody = nodes.element("div", {
         styles: twoColumnFormStyles.cardRelation,
         children: [
           formState.each(relationTable.name, (cursor) =>
@@ -294,25 +291,26 @@ function twoColumnSectionedInsertFormContent(
                     field,
                     id,
                     fieldHelper: cursor.field(field.name),
-                    onChange: normalizedFieldOpts.onChange?.(formState, cursor),
+                    onChange: (s) =>
+                      normalizedFieldOpts.onChange?.(formState, cursor, s),
                   });
                 }),
-                element("div", {
+                nodes.element("div", {
                   styles: twoColumnFormStyles.cardFooter,
                   children: iconButton({
                     color: "danger",
                     variant: "plain",
                     size: "sm",
                     children: materialIcon("Delete"),
-                    on: { click: [cursor.delete] },
+                    on: { click: cursor.delete },
                   }),
                 }),
               ],
             })
           ),
-          element("div", {
+          nodes.element("div", {
             styles: multiCardInsertStyles.addButtonWrapper,
-            children: element("button", {
+            children: nodes.element("button", {
               styles: multiCardInsertStyles.addButton,
               children: typography({
                 startDecorator: materialIcon("Add"),
@@ -321,29 +319,29 @@ function twoColumnSectionedInsertFormContent(
                 )}`,
               }),
               on: {
-                click: [...formState.addRecordToTable(relationTable.name, {})],
+                click: formState.addRecordToTable(relationTable.name, {}),
               },
             }),
           }),
         ],
       });
     } else if (section.parts) {
-      sectionBody = element("div", {
+      sectionBody = nodes.element("div", {
         styles: section.styles
           ? [twoColumnFormStyles.partsWrapper, section.styles]
           : twoColumnFormStyles.partsWrapper,
         children: section.parts.map((p) => gridPart(p, formState, table)),
       });
     } else {
-      sectionBody = element("div", {
+      sectionBody = nodes.element("div", {
         children: `'You should specify a relation or parts'`,
       });
     }
     sections.push(
-      element("div", {
+      nodes.element("div", {
         styles: twoColumnFormStyles.section,
         children: [
-          element("div", {
+          nodes.element("div", {
             children: [
               typography({
                 level: "h2",
@@ -351,7 +349,7 @@ function twoColumnSectionedInsertFormContent(
                 children: stringLiteral(section.header),
               }),
               section.description
-                ? element("p", {
+                ? nodes.element("p", {
                     styles: twoColumnFormStyles.description,
                     children: stringLiteral(section.description),
                   })
@@ -364,18 +362,18 @@ function twoColumnSectionedInsertFormContent(
     );
   }
   sections.push(
-    ifNode(
+    nodes.if(
       formState.hasFormError,
       alert({
         color: "danger",
         size: "lg",
-        children: formState.getFormError,
+        children: formState.formError,
         startDecorator: materialIcon("Error"),
       })
     )
   );
   sections.push(
-    element("div", {
+    nodes.element("div", {
       styles: genericFormStyles.actionButtons,
       children: [
         button({
@@ -389,13 +387,13 @@ function twoColumnSectionedInsertFormContent(
           children: `'Add new ' || ${header}`,
           loading: formState.submitting,
           on: {
-            click: onSubmit,
+            click: formState.onSubmit,
           },
         }),
       ],
     })
   );
-  return element("div", {
+  return nodes.element("div", {
     styles: twoColumnFormStyles.root,
     children: sections,
   });
@@ -403,12 +401,12 @@ function twoColumnSectionedInsertFormContent(
 
 export function labelOnLeftInsertFormContent(
   content: LabelOnLeftInsertFormContent,
-  { table, formState, onSubmit, cancel }: InsertFormContentOpts
+  { table, formState, cancel }: InsertFormContentOpts
 ) {
   const fields: Node[] = [];
   if (content.header) {
     fields.push(
-      element("h1", {
+      nodes.element("h1", {
         styles: genericFormStyles.pageHeader,
         children: stringLiteral(content.header),
       }),
@@ -419,14 +417,14 @@ export function labelOnLeftInsertFormContent(
     fields.push(
       labelOnLeftFormField({
         field: table.fields[part.field],
-        fieldHelper: formState.fieldHelper(part.field),
+        fieldHelper: formState.field(part.field),
         id: stringLiteral(getUniqueUiId()),
-        onChange: part.onChange?.(formState),
+        onChange: (s) => part.onChange?.(formState, s),
       })
     );
   }
   fields.push(
-    element("div", {
+    nodes.element("div", {
       styles: genericFormStyles.actionButtons,
       children: [
         button({
@@ -442,23 +440,23 @@ export function labelOnLeftInsertFormContent(
           color: "primary",
           children: "'Add'",
           loading: formState.submitting,
-          on: { click: onSubmit },
+          on: { click: formState.onSubmit },
         }),
       ],
     })
   );
   fields.push(
-    ifNode(
+    nodes.if(
       formState.hasFormError,
       alert({
         color: "danger",
         size: "lg",
-        children: formState.getFormError,
+        children: formState.formError,
         startDecorator: materialIcon("Error"),
       })
     )
   );
-  return element("div", {
+  return nodes.element("div", {
     styles: labelOnLeftStyles.root,
     children: fields,
   });

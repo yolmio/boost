@@ -1,10 +1,10 @@
-import { TableControlOpts } from "../appTypes";
-import { each, element, ifNode, state } from "../nodeHelpers";
-import { if_, modify, scalar, search, setScalar, table } from "../procHelpers";
+import { TableControlOpts } from "../app";
+import { nodes } from "../nodeHelpers";
 import { app } from "../app";
 import { circularProgress } from "./circularProgress";
 import { queryCombobox } from "./searchSelect";
 import { select } from "./select";
+import { DomStatements } from "../statements";
 
 export function getTableRecordSelect(
   tableName: string,
@@ -31,47 +31,46 @@ export function getTableRecordSelect(
       if (opts.emptyQuery) {
         emptyQuery = `${selectPart} ${opts.emptyQuery}`;
       }
-      return state({
-        procedure: [
-          scalar(`initial_text`, `''`),
-          if_(opts.value + ` is not null`, [
-            setScalar(
-              `initial_text`,
-              `(select ${nameExpr} from db.${tableModel.name} as record where id = ${opts.value})`
+      return nodes.state({
+        procedure: (s) =>
+          s
+            .scalar(`initial_text`, `''`)
+            .if(opts.value + ` is not null`, (s) =>
+              s.setScalar(
+                `initial_text`,
+                `(select ${nameExpr} from db.${tableModel.name} as record where id = ${opts.value})`
+              )
             ),
-          ]),
-        ],
         children: queryCombobox({
           immediateFocus: opts.immediateFocus,
-          populateResultTable: (query, resultTable) => [
-            if_(
-              `trim(${query}) = ''`,
-              modify(`insert into ${resultTable} ${emptyQuery}`),
-              [
-                search({
-                  query,
-                  resultTable: `tmp_result`,
-                  limit: `10`,
-                  config: {
-                    tokenizer: {
-                      splitter: { type: "Alphanumeric" },
-                      filters: [{ type: "AsciiFold" }, { type: "Lowercase" }],
+          populateResultTable: (query, resultTable) => (s) =>
+            s.if({
+              condition: `trim(${query}) = ''`,
+              then: (s) => s.modify(`insert into ${resultTable} ${emptyQuery}`),
+              else: (s) =>
+                s
+                  .search({
+                    query,
+                    resultTable: `tmp_result`,
+                    limit: `10`,
+                    config: {
+                      tokenizer: {
+                        splitter: { type: "Alphanumeric" },
+                        filters: [{ type: "AsciiFold" }, { type: "Lowercase" }],
+                      },
+                      style: {
+                        type: "Fuzzy",
+                        ...app.searchConfig.defaultFuzzyConfig,
+                      },
+                      tables: [searchConfig],
                     },
-                    style: {
-                      type: "Fuzzy",
-                      ...app.searchConfig.defaultFuzzyConfig,
-                    },
-                    tables: [searchConfig],
-                  },
-                }),
-                modify(
-                  `insert into ${resultTable} ${selectPart} from tmp_result join db.${tableModel.name} as record on record_id = id`
-                ),
-              ]
-            ),
-          ],
+                  })
+                  .modify(
+                    `insert into ${resultTable} ${selectPart} from tmp_result join db.${tableModel.name} as record on record_id = id`
+                  ),
+            }),
           id: opts.id,
-          onBlur: [],
+          onBlur: new DomStatements(),
           onClear: opts.onComboboxSelectValue
             ? opts.onComboboxSelectValue(`null`, `null`)
             : opts.onSelectValue(`null`),
@@ -103,8 +102,8 @@ export function getTableRecordSelect(
       );
       const selectPart = `select ${nameExpr} as label, id `;
       const emptyQuery = `${selectPart} from db.${tableModel.name} as record order by id desc`;
-      return state({
-        procedure: [table(`record`, emptyQuery)],
+      return nodes.state({
+        procedure: (s) => s.table(`record`, emptyQuery),
         statusScalar: `select_query_status`,
         children: select({
           slots: {
@@ -115,15 +114,15 @@ export function getTableRecordSelect(
               },
             },
           },
-          children: each({
+          children: nodes.each({
             recordName: `record`,
             table: `record`,
-            children: element("option", {
+            children: nodes.element("option", {
               props: { value: `record.id` },
               children: `record.label`,
             }),
           }),
-          endDecorator: ifNode(
+          endDecorator: nodes.if(
             `select_query_status = 'fallback_triggered'`,
             circularProgress({ size: "sm" })
           ),

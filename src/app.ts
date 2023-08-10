@@ -5,6 +5,7 @@ import { normalizeCase, pluralize, upcaseFirst } from "./utils/inflectors";
 import {
   BasicStatements,
   BasicStatementsOrFn,
+  DomStatementsOrFn,
   ScriptStatements,
   ScriptStatementsOrFn,
 } from "./statements";
@@ -16,6 +17,8 @@ import { Node } from "./nodeTypes";
 import { generateYom } from "./generate";
 import { dashboardGridPage, DashboardGridBuilder } from "./pages/dashboardGrid";
 import { dbManagementPage, DbManagmentPageOpts } from "./pages/dbManagement";
+import { insertFormPage, InsertFormPageOpts } from "./pages/insertForm";
+import { ComponentOpts } from "./components/types";
 
 /**
  * The app singleton.
@@ -265,6 +268,10 @@ export class Ui {
   addDbManagementPage(opts: DbManagmentPageOpts = {}) {
     dbManagementPage(opts);
   }
+
+  addInsertFormPage(opts: InsertFormPageOpts) {
+    insertFormPage(opts);
+  }
 }
 
 export interface WebAppConfig {
@@ -413,18 +420,19 @@ export type TableControl =
   | { type: "Combobox" }
   | { type: "Custom"; f: CustomTableControl };
 
-export interface TableControlOpts {
+export interface TableControlOpts extends ComponentOpts {
+  styles?: Style;
   id?: string;
   immediateFocus?: boolean;
   value: string;
-  onSelectValue: (newValue: string) => yom.DomProcStatement[];
+  onSelectValue: (newValue: string) => DomStatementsOrFn;
   emptyQuery?: string;
   initialInputText?: string;
   error?: string;
   onComboboxSelectValue?: (
     newId: string,
     newLabel: string
-  ) => yom.DomProcStatement[];
+  ) => DomStatementsOrFn;
 }
 
 export interface AddressFieldGroup {

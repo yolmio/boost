@@ -2,10 +2,9 @@ import {
   FormStateProcedureExtensions,
   withInsertFormState,
 } from "../formState";
-import { addPage } from "../appHelpers";
-import { element } from "../nodeHelpers";
-import { Node } from "../nodeTypes";
 import { app } from "../app";
+import { nodes } from "../nodeHelpers";
+import { Node } from "../nodeTypes";
 import { containerStyles, createStyles } from "../styleUtils";
 import { stringLiteral } from "../utils/sqlHelpers";
 import {
@@ -15,8 +14,7 @@ import {
 } from "../components/internal/insertFormShared";
 import { getTableBaseUrl } from "../utils/url";
 
-export interface SectionedInsertFormPageOpts
-  extends FormStateProcedureExtensions {
+export interface InsertFormPageOpts extends FormStateProcedureExtensions {
   table: string;
   path?: string;
   content: InsertFormContent;
@@ -36,7 +34,7 @@ const styles = createStyles({
   ],
 });
 
-export function insertFormPage(opts: SectionedInsertFormPageOpts) {
+export function insertFormPage(opts: InsertFormPageOpts) {
   const table = app.db.tables[opts.table];
   const pathBase = getTableBaseUrl(opts.table);
   const path = opts.path ?? pathBase + `/add`;
@@ -55,17 +53,16 @@ export function insertFormPage(opts: SectionedInsertFormPageOpts) {
     beforeTransactionCommit: opts.beforeTransactionCommit,
     afterTransactionCommit: opts.afterTransactionCommit,
     afterSubmitClient: opts.afterSubmitClient,
-    children: ({ formState, onSubmit }) =>
+    children: (formState) =>
       insertFormContent(opts.content, {
         formState,
-        onSubmit,
         table,
         cancel: { type: "Href", href: `'/' || ` + stringLiteral(pathBase) },
       }),
   });
-  content = element("div", {
+  content = nodes.element("div", {
     styles: styles.root(),
     children: content,
   });
-  addPage({ path, content });
+  app.ui.pages.push({ path, content });
 }
