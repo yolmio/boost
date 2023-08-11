@@ -1,23 +1,11 @@
-import { each, element, ifNode, state } from "../../nodeHelpers";
-import {
-  exit,
-  getBoundingClientRect,
-  getElProperty,
-  if_,
-  record,
-  scalar,
-  setScalar,
-} from "../../procHelpers";
+import { nodes } from "../../nodeHelpers";
 import { app } from "../../app";
 import { createStyles, flexGrowStyles } from "../../styleUtils";
 import { ident, stringLiteral } from "../../utils/sqlHelpers";
 import { divider } from "../../components/divider";
-import { materialIcon } from "../../components/materialIcon";
 import { typography } from "../../components/typography";
-import { displayAddressText } from "./displayAddressText";
 import { card, cardOverflow } from "../../components/card";
 import { Style } from "../../styleTypes";
-import { RecordGridContext } from "./shared";
 import { Node } from "../../nodeTypes";
 import { pluralize } from "../../utils/inflectors";
 import { button } from "../../components/button";
@@ -25,6 +13,7 @@ import { SqlExpression } from "../../yom";
 import { chip } from "../../components/chip";
 import { inlineFieldDisplay } from "../../components/internal/fieldInlineDisplay";
 import { getUniqueUiId } from "../../components/utils";
+import { RecordGridBuilder } from "../recordGrid";
 
 export type TableDisplayValue =
   | string
@@ -40,7 +29,7 @@ export interface Opts {
   styles?: Style;
   headerStartDecorator?: Node;
   header?: string;
-  displayValues: (ctx: RecordGridContext) => TableDisplayValue[];
+  displayValues: TableDisplayValue[];
 }
 
 const styles = createStyles({
@@ -90,7 +79,7 @@ const styles = createStyles({
   },
 });
 
-export function content(opts: Opts, ctx: RecordGridContext) {
+export function content(opts: Opts, ctx: RecordGridBuilder) {
   const otherTable = app.db.tables[opts.table];
   const listScrollId = stringLiteral(getUniqueUiId());
   if (!otherTable) {
@@ -107,7 +96,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
       `No foreign key field found for ${ctx.table.name} to ${opts.table}`
     );
   }
-  const displayValues = opts.displayValues(ctx);
+  const displayValues = opts.displayValues;
   let selectFields = "";
   for (let i = 0; i < displayValues.length; i++) {
     const value = displayValues[i];
@@ -124,13 +113,13 @@ export function content(opts: Opts, ctx: RecordGridContext) {
       ...recordDisplayName.fields.map((f) => `${ident(opts.table)}.${ident(f)}`)
     )} as display_name`;
   }
-  return state({
-    procedure: [scalar(`row_count`, `20`)],
+  return nodes.state({
+    procedure: (s) => s.scalar(`row_count`, `20`),
     children: card({
       variant: "outlined",
       styles: opts.styles,
       children: [
-        element("div", {
+        nodes.element("div", {
           styles: styles.header,
           children: [
             typography({
@@ -143,48 +132,50 @@ export function content(opts: Opts, ctx: RecordGridContext) {
         }),
         divider(),
         cardOverflow({
-          children: state({
+          children: nodes.state({
             watch: [ctx.refreshKey, `row_count`],
-            procedure: [
-              record(
-                "related",
-                `select id${selectFields} from db.${ident(opts.table)} where ${
-                  foreignKeyField.name
-                } = ${ctx.recordId} order by id desc limit row_count`
-              ),
-              scalar(`service_row_count`, `row_count`),
-            ],
-            children: element("ul", {
+            procedure: (s) =>
+              s
+                .record(
+                  "related",
+                  `select id${selectFields} from db.${ident(
+                    opts.table
+                  )} where ${foreignKeyField.name} = ${
+                    ctx.recordId
+                  } order by id desc limit row_count`
+                )
+                .scalar(`service_row_count`, `row_count`),
+            children: nodes.element("ul", {
               styles: styles.list,
               props: { id: listScrollId },
               on: {
-                scroll: [
-                  if_(
-                    `status != 'received' or (service_row_count is not null and (select count(*) from related) < service_row_count)`,
-                    [exit()]
-                  ),
-                  getElProperty(
-                    "scrollHeight",
-                    "el_scroll_height",
-                    listScrollId
-                  ),
-                  getBoundingClientRect(listScrollId, "el_rect"),
-                  getElProperty("scrollTop", "el_scroll_top", listScrollId),
-                  if_(
-                    `el_scroll_height - el_scroll_top - el_rect.height < 300`,
-                    [setScalar(`row_count`, `row_count + 20`)]
-                  ),
-                ],
+                scroll: (s) =>
+                  s
+                    .if(
+                      `status != 'received' or (service_row_count is not null and (select count(*) from related) < service_row_count)`,
+                      (s) => s.return()
+                    )
+                    .getElProperty(
+                      "scrollHeight",
+                      "el_scroll_height",
+                      listScrollId
+                    )
+                    .getBoundingClientRect(listScrollId, "el_rect")
+                    .getElProperty("scrollTop", "el_scroll_top", listScrollId)
+                    .if(
+                      `el_scroll_height - el_scroll_top - el_rect.height < 300`,
+                      (s) => s.setScalar(`row_count`, `row_count + 20`)
+                    ),
               },
-              children: each({
+              children: nodes.each({
                 table: "related",
                 recordName: "record",
                 key: "record.id",
-                children: element("li", {
+                children: nodes.element("li", {
                   styles: styles.listItem,
                   children: [
                     recordDisplayName
-                      ? element("a", {
+                      ? nodes.element("a", {
                           props: {
                             href: otherTable.getHrefToRecord("record.id"),
                           },
@@ -197,7 +188,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                           href: otherTable.getHrefToRecord("record.id"),
                           size: "sm",
                         }),
-                    element("div", { styles: flexGrowStyles }),
+                    nodes.element("div", { styles: flexGrowStyles }),
                     displayValues.map((displayValue, i) => {
                       if (typeof displayValue === "string") {
                         const field = otherTable.fields[displayValue];
@@ -208,7 +199,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                         }
                         const value = `record.${ident(displayValue)}`;
                         if (field.type === "Bool") {
-                          return ifNode(
+                          return nodes.if(
                             value,
                             chip({
                               variant: "soft",
@@ -218,10 +209,10 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                             })
                           );
                         }
-                        const content = element("div", {
+                        const content = nodes.element("div", {
                           styles: styles.itemValueWrapper,
                           children: [
-                            element("p", {
+                            nodes.element("p", {
                               styles: styles.itemValue,
                               children: `${stringLiteral(
                                 field.displayName
@@ -233,12 +224,12 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                         if (field.notNull) {
                           return content;
                         }
-                        return ifNode(value + ` is not null`, content);
+                        return nodes.if(value + ` is not null`, content);
                       } else {
-                        return element("div", {
+                        return nodes.element("div", {
                           styles: styles.itemValueWrapper,
                           children: [
-                            element("p", {
+                            nodes.element("p", {
                               styles: styles.itemValue,
                               children: `${stringLiteral(
                                 displayValue.label

@@ -17,6 +17,8 @@ import * as staticTableCard from "./recordGridChild/staticTableCard";
 import * as relatedTable from "./recordGridChild/relatedTable";
 import * as namedPageHeader from "./recordGridChild/namedPageHeader";
 import * as notesCard from "./recordGridChild/notesCard";
+import * as simpleLinkRelationCard from "./recordGridChild/simpleLinkRelationCard";
+import * as simpleLinkAssociationCard from "./recordGridChild/simpleLinkAssociationCard";
 
 export class RecordGridBuilder {
   table: Table;
@@ -96,6 +98,16 @@ export class RecordGridBuilder {
 
   notesCard(opts: notesCard.Opts = {}) {
     this.#children.push(notesCard.content(opts, this));
+    return this;
+  }
+
+  simpleLinkRelationCard(opts: simpleLinkRelationCard.Opts) {
+    this.#children.push(simpleLinkRelationCard.content(opts, this));
+    return this;
+  }
+
+  simpleLinkAssociationCard(opts: simpleLinkAssociationCard.Opts) {
+    this.#children.push(simpleLinkAssociationCard.content(opts, this));
     return this;
   }
 

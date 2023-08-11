@@ -1,5 +1,4 @@
-import { Field, Table } from "../appTypes";
-import { app } from "../app";
+import { app, Field, Table } from "../app";
 
 interface AssociationTableMatch {
   table: Table;

@@ -350,167 +350,37 @@ app.ui.addDashboardGridPage((page) =>
     })
 );
 
-// dashboardGridPage({
-//   children: [
-//     {
-//       type: "header",
-//       header: `'Chinhook Dashboard'`,
-//       subHeader: "'Welcome back. Here''s whats going on'",
-//     },
-//     {
-//       type: "threeStats",
-//       header: `'Last 30 Days'`,
-//       left: {
-//         title: "'Invoices'",
-//         value: `(select count(*) from db.invoice where invoice_date > date.add(day, -30, ${today}))`,
-//         previous: `(select count(*) from db.invoice where invoice_date between date.add(day, -60, ${today}) and date.add(day, -30, ${today}))`,
-//         trend: `cast((value - previous) as decimal(10, 2)) / cast(previous as decimal(10, 2))`,
-//       },
-//       middle: {
-//         title: "'Income'",
-//         procedure: [
-//           scalar(
-//             `value_num`,
-//             `(select sum(total) from db.invoice where invoice_date > date.add(day, -30, ${today}))`
-//           ),
-//           scalar(
-//             `previous_num`,
-//             `(select sum(total) from db.invoice where invoice_date between date.add(day, -60, ${today}) and date.add(day, -30, ${today}))`
-//           ),
-//         ],
-//         value: `format.currency(value_num, 'USD')`,
-//         previous: `format.currency(previous_num, 'USD')`,
-//         trend: `(value_num - previous_num) / previous_num`,
-//       },
-//       right: {
-//         title: "'Unique Tracks Sold'",
-//         value: `(select count(distinct track) from db.invoice join db.invoice_line on invoice.id = invoice_line.id where invoice_date > date.add(day, -30, ${today}))`,
-//         previous: `(select count(distinct track) from db.invoice join db.invoice_line on invoice.id = invoice_line.id where invoice_date between date.add(day, -60, ${today}) and date.add(day, -30, ${today})))`,
-//         trend: `cast((value - previous) as decimal(10, 2)) / cast(previous as decimal(10, 2))`,
-//       },
-//     },
-//     {
-//       type: "table",
-//       query: newInvoices,
-//       header: "New Invoices",
-//       columns: [
-//         {
-//           cell: (row) =>
-//             button({
-//               href: `'/invoices/' || ${row}.invoice_id`,
-//               color: "primary",
-//               size: "sm",
-//               variant: "soft",
-//               children: `'View'`,
-//             }),
-//           header: "",
-//         },
-//         {
-//           cell: (row) => `${row}.customer_name`,
-//           href: (row) => `'/customers/' || ${row}.customer_id`,
-//           header: "Customer",
-//         },
-//         {
-//           cell: (row) => `${row}.employee_name`,
-//           href: (row) => `'/employees/' || ${row}.employee_id`,
-//           header: "Support Rep",
-//         },
-//         {
-//           cell: (row) => `format.date(${row}.invoice_date, '%-d %b')`,
-//           header: "Invoice Date",
-//         },
-//       ],
-//     },
-//     {
-//       type: "barChart",
-//       header: "Sales By Genre",
-//       state: [
-//         table(
-//           "last_60",
-//           `select
-//             genre,
-//             sum(quantity * invoice_line.unit_price) as sales
-//           from db.invoice
-//             join db.invoice_line on invoice = invoice.id
-//             join db.track on track = track.id
-//           where invoice_date > date.add(day, -60, ${today})
-//           group by genre
-//           order by sales desc
-//           limit 5`
-//         ),
-//         table(
-//           "last_30",
-//           `select
-//             genre,
-//             (select
-//               sum(quantity * invoice_line.unit_price)
-//             from db.invoice
-//               join db.invoice_line on invoice = invoice.id
-//               join db.track on track = track.id
-//             where invoice_date > date.add(day, -30, ${today}) and track.genre = last_60.genre
-//             ) as sales
-//           from last_60`
-//         ),
-//         table(
-//           "label",
-//           "select name from last_60 join db.genre on genre = genre.id"
-//         ),
-//       ],
-//       series: [
-//         {
-//           query: "select sales as y, genre as x from last_30",
-//           name: "Last 30 Days",
-//         },
-//         {
-//           query: "select sales as y, genre as x from last_60",
-//           name: "Last 60 Days",
-//         },
-//       ],
-//       labels: "select name from label",
-//       axisY: {
-//         labelInterpolation:
-//           "'$' || format.decimal(cast(label as decimal(28, 10)))",
-//       },
-//     },
-//   ],
-// });
-
 // datagridPage({
 //   table: "customer",
 //   viewButton: true,
 //   toolbar: { add: { type: "dialog" } },
 // });
 
-// recordGridPage({
-//   table: "customer",
-//   children: [
-//     { type: "namedHeader" },
-//     {
-//       type: "staticTableCard",
-//       styles: { gridColumnSpan: 12, lg: { gridColumnSpan: 8 } },
-//       rows: () => ["company", "email", "phone", "fax", "support_rep"],
-//     },
-//     {
-//       type: "addressCard",
-//       styles: {
-//         alignSelf: "start",
-//         gridColumnSpan: 12,
-//         lg: { gridColumnSpan: 4 },
-//       },
-//     },
-//     {
-//       type: "simpleLinkRelationCard",
-//       table: "invoice",
-//       displayValues: () => ["invoice_date", "total", "billing_country"],
-//       styles: {
-//         alignSelf: "start",
-//         gridColumnSpan: 12,
-//         lg: { gridColumnSpan: 6 },
-//       },
-//     },
-//   ],
-//   createUpdatePage: true,
-// });
+ui.addRecordGridPage("customer", (page) => {
+  page
+    .namedPageHeader()
+    .staticTableCard({
+      styles: { gridColumnSpan: 12, lg: { gridColumnSpan: 8 } },
+      rows: ["company", "email", "phone", "fax", "support_rep"],
+    })
+    .addressCard({
+      styles: {
+        alignSelf: "start",
+        gridColumnSpan: 12,
+        lg: { gridColumnSpan: 4 },
+      },
+    })
+    .simpleLinkRelationCard({
+      table: "invoice",
+      displayValues: ["invoice_date", "total", "billing_country"],
+      styles: {
+        alignSelf: "start",
+        gridColumnSpan: 12,
+        lg: { gridColumnSpan: 6 },
+      },
+    })
+    .createUpdatePage();
+});
 
 // simpleDatagridPage({
 //   table: "album",
@@ -520,23 +390,20 @@ app.ui.addDashboardGridPage((page) =>
 //   viewButton: true,
 // });
 
-// recordGridPage({
-//   table: "album",
-//   children: [
-//     { type: "namedHeader" },
-//     {
-//       type: "simpleLinkRelationCard",
-//       table: "track",
-//       displayValues: () => ["media_type", "unit_price"],
-//       styles: {
-//         alignSelf: "start",
-//         gridColumnSpan: 12,
-//         lg: { gridColumnSpan: 6 },
-//       },
-//     },
-//   ],
-//   createUpdatePage: true,
-// });
+ui.addRecordGridPage("album", (page) => {
+  page
+    .namedPageHeader()
+    .simpleLinkRelationCard({
+      table: "track",
+      displayValues: ["media_type", "unit_price"],
+      styles: {
+        alignSelf: "start",
+        gridColumnSpan: 12,
+        lg: { gridColumnSpan: 6 },
+      },
+    })
+    .createUpdatePage();
+});
 
 // simpleDatagridPage({
 //   table: "artist",
@@ -546,29 +413,26 @@ app.ui.addDashboardGridPage((page) =>
 //   viewButton: true,
 // });
 
-// recordGridPage({
-//   table: "artist",
-//   children: [
-//     { type: "namedHeader" },
-//     {
-//       type: "simpleLinkRelationCard",
-//       table: "album",
-//       displayValues: () => [
-//         {
-//           expr: `(select count(*) from db.track where album = album.id)`,
-//           label: "Track Count",
-//           display: (e) => e,
-//         },
-//       ],
-//       styles: {
-//         alignSelf: "start",
-//         gridColumnSpan: 12,
-//         lg: { gridColumnSpan: 6 },
-//       },
-//     },
-//   ],
-//   createUpdatePage: true,
-// });
+ui.addRecordGridPage("artist", (page) => {
+  page
+    .namedPageHeader()
+    .simpleLinkRelationCard({
+      table: "album",
+      displayValues: [
+        {
+          expr: `(select count(*) from db.track where album = album.id)`,
+          label: "Track Count",
+          display: (e) => e,
+        },
+      ],
+      styles: {
+        alignSelf: "start",
+        gridColumnSpan: 12,
+        lg: { gridColumnSpan: 6 },
+      },
+    })
+    .createUpdatePage();
+});
 
 // simpleDatagridPage({
 //   table: "genre",
@@ -585,23 +449,20 @@ app.ui.addDashboardGridPage((page) =>
 //   viewButton: true,
 // });
 
-// recordGridPage({
-//   table: "playlist",
-//   children: [
-//     { type: "namedHeader" },
-//     {
-//       type: "simpleLinkAssociationCard",
-//       table: "track",
-//       displayValues: () => ["album", "unit_price"],
-//       styles: {
-//         alignSelf: "start",
-//         gridColumnSpan: 12,
-//         lg: { gridColumnSpan: 6 },
-//       },
-//     },
-//   ],
-//   createUpdatePage: true,
-// });
+ui.addRecordGridPage("playlist", (page) => {
+  page
+    .namedPageHeader()
+    .simpleLinkAssociationCard({
+      table: "track",
+      displayValues: ["album", "unit_price"],
+      styles: {
+        alignSelf: "start",
+        gridColumnSpan: 12,
+        lg: { gridColumnSpan: 6 },
+      },
+    })
+    .createUpdatePage();
+});
 
 // datagridPage({
 //   table: "track",
@@ -609,32 +470,29 @@ app.ui.addDashboardGridPage((page) =>
 //   toolbar: { add: { type: "dialog" } },
 // });
 
-// recordGridPage({
-//   table: "track",
-//   children: [
-//     { type: "namedHeader" },
-//     {
-//       type: "staticTableCard",
-//       rows: (ctx) => [
-//         "media_type",
-//         "genre",
-//         "album",
-//         "composer",
-//         "milliseconds",
-//         "bytes",
-//         "unit_price",
-//         {
-//           label: "'Purchase Count'",
-//           expr: `(select count(*) from db.invoice_line where track = ${ctx.recordId})`,
-//         },
-//       ],
-//       styles: {
-//         gridColumnSpan: 12,
-//       },
-//     },
-//   ],
-//   createUpdatePage: true,
-// });
+ui.addRecordGridPage("track", (page) => {
+  page
+    .namedPageHeader()
+    .staticTableCard({
+      rows: [
+        "media_type",
+        "genre",
+        "album",
+        "composer",
+        "milliseconds",
+        "bytes",
+        "unit_price",
+        {
+          label: "'Purchase Count'",
+          expr: `(select count(*) from db.invoice_line where track = ${page.recordId})`,
+        },
+      ],
+      styles: {
+        gridColumnSpan: 12,
+      },
+    })
+    .createUpdatePage();
+});
 
 // datagridPage({
 //   table: "invoice",
@@ -642,50 +500,45 @@ app.ui.addDashboardGridPage((page) =>
 //   toolbar: { add: { type: "dialog" } },
 // });
 
-// recordGridPage({
-//   table: "invoice",
-//   children: [
-//     { type: "superSimpleHeader", header: "Invoice" },
-//     {
-//       type: "staticTableCard",
-//       styles: {
-//         gridColumnSpan: 12,
-//         lg: { gridColumnSpan: 8 },
-//       },
-//       rows: () => ["invoice_date", "total"],
-//     },
-//     {
-//       type: "addressCard",
-//       styles: {
-//         alignSelf: "start",
-//         gridColumnSpan: 12,
-//         lg: { gridColumnSpan: 4 },
-//       },
-//       header: `'Billing Address'`,
-//       group: "billing_address",
-//     },
-//     {
-//       type: "relatedTable",
-//       table: "invoice_line",
-//       addButtonText: "'Add Line'",
-//       fields: [
-//         "track",
-//         {
-//           label: "Album",
-//           expr: (detail) =>
-//             `(select album.title from db.track join db.album on track.album = album.id where track.id = ${detail}.track)`,
-//         },
-//         "unit_price",
-//         "quantity",
-//         {
-//           expr: (detail) =>
-//             `format.currency(cast((${detail}.unit_price * ${detail}.quantity) as decimal(10, 2)), 'usd')`,
-//           label: "Total",
-//         },
-//       ],
-//     },
-//   ],
-//   createUpdatePage: true,
-// });
+ui.addRecordGridPage("invoice", (page) => {
+  page
+    .superSimpleHeader({ header: "Invoice" })
+    .staticTableCard({
+      styles: {
+        gridColumnSpan: 12,
+        lg: { gridColumnSpan: 8 },
+      },
+      rows: ["invoice_date", "total"],
+    })
+    .addressCard({
+      styles: {
+        alignSelf: "start",
+        gridColumnSpan: 12,
+        lg: { gridColumnSpan: 4 },
+      },
+      header: `'Billing Address'`,
+      group: "billing_address",
+    })
+    .relatedTable({
+      table: "invoice_line",
+      addButtonText: "'Add Line'",
+      fields: [
+        "track",
+        {
+          label: "Album",
+          expr: (detail) =>
+            `(select album.title from db.track join db.album on track.album = album.id where track.id = ${detail}.track)`,
+        },
+        "unit_price",
+        "quantity",
+        {
+          expr: (detail) =>
+            `format.currency(cast((${detail}.unit_price * ${detail}.quantity) as decimal(10, 2)), 'usd')`,
+          label: "Total",
+        },
+      ],
+    })
+    .createUpdatePage();
+});
 
 ui.addDbManagementPage();
