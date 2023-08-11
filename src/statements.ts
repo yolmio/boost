@@ -54,8 +54,7 @@ export abstract class StatementsBase<Statement extends object> {
     return this;
   }
 
-  scalar(name: string, ty: yom.FieldType): this;
-  scalar(name: string, ty: yom.FieldType, expr: yom.SqlExpression): this;
+  scalar(name: string, ty: yom.FieldType, expr?: yom.SqlExpression): this;
   scalar(name: string, expr: yom.SqlExpression): this;
   scalar(
     name: string,
@@ -106,6 +105,19 @@ export abstract class StatementsBase<Statement extends object> {
       t: "AdvanceCursor",
       cursor,
     } as yom.AdvanceCursorStatement as any);
+    return this;
+  }
+
+  pushSource(source: string) {
+    this.pushToBacking({
+      t: "PushSource",
+      source,
+    } as yom.PushSourceStatement as any);
+    return this;
+  }
+
+  popSource() {
+    this.pushToBacking({ t: "PopSource" } as yom.PopSourceStatement as any);
     return this;
   }
 
@@ -356,7 +368,7 @@ interface ForEachQuery<S> {
 export type BasicStatementsOrFn = StatementsOrFn<BasicStatements>;
 
 export class BasicStatements extends StatementsBase<yom.BasicStatement> {
-  static normalize(p: BasicStatementsOrFn) {
+  static normalize(p: BasicStatementsOrFn | undefined | false | null) {
     return p instanceof BasicStatements
       ? p
       : new BasicStatements().statements(p);
@@ -526,7 +538,7 @@ interface SpawnOpts<T> {
 export type ServiceStatementsOrFn = StatementsOrFn<ServiceStatements>;
 
 export class ServiceStatements extends StatementsBase<yom.ServiceProcStatement> {
-  static normalize(p: ServiceStatementsOrFn) {
+  static normalize(p: ServiceStatementsOrFn | false | undefined | null) {
     return p instanceof ServiceStatements
       ? p
       : new ServiceStatements().statements(p);
@@ -580,7 +592,7 @@ export class ServiceStatements extends StatementsBase<yom.ServiceProcStatement> 
 export type StateStatementsOrFn = StatementsOrFn<StateStatements>;
 
 export class StateStatements extends StatementsBase<yom.StateStatement> {
-  static normalize(p: StateStatementsOrFn) {
+  static normalize(p: StateStatementsOrFn | undefined | null | false) {
     return p instanceof StateStatements
       ? p
       : new StateStatements().statements(p);
@@ -604,7 +616,7 @@ export class StateStatements extends StatementsBase<yom.StateStatement> {
 export type ScriptStatementsOrFn = StatementsOrFn<ScriptStatements>;
 
 export class ScriptStatements extends StatementsBase<yom.ScriptStatement> {
-  static normalize(p: ScriptStatementsOrFn) {
+  static normalize(p: ScriptStatementsOrFn | undefined | false | null) {
     return p instanceof ScriptStatements
       ? p
       : new ScriptStatements().statements(p);

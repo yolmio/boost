@@ -3,51 +3,35 @@ import { button } from "../components/button";
 import { circularProgress } from "../components/circularProgress";
 import { formControl } from "../components/formControl";
 import { formLabel } from "../components/formLabel";
-import { iconButton } from "../components/iconButton";
 import { input } from "../components/input";
 import { materialIcon } from "../components/materialIcon";
 import { getTableRecordSelect } from "../components/tableRecordSelect";
 import { typography } from "../components/typography";
-import { addPage } from "../appHelpers";
-import {
-  each,
-  element,
-  ifNode,
-  mode,
-  route,
-  sourceMap,
-  state,
-  switchNode,
-} from "../nodeHelpers";
+import { app } from "../app";
+import { nodes } from "../nodeHelpers";
 import { Node, RouteNode } from "../nodeTypes";
-import {
-  debugExpr,
-  download,
-  if_,
-  popSource,
-  pushSource,
-  queryToCsv,
-  scalar,
-  setScalar,
-  table,
-} from "../procHelpers";
 import { createStyles, cssVar } from "../styleUtils";
 import { normalizeCase, upcaseFirst } from "../utils/inflectors";
 import { lazy } from "../utils/memoize";
 import { stringLiteral } from "../utils/sqlHelpers";
-import { FieldType, StateStatement } from "../yom";
+import * as yom from "../yom";
+import {
+  DomStatements,
+  StateStatements,
+  StateStatementsOrFn,
+} from "../statements";
 
 export type SimpleTableReportOpts = {
   name: string;
   urlName?: string;
-  procedure: StateStatement[];
+  procedure: StateStatementsOrFn;
   rows: (string | { header: string; value: string })[];
 };
 
 export interface ReportBase {
   name: string;
   urlName?: string;
-  procedure?: StateStatement[];
+  procedure?: StateStatementsOrFn;
   parameters?: ReportParameter[];
 }
 
@@ -115,7 +99,7 @@ export interface TableComparisonReport extends ReportBase {
 }
 
 export interface CustomReport extends ReportBase {
-  state: StateStatement[];
+  state: StateStatementsOrFn;
   node: Node;
 }
 
@@ -129,28 +113,25 @@ function getParameterDisplayName(p: ParameterBase): string {
 }
 
 function wrapInParameters(parameters: ReportParameter[], children: Node) {
-  return state({
-    procedure: parameters.map((p) => {
-      let type: FieldType;
-      switch (p.type) {
-        case "Date":
-          type = { type: "Date" };
-          break;
-        case "Table":
-          type = { type: "BigUint" };
-          break;
+  return nodes.state({
+    procedure: (s) => {
+      for (const param of parameters) {
+        let type: yom.FieldType;
+        switch (param.type) {
+          case "Date":
+            type = { type: "Date" };
+            break;
+          case "Table":
+            type = { type: "BigUint" };
+            break;
+        }
+        s.scalar(param.name, type, param.initialValue);
       }
-      return {
-        t: "ScalarDeclaration",
-        name: p.name,
-        expr: p.initialValue,
-        type,
-      };
-    }),
+    },
     children: [
-      mode({
+      nodes.mode({
         render: "'immediate'",
-        children: element("div", {
+        children: nodes.element("div", {
           styles: styles.parameters,
           children: parameters.map((p) => {
             let control = p.control ?? getParameterControl(p);
@@ -176,43 +157,42 @@ function getParameterControl(parameter: ReportParameter) {
       return input({
         slots: { input: { props: { type: "'date'", value: parameter.name } } },
         on: {
-          input: [
-            if_(`try_cast(target_value as date) is not null`, [
-              setScalar(parameter.name, `try_cast(target_value as date)`),
-            ]),
-          ],
+          input: (s) =>
+            s.if(`try_cast(target_value as date) is not null`, (s) =>
+              s.setScalar(parameter.name, `try_cast(target_value as date)`)
+            ),
         },
       });
     case "Table":
       return getTableRecordSelect(parameter.table, {
-        onSelectValue: (v) => [setScalar(parameter.name, v)],
+        onSelectValue: (v) => (s) => s.setScalar(parameter.name, v),
         value: parameter.name,
       });
   }
 }
 
 function tableNode(stateTable: string, columns: TableColumn[]) {
-  return element("table", {
+  return nodes.element("table", {
     styles: styles.table,
     children: [
-      element("thead", {
+      nodes.element("thead", {
         children: columns.map((col) =>
-          element("th", {
+          nodes.element("th", {
             styles: styles.eachHeaderCell,
             children: stringLiteral(col.header),
           })
         ),
       }),
-      element("tbody", {
-        children: each({
+      nodes.element("tbody", {
+        children: nodes.each({
           table: stateTable,
           recordName: `each_record`,
-          children: element("tr", {
+          children: nodes.element("tr", {
             children: columns.map((col) =>
-              element("td", {
+              nodes.element("td", {
                 styles: styles.cell,
                 children: col.href
-                  ? element("a", {
+                  ? nodes.element("a", {
                       styles: styles.cellLink,
                       props: {
                         href: col.href(`each_record`),
@@ -238,10 +218,19 @@ const error = lazy(() =>
 );
 
 function wrapWithLoadingErrorSwitch(node: Node) {
-  return switchNode(
-    [`status in ('requested', 'fallback_triggered')`, progress()],
-    [`status = 'failed'`, error()],
-    [`true`, node]
+  return nodes.switch(
+    {
+      condition: `status in ('requested', 'fallback_triggered')`,
+      node: progress(),
+    },
+    {
+      condition: `status = 'failed'`,
+      node: error(),
+    },
+    {
+      condition: `true`,
+      node,
+    }
   );
 }
 
@@ -269,10 +258,10 @@ function tableDownloadStatements(
     }
     selectColumns += `${cell} as "${header}"`;
   }
-  return [
-    queryToCsv(`select ${selectColumns} from ${tableName} as record`, `csv`),
-    download(`${stringLiteral(reportName)} || '.csv'`, `csv`),
-  ];
+  return (s: DomStatements) =>
+    s
+      .queryToCsv(`select ${selectColumns} from ${tableName} as record`, `csv`)
+      .download(`${stringLiteral(reportName)} || '.csv'`, `csv`);
 }
 
 const styles = createStyles({
@@ -426,27 +415,36 @@ export class SimpleReportsPageBuilder {
     this.#sections.push({ header, reports: [] });
   }
 
+  /**
+   * Helper function to define parameters that can be shared between reports.
+   *
+   * Does absolutely nothing except make it so you don't have to import the ReportParameter type.
+   */
+  defineParams(...params: ReportParameter[]): ReportParameter[] {
+    return params;
+  }
+
   singleColumnFixedRowsTable(opts: SingleColumnFixedRowsTableReport) {
-    const procedure = opts.procedure ?? [];
+    const procedure = StateStatements.normalize(opts.procedure);
     for (let i = 0; i < opts.rows.length; i++) {
       const row = opts.rows[i];
       if (typeof row === "string" || !("expr" in row)) {
         continue;
       }
-      procedure.push(pushSource(`opts.rows[${i}].expr`));
-      procedure.push(scalar(`row_${i}`, row.expr));
-      procedure.push(popSource());
+      procedure.pushSource(`opts.rows[${i}].expr`);
+      procedure.scalar(`row_${i}`, row.expr);
+      procedure.popSource();
     }
-    let node = sourceMap(
+    let node = nodes.sourceMap(
       `simpleReportsPage.singleColumnFixedRowsTable(${opts.name})`,
-      state({
+      nodes.state({
         watch: opts.parameters?.map((p) => p.name),
         procedure,
         statusScalar: "status",
         children: wrapWithLoadingErrorSwitch(
-          element("table", {
+          nodes.element("table", {
             styles: styles.table,
-            children: element("tbody", {
+            children: nodes.element("tbody", {
               children: opts.rows.map((v, i) => {
                 let cell;
                 if (typeof v === "string") {
@@ -460,9 +458,9 @@ export class SimpleReportsPageBuilder {
                 } else {
                   cell = v.cell;
                 }
-                return element("tr", {
+                return nodes.element("tr", {
                   children: [
-                    element("th", {
+                    nodes.element("th", {
                       styles: styles.staticHeaderCell,
                       props: { scope: "'row'" },
                       children:
@@ -472,7 +470,7 @@ export class SimpleReportsPageBuilder {
                             )
                           : stringLiteral(v.header),
                     }),
-                    element("td", {
+                    nodes.element("td", {
                       styles: styles.cell,
                       children: cell,
                     }),
@@ -488,16 +486,16 @@ export class SimpleReportsPageBuilder {
   }
 
   table(opts: TableReport) {
-    const procedure = opts.procedure ?? [];
+    const procedure = StateStatements.normalize(opts.procedure);
     if (opts.query) {
-      procedure.push(pushSource(`options.query`));
-      procedure.push(table(`table_report_query`, opts.query));
-      procedure.push(popSource());
+      procedure.pushSource(`options.query`);
+      procedure.table(`table_report_query`, opts.query);
+      procedure.popSource();
     }
     const stateTableName = opts.stateTable ?? `table_report_query`;
-    let node: Node = sourceMap(
+    let node: Node = nodes.sourceMap(
       `simpleReportPage.table(${opts.name})`,
-      state({
+      nodes.state({
         watch: opts.parameters?.map((p) => p.name),
         procedure,
         statusScalar: "status",
@@ -527,16 +525,16 @@ export class SimpleReportsPageBuilder {
   }
 
   tableComparison(opts: TableComparisonReport) {
-    const procedure = opts.procedure ?? [];
+    const procedure = StateStatements.normalize(opts.procedure);
     if (opts.left.query) {
-      procedure.push(pushSource(`options.left.query`));
-      procedure.push(table(`left_table_comparison_query`, opts.left.query));
-      procedure.push(popSource());
+      procedure.pushSource(`options.left.query`);
+      procedure.table(`left_table_comparison_query`, opts.left.query);
+      procedure.popSource();
     }
     if (opts.right.query) {
-      procedure.push(pushSource(`options.right.query`));
-      procedure.push(table(`right_table_comparison_query`, opts.right.query));
-      procedure.push(popSource());
+      procedure.pushSource(`options.right.query`);
+      procedure.table(`right_table_comparison_query`, opts.right.query);
+      procedure.popSource();
     }
     const leftStateTable =
       opts.left.stateTable ?? `left_table_comparison_query`;
@@ -557,12 +555,12 @@ export class SimpleReportsPageBuilder {
         children: `'Download table'`,
       });
       if (leftHeader) {
-        leftHeader = element("div", {
+        leftHeader = nodes.element("div", {
           styles: styles.headerTableDownloadWrapper,
           children: [leftHeader, downloadButton],
         });
       } else {
-        leftHeader = element("div", {
+        leftHeader = nodes.element("div", {
           styles: styles.downloadButtonWraper,
           children: downloadButton,
         });
@@ -587,35 +585,35 @@ export class SimpleReportsPageBuilder {
         children: `'Download table'`,
       });
       if (leftHeader) {
-        rightHeader = element("div", {
+        rightHeader = nodes.element("div", {
           styles: styles.headerTableDownloadWrapper,
           children: [rightHeader, downloadButton],
         });
       } else {
-        rightHeader = element("div", {
+        rightHeader = nodes.element("div", {
           styles: styles.downloadButtonWraper,
           children: downloadButton,
         });
       }
     }
-    let node = sourceMap(
+    let node = nodes.sourceMap(
       `simpleReportPage.tableComparison(${opts.name})`,
-      state({
+      nodes.state({
         watch: opts.parameters?.map((p) => p.name),
         procedure,
         statusScalar: "status",
         children: wrapWithLoadingErrorSwitch(
-          element("div", {
+          nodes.element("div", {
             styles: { display: "flex", gap: 3 },
             children: [
-              element("div", {
+              nodes.element("div", {
                 styles: { display: "flex", flexDirection: "column", gap: 2 },
                 children: [
                   leftHeader,
                   tableNode(leftStateTable, opts.left.columns),
                 ],
               }),
-              element("div", {
+              nodes.element("div", {
                 styles: { display: "flex", flexDirection: "column", gap: 2 },
                 children: [
                   rightHeader,
@@ -634,9 +632,9 @@ export class SimpleReportsPageBuilder {
   }
 
   customReport(opts: CustomReport) {
-    let node: Node = sourceMap(
+    let node: Node = nodes.sourceMap(
       `simpleReportPage.customReport(${opts.name})`,
-      state({
+      nodes.state({
         watch: opts.parameters?.map((p) => p.name),
         procedure: opts.state,
         statusScalar: "status",
@@ -657,16 +655,16 @@ export class SimpleReportsPageBuilder {
             ` end)`
         )
         .join(",");
-      node = ifNode(
-        requiredParams.map((p) => `${p.name} is null`).join(" or "),
-        alert({
+      node = nodes.if({
+        expr: requiredParams.map((p) => `${p.name} is null`).join(" or "),
+        then: alert({
           color: "info",
           variant: "outlined",
           startDecorator: materialIcon("Info"),
           children: `(select string_agg(v, ',') from (values${missingFields}) as t(v)) || ' must be specified to view this report.'`,
         }),
-        node
-      );
+        else: node,
+      });
     }
     if (base.parameters) {
       node = wrapInParameters(base.parameters, node);
@@ -678,7 +676,7 @@ export class SimpleReportsPageBuilder {
         normalizeCase(base.name.split(" ").join("-"))
           .map((v) => v.toLowerCase())
           .join("-"),
-      node: element("div", {
+      node: nodes.element("div", {
         styles: styles.pageWrapper,
         children: [
           typography({
@@ -697,17 +695,17 @@ export class SimpleReportsPageBuilder {
     const routes: RouteNode[] = [];
     for (const section of this.#sections) {
       sections.push(
-        element("div", {
+        nodes.element("div", {
           children: [
             typography({
               level: "h6",
               styles: styles.sectionHeader,
               children: stringLiteral(section.header),
             }),
-            element("div", {
+            nodes.element("div", {
               styles: styles.sectionLinks,
               children: section.reports.map((r) =>
-                element("a", {
+                nodes.element("a", {
                   styles: styles.link,
                   dynamicClasses: [
                     {
@@ -732,29 +730,29 @@ export class SimpleReportsPageBuilder {
       }
       for (const report of section.reports) {
         routes.push(
-          route({
+          nodes.route({
             path: report.urlName,
-            children: element("div", { children: report.node }),
+            children: nodes.element("div", { children: report.node }),
           })
         );
       }
     }
-    const content = element("div", {
+    const content = nodes.element("div", {
       styles: styles.root,
       children: [
-        element("div", {
+        nodes.element("div", {
           styles: styles.links,
           children: sections,
         }),
-        element("div", {
+        nodes.element("div", {
           styles: styles.routeContainer,
           children: {
             t: "Routes",
             children: [
               ...routes,
-              route({
+              nodes.route({
                 path: "*",
-                children: element("div", {
+                children: nodes.element("div", {
                   styles: styles.notFoundPage,
                   children: typography({
                     level: "h5",
@@ -767,6 +765,9 @@ export class SimpleReportsPageBuilder {
         }),
       ],
     });
-    addPage({ path: this.#basePath, content });
+    app.ui.pages.push({
+      path: this.#basePath,
+      content,
+    });
   }
 }

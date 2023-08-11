@@ -19,6 +19,7 @@ import { dashboardGridPage, DashboardGridBuilder } from "./pages/dashboardGrid";
 import { recordGridPage, RecordGridBuilder } from "./pages/recordGrid";
 import { dbManagementPage, DbManagmentPageOpts } from "./pages/dbManagement";
 import { insertFormPage, InsertFormPageOpts } from "./pages/insertForm";
+import { SimpleReportsPageBuilder } from "./pages/simpleReportPage";
 import { ComponentOpts } from "./components/types";
 
 /**
@@ -279,6 +280,12 @@ export class Ui {
     fn: (builder: RecordGridBuilder) => unknown
   ) {
     recordGridPage(table, fn);
+  }
+
+  addSimpleReportsPage(fn: (builder: SimpleReportsPageBuilder) => unknown) {
+    const builder = new SimpleReportsPageBuilder();
+    fn(builder);
+    builder.finish();
   }
 }
 

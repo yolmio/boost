@@ -902,187 +902,184 @@ ui.addRecordGridPage("product", (page) => {
 //   toolbar: { add: { type: "dialog" } },
 // });
 
-// const reportsPage = new SimpleReportsPageBuilder();
+ui.addSimpleReportsPage((page) => {
+  page.section("Sales");
+  const dateRangeParams = page.defineParams(
+    {
+      name: "start_date",
+      initialValue: `DATE '1997-05-06'`,
+      type: "Date",
+    },
+    {
+      name: "end_date",
+      initialValue: `date.add(year, 1, start_date)`,
+      type: "Date",
+    }
+  );
 
-// reportsPage.section("Sales");
+  const productSales = `
+with sales as (select
+  product,
+  sum((order_detail.unit_price * quantity) * (1 - discount)) as total
+from db.order
+  join db.order_detail on order.id = order_detail.order
+where order.order_date between start_date and end_date
+group by product
+order by total desc)
+select
+  category.name as category_name,
+  product.id as product_id,
+  product.name as product_name,
+  total
+from sales
+  join db.product on sales.product = product.id
+  join db.category on product.category = category.id
+`;
 
-// const dateRangeParams: ReportParameter[] = [
-//   {
-//     name: "start_date",
-//     initialValue: `DATE '1997-05-06'`,
-//     type: "Date",
-//   },
-//   {
-//     name: "end_date",
-//     initialValue: `date.add(year, 1, start_date)`,
-//     type: "Date",
-//   },
-// ];
+  page.table({
+    parameters: dateRangeParams,
+    name: "Sales by Product",
+    query: productSales,
+    columns: [
+      {
+        header: "Category",
+        cell: (r) => `${r}.category_name`,
+      },
+      {
+        header: "Product",
+        cell: (r) => `${r}.product_name`,
+        href: (r) => `'/products/' || ${r}.product_id`,
+      },
+      {
+        header: "Total",
+        cell: (r) => `format.currency(${r}.total, 'usd')`,
+      },
+    ],
+  });
 
-// const productSales = `
-// with sales as (select
-//   product,
-//   sum((order_detail.unit_price * quantity) * (1 - discount)) as total
-// from db.order
-//   join db.order_detail on order.id = order_detail.order
-// where order.order_date between start_date and end_date
-// group by product
-// order by total desc)
-// select
-//   category.name as category_name,
-//   product.id as product_id,
-//   product.name as product_name,
-//   total
-// from sales
-//   join db.product on sales.product = product.id
-//   join db.category on product.category = category.id
-// `;
+  const categorySales = `
+with sales as (select
+  category,
+  sum((order_detail.unit_price * quantity) * (1 - discount)) as total
+from db.order
+  join db.order_detail on order.id = order_detail.order
+  join db.product on order_detail.product = product.id
+where order.order_date between start_date and end_date
+group by category
+order by total desc)
+select
+  category.name as category_name,
+  total
+from sales
+  join db.category on sales.category = category.id
+`;
 
-// reportsPage.table({
-//   parameters: dateRangeParams,
-//   name: "Sales by Product",
-//   query: productSales,
-//   columns: [
-//     {
-//       header: "Category",
-//       cell: (r) => `${r}.category_name`,
-//     },
-//     {
-//       header: "Product",
-//       cell: (r) => `${r}.product_name`,
-//       href: (r) => `'/products/' || ${r}.product_id`,
-//     },
-//     {
-//       header: "Total",
-//       cell: (r) => `format.currency(${r}.total, 'usd')`,
-//     },
-//   ],
-// });
+  page.table({
+    parameters: dateRangeParams,
+    name: "Sales by Category",
+    query: categorySales,
+    columns: [
+      {
+        header: "Category",
+        cell: (r) => `${r}.category_name`,
+      },
+      {
+        header: "Total",
+        cell: (r) => `format.currency(${r}.total, 'usd')`,
+      },
+    ],
+  });
 
-// const categorySales = `
-// with sales as (select
-//   category,
-//   sum((order_detail.unit_price * quantity) * (1 - discount)) as total
-// from db.order
-//   join db.order_detail on order.id = order_detail.order
-//   join db.product on order_detail.product = product.id
-// where order.order_date between start_date and end_date
-// group by category
-// order by total desc)
-// select
-//   category.name as category_name,
-//   total
-// from sales
-//   join db.category on sales.category = category.id
-// `;
+  const mostValuableCustomers = `
+with sales as (select
+  customer,
+  sum((order_detail.unit_price * quantity) * (1 - discount)) as total
+from db.order
+  join db.order_detail on order.id = order_detail.order
+where order.order_date between start_date and end_date
+group by customer
+order by total desc
+limit 15)
+select
+  customer.id as customer_id,
+  customer.company_name as customer_name,
+  total
+from sales
+  join db.customer on sales.customer = customer.id
+`;
 
-// reportsPage.table({
-//   parameters: dateRangeParams,
-//   name: "Sales by Category",
-//   query: categorySales,
-//   columns: [
-//     {
-//       header: "Category",
-//       cell: (r) => `${r}.category_name`,
-//     },
-//     {
-//       header: "Total",
-//       cell: (r) => `format.currency(${r}.total, 'usd')`,
-//     },
-//   ],
-// });
+  page.table({
+    parameters: dateRangeParams,
+    name: "Most valuable customers",
+    query: mostValuableCustomers,
+    columns: [
+      {
+        header: "Customer",
+        cell: (r) => `${r}.customer_name`,
+        href: (r) => `'/customers/' || ${r}.customer_id`,
+      },
+      {
+        header: "Total",
+        cell: (r) => `format.currency(${r}.total, 'usd')`,
+      },
+    ],
+  });
 
-// const mostValuableCustomers = `
-// with sales as (select
-//   customer,
-//   sum((order_detail.unit_price * quantity) * (1 - discount)) as total
-// from db.order
-//   join db.order_detail on order.id = order_detail.order
-// where order.order_date between start_date and end_date
-// group by customer
-// order by total desc
-// limit 15)
-// select
-//   customer.id as customer_id,
-//   customer.company_name as customer_name,
-//   total
-// from sales
-//   join db.customer on sales.customer = customer.id
-// `;
+  const mostValuableCities = `
+select
+  customer.city as city,
+  sum((order_detail.unit_price * quantity) * (1 - discount)) as total
+from db.order
+  join db.order_detail on order.id = order_detail.order
+  join db.customer on order.customer = customer.id
+where order.order_date between start_date and end_date
+group by customer.city
+order by total desc
+limit 15`;
 
-// reportsPage.table({
-//   parameters: dateRangeParams,
-//   name: "Most valuable customers",
-//   query: mostValuableCustomers,
-//   columns: [
-//     {
-//       header: "Customer",
-//       cell: (r) => `${r}.customer_name`,
-//       href: (r) => `'/customers/' || ${r}.customer_id`,
-//     },
-//     {
-//       header: "Total",
-//       cell: (r) => `format.currency(${r}.total, 'usd')`,
-//     },
-//   ],
-// });
+  page.table({
+    parameters: dateRangeParams,
+    name: "Most valuable cities",
+    query: mostValuableCities,
+    columns: [
+      {
+        header: "City",
+        cell: (r) => `${r}.city`,
+      },
+      {
+        header: "Total",
+        cell: (r) => `format.currency(${r}.total, 'usd')`,
+      },
+    ],
+  });
 
-// const mostValuableCities = `
-// select
-//   customer.city as city,
-//   sum((order_detail.unit_price * quantity) * (1 - discount)) as total
-// from db.order
-//   join db.order_detail on order.id = order_detail.order
-//   join db.customer on order.customer = customer.id
-// where order.order_date between start_date and end_date
-// group by customer.city
-// order by total desc
-// limit 15`;
+  page.section("Products");
 
-// reportsPage.table({
-//   parameters: dateRangeParams,
-//   name: "Most valuable cities",
-//   query: mostValuableCities,
-//   columns: [
-//     {
-//       header: "City",
-//       cell: (r) => `${r}.city`,
-//     },
-//     {
-//       header: "Total",
-//       cell: (r) => `format.currency(${r}.total, 'usd')`,
-//     },
-//   ],
-// });
+  const productsAboveAveragePrice = `
+select
+  id,
+  name,
+  unit_price
+from db.product
+where unit_price > (select avg(unit_price) from db.product)
+order by unit_price desc
+`;
 
-// reportsPage.section("Products");
-
-// const productsAboveAveragePrice = `
-// select
-//   id,
-//   name,
-//   unit_price
-// from db.product
-// where unit_price > (select avg(unit_price) from db.product)
-// order by unit_price desc
-// `;
-
-// reportsPage.table({
-//   name: "Products above average price",
-//   query: productsAboveAveragePrice,
-//   columns: [
-//     {
-//       header: "Product",
-//       cell: (r) => `${r}.name`,
-//       href: (r) => `'/products/' || ${r}.id`,
-//     },
-//     {
-//       header: "Unit Price",
-//       cell: (r) => `format.currency(${r}.unit_price, 'usd')`,
-//     },
-//   ],
-// });
-
-// reportsPage.finish();
+  page.table({
+    name: "Products above average price",
+    query: productsAboveAveragePrice,
+    columns: [
+      {
+        header: "Product",
+        cell: (r) => `${r}.name`,
+        href: (r) => `'/products/' || ${r}.id`,
+      },
+      {
+        header: "Unit Price",
+        cell: (r) => `format.currency(${r}.unit_price, 'usd')`,
+      },
+    ],
+  });
+});
 
 ui.addDbManagementPage();
