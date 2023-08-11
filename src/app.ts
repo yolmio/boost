@@ -9,13 +9,14 @@ import {
   ScriptStatements,
   ScriptStatementsOrFn,
 } from "./statements";
-import { stringLiteral } from "./utils/sqlHelpers";
+import { ident, stringLiteral } from "./utils/sqlHelpers";
 import { Style } from "./styleTypes";
 import { WebAppManifest } from "./pwaManifest";
 import { navbarShell, NavbarProps } from "./shells/navbar";
 import { Node } from "./nodeTypes";
 import { generateYom } from "./generate";
 import { dashboardGridPage, DashboardGridBuilder } from "./pages/dashboardGrid";
+import { recordGridPage, RecordGridBuilder } from "./pages/recordGrid";
 import { dbManagementPage, DbManagmentPageOpts } from "./pages/dbManagement";
 import { insertFormPage, InsertFormPageOpts } from "./pages/insertForm";
 import { ComponentOpts } from "./components/types";
@@ -272,6 +273,13 @@ export class Ui {
   addInsertFormPage(opts: InsertFormPageOpts) {
     insertFormPage(opts);
   }
+
+  addRecordGridPage(
+    table: string,
+    fn: (builder: RecordGridBuilder) => unknown
+  ) {
+    recordGridPage(table, fn);
+  }
 }
 
 export interface WebAppConfig {
@@ -495,6 +503,14 @@ export class Table {
     public displayName: string
   ) {}
 
+  get identName() {
+    return ident(this.name);
+  }
+
+  get primaryKeyIdent() {
+    return ident(this.primaryKeyFieldName);
+  }
+
   getBaseUrl() {
     return pluralize(this.name.split("_").join(" ")).split(" ").join("-");
   }
@@ -557,6 +573,11 @@ abstract class FieldBase {
   ext: Record<string, any> = {};
 
   constructor(public name: string, public displayName: string) {}
+
+  /** Name of field escaped as sql identifier */
+  get identName() {
+    return ident(this.name);
+  }
 
   isInteger() {
     return false;

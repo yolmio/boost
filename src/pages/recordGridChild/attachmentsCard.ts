@@ -13,7 +13,7 @@ import {
   spawn,
   try_,
 } from "../../procHelpers";
-import { app } from "../../singleton";
+import { app } from "../../app";
 import {
   createStyles,
   flexGrowStyles,
@@ -32,8 +32,6 @@ import { deleteRecordDialog } from "../../components/deleteRecordDialog";
 import { input } from "../../components/input";
 import { circularProgress } from "../../components/circularProgress";
 import { alert } from "../../components/alert";
-
-export const name = "attachmentsCard";
 
 export interface Opts {
   styles?: Style;

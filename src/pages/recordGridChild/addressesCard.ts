@@ -1,4 +1,4 @@
-import { AddressFieldGroup } from "../../appTypes";
+import { AddressFieldGroup } from "../../app";
 import { element, state } from "../../nodeHelpers";
 import { record } from "../../procHelpers";
 import { createStyles } from "../../styleUtils";
@@ -10,8 +10,6 @@ import { typography } from "../../components/typography";
 import { RecordGridContext } from "./shared";
 import { card } from "../../components/card";
 import { Style } from "../../styleTypes";
-
-export const name = "addressesCard";
 
 export interface Opts {
   styles?: Style;

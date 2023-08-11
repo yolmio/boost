@@ -1,14 +1,11 @@
-import { element, state } from "../../nodeHelpers";
+import { nodes } from "../../nodeHelpers";
 import { Node } from "../../nodeTypes";
-import { record } from "../../procHelpers";
 import { createStyles } from "../../styleUtils";
 import { stringLiteral } from "../../utils/sqlHelpers";
 import { inlineFieldDisplay } from "../../components/internal/fieldInlineDisplay";
-import { RecordGridContext } from "./shared";
 import { card } from "../../components/card";
 import { Style } from "../../styleTypes";
-
-export const name = "staticTableCard";
+import { RecordGridBuilder } from "../recordGrid";
 
 type Row =
   | string
@@ -20,7 +17,7 @@ type Row =
 
 export interface Opts {
   styles?: Style;
-  rows: ((ctx: RecordGridContext) => Row[]) | Row[];
+  rows: Row[];
 }
 
 const styles = createStyles({
@@ -45,9 +42,9 @@ const styles = createStyles({
   },
 });
 
-export function content(opts: Opts, ctx: RecordGridContext) {
+export function content(opts: Opts, ctx: RecordGridBuilder) {
   let selectFields = "";
-  const rows = Array.isArray(opts.rows) ? opts.rows : opts.rows(ctx);
+  const rows = opts.rows;
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     selectFields += ", ";
@@ -65,23 +62,23 @@ export function content(opts: Opts, ctx: RecordGridContext) {
   return card({
     variant: "outlined",
     styles: opts.styles,
-    children: state({
+    children: nodes.state({
       watch: [ctx.refreshKey],
-      procedure: [record(`record`, query)],
-      children: element("table", {
-        children: element("tbody", {
+      procedure: (s) => s.record(`record`, query),
+      children: nodes.element("table", {
+        children: nodes.element("tbody", {
           children: rows.map((row, i) => {
             if (typeof row === "string") {
               const field = ctx.table.fields[row];
               const value = inlineFieldDisplay(field, `record.${field.name}`);
-              return element("tr", {
+              return nodes.element("tr", {
                 children: [
-                  element("th", {
+                  nodes.element("th", {
                     styles: i === 0 ? styles.header : styles.headerWithDivider,
                     props: { scope: "'row'" },
                     children: stringLiteral(field.displayName),
                   }),
-                  element("td", {
+                  nodes.element("td", {
                     styles: i === 0 ? {} : styles.cell,
                     children: value,
                   }),
@@ -89,14 +86,14 @@ export function content(opts: Opts, ctx: RecordGridContext) {
               });
             } else {
               const expr = `record.e_${i}`;
-              return element("tr", {
+              return nodes.element("tr", {
                 children: [
-                  element("th", {
+                  nodes.element("th", {
                     styles: i === 0 ? styles.header : styles.headerWithDivider,
                     props: { scope: "'row'" },
                     children: row.label,
                   }),
-                  element("td", {
+                  nodes.element("td", {
                     styles: i === 0 ? {} : styles.cell,
                     children: row.display ? (row.display(expr) as Node) : expr,
                   }),

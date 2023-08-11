@@ -28,8 +28,13 @@ function mode(props: Omit<ui.ModeNode, "t">): ui.ModeNode {
   return { t: "Mode", ...props };
 }
 
-function if_(expr: string, then: ui.Node, else_?: ui.Node): ui.IfNode {
-  return { t: "If", expr, then, else: else_ };
+function if_(expr: string, then: ui.Node): ui.IfNode;
+function if_(opts: Omit<ui.IfNode, "t">): ui.IfNode;
+function if_(expr: string | Omit<ui.IfNode, "t">, then?: ui.Node): ui.IfNode {
+  if (typeof expr === "string") {
+    return { t: "If", expr, then };
+  }
+  return { t: "If", expr: expr.expr, then: expr.then, else: expr.else };
 }
 
 function switch_(

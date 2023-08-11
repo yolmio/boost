@@ -1,23 +1,15 @@
-import {
-  commitTransaction,
-  commitUiChanges,
-  modify,
-  serviceProc,
-  setScalar,
-  startTransaction,
-} from "../procHelpers";
 import { app } from "../app";
-import { ClientProcStatement, ServiceProcStatement } from "../yom";
+import { DomStatementsOrFn, ServiceStatementsOrFn } from "../statements";
 import { confirmDangerDialog } from "./confirmDangerDialog";
 
 export interface DeleteRecordDialog {
   open: string;
-  onClose: ClientProcStatement[];
+  onClose: DomStatementsOrFn;
   confirmDescription?: string;
   table: string;
   recordId: string;
-  afterDeleteService?: ServiceProcStatement[];
-  afterDeleteClient?: ClientProcStatement[];
+  afterDeleteService?: ServiceStatementsOrFn;
+  afterDeleteClient?: DomStatementsOrFn;
 }
 
 export function deleteRecordDialog(opts: DeleteRecordDialog) {
@@ -28,16 +20,16 @@ export function deleteRecordDialog(opts: DeleteRecordDialog) {
     description:
       opts.confirmDescription ??
       `'Are you sure you want to delete this ${table.displayName.toLowerCase()}?'`,
-    onConfirm: (closeModal) => [
-      setScalar(`dialog_waiting`, `true`),
-      commitUiChanges(),
-      serviceProc([
-        modify(`delete from db.${opts.table} where id = ${opts.recordId}`),
-        ...(opts.afterDeleteService ?? []),
-      ]),
-      setScalar(`dialog_waiting`, `false`),
-      ...closeModal,
-      ...(opts.afterDeleteClient ?? []),
-    ],
+    onConfirm: (closeModal) => (s) =>
+      s
+        .setScalar(`dialog_waiting`, `true`)
+        .commitUiChanges()
+        .serviceProc((s) =>
+          s
+            .modify(`delete from db.${opts.table} where id = ${opts.recordId}`)
+            .statements(opts.afterDeleteService)
+        )
+        .setScalar(`dialog_waiting`, `false`)
+        .statements(closeModal, opts.afterDeleteClient),
   });
 }

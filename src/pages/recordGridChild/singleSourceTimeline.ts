@@ -35,14 +35,12 @@ import {
   table,
   try_,
 } from "../../procHelpers";
-import { app } from "../../singleton";
+import { app } from "../../app";
 import { Style } from "../../styleTypes";
 import { ident, stringLiteral } from "../../utils/sqlHelpers";
 import { ClientProcStatement, SqlExpression, StateStatement } from "../../yom";
 import { RecordGridContext } from "./shared";
 import { recordDefaultItemContent, styles } from "./timelineShared";
-
-export const name = "singleSourceTimeline";
 
 export type TableDisplayValue =
   | string

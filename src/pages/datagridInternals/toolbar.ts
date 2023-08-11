@@ -31,7 +31,7 @@ import { getUniqueUiId } from "../../components/utils";
 import { createStyles, flexGrowStyles } from "../../styleUtils";
 import { SuperGridColumn, SuperGridDts, ToolbarConfig } from "./styledDatagrid";
 import { DatagridDts, makeCountQuery, makeIdsQuery } from "./datagridBase";
-import { Table } from "../../appTypes";
+import { Table } from "../../app";
 import { select } from "../../components/select";
 import { Node } from "../../nodeTypes";
 import { insertDialog } from "../../components/insertDialog";

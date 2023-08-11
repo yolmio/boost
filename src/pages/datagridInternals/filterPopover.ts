@@ -11,7 +11,7 @@ import {
   setScalar,
   spawn,
 } from "../../procHelpers";
-import { app } from "../../singleton";
+import { app } from "../../app";
 import { stringLiteral } from "../../utils/sqlHelpers";
 import { ClientProcStatement } from "../../yom";
 import { button } from "../../components/button";

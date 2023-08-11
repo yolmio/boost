@@ -7,7 +7,7 @@ import { popoverMenu } from "../../components/menu";
 import { typography } from "../../components/typography";
 import { updateDialog } from "../../components/updateDialog";
 import { getUniqueUiId } from "../../components/utils";
-import { Node, Table, VirtualType } from "../../appTypes";
+import { Node, Table, VirtualType } from "../../app";
 import { element, ifNode, state } from "../../nodeHelpers";
 import {
   commitTransaction,

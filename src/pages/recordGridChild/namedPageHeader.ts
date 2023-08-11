@@ -1,35 +1,20 @@
-import { ImageSetFieldGroup, Table } from "../../appTypes";
-import { element, ifNode, state } from "../../nodeHelpers";
-import {
-  commitUiChanges,
-  delay,
-  exit,
-  if_,
-  navigate,
-  record,
-  scalar,
-  serviceProc,
-  setScalar,
-  spawn,
-  try_,
-} from "../../procHelpers";
-import { app } from "../../singleton";
+import { ImageSetFieldGroup, Table } from "../../app";
+import { nodes } from "../../nodeHelpers";
+import { app } from "../../app";
 import { createStyles, visuallyHiddenStyles } from "../../styleUtils";
 import { getUploadStatements, getVariantFromImageSet } from "../../utils/image";
 import { stringLiteral } from "../../utils/sqlHelpers";
-import { ClientProcStatement, SqlExpression } from "../../yom";
+import * as yom from "../../yom";
 import { alert } from "../../components/alert";
 import { button } from "../../components/button";
 import { chip } from "../../components/chip";
-import { imageDalog } from "../../components/imageDialog";
+import { imageDialog } from "../../components/imageDialog";
 import { materialIcon } from "../../components/materialIcon";
 import { recordDeleteButton } from "../../components/recordDeleteButton";
 import { typography } from "../../components/typography";
-import { RecordGridContext } from "./shared";
 import { circularProgress } from "../../components/circularProgress";
 import { Color, Size, Variant } from "../../components/types";
-
-export const name = "namedHeader";
+import { RecordGridBuilder } from "../recordGrid";
 
 type Chip =
   | string
@@ -46,11 +31,11 @@ type Chip =
       variant?: Variant;
       displayName: string;
       fields: string[];
-      condition: (...fields: string[]) => SqlExpression;
+      condition: (...fields: yom.SqlExpression[]) => yom.SqlExpression;
     };
 
 export interface Opts {
-  subHeader?: SqlExpression;
+  subHeader?: yom.SqlExpression;
   chips?: Chip[];
   prefix?: string;
   imageGroup?: string;
@@ -122,91 +107,94 @@ const styles = createStyles({
 function imagePart(
   imageFieldGroup: ImageSetFieldGroup,
   opts: Opts,
-  ctx: RecordGridContext
+  ctx: RecordGridBuilder
 ) {
   const { spawnUploadTasks, joinUploadTasks, updateImagesInDb } =
     getUploadStatements(ctx.table.name, ctx.recordId, imageFieldGroup);
-  return state({
-    procedure: [
-      scalar(`uploading`, `false`),
-      scalar(`dialog_open`, `false`),
-      scalar(`failed_upload`, `false`),
-    ],
+  return nodes.state({
+    procedure: (s) =>
+      s
+        .scalar(`uploading`, `false`)
+        .scalar(`dialog_open`, `false`)
+        .scalar(`failed_upload`, `false`),
     children: [
-      ifNode(
-        `record.named_page_header_thumb is null`,
-        element("label", {
+      nodes.if({
+        expr: `record.named_page_header_thumb is null`,
+        then: nodes.element("label", {
           styles: styles.emptyLabel(),
           children: [
-            element("input", {
+            nodes.element("input", {
               styles: visuallyHiddenStyles,
               props: {
                 accept: "'image/*'",
                 type: `'file'`,
               },
               on: {
-                fileChange: [
-                  if_(`uploading`, exit()),
-                  setScalar(`uploading`, `true`),
-                  commitUiChanges(),
-                  ...spawnUploadTasks,
-                  try_<ClientProcStatement>({
-                    body: [
-                      ...joinUploadTasks,
-                      serviceProc([...updateImagesInDb, ctx.triggerRefresh]),
-                    ],
-                    catch: [
-                      setScalar(`failed_upload`, `true`),
-                      spawn({
-                        detached: true,
-                        statements: [
-                          delay("5000"),
-                          setScalar(`failed_upload`, `false`),
-                          commitUiChanges(),
-                        ],
-                      }),
-                    ],
-                  }),
-                  setScalar(`uploading`, `false`),
-                ],
+                fileChange: (s) =>
+                  s
+                    .if(`uploading`, (s) => s.return())
+                    .setScalar(`uploading`, `true`)
+                    .commitUiChanges()
+                    .statements(spawnUploadTasks)
+                    .try({
+                      body: (s) =>
+                        s
+                          .statements(joinUploadTasks)
+                          .serviceProc((s) =>
+                            s.statements(updateImagesInDb, ctx.triggerRefresh)
+                          ),
+                      catch: (s) =>
+                        s.setScalar(`failed_upload`, `true`).spawn({
+                          detached: true,
+                          procedure: (s) =>
+                            s
+                              .delay("5000")
+                              .setScalar(`failed_upload`, `false`)
+                              .commitUiChanges(),
+                        }),
+                    })
+                    .setScalar(`uploading`, `false`),
               },
             }),
-            ifNode(`uploading`, circularProgress(), materialIcon("Person")),
+            nodes.if({
+              expr: `uploading`,
+              then: circularProgress(),
+              else: materialIcon("Person"),
+            }),
           ],
         }),
-        [
-          element("div", {
+        else: [
+          nodes.element("div", {
             styles: styles.imgWrapper,
-            children: element("img", {
+            children: nodes.element("img", {
               styles: styles.img(),
               props: {
                 tabIndex: `0`,
                 src: `'/_a/file/' || sys.account || '/' || sys.app || '/' || record.named_page_header_thumb`,
               },
               on: {
-                click: [setScalar(`dialog_open`, `true`)],
-                keydown: [
-                  if_(`event.key = 'Enter'`, [
-                    setScalar(`dialog_open`, `true`),
-                  ]),
-                ],
+                click: (s) => s.setScalar(`dialog_open`, `true`),
+                keydown: (s) =>
+                  s.if(`event.key = 'Enter'`, (s) =>
+                    s.setScalar(`dialog_open`, `true`)
+                  ),
               },
             }),
           }),
-          imageDalog({
+          imageDialog({
             open: `dialog_open`,
             group: "image",
-            onClose: [setScalar(`dialog_open`, `false`)],
+            onClose: (s) => s.setScalar(`dialog_open`, `false`),
             recordId: `ui.record_id`,
             tableName: ctx.table.name,
-            afterReplace: [ctx.triggerRefresh],
-            afterRemove: [ctx.triggerRefresh],
+            afterReplace: ctx.triggerRefresh,
+            afterRemove: ctx.triggerRefresh,
           }),
-        ]
-      ),
-      ifNode(
+        ],
+      }),
+      nodes.if(
         `failed_upload`,
-        element("div", {
+        nodes.element("div", {
           styles: styles.uploadFail,
           children: alert({
             color: "danger",
@@ -263,7 +251,7 @@ function getImageFieldGroup(
   );
 }
 
-export function content(opts: Opts, ctx: RecordGridContext) {
+export function content(opts: Opts, ctx: RecordGridBuilder) {
   const { table: tableModel, refreshKey, recordId } = ctx;
   if (!tableModel.recordDisplayName) {
     throw new Error("Table must have recordDisplayName for simpleNamedHeader");
@@ -303,22 +291,21 @@ export function content(opts: Opts, ctx: RecordGridContext) {
     }
     selectFields += `, ${variant} as named_page_header_thumb`;
   }
-  return state({
+  return nodes.state({
     watch: [refreshKey],
-    procedure: [
-      record(
+    procedure: (s) =>
+      s.record(
         `record`,
-        `select ${nameExpr} as name${selectFields} from db.${tableModel.name} as record where id = ${recordId}`
+        `select ${nameExpr} as name${selectFields} from db.${tableModel.identName} as record where id = ${recordId}`
       ),
-    ],
-    children: element("div", {
+    children: nodes.element("div", {
       styles: styles.root,
       children: [
         imageFieldGroup ? imagePart(imageFieldGroup, opts, ctx) : undefined,
-        element("div", {
+        nodes.element("div", {
           styles: { display: "flex", gap: 0.5, flexDirection: "column" },
           children: [
-            element("div", {
+            nodes.element("div", {
               styles: { display: "flex", alignItems: "baseline", gap: 0.5 },
               children: [
                 typography({
@@ -331,18 +318,18 @@ export function content(opts: Opts, ctx: RecordGridContext) {
               ],
             }),
             opts.subHeader
-              ? element("h6", {
+              ? nodes.element("h6", {
                   styles: styles.subHeader,
                   children: `record.named_page_sub_header`,
                 })
               : undefined,
             opts.chips
-              ? element("div", {
+              ? nodes.element("div", {
                   styles: styles.chips,
                   children: opts.chips.map((c, i) => {
                     if (typeof c === "string") {
                       const field = tableModel.fields[c];
-                      return ifNode(
+                      return nodes.if(
                         `record.${c}`,
                         chip({
                           variant: "soft",
@@ -353,7 +340,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                       );
                     } else if ("field" in c) {
                       const field = tableModel.fields[c.field];
-                      return ifNode(
+                      return nodes.if(
                         `record.${c.field}`,
                         chip({
                           variant: c.variant ?? "soft",
@@ -363,7 +350,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                         })
                       );
                     } else {
-                      return ifNode(
+                      return nodes.if(
                         `record.chip_${i}`,
                         chip({
                           variant: c.variant ?? "soft",
@@ -378,10 +365,10 @@ export function content(opts: Opts, ctx: RecordGridContext) {
               : undefined,
           ],
         }),
-        element("div", {
+        nodes.element("div", {
           styles: styles.grow,
         }),
-        element("div", {
+        nodes.element("div", {
           styles: { display: "flex", gap: 1 },
           children: [
             button({
@@ -399,7 +386,8 @@ export function content(opts: Opts, ctx: RecordGridContext) {
               recordId: `ui.record_id`,
               dialogConfirmDescription: `'Are you sure you want to delete ' || record.name || '?'`,
               size: "sm",
-              afterDeleteService: [navigate(stringLiteral(ctx.pathBase))],
+              afterDeleteService: (s) =>
+                s.navigate(stringLiteral(ctx.pathBase)),
             }),
           ],
         }),

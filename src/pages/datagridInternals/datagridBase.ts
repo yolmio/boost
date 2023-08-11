@@ -1,4 +1,4 @@
-import { addDecisionTable, addEnum, addTable } from "../../appHelpers";
+import { addDecisionTable, addEnum, addTable } from "../../app";
 import { queryParams, state } from "../../nodeHelpers";
 import { DataGridStyles, Node } from "../../nodeTypes";
 import {
@@ -16,7 +16,7 @@ import {
   table,
   while_,
 } from "../../procHelpers";
-import { app } from "../../singleton";
+import { app } from "../../app";
 import { ident, stringLiteral } from "../../utils/sqlHelpers";
 import { ServiceProcStatement, StateStatement } from "../../yom";
 import {

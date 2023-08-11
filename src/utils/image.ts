@@ -1,12 +1,5 @@
-import { ImageSetFieldGroup, ImageUsage } from "../appTypes";
-import {
-  addImage,
-  joinTasks,
-  modify,
-  scalar,
-  setScalar,
-  spawn,
-} from "../procHelpers";
+import { ImageSetFieldGroup, ImageUsage } from "../app";
+import { DomStatements, ServiceStatements } from "../statements";
 import { ident } from "./sqlHelpers";
 
 export function getUploadStatements(
@@ -14,34 +7,33 @@ export function getUploadStatements(
   recordId: string,
   group: ImageSetFieldGroup
 ) {
-  const spawnUploadTasks = Object.values(group.variants)
-    .map((v, i) => [
-      scalar(`uuid_${i}`, { type: "Uuid" }),
-      spawn({
-        handleScalar: `task_${i}`,
-        statements: [
-          addImage({
+  const spawnUploadTasks = new DomStatements();
+  const variants = Object.values(group.variants);
+  for (let i = 0; i < variants.length; i++) {
+    const variant = variants[i];
+    spawnUploadTasks.scalar(`uuid_${i}`, { type: "Uuid" });
+    spawnUploadTasks.spawn({
+      handleScalar: `task_${i}`,
+      procedure: (s) =>
+        s
+          .addImage({
             fileRecord: `new_image`,
-            jpegQuality: v.quality?.toString() ?? "80",
+            jpegQuality: variant.quality?.toString() ?? "80",
             domUuid: `(select uuid from file)`,
-            resize: v.resize,
-          }),
-          setScalar(`uuid_${i}`, `new_image.uuid`),
-        ],
-      }),
-    ])
-    .flat();
-  const joinUploadTasks = [
-    joinTasks(Object.values(group.variants).map((_, i) => `task_${i}`)),
-  ];
+            resize: variant.resize,
+          })
+          .setScalar(`uuid_${i}`, `new_image.uuid`),
+    });
+  }
+  const joinUploadTasks = new DomStatements().joinTasks(
+    Object.values(group.variants).map((_, i) => `task_${i}`)
+  );
   const setFields = Object.keys(group.variants)
     .map((fieldName, i) => `${ident(fieldName)} = uuid_${i}`)
     .join(",");
-  const updateImagesInDb = [
-    modify(
-      `update db.${ident(tableName)} set ${setFields} where id = ${recordId}`
-    ),
-  ];
+  const updateImagesInDb = new ServiceStatements().modify(
+    `update db.${ident(tableName)} set ${setFields} where id = ${recordId}`
+  );
   return { spawnUploadTasks, joinUploadTasks, updateImagesInDb };
 }
 

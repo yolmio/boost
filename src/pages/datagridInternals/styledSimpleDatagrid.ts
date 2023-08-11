@@ -4,7 +4,7 @@ import { iconButton } from "../../components/iconButton";
 import { insertDialog, InsertDialogOpts } from "../../components/insertDialog";
 import { materialIcon } from "../../components/materialIcon";
 import { typography } from "../../components/typography";
-import { Table } from "../../appTypes";
+import { Table } from "../../app";
 import { element, ifNode, sourceMap, state } from "../../nodeHelpers";
 import { Node } from "../../nodeTypes";
 import {

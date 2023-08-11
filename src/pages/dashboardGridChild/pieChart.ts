@@ -112,10 +112,10 @@ export function content(opts: Opts) {
               ? (s) => s.table(`result`, opts.state as string)
               : opts.state,
           statusScalar: `status`,
-          children: nodes.if(
-            `status = 'fallback_triggered'`,
-            circularProgress({ size: "md" }),
-            {
+          children: nodes.if({
+            expr: `status = 'fallback_triggered'`,
+            then: circularProgress({ size: "md" }),
+            else: {
               t: "PieChart",
               styles: {
                 root: styles.chartRoot,
@@ -127,8 +127,8 @@ export function content(opts: Opts) {
               labelOffset: "32",
               chartPadding: "56",
               ...opts.pieChartOpts,
-            }
-          ),
+            },
+          }),
         }),
       }),
     ],

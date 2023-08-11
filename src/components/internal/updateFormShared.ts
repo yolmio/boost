@@ -1,12 +1,10 @@
-import { FormState, UpdateFormField } from "../../formState";
-import { Table } from "../../appTypes";
-import { element, ifNode } from "../../nodeHelpers";
+import { FormState, UpdateFormField, UpdateFormState } from "../../formState";
+import { Table } from "../../app";
+import { nodes } from "../../nodeHelpers";
 import { Node } from "../../nodeTypes";
 import { Style } from "../../styleTypes";
-import { baseGridStyles, createStyles } from "../../styleUtils";
 import { downcaseFirst } from "../../utils/inflectors";
 import { stringLiteral } from "../../utils/sqlHelpers";
-import { ClientProcStatement, EventHandler } from "../../yom";
 import { alert } from "../alert";
 import { button } from "../button";
 import { checkbox } from "../checkbox";
@@ -24,6 +22,7 @@ import {
   labelOnLeftStyles,
   twoColumnFormStyles,
 } from "./sharedFormStyles";
+import { DomStatementsOrFn } from "../../statements";
 
 export interface UpdateGridFormPart {
   styles?: Style;
@@ -75,14 +74,13 @@ export type UpdateFormContent =
 
 export interface UpdateFormContentOpts {
   table: Table;
-  formState: FormState;
+  formState: UpdateFormState;
   cancel:
     | { type: "Href"; href: string }
     | {
         type: "Proc";
-        proc: ClientProcStatement[];
+        proc: DomStatementsOrFn;
       };
-  onSubmit: EventHandler;
 }
 
 export function getFieldsFromUpdateFormContent(
@@ -150,13 +148,13 @@ function gridPart(
   table: Table
 ) {
   if (!part.field) {
-    return element("div", { styles: part.styles });
+    return nodes.element("div", { styles: part.styles });
   }
   const field = table.fields[part.field];
   const id = stringLiteral(getUniqueUiId());
-  const fieldHelper = formState.fieldHelper(part.field);
+  const fieldHelper = formState.field(part.field);
   if (field.type === "Bool" && !field.enumLike) {
-    return element("div", {
+    return nodes.element("div", {
       styles: part.styles,
       children: [
         checkbox({
@@ -166,17 +164,14 @@ function gridPart(
           checked: fieldHelper.value,
           props: { id },
           on: {
-            checkboxChange: [
-              formState.fields.set(
-                part.field,
-                `coalesce(not ` + fieldHelper.value + `, true)`
-              ),
-            ],
+            checkboxChange: fieldHelper.setValue(
+              `coalesce(not ` + fieldHelper.value + `, true)`
+            ),
           },
         }),
-        ifNode(
+        nodes.if(
           fieldHelper.hasError,
-          element("div", {
+          nodes.element("div", {
             styles: genericFormStyles.errorText,
             children: fieldHelper.error,
           })
@@ -203,7 +198,7 @@ function gridPart(
         children: stringLiteral(field.displayName),
       }),
       fieldValue,
-      ifNode(
+      nodes.if(
         fieldHelper.hasError,
         formHelperText({ children: fieldHelper.error })
       ),
@@ -213,13 +208,13 @@ function gridPart(
 
 function twoColumnSectionedUpdateFormContent(
   content: TwoColumnSectionedUpdateFormContent,
-  { table, formState, onSubmit, cancel }: UpdateFormContentOpts
+  { table, formState, cancel }: UpdateFormContentOpts
 ): Node {
   const header = stringLiteral(
     content.header ?? downcaseFirst(table.displayName)
   );
   const sections: Node[] = [
-    element("h1", {
+    nodes.element("h1", {
       styles: genericFormStyles.pageHeader,
       children: `'Edit ' || ${header}`,
     }),
@@ -227,10 +222,10 @@ function twoColumnSectionedUpdateFormContent(
   for (const section of content.sections) {
     sections.push(divider());
     sections.push(
-      element("div", {
+      nodes.element("div", {
         styles: twoColumnFormStyles.section,
         children: [
-          element("div", {
+          nodes.element("div", {
             children: [
               typography({
                 level: "h2",
@@ -238,14 +233,14 @@ function twoColumnSectionedUpdateFormContent(
                 children: stringLiteral(section.header),
               }),
               section.description
-                ? element("p", {
+                ? nodes.element("p", {
                     styles: twoColumnFormStyles.description,
                     children: stringLiteral(section.description),
                   })
                 : undefined,
             ],
           }),
-          element("div", {
+          nodes.element("div", {
             styles: section.styles
               ? [twoColumnFormStyles.partsWrapper, section.styles]
               : twoColumnFormStyles.partsWrapper,
@@ -256,18 +251,18 @@ function twoColumnSectionedUpdateFormContent(
     );
   }
   sections.push(
-    ifNode(
+    nodes.if(
       formState.hasFormError,
       alert({
         color: "danger",
         size: "lg",
-        children: formState.getFormError,
+        children: formState.formError,
         startDecorator: materialIcon("Error"),
       })
     )
   );
   sections.push(
-    element("div", {
+    nodes.element("div", {
       styles: genericFormStyles.actionButtons,
       children: [
         button({
@@ -281,13 +276,13 @@ function twoColumnSectionedUpdateFormContent(
           children: `'Save'`,
           loading: formState.submitting,
           on: {
-            click: onSubmit,
+            click: formState.onSubmit,
           },
         }),
       ],
     })
   );
-  return element("div", {
+  return nodes.element("div", {
     styles: twoColumnFormStyles.root,
     children: sections,
   });
@@ -295,12 +290,12 @@ function twoColumnSectionedUpdateFormContent(
 
 function labelOnLeftUpdateFormContent(
   content: LabelOnLeftUpdateFormContent,
-  { table, formState, onSubmit, cancel }: UpdateFormContentOpts
+  { table, formState, cancel }: UpdateFormContentOpts
 ) {
   const fields: Node[] = [];
   if (content.header) {
     fields.push(
-      element("h1", {
+      nodes.element("h1", {
         styles: genericFormStyles.pageHeader,
         children: stringLiteral(content.header),
       }),
@@ -311,24 +306,24 @@ function labelOnLeftUpdateFormContent(
     fields.push(
       labelOnLeftFormField({
         field: table.fields[part.field],
-        fieldHelper: formState.fieldHelper(part.field),
+        fieldHelper: formState.field(part.field),
         id: stringLiteral(getUniqueUiId()),
       })
     );
   }
   fields.push(
-    ifNode(
+    nodes.if(
       formState.hasFormError,
       alert({
         color: "danger",
         size: "lg",
-        children: formState.getFormError,
+        children: formState.formError,
         startDecorator: materialIcon("Error"),
       })
     )
   );
   fields.push(
-    element("div", {
+    nodes.element("div", {
       styles: genericFormStyles.actionButtons,
       children: [
         button({
@@ -344,12 +339,12 @@ function labelOnLeftUpdateFormContent(
           color: "primary",
           children: "'Save'",
           loading: formState.submitting,
-          on: { click: onSubmit },
+          on: { click: formState.onSubmit },
         }),
       ],
     })
   );
-  return element("div", {
+  return nodes.element("div", {
     styles: labelOnLeftStyles.root,
     children: fields,
   });

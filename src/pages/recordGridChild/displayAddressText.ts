@@ -1,6 +1,6 @@
 import { typography } from "../../components/typography";
-import { AddressFieldGroup } from "../../appTypes";
-import { ifNode } from "../../nodeHelpers";
+import { AddressFieldGroup } from "../../app";
+import { nodes } from "../../nodeHelpers";
 import { createStyles } from "../../styleUtils";
 import { ident } from "../../utils/sqlHelpers";
 
@@ -17,17 +17,17 @@ export function displayAddressText(
   group: AddressFieldGroup,
   recordName: string
 ) {
-  return ifNode(
-    Object.values(group.fields)
+  return nodes.if({
+    expr: Object.values(group.fields)
       .filter(Boolean)
       .map((field) => `${recordName}.${ident(field)} is null`)
       .join(" and "),
-    typography({
+    then: typography({
       level: "body1",
       styles: styles.addressLine,
       children: `'No address'`,
     }),
-    [
+    else: [
       group.fields.name
         ? typography({
             level: "body1",
@@ -58,6 +58,6 @@ export function displayAddressText(
           group.fields.country!
         )} || ' ' ||  record.${ident(group.fields.zip!)}`,
       }),
-    ]
-  );
+    ],
+  });
 }

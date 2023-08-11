@@ -513,11 +513,11 @@ function collapse(label: string, node: Node) {
         children: [
           stringLiteral(label),
           nodes.element("div", { styles: flexGrowStyles }),
-          nodes.if(
-            `open`,
-            materialIcon("KeyboardArrowDown"),
-            materialIcon("KeyboardArrowRight")
-          ),
+          nodes.if({
+            expr: "open",
+            then: materialIcon("KeyboardArrowDown"),
+            else: materialIcon("KeyboardArrowRight"),
+          }),
         ],
         on: {
           click: (s) => s.setScalar(`open`, `not open`),

@@ -93,10 +93,10 @@ export function content(opts: Opts) {
               ? (s) => s.table(`result`, opts.state as string)
               : opts.state,
           statusScalar: `status`,
-          children: nodes.if(
-            `status = 'fallback_triggered'`,
-            circularProgress({ size: "md" }),
-            {
+          children: nodes.if({
+            expr: `status = 'fallback_triggered'`,
+            then: circularProgress({ size: "md" }),
+            else: {
               t: "LineChart",
               series: [{ query: opts.lineChartQuery }],
               styles: {
@@ -109,8 +109,8 @@ export function content(opts: Opts) {
               chartPadding: { top: "16", right: "0", left: "0", bottom: "0" },
               labels: opts.labels,
               reverseData: opts.reverseData,
-            }
-          ),
+            },
+          }),
         }),
       }),
     ],

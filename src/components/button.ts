@@ -22,11 +22,11 @@ export interface ButtonOpts
   loadingPosition?: "start" | "center" | "end";
 
   /** expression for if the button is disabled */
-  disabled?: string;
+  disabled?: yom.SqlExpression;
   /** expression for if the button shouhld be put into a loading state */
-  loading?: string;
+  loading?: yom.SqlExpression;
   /** expression for href, will make button into <a> tag and add this prop */
-  href?: string;
+  href?: yom.SqlExpression;
 
   startDecorator?: Node;
   endDecorator?: Node;
@@ -193,11 +193,11 @@ export function button(opts: ButtonOpts) {
         slot("startDecorator", {
           tag: "span",
           styles: styles.startDecorator,
-          children: nodes.if(
-            opts.loading,
-            loadingIndicator!,
-            opts.startDecorator
-          ),
+          children: nodes.if({
+            expr: opts.loading,
+            then: loadingIndicator!,
+            else: opts.startDecorator,
+          }),
         })
       );
     }
@@ -227,11 +227,11 @@ export function button(opts: ButtonOpts) {
         slot("endDecorator", {
           tag: "span",
           styles: styles.endDecorator,
-          children: nodes.if(
-            opts.loading,
-            loadingIndicator!,
-            opts.endDecorator
-          ),
+          children: nodes.if({
+            expr: opts.loading,
+            then: loadingIndicator!,
+            else: opts.endDecorator,
+          }),
         })
       );
     }

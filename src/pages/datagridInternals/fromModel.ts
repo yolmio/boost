@@ -1,4 +1,4 @@
-import { Field, VirtualField, VirtualType } from "../../appTypes";
+import { Field, VirtualField, VirtualType } from "../../app";
 import { element, switchNode } from "../../nodeHelpers";
 import {
   commitUiChanges,
@@ -7,7 +7,7 @@ import {
   scalar,
   setScalar,
 } from "../../procHelpers";
-import { app } from "../../singleton";
+import { app } from "../../app";
 import { ident, stringLiteral } from "../../utils/sqlHelpers";
 import { ClientProcStatement, FieldType } from "../../yom";
 import { fieldCell } from "./cells";

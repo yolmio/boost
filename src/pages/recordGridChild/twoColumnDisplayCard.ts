@@ -8,8 +8,6 @@ import { RecordGridContext } from "./shared";
 import { Style } from "../../styleTypes";
 import { card } from "../../components/card";
 
-export const name = "twoColumnDisplayCard";
-
 const styles = createStyles({
   root: {
     display: "grid",

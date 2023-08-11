@@ -2,11 +2,10 @@ import {
   FormStateProcedureExtensions,
   withInsertFormState,
 } from "../formState";
-import { sourceMap } from "../nodeHelpers";
+import { nodes } from "../nodeHelpers";
 import { app } from "../app";
 import { createStyles } from "../styleUtils";
 import { stringLiteral } from "../utils/sqlHelpers";
-import { ClientProcStatement } from "../yom";
 import { divider } from "./divider";
 import { modal, modalDialog } from "./modal";
 import { typography } from "./typography";
@@ -16,10 +15,11 @@ import {
   InsertFormContent,
   insertFormContent,
 } from "./internal/insertFormShared";
+import { DomStatementsOrFn } from "../statements";
 
 export interface InsertDialogOpts extends FormStateProcedureExtensions {
   open: string;
-  onClose: ClientProcStatement[];
+  onClose: DomStatementsOrFn;
   table: string;
   content: InsertFormContent;
   withValues?: Record<string, string>;
@@ -48,7 +48,7 @@ export function insertDialog(opts: InsertDialogOpts) {
     opts.content,
     tableModel
   );
-  return sourceMap(
+  return nodes.sourceMap(
     `insertDialog(table: "${opts.table}")`,
     modal({
       onClose: opts.onClose,
@@ -77,19 +77,18 @@ export function insertDialog(opts: InsertDialogOpts) {
               fields,
               relations,
               withValues: opts.withValues,
-              afterSubmitClient: (state) => [
-                ...(opts.afterSubmitClient?.(state) ?? []),
-                ...closeModal,
-              ],
+              afterSubmitClient: (state, s) => {
+                opts.afterSubmitClient?.(state, s);
+                s.statements(closeModal);
+              },
               beforeSubmitClient: opts.beforeSubmitClient,
               afterTransactionStart: opts.afterTransactionStart,
               afterTransactionCommit: opts.afterTransactionCommit,
               beforeTransactionCommit: opts.beforeTransactionCommit,
               beforeTransactionStart: opts.beforeTransactionStart,
-              children: ({ formState, onSubmit }) =>
+              children: (formState) =>
                 insertFormContent(opts.content, {
                   formState,
-                  onSubmit,
                   table: tableModel,
                   cancel: { type: "Proc", proc: closeModal },
                 }),

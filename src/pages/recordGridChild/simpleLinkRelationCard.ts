@@ -8,7 +8,7 @@ import {
   scalar,
   setScalar,
 } from "../../procHelpers";
-import { app } from "../../singleton";
+import { app } from "../../app";
 import { createStyles, flexGrowStyles } from "../../styleUtils";
 import { ident, stringLiteral } from "../../utils/sqlHelpers";
 import { divider } from "../../components/divider";
@@ -25,8 +25,6 @@ import { SqlExpression } from "../../yom";
 import { chip } from "../../components/chip";
 import { inlineFieldDisplay } from "../../components/internal/fieldInlineDisplay";
 import { getUniqueUiId } from "../../components/utils";
-
-export const name = "simpleLinkRelationCard";
 
 export type TableDisplayValue =
   | string

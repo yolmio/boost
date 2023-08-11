@@ -1,9 +1,8 @@
-import { element, ifNode, state } from "../nodeHelpers";
+import { nodes } from "../nodeHelpers";
 import { Node } from "../nodeTypes";
-import { scalar } from "../procHelpers";
+import { DomStatementsOrFn } from "../statements";
 import { createStyles, flexGrowStyles } from "../styleUtils";
 import { lazy } from "../utils/memoize";
-import { ClientProcStatement, EventHandler } from "../yom";
 import { alert } from "./alert";
 import { button } from "./button";
 import { divider } from "./divider";
@@ -13,8 +12,8 @@ import { typography } from "./typography";
 
 export interface ConfirmDangerDialogOpts {
   open: string;
-  onClose: ClientProcStatement[];
-  onConfirm: (close: ClientProcStatement[]) => EventHandler;
+  onClose: DomStatementsOrFn;
+  onConfirm: (close: DomStatementsOrFn) => DomStatementsOrFn;
   description?: Node;
   confirmButtonText?: string;
 }
@@ -73,31 +72,31 @@ export function confirmDangerDialog(opts: ConfirmDangerDialogOpts) {
             styles: styles.description,
             children: opts.description ?? "'Are you sure you about that?'",
           }),
-          state({
-            procedure: [
-              scalar(`dialog_waiting`, `false`),
-              scalar(`dialog_error`, { type: "String", maxLength: 2000 }),
-            ],
-            children: element("div", {
+          nodes.state({
+            procedure: (s) =>
+              s
+                .scalar(`dialog_waiting`, `false`)
+                .scalar(`dialog_error`, { type: "String", maxLength: 2000 }),
+            children: nodes.element("div", {
               styles: styles.footer,
               children: [
-                ifNode(
-                  `dialog_error is not null`,
-                  [
+                nodes.if({
+                  expr: `dialog_error is not null`,
+                  then: [
                     alert({
                       size: "sm",
                       color: "danger",
                       startDecorator: materialIcon("ErrorRounded"),
                       children: `dialog_error`,
                     }),
-                    element("div", {
+                    nodes.element("div", {
                       styles: flexGrowStyles,
                     }),
                   ],
-                  element("div", {
+                  else: nodes.element("div", {
                     styles: flexGrowStyles,
-                  })
-                ),
+                  }),
+                }),
                 button({
                   variant: "plain",
                   color: "neutral",

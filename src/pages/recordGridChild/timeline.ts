@@ -1,4 +1,4 @@
-import { VirtualType } from "../../appTypes";
+import { VirtualType } from "../../app";
 import {
   each,
   element,
@@ -16,7 +16,7 @@ import {
   setScalar,
   table,
 } from "../../procHelpers";
-import { app } from "../../singleton";
+import { app } from "../../app";
 import { Style } from "../../styleTypes";
 import { ident, stringLiteral } from "../../utils/sqlHelpers";
 import { UnionExpr, createUnionQuery } from "../../utils/union";
@@ -33,8 +33,6 @@ import { getUniqueUiId } from "../../components/utils";
 import { AutoLabelOnLeftFieldOverride } from "../../components/internal/updateFormShared";
 import { RecordGridContext } from "./shared";
 import { recordDefaultItemContent, styles } from "./timelineShared";
-
-export const name = "timeline";
 
 export type TableDisplayValue =
   | string

@@ -2,14 +2,11 @@ import { button } from "../../components/button";
 import { materialIcon } from "../../components/materialIcon";
 import { recordDeleteButton } from "../../components/recordDeleteButton";
 import { typography } from "../../components/typography";
-import { element } from "../../nodeHelpers";
-import { navigate } from "../../procHelpers";
+import { nodes } from "../../nodeHelpers";
 import { Style } from "../../styleTypes";
 import { createStyles, flexGrowStyles } from "../../styleUtils";
 import { stringLiteral } from "../../utils/sqlHelpers";
-import { RecordGridContext } from "./shared";
-
-export const name = "superSimpleHeader";
+import { RecordGridBuilder } from "../recordGrid";
 
 export interface Opts {
   styles?: Style;
@@ -25,15 +22,15 @@ const styles = createStyles({
   },
 });
 
-export function content(opts: Opts, ctx: RecordGridContext) {
-  return element("div", {
+export function content(opts: Opts, ctx: RecordGridBuilder) {
+  return nodes.element("div", {
     styles: styles.root,
     children: [
       typography({
         level: "h5",
         children: stringLiteral(opts.header),
       }),
-      element("div", {
+      nodes.element("div", {
         styles: flexGrowStyles,
       }),
       button({
@@ -42,15 +39,15 @@ export function content(opts: Opts, ctx: RecordGridContext) {
         variant: "soft",
         startDecorator: materialIcon("Edit"),
         children: `'Edit'`,
-        href: `${stringLiteral(
-          ctx.pathBase
-        )} || '/' || ui.record_id || '/edit'`,
+        href: `${stringLiteral(ctx.pathBase)} || '/' || ${
+          ctx.recordId
+        } || '/edit'`,
       }),
       recordDeleteButton({
         table: ctx.table.name,
         recordId: ctx.recordId,
         size: "sm",
-        afterDeleteService: [navigate(stringLiteral(ctx.pathBase))],
+        afterDeleteService: (s) => s.navigate(stringLiteral(ctx.pathBase)),
       }),
     ],
   });

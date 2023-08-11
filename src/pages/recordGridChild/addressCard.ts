@@ -1,6 +1,4 @@
-import { element, state } from "../../nodeHelpers";
-import { record } from "../../procHelpers";
-import { app } from "../../singleton";
+import { nodes } from "../../nodeHelpers";
 import { createStyles } from "../../styleUtils";
 import { ident } from "../../utils/sqlHelpers";
 import { divider } from "../../components/divider";
@@ -9,9 +7,7 @@ import { typography } from "../../components/typography";
 import { displayAddressText } from "./displayAddressText";
 import { card } from "../../components/card";
 import { Style } from "../../styleTypes";
-import { RecordGridContext } from "./shared";
-
-export const name = "addressCard";
+import { RecordGridBuilder } from "../recordGrid";
 
 export interface Opts {
   styles?: Style;
@@ -31,7 +27,7 @@ const styles = createStyles({
   },
 });
 
-export function content(opts: Opts, ctx: RecordGridContext) {
+export function content(opts: Opts, ctx: RecordGridBuilder) {
   const fieldGroup = ctx.table.fieldGroups[opts.group ?? "address"];
   if (fieldGroup.type !== "Address") {
     throw new Error("addressCard expects a field group of type address");
@@ -44,7 +40,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
     variant: "outlined",
     styles: opts.styles,
     children: [
-      element("div", {
+      nodes.element("div", {
         styles: styles.header,
         children: [
           typography({
@@ -55,16 +51,13 @@ export function content(opts: Opts, ctx: RecordGridContext) {
         ],
       }),
       divider({ styles: styles.divider }),
-      state({
+      nodes.state({
         watch: [ctx.refreshKey],
-        procedure: [
-          record(
+        procedure: (s) =>
+          s.record(
             "record",
-            `select ${selectFields} from db.${ident(
-              ctx.table.name
-            )} where id = ${ctx.recordId}`
+            `select ${selectFields} from db.${ctx.table.identName} where ${ctx.table.primaryKeyIdent} = ${ctx.recordId}`
           ),
-        ],
         children: displayAddressText(fieldGroup, "record"),
       }),
     ],

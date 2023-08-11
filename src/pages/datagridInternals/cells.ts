@@ -18,7 +18,7 @@ import {
   StringField,
   TimestampField,
   UuidField,
-} from "../../appTypes";
+} from "../../app";
 import { element, ifNode, state } from "../../nodeHelpers";
 import {
   commitUiChanges,
@@ -34,7 +34,7 @@ import {
   spawn,
   try_,
 } from "../../procHelpers";
-import { app } from "../../singleton";
+import { app } from "../../app";
 import { createStyles, visuallyHiddenStyles } from "../../styleUtils";
 import { enumLikeDisplayName } from "../../utils/enumLike";
 import { stringLiteral } from "../../utils/sqlHelpers";

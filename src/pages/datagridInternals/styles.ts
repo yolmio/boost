@@ -1,4 +1,4 @@
-import { app } from "../../singleton";
+import { app } from "../../app";
 import { createStyles } from "../../styleUtils";
 
 export const styles = createStyles({

@@ -9,7 +9,7 @@ import {
   scalar,
   setScalar,
 } from "../../procHelpers";
-import { app } from "../../singleton";
+import { app } from "../../app";
 import { createStyles, flexGrowStyles } from "../../styleUtils";
 import { ident, stringLiteral } from "../../utils/sqlHelpers";
 import { divider } from "../../components/divider";
@@ -34,8 +34,6 @@ import { getTableRecordSelect } from "../../components/tableRecordSelect";
 import { formHelperText } from "../../components/formHelperText";
 import { alert } from "../../components/alert";
 import { getUniqueUiId } from "../../components/utils";
-
-export const name = "simpleLinkAssociationCard";
 
 export type TableDisplayValue =
   | string

@@ -1,15 +1,5 @@
 import { nodes } from "../nodeHelpers";
 import { Node } from "../nodeTypes";
-import {
-  exit,
-  getBoundingClientRect,
-  if_,
-  preventDefault,
-  record,
-  scalar,
-  setScalar,
-  table,
-} from "../procHelpers";
 import { Style, StyleObject } from "../styleTypes";
 import { createStyles, cssVar } from "../styleUtils";
 import { getUniqueUiId, mergeEls, SingleElementComponentOpts } from "./utils";

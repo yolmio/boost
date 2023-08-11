@@ -1,16 +1,12 @@
 import {
-  FormState,
   FormStateProcedureExtensions,
   withUpdateFormState,
 } from "../formState";
-import { addPage } from "../appHelpers";
-import { element, state, switchNode } from "../nodeHelpers";
-import { Node } from "../nodeTypes";
-import { record } from "../procHelpers";
 import { app } from "../app";
+import { nodes } from "../nodeHelpers";
+import { Node } from "../nodeTypes";
 import { containerStyles, createStyles } from "../styleUtils";
 import { stringLiteral } from "../utils/sqlHelpers";
-import { ClientProcStatement, ServiceProcStatement } from "../yom";
 import {
   getFieldsFromUpdateFormContent,
   UpdateFormContent,
@@ -59,10 +55,9 @@ export function updateFormPage(opts: EditFormPage) {
     afterTransactionCommit: opts.afterTransactionCommit,
     afterSubmitClient: opts.afterSubmitClient,
     initialRecord: `ui.record`,
-    children: ({ formState, onSubmit }) =>
+    children: (formState) =>
       updateFormContent(opts.content, {
         formState,
-        onSubmit,
         table,
         cancel: {
           type: "Href",
@@ -70,22 +65,27 @@ export function updateFormPage(opts: EditFormPage) {
         },
       }),
   });
-  content = element("div", {
+  content = nodes.element("div", {
     styles: styles.root(),
     children: content,
   });
-  addPage({
+  app.ui.pages.push({
     path,
-    content: state({
-      procedure: [
-        record(`record`, `select * from db.${opts.table} where id = record_id`),
-      ],
+    content: nodes.state({
+      procedure: (s) =>
+        s.record(
+          `record`,
+          `select * from db.${opts.table} where id = record_id`
+        ),
       statusScalar: `status`,
-      children: switchNode(
-        [`status = 'received' and record.id is not null`, content],
-        [
-          `status = 'received' and record.id is null`,
-          element("div", {
+      children: nodes.switch(
+        {
+          condition: `status = 'received' and record.id is not null`,
+          node: content,
+        },
+        {
+          condition: `status = 'received' and record.id is null`,
+          node: nodes.element("div", {
             styles: styles.notContentWrapper,
             children: alert({
               color: "danger",
@@ -96,17 +96,17 @@ export function updateFormPage(opts: EditFormPage) {
               )} || ' with id'`,
             }),
           }),
-        ],
-        [
-          `status = 'requested' or status = 'fallback_triggered'`,
-          element("div", {
+        },
+        {
+          condition: `status = 'requested' or status = 'fallback_triggered'`,
+          node: nodes.element("div", {
             styles: styles.notContentWrapper,
             children: circularProgress({ size: "lg" }),
           }),
-        ],
-        [
-          `status = 'failed'`,
-          element("div", {
+        },
+        {
+          condition: `status = 'failed'`,
+          node: nodes.element("div", {
             styles: styles.notContentWrapper,
             children: alert({
               color: "danger",
@@ -115,7 +115,7 @@ export function updateFormPage(opts: EditFormPage) {
               children: `'Unable to load page'`,
             }),
           }),
-        ]
+        }
       ),
     }),
   });

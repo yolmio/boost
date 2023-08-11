@@ -1,12 +1,10 @@
 import {
-  FormState,
   FormStateProcedureExtensions,
   withUpdateFormState,
 } from "../formState";
 import { app } from "../app";
 import { createStyles } from "../styleUtils";
 import { ident, stringLiteral } from "../utils/sqlHelpers";
-import { ClientProcStatement, ServiceProcStatement } from "../yom";
 import { divider } from "./divider";
 import { modal, modalDialog } from "./modal";
 import { typography } from "./typography";
@@ -16,15 +14,15 @@ import {
   UpdateFormContent,
   updateFormContent,
 } from "./internal/updateFormShared";
-import { element, sourceMap, state, switchNode } from "../nodeHelpers";
-import { record } from "../procHelpers";
+import { nodes } from "../nodeHelpers";
 import { alert } from "./alert";
 import { circularProgress } from "./circularProgress";
 import { materialIcon } from "./materialIcon";
+import { DomStatementsOrFn } from "../statements";
 
 export interface EditDialogOpts extends FormStateProcedureExtensions {
   open: string;
-  onClose: ClientProcStatement[];
+  onClose: DomStatementsOrFn;
   table: string;
   content: UpdateFormContent;
   recordId: string;
@@ -48,8 +46,8 @@ const styles = createStyles({
 
 export function updateDialog(opts: EditDialogOpts) {
   const tableModel = app.db.tables[opts.table];
-  return sourceMap(
-    `updateDialog(table: ${opts.table})`,
+  return nodes.sourceMap(
+    `updateDialog(${opts.table})`,
     modal({
       onClose: opts.onClose,
       open: opts.open,
@@ -72,20 +70,19 @@ export function updateDialog(opts: EditDialogOpts) {
               children: `'Update ' || ${stringLiteral(tableModel.displayName)}`,
             }),
             divider({ styles: styles.divider }),
-            state({
-              procedure: [
-                record(
+            nodes.state({
+              procedure: (s) =>
+                s.record(
                   `update_dialog_record`,
                   `select * from db.${ident(opts.table)} where id = ${
                     opts.recordId
                   }`
                 ),
-              ],
               statusScalar: `update_dialog_status`,
-              children: switchNode(
-                [
-                  `update_dialog_status = 'received' and update_dialog_record.id is not null`,
-                  withUpdateFormState({
+              children: nodes.switch(
+                {
+                  condition: `update_dialog_status = 'received' and update_dialog_record.id is not null`,
+                  node: withUpdateFormState({
                     table: opts.table,
                     recordId: opts.recordId,
                     fields: getFieldsFromUpdateFormContent(
@@ -98,34 +95,33 @@ export function updateDialog(opts: EditDialogOpts) {
                     afterTransactionStart: opts.afterTransactionStart,
                     beforeTransactionCommit: opts.beforeTransactionCommit,
                     afterTransactionCommit: opts.afterTransactionCommit,
-                    afterSubmitClient: (state) => [
-                      ...(opts.afterSubmitClient?.(state) ?? []),
-                      ...closeModal,
-                    ],
-                    children: ({ formState, onSubmit }) =>
+                    afterSubmitClient: (state, s) => {
+                      opts.afterSubmitClient?.(state, s);
+                      s.statements(closeModal);
+                    },
+                    children: (formState) =>
                       updateFormContent(opts.content, {
                         formState,
-                        onSubmit,
                         table: tableModel,
                         cancel: { type: "Proc", proc: closeModal },
                       }),
                   }),
-                ],
-                [
-                  `update_dialog_status = 'requested' or update_dialog_status = 'fallback_triggered'`,
-                  element("div", {
+                },
+                {
+                  condition: `update_dialog_status = 'requested' or update_dialog_status = 'fallback_triggered'`,
+                  node: nodes.element("div", {
                     children: circularProgress({ size: "lg" }),
                   }),
-                ],
-                [
-                  `true`,
-                  alert({
+                },
+                {
+                  condition: `true`,
+                  node: alert({
                     color: "danger",
                     startDecorator: materialIcon("Report"),
                     size: "lg",
                     children: `'Unable to load page'`,
                   }),
-                ]
+                }
               ),
             }),
           ],

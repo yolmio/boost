@@ -1,34 +1,25 @@
-import { element, ifNode, state } from "../nodeHelpers";
-import {
-  commitUiChanges,
-  exit,
-  if_,
-  modify,
-  scalar,
-  serviceProc,
-  setScalar,
-  try_,
-} from "../procHelpers";
+import { nodes } from "../nodeHelpers";
 import { app } from "../app";
 import { createStyles, visuallyHiddenStyles } from "../styleUtils";
 import { getUploadStatements, getVariantFromImageSet } from "../utils/image";
 import { ident } from "../utils/sqlHelpers";
-import { ClientProcStatement, ServiceProcStatement } from "../yom";
+import * as yom from "../yom";
 import { alert } from "./alert";
 import { button } from "./button";
 import { divider } from "./divider";
 import { iconButton } from "./iconButton";
 import { materialIcon } from "./materialIcon";
 import { modal, modalDialog } from "./modal";
+import { DomStatementsOrFn, ServiceStatementsOrFn } from "../statements";
 
 export interface ImageDialogOptions {
   tableName: string;
   open: string;
-  onClose: ClientProcStatement[];
-  recordId: string;
+  onClose: DomStatementsOrFn;
+  recordId: yom.SqlExpression;
   group: string;
-  afterReplace?: ServiceProcStatement[];
-  afterRemove?: ServiceProcStatement[];
+  afterReplace?: ServiceStatementsOrFn;
+  afterRemove?: ServiceStatementsOrFn;
 }
 
 const styles = createStyles({
@@ -75,7 +66,7 @@ const styles = createStyles({
   replaceButton: () => ({ "&:focus-within": app.theme.focus.default }),
 });
 
-export function imageDalog(opts: ImageDialogOptions) {
+export function imageDialog(opts: ImageDialogOptions) {
   const table = app.db.tables[opts.tableName];
   const fieldGroup = table.fieldGroups[opts.group];
   if (fieldGroup.type !== "Image") {
@@ -100,31 +91,31 @@ export function imageDalog(opts: ImageDialogOptions) {
     onClose: opts.onClose,
     children: () =>
       modalDialog({
-        children: state({
-          procedure: [
-            scalar(
-              `full_img`,
-              `(select ${fullImageFieldName} from db.${ident(
-                table.name
-              )} where id = ${opts.recordId})`
-            ),
-            scalar(`uploading`, `false`),
-            scalar(`deleting`, `false`),
-            scalar(`failed_upload`, `false`),
-            scalar(`failed_remove`, `false`),
-          ],
-          children: element("div", {
+        children: nodes.state({
+          procedure: (s) =>
+            s
+              .scalar(
+                `full_img`,
+                `(select ${fullImageFieldName} from db.${ident(
+                  table.name
+                )} where id = ${opts.recordId})`
+              )
+              .scalar(`uploading`, `false`)
+              .scalar(`deleting`, `false`)
+              .scalar(`failed_upload`, `false`)
+              .scalar(`failed_remove`, `false`),
+          children: nodes.element("div", {
             styles: styles.dialogRoot,
             children: [
-              element("div", {
-                children: element("img", {
+              nodes.element("div", {
+                children: nodes.element("img", {
                   styles: styles.img,
                   props: {
                     src: `'/_a/file/' || sys.account || '/' || sys.app || '/' || full_img`,
                   },
                 }),
               }),
-              element("div", {
+              nodes.element("div", {
                 styles: styles.actionsWrapper,
                 children: [
                   iconButton({
@@ -142,34 +133,36 @@ export function imageDalog(opts: ImageDialogOptions) {
                     startDecorator: materialIcon("Upload"),
                     styles: styles.replaceButton(),
                     children: [
-                      element("input", {
+                      nodes.element("input", {
                         styles: visuallyHiddenStyles,
                         props: {
                           accept: "'image/*'",
                           type: `'file'`,
                         },
                         on: {
-                          fileChange: [
-                            if_(`uploading`, exit()),
-                            setScalar(`uploading`, `true`),
-                            commitUiChanges(),
-                            ...spawnUploadTasks,
-                            try_<ClientProcStatement>({
-                              body: [
-                                ...joinUploadTasks,
-                                serviceProc([
-                                  ...updateImagesInDb,
-                                  setScalar(
-                                    `full_img`,
-                                    `uuid_` + fullImageIndex
-                                  ),
-                                  ...(opts.afterReplace ?? []),
-                                ]),
-                              ],
-                              catch: [setScalar(`failed_upload`, `true`)],
-                            }),
-                            setScalar(`uploading`, `false`),
-                          ],
+                          fileChange: (s) =>
+                            s
+                              .if(`uploading`, (s) => s.return())
+                              .setScalar(`uploading`, `true`)
+                              .commitUiChanges()
+                              .statements(spawnUploadTasks)
+                              .try({
+                                body: (s) =>
+                                  s
+                                    .statements(joinUploadTasks)
+                                    .serviceProc((s) =>
+                                      s
+                                        .statements(updateImagesInDb)
+                                        .setScalar(
+                                          `full_img`,
+                                          `uuid_` + fullImageIndex
+                                        )
+                                        .statements(opts.afterReplace)
+                                    ),
+                                catch: (s) =>
+                                  s.setScalar(`failed_upload`, `true`),
+                              })
+                              .setScalar(`uploading`, `false`),
                         },
                       }),
                       `'Replace'`,
@@ -184,41 +177,41 @@ export function imageDalog(opts: ImageDialogOptions) {
                     loading: `deleting`,
                     size: "sm",
                     on: {
-                      click: [
-                        setScalar(`deleting`, `true`),
-                        commitUiChanges(),
-                        try_<ClientProcStatement>({
-                          body: [
-                            serviceProc([
-                              modify(
-                                `update db.${ident(
-                                  table.name
-                                )} set ${setFieldsToNull} where id = ${
-                                  opts.recordId
-                                }`
+                      click: (s) =>
+                        s
+                          .setScalar(`deleting`, `true`)
+                          .commitUiChanges()
+                          .try({
+                            body: (s) =>
+                              s.serviceProc((s) =>
+                                s
+                                  .modify(
+                                    `update db.${ident(
+                                      table.name
+                                    )} set ${setFieldsToNull} where id = ${
+                                      opts.recordId
+                                    }`
+                                  )
+                                  .statements(opts.afterRemove)
                               ),
-                              ...(opts.afterRemove ?? []),
-                            ]),
                             ...opts.onClose,
-                          ],
-                          catch: [setScalar(`failed_remove`, `true`)],
-                        }),
-                        setScalar(`deleting`, `false`),
-                      ],
+                            catch: (s) => s.setScalar(`failed_remove`, `true`),
+                          })
+                          .setScalar(`deleting`, `false`),
                     },
                     children: `'Remove'`,
                     variant: "outlined",
                     color: "danger",
                     loadingPosition: "start",
                   }),
-                  ifNode(
+                  nodes.if(
                     `failed_upload`,
                     alert({
                       color: "danger",
                       children: `'Failed to upload image'`,
                     })
                   ),
-                  ifNode(
+                  nodes.if(
                     `failed_remove`,
                     alert({
                       color: "danger",

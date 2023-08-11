@@ -1,35 +1,169 @@
 import { alert } from "../components/alert";
 import { circularProgress } from "../components/circularProgress";
-import { addPage } from "../appHelpers";
-import { element, sourceMap, state, switchNode } from "../nodeHelpers";
+import { nodes } from "../nodeHelpers";
 import { Node } from "../nodeTypes";
-import { navigate, scalar, setScalar } from "../procHelpers";
-import { app } from "../app";
+import { Table, app } from "../app";
 import { Style } from "../styleTypes";
 import { baseGridStyles, containerStyles, createStyles } from "../styleUtils";
 import { pluralize } from "../utils/inflectors";
 import { stringLiteral } from "../utils/sqlHelpers";
 import { updateFormPage } from "./updateForm";
-import { ChildOpts, childFnMap } from "./recordGridChild/index";
-import { RecordGridContext } from "./recordGridChild/shared";
 import { materialIcon } from "../components/materialIcon";
+import { BasicStatements } from "../statements";
+import * as yom from "../yom";
+import * as superSimpleHeader from "./recordGridChild/superSimpleHeader";
+import * as addressCard from "./recordGridChild/addressCard";
+import * as staticTableCard from "./recordGridChild/staticTableCard";
+import * as relatedTable from "./recordGridChild/relatedTable";
+import * as namedPageHeader from "./recordGridChild/namedPageHeader";
+import * as notesCard from "./recordGridChild/notesCard";
 
-export type { RecordGridContext };
+export class RecordGridBuilder {
+  table: Table;
+  recordId: string;
+  refreshKey: string;
+  triggerRefresh: BasicStatements;
+  pathBase: string;
+  #path?: string;
+  #allow?: yom.SqlExpression;
+  #rootStyles?: Style;
+  #children: Node[] = [];
 
-export interface CustomChild {
-  type: "custom";
-  content: (props: RecordGridContext) => Node;
-}
+  constructor(table: string) {
+    const tableModel = app.db.tables[table];
+    this.pathBase = pluralize(table.split("_").join(" ")).split(" ").join("-");
+    this.recordId = "ui.record_id";
+    this.refreshKey = "ui.record_grid_refresh_key";
+    this.triggerRefresh = new BasicStatements().setScalar(
+      "ui.record_grid_refresh_key",
+      `ui.record_grid_refresh_key + 1`
+    );
+    this.table = tableModel;
+  }
 
-export type RecordGridChild = ChildOpts | CustomChild;
+  allow(expr: yom.SqlExpression) {
+    this.#allow = expr;
+    return this;
+  }
 
-export interface RecordGridPageOpts {
-  path?: string;
-  allow?: string;
-  table: string;
-  createUpdatePage?: boolean;
-  rootStyles?: Style;
-  children: RecordGridChild[];
+  path(path: string) {
+    this.#path = path;
+    return this;
+  }
+
+  rootStyles(styles: Style) {
+    this.#rootStyles = styles;
+    return this;
+  }
+
+  createUpdatePage() {
+    updateFormPage({
+      table: this.table.name,
+      afterTransactionCommit: (_, s) =>
+        s.navigate(`${stringLiteral(this.pathBase)} || '/' || ui.record_id`),
+      content: {
+        type: "AutoLabelOnLeft",
+        header: `Edit ` + this.table.displayName,
+      },
+    });
+    return this;
+  }
+
+  superSimpleHeader(opts: superSimpleHeader.Opts) {
+    this.#children.push(superSimpleHeader.content(opts, this));
+    return this;
+  }
+
+  addressCard(opts: addressCard.Opts) {
+    this.#children.push(addressCard.content(opts, this));
+    return this;
+  }
+
+  staticTableCard(opts: staticTableCard.Opts) {
+    this.#children.push(staticTableCard.content(opts, this));
+    return this;
+  }
+
+  relatedTable(opts: relatedTable.Opts) {
+    this.#children.push(relatedTable.content(opts, this));
+    return this;
+  }
+
+  namedPageHeader(opts: namedPageHeader.Opts = {}) {
+    this.#children.push(namedPageHeader.content(opts, this));
+    return this;
+  }
+
+  notesCard(opts: notesCard.Opts = {}) {
+    this.#children.push(notesCard.content(opts, this));
+    return this;
+  }
+
+  createPage() {
+    const tableLowercase = stringLiteral(this.table.displayName.toLowerCase());
+    const content = nodes.state({
+      procedure:
+        // If we update this on the service proc and not on the client proc, it will run the new state
+        // in the same round trip and so there will be no switch to status = 'fallback_triggered'
+        (s) => s.scalar(`record_grid_refresh_key`, `0`),
+      children: nodes.state({
+        watch: [`record_grid_refresh_key`],
+        procedure: (s) =>
+          s.scalar(
+            `record_exists`,
+            `exists (select 1 from db.${this.table.identName} where ${this.table.primaryKeyIdent} = ${this.recordId})`
+          ),
+        allow: this.#allow,
+        statusScalar: "status",
+        children: nodes.switch(
+          {
+            condition: `status = 'fallback_triggered'`,
+            node: nodes.element("div", {
+              styles: styles.notContentWrapper,
+              children: circularProgress({ size: "lg" }),
+            }),
+          },
+          {
+            condition: `status = 'failed' or status = 'disallowed'`,
+            node: nodes.element("div", {
+              styles: styles.notContentWrapper,
+              children: alert({
+                color: "danger",
+                startDecorator: materialIcon("Report"),
+                size: "lg",
+                children: `'Unable to get ' || ${tableLowercase}`,
+              }),
+            }),
+          },
+          {
+            condition: `not record_exists`,
+            node: nodes.element("div", {
+              styles: styles.notContentWrapper,
+              children: alert({
+                color: "danger",
+                startDecorator: materialIcon("Report"),
+                size: "lg",
+                children: `'Unable to get ' || ${tableLowercase}`,
+              }),
+            }),
+          },
+          {
+            condition: `true`,
+            node: nodes.element("div", {
+              styles: this.#rootStyles
+                ? [styles.root(), this.#rootStyles]
+                : styles.root(),
+              children: this.#children,
+            }),
+          }
+        ),
+      }),
+    });
+    return {
+      path: this.#path ?? this.pathBase + `/{record_id:id}`,
+      content: nodes.sourceMap(`recordGridPage(${this.table.name})`, content),
+    };
+  }
 }
 
 const styles = createStyles({
@@ -49,105 +183,11 @@ const styles = createStyles({
   },
 });
 
-export function recordGridPage(opts: RecordGridPageOpts) {
-  const tableModel = app.db.tables[opts.table];
-  const pathBase = pluralize(opts.table.split("_").join(" "))
-    .split(" ")
-    .join("-");
-  const path = opts.path ?? pathBase + `/{record_id:id}`;
-  const props: RecordGridContext = {
-    recordId: "ui.record_id",
-    refreshKey: "ui.record_grid_refresh_key",
-    triggerRefresh: setScalar(
-      "ui.record_grid_refresh_key",
-      `ui.record_grid_refresh_key + 1`
-    ),
-    table: tableModel,
-    pathBase,
-  };
-  const children: Node[] = [];
-  for (const child of opts.children) {
-    if (child.type === "custom") {
-      children.push(child.content(props));
-    } else {
-      children.push(childFnMap[child.type](child as any, props));
-    }
-  }
-  const tableLowercase = stringLiteral(tableModel.displayName.toLowerCase());
-  const content = state({
-    procedure: [
-      // If we update this on the service proc and not on the client proc, it will run the new state
-      // in the same round trip and so there will be no switch to status = 'fallback_triggered'
-      scalar(`record_grid_refresh_key`, `0`),
-    ],
-    children: state({
-      watch: [`record_grid_refresh_key`],
-      procedure: [
-        scalar(
-          `record_exists`,
-          `exists (select id from db.${opts.table} where id = record_id)`
-        ),
-      ],
-      allow: opts.allow,
-      statusScalar: "status",
-      children: switchNode(
-        [
-          `status = 'fallback_triggered'`,
-          element("div", {
-            styles: styles.notContentWrapper,
-            children: circularProgress({ size: "lg" }),
-          }),
-        ],
-        [
-          `status = 'failed' or status = 'disallowed'`,
-          element("div", {
-            styles: styles.notContentWrapper,
-            children: alert({
-              color: "danger",
-              startDecorator: materialIcon("Report"),
-              size: "lg",
-              children: `'Unable to get ' || ${tableLowercase}`,
-            }),
-          }),
-        ],
-        [
-          `not record_exists`,
-          element("div", {
-            styles: styles.notContentWrapper,
-            children: alert({
-              color: "danger",
-              startDecorator: materialIcon("Report"),
-              size: "lg",
-              children: `'Unable to get ' || ${tableLowercase}`,
-            }),
-          }),
-        ],
-        [
-          `true`,
-          element("div", {
-            styles: opts.rootStyles
-              ? [styles.root(), opts.rootStyles]
-              : styles.root(),
-            children,
-          }),
-        ]
-      ),
-    }),
-  });
-  if (opts.createUpdatePage) {
-    updateFormPage({
-      table: opts.table,
-      afterTransactionCommit: () => [
-        navigate(`${stringLiteral(pathBase)} || '/' || ui.record_id`),
-      ],
-      content: {
-        type: "AutoLabelOnLeft",
-        header: `Edit ` + tableModel.displayName,
-      },
-    });
-  }
-  addPage({
-    path,
-    content: sourceMap(`recordGridPage(table: ${opts.table})`, content),
-  });
+export function recordGridPage(
+  table: string,
+  fn: (builder: RecordGridBuilder) => unknown
+) {
+  const builder = new RecordGridBuilder(table);
+  fn(builder);
+  app.ui.pages.push(builder.createPage());
 }

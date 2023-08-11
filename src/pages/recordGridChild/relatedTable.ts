@@ -1,6 +1,5 @@
-import { each, element, sourceMap, state } from "../../nodeHelpers";
+import { nodes } from "../../nodeHelpers";
 import { Node } from "../../nodeTypes";
-import { scalar, setScalar, table } from "../../procHelpers";
 import { createStyles } from "../../styleUtils";
 import { ident, stringLiteral } from "../../utils/sqlHelpers";
 import { inlineFieldDisplay } from "../../components/internal/fieldInlineDisplay";
@@ -12,10 +11,8 @@ import { button } from "../../components/button";
 import { insertDialog } from "../../components/insertDialog";
 import { AutoLabelOnLeftInsertFormContent } from "../../components/internal/insertFormShared";
 import { deepmerge } from "../../utils/deepmerge";
-import { RecordGridContext } from "./shared";
-import { app } from "../../singleton";
-
-export const name = "relatedTable";
+import { app } from "../../app";
+import { RecordGridBuilder } from "../recordGrid";
 
 export interface Opts {
   table: string;
@@ -58,7 +55,7 @@ const styles = createStyles({
   },
 });
 
-export function content(opts: Opts, ctx: RecordGridContext) {
+export function content(opts: Opts, ctx: RecordGridBuilder) {
   const tableModel = app.db.tables[opts.table];
   const foreignKeyField = Object.values(tableModel.fields).find(
     (f) => f.type === "ForeignKey" && f.table === ctx.table.name
@@ -78,19 +75,18 @@ export function content(opts: Opts, ctx: RecordGridContext) {
       selectFields += `${field.expr("record")} as e_${i}`;
     }
   }
-  return sourceMap(
+  return nodes.sourceMap(
     `relatedTable(table: ${opts.table})`,
-    state({
+    nodes.state({
       watch: [ctx.refreshKey],
-      procedure: [
-        table(
+      procedure: (s) =>
+        s.table(
           "record",
           `select id ${selectFields} from db.${ident(
             opts.table
           )} as record where ${foreignKeyField.name} = ${ctx.recordId}`
         ),
-      ],
-      children: element("div", {
+      children: nodes.element("div", {
         styles: {
           display: "flex",
           flexDirection: "column",
@@ -99,31 +95,31 @@ export function content(opts: Opts, ctx: RecordGridContext) {
           overflowX: "auto",
         },
         children: [
-          element("table", {
+          nodes.element("table", {
             children: [
-              element("thead", {
-                children: element("tr", {
+              nodes.element("thead", {
+                children: nodes.element("tr", {
                   children: [
                     opts.fields.map((field) => {
                       if (typeof field === "string") {
                         const fieldModel = tableModel.fields[field];
-                        return element("th", {
+                        return nodes.element("th", {
                           styles: styles.header,
                           children: stringLiteral(fieldModel.displayName),
                         });
                       } else {
-                        return element("th", {
+                        return nodes.element("th", {
                           styles: styles.header,
                           children: stringLiteral(field.label),
                         });
                       }
                     }),
-                    element("th", {
+                    nodes.element("th", {
                       props: { width: "50px" },
                       styles: styles.header,
                       children: `'Edit'`,
                     }),
-                    element("th", {
+                    nodes.element("th", {
                       props: { width: "50px" },
                       styles: styles.header,
                       children: `'Delete'`,
@@ -131,17 +127,17 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                   ],
                 }),
               }),
-              element("tbody", {
-                children: each({
+              nodes.element("tbody", {
+                children: nodes.each({
                   table: "record",
                   recordName: "record",
                   key: "record.id",
-                  children: element("tr", {
+                  children: nodes.element("tr", {
                     children: [
                       opts.fields.map((field, i) => {
                         if (typeof field === "string") {
                           const fieldModel = tableModel.fields[field];
-                          return element("td", {
+                          return nodes.element("td", {
                             styles: styles.cell,
                             children: inlineFieldDisplay(
                               fieldModel,
@@ -150,7 +146,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                           });
                         } else {
                           const expr = `record.e_${i}`;
-                          return element("td", {
+                          return nodes.element("td", {
                             styles: styles.cell,
                             children: field.display
                               ? field.display(`record.e_${i}`)
@@ -158,20 +154,22 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                           });
                         }
                       }),
-                      state({
-                        procedure: [
-                          scalar(`editing`, `false`),
-                          scalar(`deleting`, `false`),
-                        ],
+                      nodes.state({
+                        procedure: (s) =>
+                          s
+                            .scalar(`editing`, `false`)
+                            .scalar(`deleting`, `false`),
                         children: [
-                          element("td", {
+                          nodes.element("td", {
                             styles: styles.cell,
                             children: iconButton({
                               variant: "plain",
                               color: "neutral",
                               size: "sm",
                               children: materialIcon("Edit"),
-                              on: { click: [setScalar(`editing`, `true`)] },
+                              on: {
+                                click: (s) => s.setScalar(`editing`, `true`),
+                              },
                             }),
                           }),
                           updateDialog({
@@ -179,28 +177,31 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                               type: "AutoLabelOnLeft",
                               ignoreFields: [foreignKeyField.name],
                             },
-                            onClose: [setScalar(`editing`, `false`)],
+                            onClose: (s) => s.setScalar(`editing`, `false`),
                             open: `editing`,
                             table: opts.table,
                             recordId: `record.id`,
-                            afterTransactionCommit: () => [ctx.triggerRefresh],
+                            afterTransactionCommit: (_, s) =>
+                              s.statements(ctx.triggerRefresh),
                           }),
-                          element("td", {
+                          nodes.element("td", {
                             styles: styles.cell,
                             children: iconButton({
                               variant: "plain",
                               color: "danger",
                               size: "sm",
                               children: materialIcon("DeleteOutline"),
-                              on: { click: [setScalar(`deleting`, `true`)] },
+                              on: {
+                                click: (s) => s.setScalar(`deleting`, `true`),
+                              },
                             }),
                           }),
                           deleteRecordDialog({
-                            onClose: [setScalar(`deleting`, `false`)],
+                            onClose: (s) => s.setScalar(`deleting`, `false`),
                             open: `deleting`,
                             table: ctx.table.name,
                             recordId: `record.id`,
-                            afterDeleteService: [ctx.triggerRefresh],
+                            afterDeleteService: ctx.triggerRefresh,
                           }),
                         ],
                       }),
@@ -210,10 +211,10 @@ export function content(opts: Opts, ctx: RecordGridContext) {
               }),
             ],
           }),
-          state({
-            procedure: [scalar(`adding`, `false`)],
+          nodes.state({
+            procedure: (s) => s.scalar(`adding`, `false`),
             children: [
-              element("div", {
+              nodes.element("div", {
                 styles: { display: "flex", justifyContent: "flex-end" },
                 children: button({
                   size: "sm",
@@ -221,7 +222,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                   startDecorator: materialIcon("Add"),
                   children:
                     opts.addButtonText ?? `'Add ${ctx.table.displayName}…'`,
-                  on: { click: [setScalar(`adding`, `true`)] },
+                  on: { click: (s) => s.setScalar(`adding`, `true`) },
                 }),
               }),
               insertDialog({
@@ -233,10 +234,11 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                   opts.insertDialog
                 ),
                 withValues: { [foreignKeyField.name]: ctx.recordId },
-                onClose: [setScalar(`adding`, `false`)],
+                onClose: (s) => s.setScalar(`adding`, `false`),
                 open: `adding`,
                 table: opts.table,
-                afterTransactionCommit: () => [ctx.triggerRefresh],
+                afterTransactionCommit: (_, s) =>
+                  s.statements(ctx.triggerRefresh),
               }),
             ],
           }),

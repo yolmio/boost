@@ -23,11 +23,9 @@ import { materialIcon } from "../../components/materialIcon";
 import { textarea } from "../../components/textarea";
 import { typography } from "../../components/typography";
 import { RecordGridContext } from "./shared";
-import { app } from "../../singleton";
+import { app } from "../../app";
 import { card } from "../../components/card";
 import { Style } from "../../styleTypes";
-
-export const name = "notesListCard";
 
 export interface Opts {
   styles?: Style;

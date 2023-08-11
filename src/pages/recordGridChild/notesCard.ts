@@ -1,16 +1,4 @@
-import { element, ifNode, state } from "../../nodeHelpers";
-import {
-  commitUiChanges,
-  debugExpr,
-  exit,
-  if_,
-  modify,
-  record,
-  scalar,
-  serviceProc,
-  setScalar,
-  try_,
-} from "../../procHelpers";
+import { nodes } from "../../nodeHelpers";
 import { createStyles } from "../../styleUtils";
 import { ident } from "../../utils/sqlHelpers";
 import { alert } from "../../components/alert";
@@ -20,11 +8,9 @@ import { iconButton } from "../../components/iconButton";
 import { materialIcon } from "../../components/materialIcon";
 import { textarea } from "../../components/textarea";
 import { typography } from "../../components/typography";
-import { RecordGridContext } from "./shared";
 import { card } from "../../components/card";
 import { Style } from "../../styleTypes";
-
-export const name = "notesCard";
+import { RecordGridBuilder } from "../recordGrid";
 
 export interface Opts {
   styles?: Style;
@@ -58,14 +44,14 @@ const styles = createStyles({
   },
 });
 
-export function content(opts: Opts, ctx: RecordGridContext) {
+export function content(opts: Opts, ctx: RecordGridBuilder) {
   return card({
     variant: "outlined",
     styles: opts.styles,
-    children: state({
-      procedure: [scalar(`editing`, `false`)],
+    children: nodes.state({
+      procedure: (s) => s.scalar(`editing`, `false`),
       children: [
-        element("div", {
+        nodes.element("div", {
           styles: styles.header,
           children: [
             typography({
@@ -75,34 +61,33 @@ export function content(opts: Opts, ctx: RecordGridContext) {
             iconButton({
               variant: "plain",
               size: "sm",
-              children: ifNode(
-                `editing`,
-                materialIcon("Close"),
-                materialIcon("Edit")
-              ),
-              on: { click: [setScalar(`editing`, `not editing`)] },
+              children: nodes.if({
+                expr: `editing`,
+                then: materialIcon("Close"),
+                else: materialIcon("Edit"),
+              }),
+              on: { click: (s) => s.setScalar(`editing`, `not editing`) },
             }),
           ],
         }),
         divider(),
-        state({
+        nodes.state({
           watch: [ctx.refreshKey],
-          procedure: [
-            scalar(
+          procedure: (s) =>
+            s.scalar(
               `note`,
               `(select notes from db.${ident(ctx.table.name)} where id = ${
                 ctx.recordId
               })`
             ),
-          ],
-          children: ifNode(
-            `editing`,
-            state({
-              procedure: [
-                scalar(`editing_note`, `note`),
-                scalar(`in_progress`, `false`),
-                scalar(`failed`, `false`),
-              ],
+          children: nodes.if({
+            expr: `editing`,
+            then: nodes.state({
+              procedure: (s) =>
+                s
+                  .scalar(`editing_note`, `note`)
+                  .scalar(`in_progress`, `false`)
+                  .scalar(`failed`, `false`),
               children: [
                 textarea({
                   styles: styles.textarea,
@@ -114,12 +99,13 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                         rows: `5`,
                       },
                       on: {
-                        input: [setScalar(`editing_note`, `target_value`)],
+                        input: (s) =>
+                          s.setScalar(`editing_note`, `target_value`),
                       },
                     },
                   },
                 }),
-                ifNode(
+                nodes.if(
                   `failed`,
                   alert({
                     styles: styles.editingError,
@@ -127,7 +113,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                     children: `'Unable to add note at this time'`,
                   })
                 ),
-                element("div", {
+                nodes.element("div", {
                   styles: styles.buttons,
                   children: [
                     button({
@@ -135,49 +121,50 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                       children: "'Save changes'",
                       size: "sm",
                       on: {
-                        click: [
-                          if_(`in_progress`, exit()),
-                          setScalar(`in_progress`, `true`),
-                          setScalar(`failed`, `false`),
-                          commitUiChanges(),
-                          try_({
-                            body: [
-                              serviceProc([
-                                modify(
-                                  `update db.${ident(
-                                    ctx.table.name
-                                  )} set notes = ui.editing_note where id = ${
-                                    ctx.recordId
-                                  }`
-                                ),
-                                ctx.triggerRefresh,
-                              ]),
-                              setScalar(`ui.editing`, `false`),
-                            ],
-                            catch: [
-                              setScalar(`ui.in_progress`, `false`),
-                              setScalar(`ui.failed`, `true`),
-                            ],
-                          }),
-                        ],
+                        click: (s) =>
+                          s
+                            .if(`in_progress`, (s) => s.return())
+                            .setScalar(`in_progress`, `true`)
+                            .setScalar(`failed`, `false`)
+                            .commitUiChanges()
+                            .try({
+                              body: (s) =>
+                                s
+                                  .serviceProc((s) =>
+                                    s
+                                      .modify(
+                                        `update db.${ident(
+                                          ctx.table.name
+                                        )} set notes = ui.editing_note where id = ${
+                                          ctx.recordId
+                                        }`
+                                      )
+                                      .statements(ctx.triggerRefresh)
+                                  )
+                                  .setScalar(`ui.editing`, `false`),
+                              catch: (s) =>
+                                s
+                                  .setScalar(`ui.in_progress`, `false`)
+                                  .setScalar(`ui.failed`, `true`),
+                            }),
                       },
                     }),
                   ],
                 }),
               ],
             }),
-            ifNode(
-              `note is null or note = ''`,
-              element("p", {
+            else: nodes.if({
+              expr: `note is null or note = ''`,
+              then: nodes.element("p", {
                 styles: styles.emptyNote,
                 children: "'No notes here!'",
               }),
-              element("p", {
+              else: nodes.element("p", {
                 styles: styles.noteText,
                 children: `note`,
-              })
-            )
-          ),
+              }),
+            }),
+          }),
         }),
       ],
     }),

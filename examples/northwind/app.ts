@@ -472,37 +472,31 @@ ui.addDashboardGridPage((page) =>
 //   fieldOrder: ["image_thumb", "first_name", "last_name", "title"],
 // });
 
-// recordGridPage({
-//   table: "employee",
-//   children: [
-//     {
-//       type: "namedHeader",
-//       prefix: "title_of_courtesy",
-//       subHeader: "title",
-//     },
-//     {
-//       type: "staticTableCard",
-//       rows: ["birth_date", "hire_date", "home_phone"],
-//       styles: { gridColumnSpan: 12, md: { gridColumnSpan: 6 } },
-//     },
-//     {
-//       type: "addressCard",
-//       styles: {
-//         alignSelf: "start",
-//         gridColumnSpan: 12,
-//         md: { gridColumnSpan: 6 },
-//       },
-//     },
-//     {
-//       type: "notesCard",
-//       styles: {
-//         alignSelf: "start",
-//         gridColumnSpan: 12,
-//         md: { gridColumnSpan: 6 },
-//       },
-//     },
-//   ],
-// });
+ui.addRecordGridPage("employee", (page) => {
+  page
+    .namedPageHeader({
+      prefix: "title_of_courtesy",
+      subHeader: "title",
+    })
+    .staticTableCard({
+      rows: ["birth_date", "hire_date", "home_phone"],
+      styles: { gridColumnSpan: 12, md: { gridColumnSpan: 6 } },
+    })
+    .addressCard({
+      styles: {
+        alignSelf: "start",
+        gridColumnSpan: 12,
+        md: { gridColumnSpan: 6 },
+      },
+    })
+    .notesCard({
+      styles: {
+        alignSelf: "start",
+        gridColumnSpan: 12,
+        md: { gridColumnSpan: 6 },
+      },
+    });
+});
 
 // simpleDatagridPage({
 //   table: "user",
@@ -733,99 +727,95 @@ ui.addInsertFormPage({
     s.navigate(`'/orders/' || last_record_id(db.order)`),
 });
 
-// recordGridPage({
-//   table: "order",
-//   children: [
-//     { type: "superSimpleHeader", header: "Order Details" },
-//     {
-//       type: "staticTableCard",
-//       styles: {
-//         gridColumnSpan: 12,
-//         lg: { gridColumnSpan: 8 },
-//       },
-//       rows: (ctx) => [
-//         "order_date",
-//         "required_date",
-//         "shipped_date",
-//         "customer",
-//         "employee",
-//         "ship_via",
-//         // check if freight needs to be added
-//         {
-//           label: "'Total'",
-//           expr: `(select sum(cast((unit_price * quantity) * (1 - discount) as decimal(10, 2))) from db.order_detail where order = ${ctx.recordId})`,
-//           display: (v) => `format.currency(${v}, 'usd')`,
-//         },
-//       ],
-//     },
-//     {
-//       type: "addressCard",
-//       styles: {
-//         alignSelf: "start",
-//         gridColumnSpan: 12,
-//         lg: { gridColumnSpan: 4 },
-//       },
-//       header: `'Ship Address'`,
-//       group: "ship_address",
-//     },
-//     {
-//       type: "relatedTable",
-//       table: "order_detail",
-//       fields: [
-//         "product",
-//         "unit_price",
-//         "quantity",
-//         "discount",
-//         {
-//           expr: (detail) =>
-//             `format.currency(cast((${detail}.unit_price * ${detail}.quantity) * (1 - ${detail}.discount) as decimal(10, 2)), 'usd')`,
-//           label: "Total",
-//         },
-//       ],
-//       insertDialog: {
-//         fieldOverrides: {
-//           product: {
-//             onChange: (state) => [
-//               spawn({
-//                 detached: true,
-//                 statements: [
-//                   if_(`not ` + state.fields.touched("unit_price"), [
-//                     scalar(`product_unit_price`, {
-//                       type: "Decimal",
-//                       precision: 10,
-//                       scale: 2,
-//                       signed: true,
-//                     }),
-//                     serviceProc([
-//                       setScalar(
-//                         "product_unit_price",
-//                         `(select unit_price from db.product where id = ${state.fields.get(
-//                           "product"
-//                         )})`
-//                       ),
-//                     ]),
-//                     if_(
-//                       `product_unit_price is not null and not ` +
-//                         state.fields.touched("unit_price"),
-//                       [
-//                         state.fields.set(
-//                           "unit_price",
-//                           "cast(product_unit_price as string)"
-//                         ),
-//                         commitUiChanges(),
-//                       ]
-//                     ),
-//                   ]),
-//                 ],
-//               }),
-//             ],
-//           },
-//         },
-//       },
-//     },
-//   ],
-//   createUpdatePage: true,
-// });
+ui.addRecordGridPage("order", (page) => {
+  page
+    .superSimpleHeader({
+      header: "Order Details",
+    })
+    .staticTableCard({
+      styles: {
+        gridColumnSpan: 12,
+        lg: { gridColumnSpan: 8 },
+      },
+      rows: [
+        "order_date",
+        "required_date",
+        "shipped_date",
+        "customer",
+        "employee",
+        "ship_via",
+        // check if freight needs to be added
+        {
+          label: "'Total'",
+          expr: `(select sum(cast((unit_price * quantity) * (1 - discount) as decimal(10, 2))) from db.order_detail where order = ${page.recordId})`,
+          display: (v) => `format.currency(${v}, 'usd')`,
+        },
+      ],
+    })
+    .addressCard({
+      styles: {
+        alignSelf: "start",
+        gridColumnSpan: 12,
+        lg: { gridColumnSpan: 4 },
+      },
+      header: `'Ship Address'`,
+      group: "ship_address",
+    })
+    .relatedTable({
+      table: "order_detail",
+      fields: [
+        "product",
+        "unit_price",
+        "quantity",
+        "discount",
+        {
+          expr: (detail) =>
+            `format.currency(cast((${detail}.unit_price * ${detail}.quantity) * (1 - ${detail}.discount) as decimal(10, 2)), 'usd')`,
+          label: "Total",
+        },
+      ],
+      insertDialog: {
+        fieldOverrides: {
+          product: {
+            onChange: (state, s) =>
+              s.spawn({
+                detached: true,
+                procedure: (s) =>
+                  s.if(`not ` + state.field("unit_price").touched, (s) =>
+                    s
+                      .scalar(`product_unit_price`, {
+                        type: "Decimal",
+                        precision: 10,
+                        scale: 2,
+                        signed: true,
+                      })
+                      .serviceProc((s) =>
+                        s.setScalar(
+                          "product_unit_price",
+                          `(select unit_price from db.product where id = ${
+                            state.field("product").value
+                          })`
+                        )
+                      )
+                      .if(
+                        `product_unit_price is not null and not ` +
+                          state.field("unit_price").touched,
+                        (s) =>
+                          s
+                            .statements(
+                              state
+                                .field("unit_price")
+                                .setValue("cast(product_unit_price as string)")
+                            )
+                            .commitUiChanges()
+                      )
+                  ),
+              }),
+          },
+        },
+      },
+    });
+});
 
 // datagridPage({
 //   table: "customer",
@@ -838,25 +828,21 @@ ui.addInsertFormPage({
 //   viewButton: true,
 // });
 
-// recordGridPage({
-//   table: "customer",
-//   children: [
-//     { type: "namedHeader" },
-//     {
-//       type: "staticTableCard",
-//       styles: { gridColumnSpan: 12, lg: { gridColumnSpan: 8 } },
-//       rows: ["contact_name", "contact_title", "phone", "fax"],
-//     },
-//     {
-//       type: "addressCard",
-//       styles: {
-//         alignSelf: "start",
-//         gridColumnSpan: 12,
-//         lg: { gridColumnSpan: 4 },
-//       },
-//     },
-//   ],
-// });
+ui.addRecordGridPage("customer", (page) => {
+  page
+    .namedPageHeader()
+    .staticTableCard({
+      styles: { gridColumnSpan: 12, lg: { gridColumnSpan: 8 } },
+      rows: ["contact_name", "contact_title", "phone", "fax"],
+    })
+    .addressCard({
+      styles: {
+        alignSelf: "start",
+        gridColumnSpan: 12,
+        lg: { gridColumnSpan: 4 },
+      },
+    });
+});
 
 // simpleDatagridPage({
 //   table: "shipper",
@@ -872,25 +858,21 @@ ui.addInsertFormPage({
 //   },
 // });
 
-// recordGridPage({
-//   table: "supplier",
-//   children: [
-//     { type: "namedHeader" },
-//     {
-//       type: "staticTableCard",
-//       styles: { gridColumnSpan: 12, lg: { gridColumnSpan: 8 } },
-//       rows: ["contact_name", "contact_title", "phone", "fax", "home_page"],
-//     },
-//     {
-//       type: "addressCard",
-//       styles: {
-//         alignSelf: "start",
-//         gridColumnSpan: 12,
-//         lg: { gridColumnSpan: 4 },
-//       },
-//     },
-//   ],
-// });
+ui.addRecordGridPage("supplier", (page) => {
+  page
+    .namedPageHeader()
+    .staticTableCard({
+      styles: { gridColumnSpan: 12, lg: { gridColumnSpan: 8 } },
+      rows: ["contact_name", "contact_title", "phone", "fax", "home_page"],
+    })
+    .addressCard({
+      styles: {
+        alignSelf: "start",
+        gridColumnSpan: 12,
+        lg: { gridColumnSpan: 4 },
+      },
+    });
+});
 
 // simpleDatagridPage({
 //   table: "product",
@@ -900,25 +882,20 @@ ui.addInsertFormPage({
 //   fields: { discontinued: { immutable: true } },
 // });
 
-// recordGridPage({
-//   table: "product",
-//   children: [
-//     { type: "namedHeader", chips: ["discontinued"] },
-//     {
-//       type: "staticTableCard",
-//       styles: { gridColumnSpan: 12, md: { gridColumnSpan: 6 } },
-//       rows: [
-//         "supplier",
-//         "category",
-//         "quantity_per_unit",
-//         "unit_price",
-//         "units_in_stock",
-//         "units_on_order",
-//         "reorder_level",
-//       ],
-//     },
-//   ],
-// });
+ui.addRecordGridPage("product", (page) => {
+  page.namedPageHeader({ chips: ["discontinued"] }).staticTableCard({
+    styles: { gridColumnSpan: 12, md: { gridColumnSpan: 6 } },
+    rows: [
+      "supplier",
+      "category",
+      "quantity_per_unit",
+      "unit_price",
+      "units_in_stock",
+      "units_on_order",
+      "reorder_level",
+    ],
+  });
+});
 
 // simpleDatagridPage({
 //   table: "category",
