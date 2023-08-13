@@ -1,18 +1,4 @@
-import { each, element, ifNode, state, switchNode } from "../../nodeHelpers";
-import {
-  commitUiChanges,
-  debugQuery,
-  exit,
-  if_,
-  modify,
-  scalar,
-  serviceProc,
-  setQueryParam,
-  setScalar,
-  stopPropagation,
-  table,
-  try_,
-} from "../../procHelpers";
+import { nodes } from "../../nodeHelpers";
 import { stringLiteral } from "../../utils/sqlHelpers";
 import { button } from "../../components/button";
 import { iconButton } from "../../components/iconButton";
@@ -20,7 +6,6 @@ import { materialIcon } from "../../components/materialIcon";
 import { popoverMenu } from "../../components/menu";
 import { typography } from "../../components/typography";
 import { input } from "../../components/input";
-import { ClientProcStatement } from "../../yom";
 import { deleteRecordDialog } from "../../components/deleteRecordDialog";
 import { Node } from "../../nodeTypes";
 import { createStyles, flexGrowStyles } from "../../styleUtils";
@@ -37,23 +22,22 @@ import { alert } from "../../components/alert";
 import { checkbox } from "../../components/checkbox";
 
 function withViewDrawerState(datagridName: string, children: Node) {
-  return state({
-    procedure: [
-      scalar(`drawer_refresh_key`, `0`),
-      scalar(`adding`, `false`),
-      scalar(`proc_error`, { type: "String", maxLength: 2000 }),
-      scalar(`proc_in_progress`, `false`),
-    ],
-    children: state({
+  return nodes.state({
+    procedure: (s) =>
+      s
+        .scalar(`drawer_refresh_key`, `0`)
+        .scalar(`adding`, `false`)
+        .scalar(`proc_error`, { type: "String", maxLength: 2000 })
+        .scalar(`proc_in_progress`, `false`),
+    children: nodes.state({
       watch: ["drawer_refresh_key"],
-      procedure: [
-        table(
+      procedure: (s) =>
+        s.table(
           `datagrid_view`,
           `select id, ordering, name, user is not null as is_personal from db.datagrid_view where datagrid_name = ${stringLiteral(
             datagridName
           )} and user is null or user = current_user() order by user is not null, ordering`
         ),
-      ],
       statusScalar: `drawer_status`,
       children,
     }),
@@ -116,54 +100,54 @@ const styles = createStyles({
 const viewIdBase = stringLiteral(getUniqueUiId());
 
 export function viewDrawer(datagridName: string, dts: DatagridDts) {
-  const drawerContent = element("div", {
+  const drawerContent = nodes.element("div", {
     styles: styles.root,
     children: [
-      element("div", {
+      nodes.element("div", {
         styles: styles.header,
         children: [
           typography({
             level: "h6",
             children: `'Views'`,
           }),
-          ifNode(`proc_in_progress`, circularProgress({ size: "sm" })),
-          element("div", { styles: flexGrowStyles }),
+          nodes.if(`proc_in_progress`, circularProgress({ size: "sm" })),
+          nodes.element("div", { styles: flexGrowStyles }),
           iconButton({
             size: "sm",
             variant: "outlined",
-            children: ifNode(
-              `adding`,
-              materialIcon("Close"),
-              materialIcon("Add")
-            ),
-            on: { click: [setScalar(`adding`, `not adding`)] },
+            children: nodes.if({
+              expr: `adding`,
+              then: materialIcon("Close"),
+              else: materialIcon("Add"),
+            }),
+            on: { click: (s) => s.setScalar(`adding`, `not adding`) },
           }),
         ],
       }),
-      ifNode(
+      nodes.if(
         `adding`,
-        state({
-          procedure: [
-            scalar(`view_name`, `''`),
-            scalar(`personal`, `false`),
-            scalar(`waiting`, `false`),
-            scalar(`error`, { type: "String", maxLength: 2000 }),
-          ],
+        nodes.state({
+          procedure: (s) =>
+            s
+              .scalar(`view_name`, `''`)
+              .scalar(`personal`, `false`)
+              .scalar(`waiting`, `false`)
+              .scalar(`error`, { type: "String", maxLength: 2000 }),
           children: [
             input({
               slots: { input: { props: { yolmFocusKey: `true` } } },
               on: {
-                input: [setScalar(`view_name`, `target_value`)],
+                input: (s) => s.setScalar(`view_name`, `target_value`),
               },
             }),
-            ifNode(
+            nodes.if(
               `error is not null`,
               alert({
                 color: "danger",
                 children: `error`,
               })
             ),
-            element("div", {
+            nodes.element("div", {
               styles: styles.addButtons,
               children: [
                 checkbox({
@@ -173,51 +157,54 @@ export function viewDrawer(datagridName: string, dts: DatagridDts) {
                   label: `'Personal'`,
                   size: "sm",
                   on: {
-                    checkboxChange: [setScalar(`personal`, `target_checked`)],
+                    checkboxChange: (s) =>
+                      s.setScalar(`personal`, `target_checked`),
                   },
                 }),
-                element("div", { styles: flexGrowStyles }),
+                nodes.element("div", { styles: flexGrowStyles }),
                 button({
                   size: "sm",
                   variant: "soft",
                   color: "neutral",
                   children: `'Cancel'`,
-                  on: { click: [setScalar(`adding`, `false`)] },
+                  on: { click: (s) => s.setScalar(`adding`, `false`) },
                 }),
                 button({
                   size: "sm",
                   children: `'Add view'`,
                   loading: `waiting`,
                   on: {
-                    click: [
-                      setScalar(`waiting`, `true`),
-                      setScalar(`error`, `null`),
-                      commitUiChanges(),
-                      try_<ClientProcStatement>({
-                        body: [
-                          serviceProc([
-                            ...saveAsNewView(
-                              datagridName,
-                              dts,
-                              `view_name`,
-                              `personal`
+                    click: (s) =>
+                      s
+                        .setScalar(`waiting`, `true`)
+                        .setScalar(`error`, `null`)
+                        .commitUiChanges()
+                        .try({
+                          body: (s) =>
+                            s.serviceProc((s) =>
+                              s
+                                .statements(
+                                  saveAsNewView(
+                                    datagridName,
+                                    dts,
+                                    `view_name`,
+                                    `personal`
+                                  )
+                                )
+                                .setScalar(
+                                  `drawer_refresh_key`,
+                                  `drawer_refresh_key + 1`
+                                )
+                                .setQueryParam(`ui.view`, `view_id`)
                             ),
-                            setScalar(
-                              `drawer_refresh_key`,
-                              `drawer_refresh_key + 1`
-                            ),
-                            setQueryParam(`ui.view`, `view_id`),
-                          ]),
-                        ],
-                        catch: [
-                          setScalar(`waiting`, `false`),
-                          setScalar(`error`, `'Unable to save view'`),
-                          exit(),
-                        ],
-                      }),
-                      setScalar(`waiting`, `false`),
-                      setScalar(`adding`, `false`),
-                    ],
+                          catch: (s) =>
+                            s
+                              .setScalar(`waiting`, `false`)
+                              .setScalar(`error`, `'Unable to save view'`)
+                              .return(),
+                        })
+                        .setScalar(`waiting`, `false`)
+                        .setScalar(`adding`, `false`),
                   },
                 }),
               ],
@@ -226,44 +213,41 @@ export function viewDrawer(datagridName: string, dts: DatagridDts) {
         })
       ),
       divider(),
-      ifNode(
+      nodes.if(
         `proc_error is not null`,
         alert({ color: "danger", children: `proc_error` })
       ),
-      switchNode(
-        [
-          `drawer_status in ('fallback_triggered', 'requested')`,
-          element("div", {
+      nodes.switch(
+        {
+          condition: `drawer_status in ('fallback_triggered', 'requested')`,
+          node: nodes.element("div", {
             styles: styles.loadingWrapper,
             children: circularProgress({ size: "lg" }),
           }),
-        ],
-        [
-          `drawer_status = 'failed'`,
-          alert({ color: "danger", children: `'Unable to get views'` }),
-        ],
-        [
-          `exists (select id from datagrid_view)`,
-          element("ul", {
+        },
+        {
+          condition: `drawer_status = 'failed'`,
+          node: alert({ color: "danger", children: `'Unable to get views'` }),
+        },
+        {
+          condition: `exists (select id from datagrid_view)`,
+          node: nodes.element("ul", {
             styles: styles.viewsList,
-            children: each({
+            children: nodes.each({
               table: "datagrid_view",
               key: "id",
               recordName: "view_record",
-              children: state({
-                procedure: [
-                  scalar(`deleting`, `false`),
-                  scalar(`editing`, `false`),
-                ],
-                children: element("li", {
+              children: nodes.state({
+                procedure: (s) =>
+                  s.scalar(`deleting`, `false`).scalar(`editing`, `false`),
+                children: nodes.element("li", {
                   styles: styles.view,
                   on: {
-                    click: [
-                      if_(
+                    click: (s) =>
+                      s.if(
                         `ui.view is null or ui.view != view_record.id`,
-                        setQueryParam(`ui.view`, `view_record.id`)
+                        (s) => s.setQueryParam(`ui.view`, `view_record.id`)
                       ),
-                    ],
                   },
                   dynamicClasses: [
                     {
@@ -271,10 +255,11 @@ export function viewDrawer(datagridName: string, dts: DatagridDts) {
                       condition: "view_record.id = view",
                     },
                   ],
-                  children: ifNode(
-                    `editing`,
-                    state({
-                      procedure: [scalar(`view_name`, `view_record.name`)],
+                  children: nodes.if({
+                    expr: `editing`,
+                    then: nodes.state({
+                      procedure: (s) =>
+                        s.scalar(`view_name`, `view_record.name`),
                       children: input({
                         size: "sm",
                         fullWidth: true,
@@ -282,89 +267,90 @@ export function viewDrawer(datagridName: string, dts: DatagridDts) {
                           input: {
                             props: { value: `view_name`, yolmFocusKey: `true` },
                             on: {
-                              click: [stopPropagation()],
-                              input: [setScalar(`view_name`, `target_value`)],
-                              blur: [
-                                setScalar(`view_name`, `trim(view_name)`),
-                                if_(
-                                  `view_name = view_record.name or view_name = ''`,
-                                  [setScalar(`editing`, `false`), exit()]
-                                ),
-                                setScalar(`proc_in_progress`, `true`),
-                                setScalar(`proc_error`, `null`),
-                                commitUiChanges(),
-                                try_<ClientProcStatement>({
-                                  body: [
-                                    serviceProc([
-                                      modify(
-                                        `update db.datagrid_view set name = view_name where id = view_record.id`
-                                      ),
-                                      setScalar(
-                                        `drawer_refresh_key`,
-                                        `drawer_refresh_key + 1`
-                                      ),
-                                      setQueryParam(`ui.view`, `view_name`),
-                                    ]),
-                                  ],
-                                  catch: [
-                                    setScalar(
-                                      `proc_error`,
-                                      `'Unable to change view name at this time'`
-                                    ),
-                                  ],
-                                }),
-                                setScalar(`proc_in_progress`, `false`),
-                                setScalar(`editing`, `false`),
-                              ],
-                              keydown: [
-                                if_(`event.key = 'Enter'`, [
-                                  setScalar(`view_name`, `trim(view_name)`),
-                                  if_(
+                              click: (s) => s.stopPropagation(),
+                              input: (s) =>
+                                s.setScalar(`view_name`, `target_value`),
+                              blur: (s) =>
+                                s
+                                  .setScalar(`view_name`, `trim(view_name)`)
+                                  .if(
                                     `view_name = view_record.name or view_name = ''`,
-                                    [setScalar(`editing`, `false`), exit()]
-                                  ),
-                                  setScalar(`proc_in_progress`, `true`),
-                                  setScalar(`proc_error`, `null`),
-                                  commitUiChanges(),
-                                  try_<ClientProcStatement>({
-                                    body: [
-                                      serviceProc([
-                                        modify(
-                                          `update db.datagrid_view set name = view_name where id = view_record.id`
-                                        ),
-                                        setScalar(
-                                          `drawer_refresh_key`,
-                                          `drawer_refresh_key + 1`
-                                        ),
-                                        setQueryParam(
-                                          `ui.view`,
-                                          `view_record.id`
-                                        ),
-                                      ]),
-                                    ],
-                                    catch: [
-                                      setScalar(
+                                    (s) =>
+                                      s.setScalar(`editing`, `false`).return()
+                                  )
+                                  .setScalar(`proc_in_progress`, `true`)
+                                  .setScalar(`proc_error`, `null`)
+                                  .commitUiChanges()
+                                  .try({
+                                    body: (s) =>
+                                      s.serviceProc((s) =>
+                                        s
+                                          .modify(
+                                            `update db.datagrid_view set name = view_name where id = view_record.id`
+                                          )
+                                          .setScalar(
+                                            `drawer_refresh_key`,
+                                            `drawer_refresh_key + 1`
+                                          )
+                                          .setQueryParam(`ui.view`, `view_name`)
+                                      ),
+                                    catch: (s) =>
+                                      s.setScalar(
                                         `proc_error`,
                                         `'Unable to change view name at this time'`
                                       ),
-                                    ],
-                                  }),
-                                  setScalar(`proc_in_progress`, `false`),
-                                  setScalar(`editing`, `false`),
-                                ]),
-                              ],
+                                  })
+                                  .setScalar(`proc_in_progress`, `false`)
+                                  .setScalar(`editing`, `false`),
+                              keydown: (s) =>
+                                s.if(`event.key = 'Enter'`, (s) =>
+                                  s
+                                    .setScalar(`view_name`, `trim(view_name)`)
+                                    .if(
+                                      `view_name = view_record.name or view_name = ''`,
+                                      (s) =>
+                                        s.setScalar(`editing`, `false`).return()
+                                    )
+                                    .setScalar(`proc_in_progress`, `true`)
+                                    .setScalar(`proc_error`, `null`)
+                                    .commitUiChanges()
+                                    .try({
+                                      body: (s) =>
+                                        s.serviceProc((s) =>
+                                          s
+                                            .modify(
+                                              `update db.datagrid_view set name = view_name where id = view_record.id`
+                                            )
+                                            .setScalar(
+                                              `drawer_refresh_key`,
+                                              `drawer_refresh_key + 1`
+                                            )
+                                            .setQueryParam(
+                                              `ui.view`,
+                                              `view_record.id`
+                                            )
+                                        ),
+                                      catch: (s) =>
+                                        s.setScalar(
+                                          `proc_error`,
+                                          `'Unable to change view name at this time'`
+                                        ),
+                                    })
+                                    .setScalar(`proc_in_progress`, `false`)
+                                    .setScalar(`editing`, `false`)
+                                ),
                             },
                           },
                         },
                       }),
                     }),
-                    [
-                      element("span", {
+                    else: [
+                      nodes.element("span", {
                         styles: styles.viewName,
                         children: "view_record.name",
                       }),
-                      element("div", { styles: flexGrowStyles }),
-                      ifNode(
+                      nodes.element("div", { styles: flexGrowStyles }),
+                      nodes.if(
                         `view_record.is_personal`,
                         materialIcon("PersonOutline")
                       ),
@@ -380,85 +366,86 @@ export function viewDrawer(datagridName: string, dts: DatagridDts) {
                             children: materialIcon("MoreHoriz"),
                             props: buttonProps,
                             on: {
-                              click: [stopPropagation(), ...onButtonClick],
+                              click: (s) =>
+                                s.stopPropagation().statements(onButtonClick),
                             },
                           }),
                         items: [
                           {
-                            onClick: [
-                              stopPropagation(),
-                              setScalar(`editing`, `true`),
-                            ],
+                            onClick: (s) =>
+                              s.stopPropagation().setScalar(`editing`, `true`),
                             resetMenuAfter: true,
                             children: `'Rename'`,
                           },
                           {
-                            onClick: [
-                              stopPropagation(),
-                              setScalar(`proc_in_progress`, `true`),
-                              setScalar(`proc_error`, `null`),
-                              commitUiChanges(),
-                              try_<ClientProcStatement>({
-                                body: [
-                                  serviceProc([
-                                    ...duplicateView(`view_record.id`),
-                                    setScalar(
-                                      `drawer_refresh_key`,
-                                      `drawer_refresh_key + 1`
+                            onClick: (s) =>
+                              s
+                                .stopPropagation()
+                                .setScalar(`proc_in_progress`, `true`)
+                                .setScalar(`proc_error`, `null`)
+                                .commitUiChanges()
+                                .try({
+                                  body: (s) =>
+                                    s.serviceProc((s) =>
+                                      s
+                                        .statements(
+                                          duplicateView(`view_record.id`)
+                                        )
+                                        .setScalar(
+                                          `drawer_refresh_key`,
+                                          `drawer_refresh_key + 1`
+                                        )
+                                        .setQueryParam(`ui.view`, `new_view_id`)
                                     ),
-                                    setQueryParam(`ui.view`, `new_view_id`),
-                                  ]),
-                                ],
-                                catch: [
-                                  setScalar(
-                                    `proc_error`,
-                                    `'Unable to duplicate view at this time'`
-                                  ),
-                                ],
-                              }),
-                              setScalar(`proc_in_progress`, `false`),
-                            ],
+                                  catch: (s) =>
+                                    s.setScalar(
+                                      `proc_error`,
+                                      `'Unable to duplicate view at this time'`
+                                    ),
+                                })
+                                .setScalar(`proc_in_progress`, `false`),
                             resetMenuAfter: true,
                             children: `'Duplicate'`,
                           },
                           {
-                            onClick: [
-                              setScalar(`proc_in_progress`, `true`),
-                              setScalar(`proc_error`, `null`),
-                              commitUiChanges(),
-                              try_<ClientProcStatement>({
-                                body: [
-                                  serviceProc([
-                                    ...saveToExistingView(
-                                      dts,
-                                      `view_record.id`
+                            onClick: (s) =>
+                              s
+                                .setScalar(`proc_in_progress`, `true`)
+                                .setScalar(`proc_error`, `null`)
+                                .commitUiChanges()
+                                .try({
+                                  body: (s) =>
+                                    s.serviceProc((s) =>
+                                      s
+                                        .statements(
+                                          saveToExistingView(
+                                            dts,
+                                            `view_record.id`
+                                          )
+                                        )
+                                        .setScalar(
+                                          `drawer_refresh_key`,
+                                          `drawer_refresh_key + 1`
+                                        )
+                                        .setQueryParam(
+                                          `ui.view`,
+                                          `view_record.id`
+                                        )
                                     ),
-                                    setScalar(
-                                      `drawer_refresh_key`,
-                                      `drawer_refresh_key + 1`
+                                  errorName: `caught_error`,
+                                  catch: (s) =>
+                                    s.setScalar(
+                                      `proc_error`,
+                                      `'Error saving view'`
                                     ),
-                                    setQueryParam(`ui.view`, `view_record.id`),
-                                  ]),
-                                ],
-                                errorName: `caught_error`,
-                                catch: [
-                                  debugQuery(`select * from caught_error`),
-                                  setScalar(
-                                    `proc_error`,
-                                    `'Error saving view'`
-                                  ),
-                                ],
-                              }),
-                              setScalar(`proc_in_progress`, `false`),
-                            ],
+                                })
+                                .setScalar(`proc_in_progress`, `false`),
                             resetMenuAfter: true,
                             children: `'Save to'`,
                           },
                           {
-                            onClick: [
-                              stopPropagation(),
-                              setScalar(`deleting`, `true`),
-                            ],
+                            onClick: (s) =>
+                              s.stopPropagation().setScalar(`deleting`, `true`),
                             resetMenuAfter: true,
                             children: `'Delete'`,
                           },
@@ -466,39 +453,39 @@ export function viewDrawer(datagridName: string, dts: DatagridDts) {
                       }),
                       deleteRecordDialog({
                         open: `deleting`,
-                        onClose: [setScalar(`deleting`, `false`)],
-                        afterDeleteService: [
-                          if_(`view_record.id = view`, [
-                            setQueryParam(`ui.view`, `null`),
-                          ]),
-                          setScalar(
-                            `drawer_refresh_key`,
-                            `drawer_refresh_key + 1`
-                          ),
-                        ],
+                        onClose: (s) => s.setScalar(`deleting`, `false`),
+                        afterDeleteService: (s) =>
+                          s
+                            .if(`view_record.id = view`, (s) =>
+                              s.setQueryParam(`ui.view`, `null`)
+                            )
+                            .setScalar(
+                              `drawer_refresh_key`,
+                              `drawer_refresh_key + 1`
+                            ),
                         recordId: `view_record.id`,
                         table: `datagrid_view`,
                         confirmDescription: `'Are you sure you want to delete ' || view_record.name || '?'`,
                       }),
-                    ]
-                  ),
+                    ],
+                  }),
                 }),
               }),
             }),
           }),
-        ],
-        [
-          `true`,
-          typography({
+        },
+        {
+          condition: `true`,
+          node: typography({
             children: `'No views'`,
             level: "body2",
             styles: styles.emptyText,
           }),
-        ]
+        }
       ),
     ],
   });
-  return ifNode(
+  return nodes.if(
     `view_drawer_open`,
     withViewDrawerState(datagridName, drawerContent)
   );

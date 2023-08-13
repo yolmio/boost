@@ -199,7 +199,7 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
                       error: fieldHelper.hasError,
                       children: [
                         control,
-                        ifNode(
+                        nodes.if(
                           fieldHelper.hasError,
                           formHelperText({
                             children: fieldHelper.error,
@@ -302,7 +302,7 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
               }),
             ],
           }),
-          ifNode(
+          nodes.if(
             formState.getFormError + " is not null",
             alert({
               variant: "soft",
@@ -337,7 +337,7 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
         scalar(`added`, `false`),
         ...(opts.afterInsertScreen.state ?? []),
       ],
-      children: ifNode(`added`, opts.afterInsertScreen.node, content),
+      children: nodes.if(`added`, opts.afterInsertScreen.node, content),
     });
   }
   addPage({

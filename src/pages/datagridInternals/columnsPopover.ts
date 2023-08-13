@@ -1,5 +1,4 @@
-import { each, element, state } from "../../nodeHelpers";
-import { exit, if_, modify, scalar, setScalar } from "../../procHelpers";
+import { nodes } from "../../nodeHelpers";
 import { button } from "../../components/button";
 import { checkbox } from "../../components/checkbox";
 import { input } from "../../components/input";
@@ -20,8 +19,8 @@ const styles = createStyles({
 });
 
 export function columnsPopover(dts: SuperGridDts) {
-  return state({
-    procedure: [scalar(`filter_text`, `''`)],
+  return nodes.state({
+    procedure: (s) => s.scalar(`filter_text`, `''`),
     children: [
       input({
         variant: "outlined",
@@ -33,13 +32,13 @@ export function columnsPopover(dts: SuperGridDts) {
           },
         },
         on: {
-          input: [setScalar(`ui.filter_text`, `target_value`)],
+          input: (s) => s.setScalar(`ui.filter_text`, `target_value`),
         },
       }),
       divider({ styles: sharedStyles.popoverDivider }),
-      element("div", {
+      nodes.element("div", {
         styles: styles.columnsWrapper,
-        children: each({
+        children: nodes.each({
           table: "column",
           orderBy: "ordering",
           where: `dt.${dts.idToDisplayName}(id) is not null and (trim(filter_text) = '' or dt.${dts.idToDisplayName}(id) like '%' || filter_text || '%')`,
@@ -52,21 +51,21 @@ export function columnsPopover(dts: SuperGridDts) {
             checked: `column_record.displaying`,
             label: `dt.${dts.idToDisplayName}(column_record.id)`,
             on: {
-              click: [
-                if_(
-                  `column_record.displaying and (select count(*) from ui.column where displaying) = 1`,
-                  exit()
-                ),
-                modify(
-                  `update ui.column set displaying = not displaying where id = column_record.id`
-                ),
-                if_(`column_record.displaying`, [triggerQueryRefresh()]),
-              ],
+              click: (s) =>
+                s
+                  .if(
+                    `column_record.displaying and (select count(*) from ui.column where displaying) = 1`,
+                    (s) => s.return()
+                  )
+                  .modify(
+                    `update ui.column set displaying = not displaying where id = column_record.id`
+                  )
+                  .if(`column_record.displaying`, triggerQueryRefresh()),
             },
           }),
         }),
       }),
-      element("div", {
+      nodes.element("div", {
         styles: sharedStyles.popoverButtons,
         children: [
           button({
@@ -74,10 +73,10 @@ export function columnsPopover(dts: SuperGridDts) {
             color: "primary",
             children: "'Show all'",
             on: {
-              click: [
-                modify(`update ui.column set displaying = true`),
-                triggerQueryRefresh(),
-              ],
+              click: (s) =>
+                s
+                  .modify(`update ui.column set displaying = true`)
+                  .statements(triggerQueryRefresh()),
             },
           }),
           button({
@@ -85,10 +84,12 @@ export function columnsPopover(dts: SuperGridDts) {
             color: "primary",
             children: "'Show none'",
             on: {
-              click: [
-                modify(`update ui.column set displaying = false where id != 0`),
-                triggerQueryRefresh(),
-              ],
+              click: (s) =>
+                s
+                  .modify(
+                    `update ui.column set displaying = false where id != 0`
+                  )
+                  .statements(triggerQueryRefresh()),
             },
           }),
         ],

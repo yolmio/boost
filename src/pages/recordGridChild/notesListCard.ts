@@ -134,7 +134,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                 variant: "plain",
                 color: "primary",
                 size: "sm",
-                children: ifNode(
+                children: nodes.if(
                   `adding`,
                   materialIcon("Close"),
                   materialIcon("Add")
@@ -144,7 +144,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
             ],
           }),
           divider(),
-          ifNode(
+          nodes.if(
             `adding`,
             state({
               procedure: [
@@ -165,7 +165,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                       },
                     },
                   }),
-                  ifNode(
+                  nodes.if(
                     `failed`,
                     alert({
                       styles: styles.addingError,
@@ -217,7 +217,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                 `select content, date, id from db.${notesTable} where ${foreignKeyField} = ${ctx.recordId} order by date desc, id desc`
               ),
             ],
-            children: ifNode(
+            children: nodes.if(
               `exists (select id from note)`,
               element("div", {
                 styles: styles.notes,
@@ -226,14 +226,14 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                   recordName: `note_record`,
                   key: `id`,
                   children: [
-                    ifNode(`note_record.iteration_index != 0`, divider()),
+                    nodes.if(`note_record.iteration_index != 0`, divider()),
                     state({
                       procedure: [
                         scalar(`deleting`, `false`),
                         scalar(`editing`, `false`),
                       ],
                       children: [
-                        ifNode(
+                        nodes.if(
                           `editing`,
                           state({
                             procedure: [
@@ -285,7 +285,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                                     ],
                                   },
                                 }),
-                                ifNode(
+                                nodes.if(
                                   `failed`,
                                   alert({
                                     styles: styles.editingError,

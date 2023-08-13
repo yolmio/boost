@@ -1,21 +1,5 @@
-import { addDecisionTable, addEnum, addTable } from "../../app";
-import { queryParams, state } from "../../nodeHelpers";
+import { nodes } from "../../nodeHelpers";
 import { DataGridStyles, Node } from "../../nodeTypes";
-import {
-  block,
-  commitTransaction,
-  debugExpr,
-  forEachQuery,
-  forEachTable,
-  if_,
-  modify,
-  record,
-  scalar,
-  setScalar,
-  startTransaction,
-  table,
-  while_,
-} from "../../procHelpers";
 import { app } from "../../app";
 import { ident, stringLiteral } from "../../utils/sqlHelpers";
 import { ServiceProcStatement, StateStatement } from "../../yom";
@@ -28,6 +12,13 @@ import {
   triggerQueryRefresh,
 } from "./shared";
 import { Cell, ColumnEventHandlers, RowHeight } from "./types";
+import {
+  BasicStatements,
+  DomStatements,
+  ServiceStatements,
+  StateStatements,
+  StateStatementsOrFn,
+} from "../../statements";
 
 export interface DefaultView {
   columnOrder?: string[];
@@ -46,7 +37,7 @@ export interface DatagridBaseOpts {
   enableViews: boolean;
   pageSize?: number;
   defaultRowHeight?: RowHeight;
-  extraState?: StateStatement[];
+  extraState?: StateStatementsOrFn;
   idField: string;
   source: string;
   defaultView?: DefaultView;
@@ -79,94 +70,83 @@ export function datagridBase(opts: DatagridBaseOpts) {
       columnToResultField.set(i, `field_${columnToResultField.size}`);
     }
   }
-  const getResultsProc: StateStatement[] = [];
-  // getResultsProc.push(
-  //   scalar(
-  //     `query`,
-  //     makeDynamicQuery(dts, opts.source, opts.quickSearchMatchConfig)
-  //   )
-  // );
-  // getResultsProc.push(debugExpr(`query`));
-  getResultsProc.push({
-    t: "DynamicQuery",
+  const getResultsProc = new StateStatements();
+  getResultsProc.dynamicQuery({
     resultTable: "dg_table",
     query: makeDynamicQuery(dts, opts.source, opts.quickSearchMatchConfig),
     columnCount: columns.filter((v) => Boolean(v.queryGeneration)).length,
   });
-  let children = opts.children({
-    t: "DataGrid",
-    table: "dg_table",
-    tableKey: opts.idField,
-    recordName: "record",
-    rowHeight: "row_height",
-    headerHeight: "44",
-    focusedColumn: "focus_state.column",
-    focusedRow: "focus_state.row",
-    shouldFocusCell: "focus_state.should_focus",
-    styles: datagridStyles,
-    on: {
-      keyboardNavigation: [
-        modify(
-          `update ui.focus_state set column = cell.column, row = cell.row, should_focus = true`
-        ),
-        modify(`update ui.editing_state set is_editing = false`),
-      ],
-      cellClick: [
-        modify(
-          `update ui.focus_state set column = cell.column, row = cell.row, should_focus = true`
-        ),
-        modify(`update ui.editing_state set is_editing = false`),
-        ...colClickHandlers(columns),
-      ],
-      cellDoubleClick: [
-        modify(
-          `update ui.focus_state set column = cell.column, row = cell.row, should_focus = false`
-        ),
-        modify(
-          `update ui.editing_state set column = cell.column, row = cell.row, is_editing = true`
-        ),
-        setScalar(`ui.start_edit_with_char`, `null`),
-      ],
-      cellKeydown: colKeydownHandlers(columns),
-      fetchMore:
-        typeof opts.pageSize === "number"
-          ? [
-              setScalar(`ui.row_count`, `ui.row_count + ${opts.pageSize}`),
-              triggerQueryRefresh(),
-            ]
-          : undefined,
-    },
-    columns: columns.map((col, i) => {
-      const field = columnToResultField.get(i);
-      return {
-        cell: col.cell({
-          value: field ? `record.` + field : `null`,
-          editing: `editing_state.is_editing and editing_state.column = ${i} and editing_state.row - 1 = record.iteration_index`,
-          setValue: (v) =>
-            field
-              ? [
-                  modify(
+  let children = opts.children(
+    nodes.dataGrid({
+      table: "dg_table",
+      tableKey: opts.idField,
+      recordName: "record",
+      rowHeight: "row_height",
+      headerHeight: "44",
+      focusedColumn: "focus_state.column",
+      focusedRow: "focus_state.row",
+      shouldFocusCell: "focus_state.should_focus",
+      styles: datagridStyles,
+      on: {
+        keyboardNavigation: (s) =>
+          s
+            .modify(
+              `update ui.focus_state set column = cell.column, row = cell.row, should_focus = true`
+            )
+            .modify(`update ui.editing_state set is_editing = false`),
+        cellClick: (s) =>
+          s
+            .modify(
+              `update ui.focus_state set column = cell.column, row = cell.row, should_focus = true`
+            )
+            .modify(`update ui.editing_state set is_editing = false`)
+            .statements(colClickHandlers(columns)),
+        cellDoubleClick: (s) =>
+          s
+            .modify(
+              `update ui.focus_state set column = cell.column, row = cell.row, should_focus = false`
+            )
+            .modify(
+              `update ui.editing_state set column = cell.column, row = cell.row, is_editing = true`
+            )
+            .setScalar(`ui.start_edit_with_char`, `null`),
+        cellKeydown: colKeydownHandlers(columns),
+        fetchMore:
+          typeof opts.pageSize === "number"
+            ? new DomStatements()
+                .setScalar(`ui.row_count`, `ui.row_count + ${opts.pageSize}`)
+                .statements(triggerQueryRefresh())
+            : undefined,
+      },
+      columns: columns.map((col, i) => {
+        const field = columnToResultField.get(i);
+        return {
+          cell: col.cell({
+            value: field ? `record.` + field : `null`,
+            editing: `editing_state.is_editing and editing_state.column = ${i} and editing_state.row - 1 = record.iteration_index`,
+            setValue: (v) =>
+              field
+                ? new BasicStatements().modify(
                     `update ui.dg_table set ${field} = ${v} where dg_table.${opts.idField} = record.${opts.idField}`
-                  ),
-                ]
-              : [],
-          recordId: `cast(record.${opts.idField} as bigint)`,
-          nextCol: `(select id from ui.column where displaying and ordering > (select ordering from ui.column where id = ${i}) order by ordering limit 1)`,
-          stopEditing: [
-            modify(`update ui.editing_state set is_editing = false`),
-            modify(`update ui.focus_state set should_focus = true`),
-          ],
-          row: `record.iteration_index + 1`,
-          column: i.toString(),
-        }),
-        header: col.header,
-        width: `(select width from column where id = ${i})`,
-        ordering: `(select ordering from column where id = ${i})`,
-        visible: `(select displaying from column where id = ${i})`,
-      };
-    }),
-  });
-  children = state({
+                  )
+                : new BasicStatements(),
+            recordId: `cast(record.${opts.idField} as bigint)`,
+            nextCol: `(select id from ui.column where displaying and ordering > (select ordering from ui.column where id = ${i}) order by ordering limit 1)`,
+            stopEditing: new BasicStatements()
+              .modify(`update ui.editing_state set is_editing = false`)
+              .modify(`update ui.focus_state set should_focus = true`),
+            row: `record.iteration_index + 1`,
+            column: i.toString(),
+          }),
+          header: col.header,
+          width: `(select width from column where id = ${i})`,
+          ordering: `(select ordering from column where id = ${i})`,
+          visible: `(select displaying from column where id = ${i})`,
+        };
+      }),
+    })
+  );
+  children = nodes.state({
     watch: opts.enableViews
       ? ["dg_refresh_key", "view", "reset_key"]
       : ["dg_refresh_key"],
@@ -175,14 +155,14 @@ export function datagridBase(opts: DatagridBaseOpts) {
     errorRecord: "dg_error",
     children,
   });
-  children = state({
+  children = nodes.state({
     watch: opts.enableViews ? ["view", "reset_key"] : [],
     procedure: refreshKeyState(),
     children,
   });
   const mainStateProc = editFocusState();
   if (opts.pageSize) {
-    mainStateProc.push(scalar(`row_count`, opts.pageSize.toString()));
+    mainStateProc.scalar(`row_count`, opts.pageSize.toString());
   }
   const initialColumnInsertValues = opts.columns
     .map((col, i) => {
@@ -190,8 +170,8 @@ export function datagridBase(opts: DatagridBaseOpts) {
       return `(${i}, ${col.initialWidth}, ${col.initiallyDisplaying}, ordering.n_after(${i}), ${generate})`;
     })
     .join(",");
-  mainStateProc.push(
-    table("column", [
+  mainStateProc
+    .table("column", [
       { name: "id", type: { type: "SmallUint" } },
       { name: "width", type: { type: "SmallUint" } },
       { name: "displaying", type: { type: "Bool" } },
@@ -199,19 +179,18 @@ export function datagridBase(opts: DatagridBaseOpts) {
       { name: "sort_asc", type: { type: "Bool" } },
       { name: "ordering", notNull: true, type: { type: "Ordering" } },
       { name: "always_generate", notNull: true, type: { type: "Bool" } },
-    ]),
-    modify(
+    ])
+    .modify(
       `insert into column (id, width, displaying, ordering, always_generate) values ${initialColumnInsertValues}`
-    ),
-    scalar(
+    )
+    .scalar(
       `row_height`,
       rowHeightInPixels(opts.defaultRowHeight ?? "medium").toString()
-    )
-  );
+    );
   if (opts.enableFiltering) {
-    mainStateProc.push(
-      scalar("root_filter_is_any", "false"),
-      table("filter_term", [
+    mainStateProc
+      .scalar("root_filter_is_any", "false")
+      .table("filter_term", [
         { name: "id", notNull: true, type: { type: "SmallUint" } },
         { name: "group", type: { type: "SmallUint" } },
         // if this is null, this is a filter on a column and column_id is expected to exist
@@ -223,17 +202,18 @@ export function datagridBase(opts: DatagridBaseOpts) {
         { name: "value_1", type: { type: "String", maxLength: 2000 } },
         { name: "value_2", type: { type: "String", maxLength: 2000 } },
         { name: "value_3", type: { type: "String", maxLength: 2000 } },
-      ]),
-      scalar(`next_filter_id`, { type: "BigUint" }, `0`)
-    );
+      ])
+      .scalar(`next_filter_id`, { type: "BigUint" }, `0`);
   }
   if (opts.quickSearchMatchConfig) {
-    mainStateProc.push(scalar(`quick_search_query`, `''`));
+    mainStateProc.scalar(`quick_search_query`, `''`);
   }
   if (opts.enableViews) {
-    const loadFilter = opts.enableFiltering
-      ? [
-          modify(`insert into filter_term
+    const loadFilter = new StateStatements();
+    if (opts.enableFiltering) {
+      loadFilter
+        .modify(
+          `insert into filter_term
             select id,
               dt.${dts.storageNameToId}(column_name) as column_id,
               group,
@@ -243,14 +223,14 @@ export function datagridBase(opts: DatagridBaseOpts) {
               value_1,
               value_2,
               value_3
-            from db.datagrid_view_filter_term where view = view_record.id`),
-          setScalar(
-            `next_filter_id`,
-            `coalesce((select max(id) from filter_term), 0) + 1`
-          ),
-        ]
-      : [];
-    const loadDefault: StateStatement[] = [];
+            from db.datagrid_view_filter_term where view = view_record.id`
+        )
+        .setScalar(
+          `next_filter_id`,
+          `coalesce((select max(id) from filter_term), 0) + 1`
+        );
+    }
+    const loadDefault = new StateStatements();
     if (opts.defaultView) {
       const reordered = opts.columns.map((col, id) => ({
         name: col.viewStorageName,
@@ -281,10 +261,8 @@ export function datagridBase(opts: DatagridBaseOpts) {
             sortFields = `, sort_index = ${sortIndex}, sort_asc = ${asc} `;
           }
         }
-        loadDefault.push(
-          modify(
-            `update column set ordering = ordering.n_after(${i})${sortFields} where id = ${id}`
-          )
+        loadDefault.modify(
+          `update column set ordering = ordering.n_after(${i})${sortFields} where id = ${id}`
         );
       }
       if (opts.defaultView.filter) {
@@ -296,84 +274,83 @@ export function datagridBase(opts: DatagridBaseOpts) {
               `Invalid default view filter: column ${filter.column} not found`
             );
           }
-          loadDefault.push(
-            modify(
+          loadDefault
+            .modify(
               `insert into filter_term (id, column_id, ordering, op, value_1) values
             (next_filter_id, ${id}, ordering.n_after(${i}), cast(${stringLiteral(
                 filter.op
               )} as enums.dg_filter_op), ${stringLiteral(filter.value_1)})}`
-            ),
-            setScalar(`next_filter_id`, `next_filter_id + 1`)
-          );
+            )
+            .setScalar(`next_filter_id`, `next_filter_id + 1`);
         }
       }
     } else {
-      loadDefault.push(
-        forEachQuery(`select id from column`, `column_record`, [
-          modify(
-            `update column
+      loadDefault.forEachQuery(`select id from column`, `column_record`, (s) =>
+        s.modify(
+          `update column
                   set ordering = ordering.new((select max(ordering) from column))
                   where id = column_record.id`
-          ),
-        ])
+        )
       );
     }
-    const loadColumnsFromView = block([
-      scalar(`using_view`, `false`),
-      if_("view is not null", [
-        record(`view_record`, `select * from db.datagrid_view where id = view`),
-        if_(`view_record.id is not null`, [
-          setScalar(`using_view`, `true`),
-          setScalar(`root_filter_is_any`, `view_record.root_filter_is_any`),
-          setScalar(`row_height`, `view_record.row_height`),
-          forEachQuery(
-            `select * from db.datagrid_view_column where view = view_record.id`,
-            `view_column`,
-            [
-              modify(
-                `update column set ordering = view_column.ordering,
+    mainStateProc.block((s) =>
+      s
+        .scalar(`using_view`, `false`)
+        .if("view is not null", (s) =>
+          s
+            .record(
+              `view_record`,
+              `select * from db.datagrid_view where id = view`
+            )
+            .if(`view_record.id is not null`, (s) =>
+              s
+                .setScalar(`using_view`, `true`)
+                .setScalar(
+                  `root_filter_is_any`,
+                  `view_record.root_filter_is_any`
+                )
+                .setScalar(`row_height`, `view_record.row_height`)
+                .forEachQuery(
+                  `select * from db.datagrid_view_column where view = view_record.id`,
+                  `view_column`,
+                  (s) =>
+                    s.modify(
+                      `update column set ordering = view_column.ordering,
                   sort_asc = view_column.sort_asc,
                   sort_index = view_column.sort_index,
                   displaying = view_column.displaying
                 where id = dt.${dts.storageNameToId}(view_column.name)`
-              ),
-            ]
-          ),
-          forEachQuery(
-            `select id from column where id not in (select dt.${dts.storageNameToId}(name) from db.datagrid_view_column where view = view_record.id)`,
-            `column_record`,
-            [
-              modify(
-                `update column
+                    )
+                )
+                .forEachQuery(
+                  `select id from column where id not in (select dt.${dts.storageNameToId}(name) from db.datagrid_view_column where view = view_record.id)`,
+                  `column_record`,
+                  (s) =>
+                    s.modify(
+                      `update column
                   set ordering = ordering.new((select max(ordering) from column))
                   where id = column_record.id`
-              ),
-            ]
-          ),
-          ...loadFilter,
-        ]),
-      ]),
-      if_("not using_view", loadDefault),
-    ]);
-    mainStateProc.push(loadColumnsFromView);
+                    )
+                )
+                .statements(loadFilter)
+            )
+        )
+        .if("not using_view", loadDefault)
+    );
   }
-  if (opts.extraState) {
-    mainStateProc.push(...opts.extraState);
-  }
-  children = state({
+  mainStateProc.statements(opts.extraState);
+  children = nodes.state({
     watch: opts.enableViews ? ["view", "reset_key"] : [],
     procedure: mainStateProc,
     children,
   });
   if (opts.enableViews) {
-    children = state({
-      procedure: [
-        scalar("view_drawer_open", "false"),
-        scalar("reset_key", "0"),
-      ],
+    children = nodes.state({
+      procedure: (s) =>
+        s.scalar("view_drawer_open", "false").scalar("reset_key", "0"),
       children,
     });
-    children = queryParams(
+    children = nodes.queryParams(
       [{ name: "view", type: { type: "BigUint" } }],
       children
     );
@@ -428,16 +405,14 @@ export function addDatagridDts(
     }
   }
   const idToSqlNameDt = `${datagridName}_dg_col_id_to_sql_name`;
-  addDecisionTable({
-    bound: false,
+  app.addDecisionTable({
     parameters: [{ name: "id", type: "SmallUint" }],
     csv: `input.id,sql_name\n` + sqlNames.join("\n"),
     name: idToSqlNameDt,
     output: { name: "sql_name", type: "String" },
   });
   const storageNameToIdDt = `${datagridName}_dg_col_storage_name_to_id`;
-  addDecisionTable({
-    bound: false,
+  app.addDecisionTable({
     parameters: [
       {
         name: "sql_name",
@@ -449,16 +424,14 @@ export function addDatagridDts(
     output: { name: "id", type: "Int" },
   });
   const idToStorageName = `${datagridName}_dg_col_id_to_storage_name`;
-  addDecisionTable({
-    bound: false,
+  app.addDecisionTable({
     parameters: [{ name: "id", type: "SmallUint" }],
     csv: `input.id,storage_name\n` + idsToStorageNames.join("\n"),
     name: idToStorageName,
     output: { name: "storage_name", type: "String" },
   });
   const idToSqlExprDt = `${datagridName}_dg_col_id_to_sql_expr`;
-  addDecisionTable({
-    bound: false,
+  app.addDecisionTable({
     parameters: [{ name: "id", type: "SmallUint" }],
     csv: `input.id,sql_expr\n` + sqlExprs.join("\n"),
     name: idToSqlExprDt,
@@ -473,77 +446,76 @@ export function addDatagridDts(
 }
 
 function insertViewColumnsAndFilters(dts: DatagridDts, viewId: string) {
-  return [
-    modify(
+  return new ServiceStatements()
+    .modify(
       `insert into db.datagrid_view_column
           select ${viewId} as view, displaying, ordering, sort_asc, sort_index, dt.${dts.idToStorageName}(id) as name
           from ui.column
           where dt.${dts.idToStorageName}(id) is not null`
-    ),
-    table("filter_mapping", [
+    )
+    .table("filter_mapping", [
       { name: "ui_id", type: { type: "BigUint" } },
       {
         name: "db_id",
         type: { type: "BigUint" },
       },
-    ]),
-    forEachQuery(
+    ])
+    .forEachQuery(
       "select id from ui.filter_term where group is null",
       "filter_term_record",
-      [
-        modify(
-          `insert into db.datagrid_view_filter_term select *, ${viewId} as view, dt.${dts.idToStorageName}(column_id) as column_name from ui.filter_term where id = filter_term_record.id`
-        ),
-        modify(
-          `insert into filter_mapping (ui_id, db_id) values (filter_term_record.id, (select max(id) from db.datagrid_view_filter_term))`
-        ),
-      ]
-    ),
-    table(
+      (s) =>
+        s
+          .modify(
+            `insert into db.datagrid_view_filter_term select *, ${viewId} as view, dt.${dts.idToStorageName}(column_id) as column_name from ui.filter_term where id = filter_term_record.id`
+          )
+          .modify(
+            `insert into filter_mapping (ui_id, db_id) values (filter_term_record.id, (select max(id) from db.datagrid_view_filter_term))`
+          )
+    )
+    .table(
       `sub_root_term`,
       `select id from ui.filter_term where group in (select ui_id from filter_mapping)`
-    ),
-    forEachTable("sub_root_term", "filter_term_record", [
-      modify(
-        `insert into db.datagrid_view_filter_term
+    )
+    .forEachTable("sub_root_term", "filter_term_record", (s) =>
+      s
+        .modify(
+          `insert into db.datagrid_view_filter_term
               select *, db_id as group, ${viewId} as view, dt.${dts.idToStorageName}(column_id) as column_name
                 from ui.filter_term
                   join filter_mapping on ui_id = group
                 where id = filter_term_record.id`
-      ),
-      modify(
-        `insert into filter_mapping (ui_id, db_id) values (filter_term_record.id, (select max(id) from db.datagrid_view_filter_term))`
-      ),
-    ]),
-    forEachQuery(
+        )
+        .modify(
+          `insert into filter_mapping (ui_id, db_id) values (filter_term_record.id, (select max(id) from db.datagrid_view_filter_term))`
+        )
+    )
+    .forEachQuery(
       "select id from ui.filter_term where group in (select id from sub_root_term)",
       "filter_term_record",
-      modify(
-        `insert into db.datagrid_view_filter_term
+      (s) =>
+        s.modify(
+          `insert into db.datagrid_view_filter_term
               select *, db_id as group, ${viewId} as view, dt.${dts.idToStorageName}(column_id) as column_name
                 from ui.filter_term
                   join filter_mapping on ui_id = group
                 where id = filter_term_record.id`
-      )
-    ),
-  ];
+        )
+    );
 }
 
-export function saveToExistingView(
-  dts: DatagridDts,
-  viewId: string
-): ServiceProcStatement[] {
-  return [
-    startTransaction(),
-    modify(
-      `update db.datagrid_view set root_filter_is_any = ui.root_filter_is_any, row_height = ui.row_height where id = ${viewId}`
-    ),
-    // just deleting and re-inserting is much easier
-    modify(`delete from db.datagrid_view_column where view = ${viewId}`),
-    modify(`delete from db.datagrid_view_filter_term where view = ${viewId}`),
-    ...insertViewColumnsAndFilters(dts, viewId),
-    commitTransaction(),
-  ];
+export function saveToExistingView(dts: DatagridDts, viewId: string) {
+  return (
+    new ServiceStatements()
+      .startTransaction()
+      .modify(
+        `update db.datagrid_view set root_filter_is_any = ui.root_filter_is_any, row_height = ui.row_height where id = ${viewId}`
+      )
+      // just deleting and re-inserting is much easier
+      .modify(`delete from db.datagrid_view_column where view = ${viewId}`)
+      .modify(`delete from db.datagrid_view_filter_term where view = ${viewId}`)
+      .statements(insertViewColumnsAndFilters(dts, viewId))
+      .commitTransaction()
+  );
 }
 
 export function saveAsNewView(
@@ -551,13 +523,13 @@ export function saveAsNewView(
   dts: DatagridDts,
   name: string,
   isPersonal: string
-): ServiceProcStatement[] {
+) {
   const maxOrdering = `(select max(ordering) from db.datagrid_view where datagrid_name = ${stringLiteral(
     datagridName
   )} and case when ${isPersonal} then user = current_user() else user is null end)`;
-  return [
-    startTransaction(),
-    modify(
+  return new ServiceStatements()
+    .startTransaction()
+    .modify(
       `insert into db.datagrid_view (name, ordering, datagrid_name, root_filter_is_any, user, row_height)
           values (
             ${name},
@@ -567,29 +539,28 @@ export function saveAsNewView(
             case when ${isPersonal} then current_user() else null end,
             ui.row_height
           )`
-    ),
-    scalar(`view_id`, `last_record_id(db.datagrid_view)`),
-    ...insertViewColumnsAndFilters(dts, `view_id`),
-    commitTransaction(),
-  ];
+    )
+    .scalar(`view_id`, `last_record_id(db.datagrid_view)`)
+    .statements(insertViewColumnsAndFilters(dts, `view_id`))
+    .commitTransaction();
 }
 
 export function duplicateView(viewId: string) {
   const sameUserAsOldView = `case when old_view.user is null then user is null else old_view.user = user end`;
-  return [
-    startTransaction(),
-    record(`old_view`, `select * from db.datagrid_view where id = ${viewId}`),
-    scalar(`base_name`, `old_view.name || ' copy'`),
-    scalar(`check_count`, `1`),
-    scalar(`new_name`, `base_name`),
-    while_(
+  return new ServiceStatements()
+    .startTransaction()
+    .record(`old_view`, `select * from db.datagrid_view where id = ${viewId}`)
+    .scalar(`base_name`, `old_view.name || ' copy'`)
+    .scalar(`check_count`, `1`)
+    .scalar(`new_name`, `base_name`)
+    .while(
       `exists (select 1 from db.datagrid_view where name = new_name and datagrid_name = old_view.datagrid_name and ${sameUserAsOldView})`,
-      [
-        setScalar(`check_count`, `check_count + 1`),
-        setScalar(`new_name`, `base_name || ' ' || check_count`),
-      ]
-    ),
-    modify(
+      (s) =>
+        s
+          .setScalar(`check_count`, `check_count + 1`)
+          .setScalar(`new_name`, `base_name || ' ' || check_count`)
+    )
+    .modify(
       `insert into db.datagrid_view
         select
           new_name as name,
@@ -608,59 +579,60 @@ export function duplicateView(viewId: string) {
           ) as ordering,
           user
           from db.datagrid_view as original where id = ${viewId}`
-    ),
-    scalar(`new_view_id`, `last_record_id(db.datagrid_view)`),
-    modify(
+    )
+    .scalar(`new_view_id`, `last_record_id(db.datagrid_view)`)
+    .modify(
       `insert into db.datagrid_view_column select *, new_view_id as view from db.datagrid_view_column where view = ${viewId}`
-    ),
-    table("filter_mapping", [
+    )
+    .table("filter_mapping", [
       { name: "old_id", type: { type: "BigUint" } },
       {
         name: "new_id",
         type: { type: "BigUint" },
       },
-    ]),
-    forEachQuery(
+    ])
+    .forEachQuery(
       `select id from db.datagrid_view_filter_term where group is null and view = ${viewId}`,
       "filter_term_record",
-      [
-        modify(
-          `insert into db.datagrid_view_filter_term select *, new_view_id as view from db.datagrid_view_filter_term where id = filter_term_record.id`
-        ),
-        modify(
-          `insert into filter_mapping (old_id, new_id) values (filter_term_record.id, (select max(id) from db.datagrid_view_filter_term))`
-        ),
-      ]
-    ),
-    table(
+      (s) =>
+        s
+          .modify(
+            `insert into db.datagrid_view_filter_term select *, new_view_id as view from db.datagrid_view_filter_term where id = filter_term_record.id`
+          )
+          .modify(
+            `insert into filter_mapping (old_id, new_id) values (filter_term_record.id, (select max(id) from db.datagrid_view_filter_term))`
+          )
+    )
+    .table(
       `sub_root_term`,
       `select id from db.datagrid_view_filter_term where view = ${viewId} and group in (select old_id from filter_mapping)`
-    ),
-    forEachTable("sub_root_term", "filter_term_record", [
-      modify(
-        `insert into db.datagrid_view_filter_term
+    )
+    .forEachTable("sub_root_term", "filter_term_record", (s) =>
+      s
+        .modify(
+          `insert into db.datagrid_view_filter_term
               select *, new_id as group, new_view_id as view
                 from db.datagrid_view_filter_term
                   join filter_mapping on old_id = group
                 where id = filter_term_record.id`
-      ),
-      modify(
-        `insert into filter_mapping (old_id, new_id) values (filter_term_record.id, (select max(id) from db.datagrid_view_filter_term))`
-      ),
-    ]),
-    forEachQuery(
+        )
+        .modify(
+          `insert into filter_mapping (old_id, new_id) values (filter_term_record.id, (select max(id) from db.datagrid_view_filter_term))`
+        )
+    )
+    .forEachQuery(
       `select id from db.datagrid_view_filter_term where view = ${viewId} and group in (select id from sub_root_term)`,
       "filter_term_record",
-      modify(
-        `insert into db.datagrid_view_filter_term
+      (s) =>
+        s.modify(
+          `insert into db.datagrid_view_filter_term
               select *, new_id as group, new_view_id as view
                 from db.datagrid_view_filter_term
                   join filter_mapping on old_id = group
                 where id = filter_term_record.id`
-      )
-    ),
-    commitTransaction(),
-  ];
+        )
+    )
+    .commitTransaction();
 }
 
 function filterExpr(dts: DatagridDts) {
@@ -815,11 +787,11 @@ function addViewTables() {
   if ("datagrid_view" in app.db.tables) {
     return;
   }
-  addEnum({
+  app.addEnum({
     name: "datagrid_view_name",
     values: [],
   });
-  addTable("datagrid_view", (t) => {
+  app.db.addTable("datagrid_view", (t) => {
     t.string("name", 200).notNull();
     t.enum("datagrid_name", "datagrid_view_name").notNull();
     t.fk("user", app.db.userTableName);
@@ -832,7 +804,7 @@ function addViewTables() {
       "datagrid_name",
     ]);
   });
-  addTable("datagrid_view_column", (t) => {
+  app.db.addTable("datagrid_view_column", (t) => {
     t.fk("view", "datagrid_view").notNull();
     t.string("name", 200).notNull();
     t.bool("displaying").notNull();
@@ -840,7 +812,7 @@ function addViewTables() {
     t.tinyUint("sort_index");
     t.bool("sort_asc");
   });
-  addTable("datagrid_view_filter_term", (t) => {
+  app.db.addTable("datagrid_view_filter_term", (t) => {
     t.fk("view", "datagrid_view").notNull();
     t.fk("group", "datagrid_view_filter_term");
     t.ordering("ordering").notNull();
@@ -855,7 +827,7 @@ function addViewTables() {
 
 function addDgFilterOp() {
   if (!app.enums.dg_filter_op) {
-    addEnum({
+    app.addEnum({
       name: "dg_filter_op",
       values: [
         "empty",
@@ -947,8 +919,7 @@ function addDgFilterOp() {
         },
       ],
     });
-    addDecisionTable({
-      bound: false,
+    app.addDecisionTable({
       name: "encode_date_dg_filter_param",
       parameters: [
         {
@@ -987,8 +958,7 @@ function addDgFilterOp() {
         .join("\n"),
       output: { name: "output", type: { type: "String" } },
     });
-    addDecisionTable({
-      bound: false,
+    app.addDecisionTable({
       name: "encode_dg_filter_op",
       parameters: [
         {

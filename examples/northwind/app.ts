@@ -420,57 +420,58 @@ ui.addDashboardGridPage((page) =>
     })
 );
 
-// simpleDatagridPage({
-//   table: "employee",
-//   selectable: true,
-//   toolbar: {
-//     export: true,
-//     delete: true,
-//     add: {
-//       type: "dialog",
-//       opts: {
-//         withValues: { image_thumb: "null", image_full: "null" },
-//         beforeTransactionCommit: (state) => [
-//           addUsers(
-//             `select ${state.fields.get(
-//               "email"
-//             )} as email, next_record_id(db.user) as db_id, 'none' as notification_type`,
-//             "added_user"
-//           ),
-//           modify(
-//             `insert into db.user (global_id, is_sys_admin, is_admin, disabled, email, employee) values ((select global_id from added_user), false, false, false, ${state.fields.get(
-//               "email"
-//             )}, last_record_id(db.employee))`
-//           ),
-//         ],
-//       },
-//     },
-//   },
-//   fields: {
-//     email: {
-//       beforeEdit: (newValue, recordId) => [
-//         scalar(
-//           `user_id`,
-//           `(select id from db.user where employee = ${recordId})`
-//         ),
-//         modify(`update db.user set email = ${newValue} where id = user_id`),
-//         if_(`not (select disabled from db.user where id = user_id)`, [
-//           removeUsers(`select global_id from db.user where id = user_id`),
-//           addUsers(
-//             `select ${newValue} as email, user_id as db_id, 'none' as notification_type`,
-//             `added_user`
-//           ),
-//           modify(
-//             `update db.user set global_id = (select global_id from added_user) where id = user_id`
-//           ),
-//         ]),
-//       ],
-//     },
-//   },
-//   viewButton: true,
-//   rowHeight: "tall",
-//   fieldOrder: ["image_thumb", "first_name", "last_name", "title"],
-// });
+ui.addSimpleDatagridPage({
+  table: "employee",
+  selectable: true,
+  toolbar: {
+    export: true,
+    delete: true,
+    add: {
+      type: "dialog",
+      opts: {
+        withValues: { image_thumb: "null", image_full: "null" },
+        beforeTransactionCommit: (state, s) =>
+          s
+            .addUsers(
+              `select ${
+                state.field("email").value
+              } as email, next_record_id(db.user) as db_id, 'none' as notification_type`,
+              "added_user"
+            )
+            .modify(
+              `insert into db.user (global_id, is_sys_admin, is_admin, disabled, email, employee) values ((select global_id from added_user), false, false, false, ${
+                state.field("email").value
+              }, last_record_id(db.employee))`
+            ),
+      },
+    },
+  },
+  fields: {
+    email: {
+      beforeEdit: (newValue, recordId) => (s) =>
+        s
+          .scalar(
+            `user_id`,
+            `(select id from db.user where employee = ${recordId})`
+          )
+          .modify(`update db.user set email = ${newValue} where id = user_id`)
+          .if(`not (select disabled from db.user where id = user_id)`, (s) =>
+            s
+              .removeUsers(`select global_id from db.user where id = user_id`)
+              .addUsers(
+                `select ${newValue} as email, user_id as db_id, 'none' as notification_type`,
+                `added_user`
+              )
+              .modify(
+                `update db.user set global_id = (select global_id from added_user) where id = user_id`
+              )
+          ),
+    },
+  },
+  viewButton: true,
+  rowHeight: "tall",
+  fieldOrder: ["image_thumb", "first_name", "last_name", "title"],
+});
 
 ui.addRecordGridPage("employee", (page) => {
   page
@@ -498,74 +499,76 @@ ui.addRecordGridPage("employee", (page) => {
     });
 });
 
-// simpleDatagridPage({
-//   table: "user",
-//   toolbar: {
-//     add: {
-//       type: "dialog",
-//       opts: {
-//         withValues: { global_id: "new_global_id", disabled: "false" },
-//         beforeTransactionStart: (state) => [
-//           addUsers(
-//             `select next_record_id(db.user) as db_id, 'none' as notification_type, ${state.fields.get(
-//               "email"
-//             )} as email`
-//           ),
-//           scalar(`new_global_id`, `(select global_id from added_user)`),
-//         ],
-//       },
-//     },
-//   },
-//   fields: {
-//     disabled: {
-//       beforeEdit: (newValue, recordId) => [
-//         if_<ServiceProcStatement>(
-//           newValue,
-//           [removeUsers(`select global_id from db.user where id = ${recordId}`)],
-//           [
-//             addUsers(
-//               `select email, id as db_id, 'none' as notification_type from db.user where id = ${recordId}`,
-//               `added_user`
-//             ),
-//             modify(
-//               `update db.user set global_id = (select global_id from added_user) where id = ${recordId}`
-//             ),
-//           ]
-//         ),
-//       ],
-//     },
-//     email: {
-//       beforeEdit: (newValue, recordId) => [
-//         scalar(
-//           `employee`,
-//           `(select employee from db.user where id = ${recordId})`
-//         ),
-//         modify(
-//           `update db.employee set email = ${newValue} where id = employee`
-//         ),
-//         removeUsers(`select global_id from db.user where id = ${recordId}`),
-//         addUsers(
-//           `select ${newValue} as email, ${recordId} as db_id, 'none' as notification_type`,
-//           `added_user`
-//         ),
-//         modify(
-//           `update db.user set global_id = (select global_id from added_user) where id = ${recordId}`
-//         ),
-//       ],
-//     },
-//   },
-// });
+ui.addSimpleDatagridPage({
+  table: "user",
+  toolbar: {
+    add: {
+      type: "dialog",
+      opts: {
+        withValues: { global_id: "new_global_id", disabled: "false" },
+        beforeTransactionStart: (state, s) =>
+          s
+            .addUsers(
+              `select next_record_id(db.user) as db_id, 'none' as notification_type, ${
+                state.field("email").value
+              } as email`
+            )
+            .scalar(`new_global_id`, `(select global_id from added_user)`),
+      },
+    },
+  },
+  fields: {
+    disabled: {
+      beforeEdit: (newValue, recordId) => (s) =>
+        s.if({
+          condition: newValue,
+          then: (s) =>
+            s.removeUsers(
+              `select global_id from db.user where id = ${recordId}`
+            ),
+          else: (s) =>
+            s
+              .addUsers(
+                `select email, id as db_id, 'none' as notification_type from db.user where id = ${recordId}`,
+                `added_user`
+              )
+              .modify(
+                `update db.user set global_id = (select global_id from added_user) where id = ${recordId}`
+              ),
+        }),
+    },
+    email: {
+      beforeEdit: (newValue, recordId) => (s) =>
+        s
+          .scalar(
+            `employee`,
+            `(select employee from db.user where id = ${recordId})`
+          )
+          .modify(
+            `update db.employee set email = ${newValue} where id = employee`
+          )
+          .removeUsers(`select global_id from db.user where id = ${recordId}`)
+          .addUsers(
+            `select ${newValue} as email, ${recordId} as db_id, 'none' as notification_type`,
+            `added_user`
+          )
+          .modify(
+            `update db.user set global_id = (select global_id from added_user) where id = ${recordId}`
+          ),
+    },
+  },
+});
 
-// datagridPage({
-//   table: "order",
-//   selectable: true,
-//   toolbar: {
-//     export: true,
-//     delete: true,
-//     add: { type: "href", href: `/orders/add` },
-//   },
-//   viewButton: true,
-// });
+ui.addDatagridPage({
+  table: "order",
+  selectable: true,
+  toolbar: {
+    export: true,
+    delete: true,
+    add: { type: "href", href: `/orders/add` },
+  },
+  viewButton: true,
+});
 
 const orderFormPartStyles = { gridColumnSpan: 12, lg: { gridColumnSpan: 3 } };
 
@@ -817,16 +820,16 @@ ui.addRecordGridPage("order", (page) => {
     });
 });
 
-// datagridPage({
-//   table: "customer",
-//   selectable: true,
-//   toolbar: {
-//     export: true,
-//     delete: true,
-//     add: { type: "dialog" },
-//   },
-//   viewButton: true,
-// });
+ui.addDatagridPage({
+  table: "customer",
+  selectable: true,
+  toolbar: {
+    export: true,
+    delete: true,
+    add: { type: "dialog" },
+  },
+  viewButton: true,
+});
 
 ui.addRecordGridPage("customer", (page) => {
   page
@@ -844,19 +847,19 @@ ui.addRecordGridPage("customer", (page) => {
     });
 });
 
-// simpleDatagridPage({
-//   table: "shipper",
-//   toolbar: {
-//     add: { type: "dialog" },
-//   },
-// });
+ui.addSimpleDatagridPage({
+  table: "shipper",
+  toolbar: {
+    add: { type: "dialog" },
+  },
+});
 
-// simpleDatagridPage({
-//   table: "supplier",
-//   toolbar: {
-//     add: { type: "dialog" },
-//   },
-// });
+ui.addSimpleDatagridPage({
+  table: "supplier",
+  toolbar: {
+    add: { type: "dialog" },
+  },
+});
 
 ui.addRecordGridPage("supplier", (page) => {
   page
@@ -874,13 +877,13 @@ ui.addRecordGridPage("supplier", (page) => {
     });
 });
 
-// simpleDatagridPage({
-//   table: "product",
-//   toolbar: {
-//     add: { type: "dialog" },
-//   },
-//   fields: { discontinued: { immutable: true } },
-// });
+ui.addSimpleDatagridPage({
+  table: "product",
+  toolbar: {
+    add: { type: "dialog" },
+  },
+  fields: { discontinued: { immutable: true } },
+});
 
 ui.addRecordGridPage("product", (page) => {
   page.namedPageHeader({ chips: ["discontinued"] }).staticTableCard({
@@ -897,10 +900,10 @@ ui.addRecordGridPage("product", (page) => {
   });
 });
 
-// simpleDatagridPage({
-//   table: "category",
-//   toolbar: { add: { type: "dialog" } },
-// });
+ui.addSimpleDatagridPage({
+  table: "category",
+  toolbar: { add: { type: "dialog" } },
+});
 
 ui.addSimpleReportsPage((page) => {
   page.section("Sales");

@@ -1,5 +1,5 @@
 import { Node } from "../../nodeTypes";
-import { BaseStatement, ClientProcStatement } from "../../yom";
+import { BasicStatements, DomStatementsOrFn } from "../../statements";
 
 export interface CellProps {
   value: string;
@@ -7,18 +7,18 @@ export interface CellProps {
   recordId: string;
   row: string;
   column: string;
-  setValue: (v: string) => BaseStatement[];
+  setValue: (v: string) => BasicStatements;
   nextCol: string;
-  stopEditing: BaseStatement[];
+  stopEditing: BasicStatements;
 }
 
 export type Cell = (props: CellProps) => Node;
 
 export interface ColumnEventHandlers {
-  keydownCellHandler?: ClientProcStatement[];
-  keydownHeaderHandler?: ClientProcStatement[];
-  headerClickHandler?: ClientProcStatement[];
-  cellClickHandler?: ClientProcStatement[];
+  keydownCellHandler?: DomStatementsOrFn;
+  keydownHeaderHandler?: DomStatementsOrFn;
+  headerClickHandler?: DomStatementsOrFn;
+  cellClickHandler?: DomStatementsOrFn;
 }
 
 export type RowHeight = "short" | "medium" | "tall" | "extraTall";

@@ -206,7 +206,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
             },
             children: opts.icon.content,
           }),
-          ifNode(
+          nodes.if(
             `record.iteration_index != (select count(*) from result) - 1`,
             element("span", {
               styles: styles.line,

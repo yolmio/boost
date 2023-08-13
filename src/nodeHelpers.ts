@@ -69,6 +69,36 @@ function queryParams(
   };
 }
 
+interface DatagridOpts extends Omit<ui.DataGridNode, "t" | "on"> {
+  on: {
+    keyboardNavigation: HelperEventHandler;
+    cellClick: HelperEventHandler;
+    cellDoubleClick?: HelperEventHandler;
+    cellKeydown?: HelperEventHandler;
+    fetchMore?: HelperEventHandler;
+  };
+}
+
+function dataGrid(opts: DatagridOpts): ui.DataGridNode {
+  return {
+    ...opts,
+    t: "DataGrid",
+    on: {
+      keyboardNavigation: normalizeEventHandler(opts.on.keyboardNavigation),
+      cellClick: normalizeEventHandler(opts.on.cellClick),
+      cellDoubleClick: opts.on.cellDoubleClick
+        ? normalizeEventHandler(opts.on.cellDoubleClick)
+        : undefined,
+      cellKeydown: opts.on.cellKeydown
+        ? normalizeEventHandler(opts.on.cellKeydown)
+        : undefined,
+      fetchMore: opts.on.fetchMore
+        ? normalizeEventHandler(opts.on.fetchMore)
+        : undefined,
+    },
+  };
+}
+
 export type HelperEventHandler = DomStatementsOrFn | HelperEventHandlerObject;
 
 export interface HelperEventHandlerObject
@@ -84,12 +114,7 @@ interface ElementOpts extends Omit<ui.ElementNode, "t" | "tag" | "on"> {
   on?: HelperEventHandlers;
 }
 
-function normalizeEventHandler(
-  helper: HelperEventHandler | undefined
-): yom.EventHandler | undefined {
-  if (!helper) {
-    return undefined;
-  }
+function normalizeEventHandler(helper: HelperEventHandler): yom.EventHandler {
   if (typeof helper === "function") {
     return DomStatements.normalizeToArray(helper);
   } else if (
@@ -127,10 +152,6 @@ function element(tag: yom.AllHtmlTags, el: ElementOpts): ui.ElementNode {
   };
 }
 
-function dataGrid(opts: Omit<ui.DataGridNode, "t">): ui.DataGridNode {
-  return { t: "DataGrid", ...opts };
-}
-
 interface EventHandlersOpts {
   window?: HelperEventHandlers;
   document?: HelperEventHandlers;
@@ -142,7 +163,7 @@ function eventHandlers(opts: EventHandlersOpts): yom.EventHandlersNode {
     t: "EventHandlers",
     window: normalizeEventHandlers(opts.window),
     document: normalizeEventHandlers(opts.document),
-    mount: normalizeEventHandler(opts.mount),
+    mount: opts.mount ? normalizeEventHandler(opts.mount) : undefined,
   };
 }
 

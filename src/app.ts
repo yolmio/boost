@@ -20,6 +20,11 @@ import { recordGridPage, RecordGridBuilder } from "./pages/recordGrid";
 import { dbManagementPage, DbManagmentPageOpts } from "./pages/dbManagement";
 import { insertFormPage, InsertFormPageOpts } from "./pages/insertForm";
 import { SimpleReportsPageBuilder } from "./pages/simpleReportPage";
+import {
+  simpleDatagridPage,
+  DatagridPageOpts as SimpleDatagridPageOpts,
+} from "./pages/simpleDatagrid";
+import { datagridPage, DatagridPageOpts } from "./pages/datagrid";
 import { ComponentOpts } from "./components/types";
 
 /**
@@ -287,6 +292,14 @@ export class Ui {
     fn(builder);
     builder.finish();
   }
+
+  addSimpleDatagridPage(opts: SimpleDatagridPageOpts) {
+    simpleDatagridPage(opts);
+  }
+
+  addDatagridPage(opts: DatagridPageOpts) {
+    datagridPage(opts);
+  }
 }
 
 export interface WebAppConfig {
@@ -499,8 +512,8 @@ export class Table {
   expectedOrderOfMagnitude?: number;
   description?: string;
   /** Return an expression which should be the href to the given id */
-  customGetHrefToRecord?: (id: yom.SqlExpression) => yom.SqlExpression;
-  linkable = false;
+  getHrefToRecord?: (id: yom.SqlExpression) => yom.SqlExpression;
+  baseUrl = "";
 
   ext: Record<string, any> = {};
 
@@ -520,13 +533,6 @@ export class Table {
 
   getBaseUrl() {
     return pluralize(this.name.split("_").join(" ")).split(" ").join("-");
-  }
-
-  getHrefToRecord(id: yom.SqlExpression): yom.SqlExpression {
-    if (this.customGetHrefToRecord) {
-      return this.customGetHrefToRecord(id);
-    }
-    return `'/' || ${stringLiteral(this.getBaseUrl())} || '/' || ${id}`;
   }
 
   /**
@@ -833,7 +839,7 @@ export class TableBuilder {
   #recordDisplayName?: RecordDisplayName;
   #createDefaultNameMatch = false;
   #getHrefToRecord?: (id: string) => string;
-  #linkable = false;
+  #baseUrl?: string;
   #formControl?: TableControl;
   #displayName: string;
   #primaryKeyFieldName?: string;
@@ -1155,9 +1161,17 @@ export class TableBuilder {
     return this;
   }
 
+  #getBaseUrl() {
+    if (this.#baseUrl) {
+      return this.#baseUrl;
+    }
+    return pluralize(this.name.split("_").join(" ")).split(" ").join("-");
+  }
+
   linkable(f?: (id: string) => string) {
-    this.#linkable = true;
-    this.#getHrefToRecord = f;
+    const baseUrl = this.#getBaseUrl();
+    this.#getHrefToRecord =
+      f ?? ((id) => `'/' || ${stringLiteral(baseUrl)} || '/' || ${id}`);
     return this;
   }
 
@@ -1284,8 +1298,8 @@ export class TableBuilder {
     table.recordDisplayName = recordDisplayName;
     table.description = this.#description;
     table.searchConfig = searchConfig;
-    table.customGetHrefToRecord = this.#getHrefToRecord;
-    table.linkable = this.#linkable;
+    table.getHrefToRecord = this.#getHrefToRecord;
+    table.baseUrl = this.#getBaseUrl();
     table.control = this.#formControl;
     return table;
   }

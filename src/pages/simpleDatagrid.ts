@@ -1,17 +1,9 @@
 import { InsertDialogOpts } from "../components/insertDialog";
-import {
-  debugExpr,
-  if_,
-  modify,
-  scalar,
-  setScalar,
-  table,
-} from "../procHelpers";
 import { app } from "../app";
 import { pluralize } from "../utils/inflectors";
 import { ident, stringLiteral } from "../utils/sqlHelpers";
 import { getTableBaseUrl } from "../utils/url";
-import { SqlExpression, StateStatement } from "../yom";
+import * as yom from "../yom";
 import {
   simpleColumnFromField,
   simpleColumnFromVirtual,
@@ -25,7 +17,7 @@ import { checkbox } from "../components/checkbox";
 import { FieldEditProcConfig } from "./datagridInternals/editHelper";
 import { button } from "../components/button";
 import { RowHeight } from "./datagridInternals/types";
-import { addPage } from "../appHelpers";
+import { DomStatements, StateStatements } from "../statements";
 
 export interface ToolbarOpts {
   delete?: boolean;
@@ -40,7 +32,7 @@ export interface ToolbarOpts {
 
 export interface DatagridPageOpts {
   table: string;
-  allow?: SqlExpression;
+  allow?: yom.SqlExpression;
   path?: string;
   selectable?: boolean;
   toolbar?: ToolbarOpts;
@@ -60,11 +52,11 @@ export interface FieldConfig extends FieldEditProcConfig {
 }
 
 function toggleRowSelection(id: string) {
-  return if_(
-    `exists (select id from ui.selected_row where id = ${id})`,
-    [modify(`delete from selected_row where id = ${id}`)],
-    [modify(`insert into selected_row (id) values (${id})`)]
-  );
+  return new DomStatements().if({
+    condition: `exists (select id from ui.selected_row where id = ${id})`,
+    then: (s) => s.modify(`delete from selected_row where id = ${id}`),
+    else: (s) => s.modify(`insert into selected_row (id) values (${id})`),
+  });
 }
 
 function getColumns(
@@ -91,28 +83,28 @@ function getColumns(
         checked: `selected_all`,
         slots: { checkbox: { props: { tabIndex: "-1" } } },
       }),
-      cellClickHandler: [
-        scalar(
-          `row_id`,
-          `(select id from ui.dg_table limit 1 offset cell.row - 1)`
-        ),
-        toggleRowSelection(`row_id`),
-      ],
-      headerClickHandler: [
-        setScalar(`selected_all`, `not selected_all`),
-        modify(`delete from selected_row`),
-      ],
-      keydownCellHandler: [
-        scalar(
-          `row_id`,
-          `(select id from ui.dg_table limit 1 offset cell.row - 1)`
-        ),
-        toggleRowSelection(`cast(row_id as bigint)`),
-      ],
-      keydownHeaderHandler: [
-        setScalar(`selected_all`, `not selected_all`),
-        modify(`delete from selected_row`),
-      ],
+      cellClickHandler: (s) =>
+        s
+          .scalar(
+            `row_id`,
+            `(select id from ui.dg_table limit 1 offset cell.row - 1)`
+          )
+          .statements(toggleRowSelection(`row_id`)),
+      headerClickHandler: (s) =>
+        s
+          .setScalar(`selected_all`, `not selected_all`)
+          .modify(`delete from selected_row`),
+      keydownCellHandler: (s) =>
+        s
+          .scalar(
+            `row_id`,
+            `(select id from ui.dg_table limit 1 offset cell.row - 1)`
+          )
+          .statements(toggleRowSelection(`cast(row_id as bigint)`)),
+      keydownHeaderHandler: (s) =>
+        s
+          .setScalar(`selected_all`, `not selected_all`)
+          .modify(`delete from selected_row`),
     });
   }
   if (viewButtonUrl) {
@@ -214,12 +206,12 @@ export function simpleDatagridPage(opts: DatagridPageOpts) {
   } else if (opts.toolbar?.add) {
     toolbarConfig.add = opts.toolbar.add;
   }
-  const extraState: StateStatement[] = [];
+  const extraState = new StateStatements();
   if (selectable) {
-    extraState.push(
-      scalar(`selected_all`, `false`),
-      table(`selected_row`, [{ name: "id", type: { type: "BigInt" } }])
-    );
+    extraState.scalar(`selected_all`, `false`);
+    extraState.table(`selected_row`, [
+      { name: "id", type: { type: "BigInt" } },
+    ]);
   }
   const content = styledSimpleDatagrid({
     columns,
@@ -231,8 +223,5 @@ export function simpleDatagridPage(opts: DatagridPageOpts) {
     sourceMapName: `tableSimpleGrid(${opts.table})`,
     rowHeight: opts.rowHeight,
   });
-  addPage({
-    path,
-    content,
-  });
+  app.ui.pages.push({ path, content });
 }

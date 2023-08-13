@@ -1,5 +1,4 @@
-import { each, element, ifNode, state } from "../../nodeHelpers";
-import { if_, modify, scalar, setScalar } from "../../procHelpers";
+import { nodes } from "../../nodeHelpers";
 import { stringLiteral } from "../../utils/sqlHelpers";
 import { button } from "../../components/button";
 import { iconButton } from "../../components/iconButton";
@@ -28,7 +27,7 @@ export function sortPopover(columns: SuperGridColumn[]) {
       }
       sorts.get(col.sort)!.push(i);
       options.push(
-        element("option", {
+        nodes.element("option", {
           props: { value: i.toString() },
           children: stringLiteral(col.displayName!),
         })
@@ -48,13 +47,13 @@ export function sortPopover(columns: SuperGridColumn[]) {
     });
   }
   return [
-    each({
+    nodes.each({
       table: "column",
       key: "id",
       recordName: "column_record",
       where: "sort_index is not null",
       orderBy: "sort_index",
-      children: element("div", {
+      children: nodes.element("div", {
         styles: styles.columns,
         children: [
           select({
@@ -62,18 +61,19 @@ export function sortPopover(columns: SuperGridColumn[]) {
             color: "primary",
             size: "sm",
             on: {
-              input: [
-                scalar("new_id", "cast(target_value as int)"),
-                if_("column_record.id != new_id", [
-                  modify(
-                    `update ui.column set sort_index = column_record.sort_index, sort_asc = column_record.sort_asc where id = new_id`
+              input: (s) =>
+                s
+                  .scalar("new_id", "cast(target_value as int)")
+                  .if("column_record.id != new_id", (s) =>
+                    s
+                      .modify(
+                        `update ui.column set sort_index = column_record.sort_index, sort_asc = column_record.sort_asc where id = new_id`
+                      )
+                      .modify(
+                        `update ui.column set sort_index = null where id = column_record.id`
+                      )
+                      .statements(triggerQueryRefresh())
                   ),
-                  modify(
-                    `update ui.column set sort_index = null where id = column_record.id`
-                  ),
-                  triggerQueryRefresh(),
-                ]),
-              ],
             },
             slots: { select: { props: { value: "column_record.id" } } },
             children: options,
@@ -83,12 +83,12 @@ export function sortPopover(columns: SuperGridColumn[]) {
             color: "primary",
             size: "sm",
             on: {
-              input: [
-                modify(
-                  `update ui.column set sort_asc = target_value = 'asc' where id = column_record.id`
-                ),
-                triggerQueryRefresh(),
-              ],
+              input: (s) =>
+                s
+                  .modify(
+                    `update ui.column set sort_asc = target_value = 'asc' where id = column_record.id`
+                  )
+                  .statements(triggerQueryRefresh()),
             },
             slots: {
               select: {
@@ -99,11 +99,11 @@ export function sortPopover(columns: SuperGridColumn[]) {
               },
             },
             children: [
-              element("option", {
+              nodes.element("option", {
                 props: { value: "'asc'" },
                 children: { t: "Switch", cases: ascNodeCases },
               }),
-              element("option", {
+              nodes.element("option", {
                 props: { value: "'desc'" },
                 children: { t: "Switch", cases: descNodeCases },
               }),
@@ -115,39 +115,39 @@ export function sortPopover(columns: SuperGridColumn[]) {
             size: "sm",
             children: materialIcon("Close"),
             on: {
-              click: [
-                modify(
-                  `update ui.column set sort_index = null where id = column_record.id`
-                ),
-                triggerQueryRefresh(),
-              ],
+              click: (s) =>
+                s
+                  .modify(
+                    `update ui.column set sort_index = null where id = column_record.id`
+                  )
+                  .statements(triggerQueryRefresh()),
             },
           }),
         ],
       }),
     }),
-    state({
-      procedure: [scalar("adding", "false")],
-      children: ifNode(
-        "adding or not exists (select id from column where sort_index is not null)",
-        select({
+    nodes.state({
+      procedure: (s) => s.scalar("adding", "false"),
+      children: nodes.if({
+        expr: "adding or not exists (select id from column where sort_index is not null)",
+        then: select({
           variant: "outlined",
           color: "primary",
           size: "sm",
           on: {
-            input: [
-              setScalar(`ui.adding`, `false`),
-              modify(
-                `update ui.column set sort_index = 0, sort_asc = true where id = try_cast(target_value as int)`
-              ),
-              triggerQueryRefresh(),
-            ],
+            input: (s) =>
+              s
+                .setScalar(`ui.adding`, `false`)
+                .modify(
+                  `update ui.column set sort_index = 0, sort_asc = true where id = try_cast(target_value as int)`
+                )
+                .statements(triggerQueryRefresh()),
           },
           slots: {
             select: { props: { value: "'default'", yolmFocusKey: `adding` } },
           },
           children: [
-            element("option", {
+            nodes.element("option", {
               props: { value: "'default'" },
               children:
                 "case when exists (select id from column where sort_index is not null) then 'Select another field...' else 'Select field...' end",
@@ -155,17 +155,17 @@ export function sortPopover(columns: SuperGridColumn[]) {
             options,
           ],
         }),
-        button({
+        else: button({
           variant: "outlined",
           color: "primary",
           size: "sm",
           startDecorator: materialIcon("Add"),
           on: {
-            click: [setScalar(`ui.adding`, "true")],
+            click: (s) => s.setScalar(`ui.adding`, "true"),
           },
           children: "'Add another field'",
-        })
-      ),
+        }),
+      }),
     }),
   ];
 }

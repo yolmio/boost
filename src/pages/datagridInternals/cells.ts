@@ -10,7 +10,6 @@ import {
   DurationUsage,
   EnumField,
   Field,
-  FieldBase,
   ForeignKeyField,
   ImageSetFieldGroup,
   IntegerField,
@@ -18,37 +17,23 @@ import {
   StringField,
   TimestampField,
   UuidField,
+  app,
 } from "../../app";
-import { element, ifNode, state } from "../../nodeHelpers";
-import {
-  commitUiChanges,
-  debugExpr,
-  delay,
-  exit,
-  if_,
-  modify,
-  preventDefault,
-  scalar,
-  serviceProc,
-  setScalar,
-  spawn,
-  try_,
-} from "../../procHelpers";
-import { app } from "../../app";
+import { nodes } from "../../nodeHelpers";
 import { createStyles, visuallyHiddenStyles } from "../../styleUtils";
 import { enumLikeDisplayName } from "../../utils/enumLike";
 import { stringLiteral } from "../../utils/sqlHelpers";
 import { FieldEditProcConfig, displayEditError, doEdit } from "./editHelper";
 import { triggerQueryRefresh } from "./shared";
 import { fieldEditorEventHandlers } from "./editHelper";
-import { ClientProcStatement, ServiceProcStatement } from "../../yom";
 import { button } from "../../components/button";
 import { materialIcon } from "../../components/materialIcon";
-import { imageDalog } from "../../components/imageDialog";
+import { imageDialog } from "../../components/imageDialog";
 import { getUploadStatements } from "../../utils/image";
 import { Cell, CellProps } from "./types";
 import { styles as sharedStyles } from "./styles";
 import { iconButton } from "../../components/iconButton";
+import { DomStatements } from "../../statements";
 
 const styles = createStyles({
   select: {
@@ -118,15 +103,14 @@ function foreignKeyCell(opts: BaseFieldCellOpts, field: ForeignKeyField): Cell {
   );
   return (props) => {
     if (opts.immutable) {
-      return state({
+      return nodes.state({
         watch: [`${props.value}`],
-        procedure: [
-          scalar(
+        procedure: (s) =>
+          s.scalar(
             `text`,
             `(select ${nameExpr} from db.${toTable.name} as r where id = try_cast(${props.value} as bigint))`
           ),
-        ],
-        children: element("span", {
+        children: nodes.element("span", {
           styles: sharedStyles.ellipsisSpan,
           children: `text`,
         }),
@@ -144,32 +128,31 @@ function foreignKeyCell(opts: BaseFieldCellOpts, field: ForeignKeyField): Cell {
       );
     }
     const shouldUseEditedText = `did_edit and ((edited_id is null and ${props.value} is null) or edited_id = try_cast(${props.value} as bigint))`;
-    const text = element("span", {
+    const text = nodes.element("span", {
       styles: sharedStyles.ellipsisSpan,
       children: `case when ${shouldUseEditedText} then edited_text else text end`,
     });
-    return state({
-      procedure: [
-        scalar(`edited_text`, { type: "String", maxLength: 1000 }),
-        scalar(`edited_id`, { type: "BigInt" }),
-        scalar(`did_edit`, `false`),
-      ],
-      children: state({
+    return nodes.state({
+      procedure: (s) =>
+        s
+          .scalar(`edited_text`, { type: "String", maxLength: 1000 })
+          .scalar(`edited_id`, { type: "BigInt" })
+          .scalar(`did_edit`, `false`),
+      children: nodes.state({
         watch: [`${props.value}`],
-        procedure: [
-          scalar(
+        procedure: (s) =>
+          s.scalar(
             `text`,
             `(select ${nameExpr} from db.${toTable.name} as r where id = try_cast(${props.value} as bigint))`
           ),
-        ],
         children: [
           field.notNull
             ? text
-            : element("div", {
+            : nodes.element("div", {
                 styles: styles.nullableForeignKeyWrapper,
                 children: [
                   text,
-                  ifNode(
+                  nodes.if(
                     `text is not null`,
                     iconButton({
                       size: "sm",
@@ -179,53 +162,54 @@ function foreignKeyCell(opts: BaseFieldCellOpts, field: ForeignKeyField): Cell {
                       on: {
                         click: {
                           detachedFromNode: true,
-                          procedure: [
-                            scalar(`prev_id`, props.value),
-                            ...props.setValue(`null`),
-                            ...doEdit({
-                              ...opts,
-                              dbValue: `null`,
-                              fieldName: field.name,
-                              recordId: props.recordId,
-                              resetValue: props.setValue(`prev_id`),
-                            }),
-                          ],
+                          procedure: (s) =>
+                            s.scalar(`prev_id`, props.value).statements(
+                              props.setValue(`null`),
+                              doEdit({
+                                ...opts,
+                                dbValue: `null`,
+                                fieldName: field.name,
+                                recordId: props.recordId,
+                                resetValue: props.setValue(`prev_id`),
+                              })
+                            ),
                         },
                       },
                     })
                   ),
                 ],
               }),
-          ifNode(
+          nodes.if(
             props.editing,
             recordSelectDialog({
-              onSelect: (id, label) => [
-                if_(
-                  `${props.value} is null or ${id} != try_cast(${props.value} as bigint)`,
-                  [
-                    setScalar(`edited_id`, id),
-                    setScalar(`edited_text`, label),
-                    modify(`update ui.editing_state set is_editing = false`),
-                    modify(`update ui.focus_state set should_focus = true`),
-                    ...doEdit({
-                      ...opts,
-                      dbValue: id,
-                      fieldName: field.name,
-                      recordId: props.recordId,
-                      resetValue: [],
-                    }),
-                  ],
-                  [
-                    modify(`update ui.editing_state set is_editing = false`),
-                    modify(`update ui.focus_state set should_focus = true`),
-                  ]
-                ),
-              ],
+              onSelect: (id, label) => (s) =>
+                s.if({
+                  condition: `${props.value} is null or ${id} != try_cast(${props.value} as bigint)`,
+                  then: (s) =>
+                    s
+                      .setScalar(`edited_id`, id)
+                      .setScalar(`edited_text`, label)
+                      .modify(`update ui.editing_state set is_editing = false`)
+                      .modify(`update ui.focus_state set should_focus = true`)
+                      .statements(
+                        doEdit({
+                          ...opts,
+                          dbValue: id,
+                          fieldName: field.name,
+                          recordId: props.recordId,
+                          resetValue: new DomStatements(),
+                        })
+                      ),
+                  else: (s) =>
+                    s
+                      .modify(`update ui.editing_state set is_editing = false`)
+                      .modify(`update ui.focus_state set should_focus = true`),
+                }),
               open: `true`,
-              onClose: [
-                modify(`update ui.editing_state set is_editing = false`),
-                modify(`update ui.focus_state set should_focus = true`),
-              ],
+              onClose: (s) =>
+                s
+                  .modify(`update ui.editing_state set is_editing = false`)
+                  .modify(`update ui.focus_state set should_focus = true`),
               table: toTable.name,
             })
           ),
@@ -238,7 +222,7 @@ function foreignKeyCell(opts: BaseFieldCellOpts, field: ForeignKeyField): Cell {
 function enumCell(opts: BaseFieldCellOpts, field: EnumField): Cell {
   return (props) => {
     const enumModel = app.enums[field.enum];
-    const display = element("span", {
+    const display = nodes.element("span", {
       styles: sharedStyles.ellipsisSpan,
       children: enumModel.getDisplayName!(
         `try_cast(${props.value} as enums.${enumModel.name})`
@@ -248,14 +232,14 @@ function enumCell(opts: BaseFieldCellOpts, field: EnumField): Cell {
       return display;
     }
     const options = Object.values(enumModel.values).map((v) =>
-      element("option", {
+      nodes.element("option", {
         children: stringLiteral(v.displayName),
         props: { value: stringLiteral(v.name) },
       })
     );
     if (!field.notNull) {
       options.unshift(
-        element("option", {
+        nodes.element("option", {
           children: stringLiteral("No value"),
           props: { value: stringLiteral("''") },
         })
@@ -275,41 +259,39 @@ function enumCell(opts: BaseFieldCellOpts, field: EnumField): Cell {
       newUiValue: opts.stringified ? `cast(value as string)` : `value`,
       nextCol: props.nextCol,
     });
-    return ifNode(
-      props.editing,
-      state({
-        procedure: [
-          scalar(
+    return nodes.if({
+      expr: props.editing,
+      then: nodes.state({
+        procedure: (s) =>
+          s.scalar(
             `value`,
             `try_cast(${props.value} as enums.${enumModel.name})`
           ),
-        ],
-        children: element("div", {
+        children: nodes.element("div", {
           styles: styles.selectWrapper,
           children: [
-            element("select", {
+            nodes.element("select", {
               styles: styles.select,
               props: { value: `value`, yolmFocusKey: `true` },
               children: options,
               on: {
                 ...handlers,
-                input: [
-                  setScalar(
+                input: (s) =>
+                  s.setScalar(
                     `ui.value`,
                     `try_cast(target_value as enums.${enumModel.name}))`
                   ),
-                ],
               },
             }),
-            element("span", {
+            nodes.element("span", {
               styles: styles.selectIcon,
               children: selectIcon(),
             }),
           ],
         }),
       }),
-      display
-    );
+      else: display,
+    });
   };
 }
 
@@ -319,7 +301,7 @@ function dateCell(opts: BaseFieldCellOpts, field: DateField): Cell {
     const dateValue = opts.stringified
       ? `try_cast(${props.value} as date)`
       : props.value;
-    const display = element("span", {
+    const display = nodes.element("span", {
       styles: sharedStyles.ellipsisSpan,
       children: `format.date(${dateValue}, ${stringLiteral(formatString)})`,
     });
@@ -339,21 +321,23 @@ function dateCell(opts: BaseFieldCellOpts, field: DateField): Cell {
       changedUiValue: `case when ${dateValue} is null then value is not null else value is null or ${dateValue} != value end`,
       nextCol,
     });
-    const editor = state({
-      procedure: [scalar(`value`, dateValue)],
-      children: element("input", {
+    const editor = nodes.state({
+      procedure: (s) => s.scalar(`value`, dateValue),
+      children: nodes.element("input", {
         styles: sharedStyles.cellInput,
         props: { value: `value`, yolmFocusKey: `true`, type: "'date'" },
         on: {
           ...handlers,
-          input: [
-            setScalar(`ui.value`, `try_cast(target_value as date)`),
-            debugExpr(`ui.value`),
-          ],
+          input: (s) =>
+            s.setScalar(`ui.value`, `try_cast(target_value as date)`),
         },
       }),
     });
-    return ifNode(props.editing, editor, display);
+    return nodes.if({
+      expr: props.editing,
+      then: editor,
+      else: display,
+    });
   };
 }
 
@@ -363,7 +347,7 @@ function timestampCell(opts: BaseFieldCellOpts, field: TimestampField): Cell {
     const timestampValue = opts.stringified
       ? `try_cast(${props.value} as timestamp)`
       : props.value;
-    const display = element("span", {
+    const display = nodes.element("span", {
       styles: sharedStyles.ellipsisSpan,
       children: `format.date(${timestampValue}, ${stringLiteral(
         formatString
@@ -385,9 +369,9 @@ function timestampCell(opts: BaseFieldCellOpts, field: TimestampField): Cell {
       changedUiValue: `case when ${timestampValue} is null then value is not null else value is null or ${timestampValue} != value end`,
       nextCol,
     });
-    const editor = state({
-      procedure: [scalar(`value`, timestampValue)],
-      children: element("input", {
+    const editor = nodes.state({
+      procedure: (s) => s.scalar(`value`, timestampValue),
+      children: nodes.element("input", {
         styles: sharedStyles.cellInput,
         props: {
           value: `case when value is not null then format.date(value, '%Y-%m-%dT%H:%M') else '' end`,
@@ -396,11 +380,12 @@ function timestampCell(opts: BaseFieldCellOpts, field: TimestampField): Cell {
         },
         on: {
           ...handlers,
-          input: [setScalar(`ui.value`, `try_cast(target_value as timestamp)`)],
+          input: (s) =>
+            s.setScalar(`ui.value`, `try_cast(target_value as timestamp)`),
         },
       }),
     });
-    return ifNode(props.editing, editor, display);
+    return nodes.if({ expr: props.editing, then: editor, else: display });
   };
 }
 
@@ -448,7 +433,7 @@ function numericField(
         formatted = `format.percent(${numberValue})`;
       }
     }
-    const display = element("span", {
+    const display = nodes.element("span", {
       styles: sharedStyles.ellipsisSpan,
       children: formatted,
     });
@@ -456,14 +441,13 @@ function numericField(
       return display;
     }
     const handlers = castEventHandlers(opts, field, props, typeName);
-    const editor = state({
-      procedure: [
-        scalar(
+    const editor = nodes.state({
+      procedure: (s) =>
+        s.scalar(
           `value`,
           `coalesce(start_edit_with_char, cast(${props.value} as string))`
         ),
-      ],
-      children: element("input", {
+      children: nodes.element("input", {
         styles: sharedStyles.cellInput,
         props: {
           value: `value`,
@@ -472,17 +456,17 @@ function numericField(
         },
         on: {
           ...handlers,
-          input: [setScalar(`ui.value`, `target_value`)],
+          input: (s) => s.setScalar(`ui.value`, `target_value`),
         },
       }),
     });
-    return ifNode(props.editing, editor, display);
+    return nodes.if({ expr: props.editing, then: editor, else: display });
   };
 }
 
 function stringCell(opts: BaseFieldCellOpts, field: StringField): Cell {
   return (props) => {
-    const display = element("span", {
+    const display = nodes.element("span", {
       styles: sharedStyles.ellipsisSpan,
       children: props.value,
     });
@@ -502,24 +486,25 @@ function stringCell(opts: BaseFieldCellOpts, field: StringField): Cell {
       changedUiValue: `(${value} is null and ui.value != '') or ui.value != ${value}`,
       nextCol,
     });
-    const editor = state({
-      procedure: [scalar(`value`, `coalesce(start_edit_with_char, ${value})`)],
-      children: element("input", {
+    const editor = nodes.state({
+      procedure: (s) =>
+        s.scalar(`value`, `coalesce(start_edit_with_char, ${value})`),
+      children: nodes.element("input", {
         styles: sharedStyles.cellInput,
         props: { value: `value`, yolmFocusKey: `true`, type: "'text'" },
         on: {
           ...handlers,
-          input: [setScalar(`ui.value`, `target_value`)],
+          input: (s) => s.setScalar(`ui.value`, `target_value`),
         },
       }),
     });
-    return ifNode(props.editing, editor, display);
+    return nodes.if({ expr: props.editing, then: editor, else: display });
   };
 }
 
 function castEventHandlers(
   opts: BaseFieldCellOpts,
-  field: FieldBase,
+  field: Field,
   props: CellProps,
   typeName: string
 ) {
@@ -549,7 +534,7 @@ function castEventHandlers(
 
 function uuidCell(opts: BaseFieldCellOpts, field: UuidField): Cell {
   return (props) => {
-    const display = element("span", {
+    const display = nodes.element("span", {
       styles: sharedStyles.ellipsisSpan,
       children: props.value,
     });
@@ -557,23 +542,22 @@ function uuidCell(opts: BaseFieldCellOpts, field: UuidField): Cell {
       return display;
     }
     const handlers = castEventHandlers(opts, field, props, "uuid");
-    const editor = state({
-      procedure: [
-        scalar(
+    const editor = nodes.state({
+      procedure: (s) =>
+        s.scalar(
           `value`,
           `coalesce(start_edit_with_char, cast(${props.value} as string))`
         ),
-      ],
-      children: element("input", {
+      children: nodes.element("input", {
         styles: sharedStyles.cellInput,
         props: { value: `value`, yolmFocusKey: `true`, type: "'text'" },
         on: {
           ...handlers,
-          input: [setScalar(`ui.value`, `target_value`)],
+          input: (s) => s.setScalar(`ui.value`, `target_value`),
         },
       }),
     });
-    return ifNode(props.editing, editor, display);
+    return nodes.if({ expr: props.editing, then: editor, else: display });
   };
 }
 
@@ -581,7 +565,7 @@ function boolCell(opts: BaseFieldCellOpts, field: BoolField): Cell {
   const { enumLike } = field;
   if (enumLike) {
     return (props) => {
-      const display = element("span", {
+      const display = nodes.element("span", {
         styles: sharedStyles.ellipsisSpan,
         children: enumLikeDisplayName(
           `try_cast(${props.value} as bool)`,
@@ -607,34 +591,33 @@ function boolCell(opts: BaseFieldCellOpts, field: BoolField): Cell {
           ? `ui.value`
           : `try_cast(ui.value as bool)`,
       });
-      return ifNode(
-        props.editing,
-        state({
-          procedure: [
-            scalar(
+      return nodes.if({
+        expr: props.editing,
+        then: nodes.state({
+          procedure: (s) =>
+            s.scalar(
               `value`,
               opts.stringified
                 ? props.value
                 : `coalesce(cast(${props.value} as string), '')`
             ),
-          ],
-          children: element("div", {
+          children: nodes.element("div", {
             styles: styles.selectWrapper,
             children: [
-              element("select", {
+              nodes.element("select", {
                 styles: styles.select,
                 props: { value: `value`, yolmFocusKey: `true` },
                 children: [
-                  element("option", {
+                  nodes.element("option", {
                     children: stringLiteral(enumLike.true),
                     props: { value: "'true'" },
                   }),
-                  element("option", {
+                  nodes.element("option", {
                     children: stringLiteral(enumLike.false),
                     props: { value: "'false'" },
                   }),
                   !field.notNull
-                    ? element("option", {
+                    ? nodes.element("option", {
                         children: stringLiteral(enumLike.null ?? "Unspecified"),
                         props: {
                           value: "''",
@@ -644,18 +627,18 @@ function boolCell(opts: BaseFieldCellOpts, field: BoolField): Cell {
                 ],
                 on: {
                   ...handlers,
-                  input: [setScalar(`ui.value`, `target_value`)],
+                  input: (s) => s.setScalar(`ui.value`, `target_value`),
                 },
               }),
-              element("span", {
+              nodes.element("span", {
                 styles: styles.selectIcon,
                 children: selectIcon(),
               }),
             ],
           }),
         }),
-        display
-      );
+        else: display,
+      });
     };
   }
   return (props) =>
@@ -674,26 +657,26 @@ function boolCell(opts: BaseFieldCellOpts, field: BoolField): Cell {
       },
       on: {
         checkboxChange: opts.immutable
-          ? [preventDefault()]
+          ? (s) => s.preventDefault()
           : {
               detachedFromNode: true,
-              procedure: [
-                scalar(`prev_value`, props.value),
-                ...props.setValue(
-                  opts.stringified
-                    ? `cast(target_checked as string)`
-                    : `target_checked`
+              procedure: (s) =>
+                s.scalar(`prev_value`, props.value).statements(
+                  props.setValue(
+                    opts.stringified
+                      ? `cast(target_checked as string)`
+                      : `target_checked`
+                  ),
+                  doEdit({
+                    ...opts,
+                    fieldName: field.name,
+                    dbValue: opts.stringified
+                      ? `cast(${props.value} as bool)`
+                      : props.value,
+                    recordId: props.recordId,
+                    resetValue: props.setValue(`prev_value`),
+                  })
                 ),
-                ...doEdit({
-                  ...opts,
-                  fieldName: field.name,
-                  dbValue: opts.stringified
-                    ? `cast(${props.value} as bool)`
-                    : props.value,
-                  recordId: props.recordId,
-                  resetValue: props.setValue(`prev_value`),
-                }),
-              ],
             },
       },
     });
@@ -727,21 +710,21 @@ function durationCell(
           ? `cast(sfn.parse_minutes_duration(input_value) as string)`
           : `sfn.parse_minutes_duration(input_value)`,
       });
-      return ifNode(
-        props.editing,
-        state({
-          procedure: [
-            scalar(
-              `value`,
-              `case when
+      return nodes.if({
+        expr: props.editing,
+        then: nodes.state({
+          procedure: (s) =>
+            s
+              .scalar(
+                `value`,
+                `case when
                   start_edit_with_char is not null and start_edit_with_char in ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')
                     then start_edit_with_char
                   else sfn.display_minutes_duration(try_cast(${props.value} as bigint))
                 end`
-            ),
-            scalar(`input_value`, `value`),
-          ],
-          children: element("input", {
+              )
+              .scalar(`input_value`, `value`),
+          children: nodes.element("input", {
             styles: sharedStyles.cellInput,
             props: {
               value: `value`,
@@ -749,27 +732,25 @@ function durationCell(
               inputMode: "'numeric'",
             },
             on: mergeElEventHandlers(handlers, {
-              keydown: [
-                if_(
+              keydown: (s) =>
+                s.if(
                   `not event.ctrl_key and not event.meta_key and char_length(event.key) = 1 and event.key not in ('1', '2', '3', '4', '5', '6', '7', '8', '9', '0', ':')`,
-                  [preventDefault()]
+                  (s) => s.preventDefault()
                 ),
-              ],
-              input: [setScalar(`input_value`, `target_value`)],
-              change: [
-                setScalar(
+              input: (s) => s.setScalar(`input_value`, `target_value`),
+              change: (s) =>
+                s.setScalar(
                   `value`,
                   `sfn.display_minutes_duration(sfn.parse_minutes_duration(target_value))`
                 ),
-              ],
             }),
           }),
         }),
-        element("span", {
+        else: nodes.element("span", {
           styles: sharedStyles.ellipsisSpan,
           children: `sfn.display_minutes_duration(try_cast(${props.value} as bigint))`,
-        })
-      );
+        }),
+      });
     };
   }
   throw new Error("Unsupported duration size: " + usage.size);
@@ -779,10 +760,10 @@ function imageCell(opts: BaseFieldCellOpts, group: ImageSetFieldGroup): Cell {
   return ({ value, recordId, editing, stopEditing, row, column }) => {
     const { spawnUploadTasks, joinUploadTasks, updateImagesInDb } =
       getUploadStatements(opts.tableName, recordId, group);
-    return ifNode(
-      value + " is null",
-      state({
-        procedure: [scalar(`uploading`, `false`)],
+    return nodes.if({
+      expr: value + " is null",
+      then: nodes.state({
+        procedure: (s) => s.scalar(`uploading`, `false`),
         children: [
           button({
             tag: "label",
@@ -790,7 +771,7 @@ function imageCell(opts: BaseFieldCellOpts, group: ImageSetFieldGroup): Cell {
             styles: styles.uploadButton(),
             size: "sm",
             children: [
-              element("input", {
+              nodes.element("input", {
                 styles: visuallyHiddenStyles,
                 props: {
                   accept: "'image/*'",
@@ -798,23 +779,25 @@ function imageCell(opts: BaseFieldCellOpts, group: ImageSetFieldGroup): Cell {
                   tabIndex: "-1",
                 },
                 on: {
-                  fileChange: [
-                    if_(`uploading`, exit()),
-                    setScalar(`uploading`, `true`),
-                    commitUiChanges(),
-                    ...spawnUploadTasks,
-                    try_<ClientProcStatement>({
-                      body: [
-                        ...joinUploadTasks,
-                        serviceProc([
-                          ...updateImagesInDb,
-                          triggerQueryRefresh(),
-                        ]),
-                      ],
-                      catch: displayEditError(`Upload failed`),
-                    }),
-                    setScalar(`uploading`, `false`),
-                  ],
+                  fileChange: (s) =>
+                    s
+                      .if(`uploading`, (s) => s.return())
+                      .setScalar(`uploading`, `true`)
+                      .commitUiChanges()
+                      .statements(spawnUploadTasks)
+                      .try({
+                        body: (s) =>
+                          s
+                            .statements(joinUploadTasks)
+                            .serviceProc((s) =>
+                              s.statements(
+                                updateImagesInDb,
+                                triggerQueryRefresh()
+                              )
+                            ),
+                        catch: displayEditError(`Upload failed`),
+                      })
+                      .setScalar(`uploading`, `false`),
                 },
               }),
               `'Upload'`,
@@ -826,44 +809,44 @@ function imageCell(opts: BaseFieldCellOpts, group: ImageSetFieldGroup): Cell {
           }),
         ],
       }),
-      state({
-        procedure: [scalar(`open`, `false`)],
+      else: nodes.state({
+        procedure: (s) => s.scalar(`open`, `false`),
         children: [
-          element("div", {
+          nodes.element("div", {
             styles: styles.imgWrapper,
-            children: element("img", {
+            children: nodes.element("img", {
               styles: styles.img,
               props: {
                 src: `'/_a/file/' || sys.account || '/' || sys.app || '/' || ${value}`,
               },
               on: {
-                click: [
-                  setScalar(`ui.open`, `true`),
-                  modify(`update ui.editing_state set is_editing = false`),
-                  modify(
-                    `update ui.focus_state set should_focus = false, row = ${row}, column = ${column}`
-                  ),
-                ],
+                click: (s) =>
+                  s
+                    .setScalar(`ui.open`, `true`)
+                    .modify(`update ui.editing_state set is_editing = false`)
+                    .modify(
+                      `update ui.focus_state set should_focus = false, row = ${row}, column = ${column}`
+                    ),
               },
             }),
           }),
-          imageDalog({
+          imageDialog({
             open: `ui.open or ${editing}`,
-            onClose: [
-              setScalar(`ui.open`, `false`),
-              ...stopEditing,
-              delay(`10`),
-              modify(`update ui.focus_state set should_focus = true`),
-            ],
+            onClose: (s) =>
+              s
+                .setScalar(`ui.open`, `false`)
+                .statements(stopEditing)
+                .delay(`10`)
+                .modify(`update ui.focus_state set should_focus = true`),
             group: group.name,
             tableName: opts.tableName,
             recordId,
-            afterReplace: [triggerQueryRefresh()],
-            afterRemove: [triggerQueryRefresh()],
+            afterReplace: triggerQueryRefresh(),
+            afterRemove: triggerQueryRefresh(),
           }),
         ],
-      })
-    );
+      }),
+    });
   };
 }
 
@@ -920,13 +903,6 @@ export function fieldCell(opts: FieldCellOpts): Cell {
     case "Timestamp":
       return timestampCell(opts, opts.field);
     case "Tx":
-      // not ideal validation, but it's fine for now
-      return numericField(opts, {
-        type: "BigUint",
-        name: opts.field.name,
-        displayName: opts.field.displayName,
-        checks: [],
-        ext: {},
-      });
+      throw new Error("Todo");
   }
 }

@@ -1,16 +1,4 @@
-import { element, ifNode, state } from "../../nodeHelpers";
-import {
-  commitTransaction,
-  debugExpr,
-  dynamicQuery,
-  if_,
-  modify,
-  scalar,
-  serviceProc,
-  setScalar,
-  startTransaction,
-  stopPropagation,
-} from "../../procHelpers";
+import { nodes } from "../../nodeHelpers";
 import { downcaseFirst, pluralize } from "../../utils/inflectors";
 import { alert } from "../../components/alert";
 import { button } from "../../components/button";
@@ -98,21 +86,21 @@ export function toolbar(
   } else if (toolbar.add?.type === "dialog") {
     const withValues: Record<string, string> =
       toolbar.add.opts?.withValues ?? {};
-    addButton = state({
-      procedure: [scalar(`adding`, `false`)],
+    addButton = nodes.state({
+      procedure: (s) => s.scalar(`adding`, `false`),
       children: [
         iconButton({
           variant: "soft",
           color: "primary",
           size: "sm",
           children: materialIcon("Add"),
-          on: { click: [setScalar(`adding`, `true`)] },
+          on: { click: (s) => s.setScalar(`adding`, `true`) },
         }),
         insertDialog({
           ...toolbar.add.opts,
           table: tableModel.name,
           open: `adding`,
-          onClose: [setScalar(`adding`, `false`)],
+          onClose: (s) => s.setScalar(`adding`, `false`),
           content: {
             type: "AutoLabelOnLeft",
             ignoreFields: Object.keys(withValues),
@@ -126,9 +114,9 @@ export function toolbar(
       ],
     });
   }
-  return element("div", {
+  return nodes.element("div", {
     styles: styles.toolbarWrapper,
-    children: element("div", {
+    children: nodes.element("div", {
       styles: styles.toolbar,
       children: [
         toolbar.views
@@ -140,36 +128,40 @@ export function toolbar(
                 children: `'Views'`,
                 startDecorator: materialIcon("Menu"),
                 on: {
-                  click: [
-                    setScalar("ui.view_drawer_open", "not ui.view_drawer_open"),
-                  ],
+                  click: (s) =>
+                    s.setScalar(
+                      "ui.view_drawer_open",
+                      "not ui.view_drawer_open"
+                    ),
                 },
               }),
               divider({ orientation: "vertical" }),
             ]
           : null,
-        ifNode(
-          `(status = 'requested' or status = 'fallback_triggered') and dg_refresh_key = 0`,
-          [
-            element("div", {
+        nodes.if({
+          expr: `(status = 'requested' or status = 'fallback_triggered') and dg_refresh_key = 0`,
+          then: [
+            nodes.element("div", {
               styles: styles.skeletonLeft,
             }),
-            element("div", {
+            nodes.element("div", {
               styles: styles.skeletonRight,
             }),
           ],
-          [
+          else: [
             toolbar.hideColumns || toolbar.filter || toolbar.sort
-              ? state({
-                  procedure: [
-                    toolbar.hideColumns
-                      ? scalar(`columns_dialog_open`, `false`)
-                      : null,
-                    toolbar.filter
-                      ? scalar(`filter_dialog_open`, `false`)
-                      : null,
-                    toolbar.sort ? scalar(`sort_dialog_open`, `false`) : null,
-                  ],
+              ? nodes.state({
+                  procedure: (s) => {
+                    if (toolbar.hideColumns) {
+                      s.scalar(`columns_dialog_open`, `false`);
+                    }
+                    if (toolbar.filter) {
+                      s.scalar(`filter_dialog_open`, `false`);
+                    }
+                    if (toolbar.sort) {
+                      s.scalar(`sort_dialog_open`, `false`);
+                    }
+                  },
                   children: [
                     toolbar.hideColumns
                       ? [
@@ -187,19 +179,18 @@ export function toolbar(
                               "VisibilityOffOutlined"
                             ),
                             on: {
-                              click: [
-                                toolbar.filter
-                                  ? setScalar(`ui.filter_dialog_open`, `false`)
-                                  : null,
-                                toolbar.sort
-                                  ? setScalar(`ui.sort_dialog_open`, `false`)
-                                  : null,
-                                setScalar(
-                                  `ui.columns_dialog_open`,
-                                  `not ui.columns_dialog_open`
-                                ),
-                                stopPropagation(),
-                              ],
+                              click: (s) => {
+                                if (toolbar.filter) {
+                                  s.setScalar(`filter_dialog_open`, `false`);
+                                }
+                                if (toolbar.sort) {
+                                  s.setScalar(`sort_dialog_open`, `false`);
+                                }
+                                s.setScalar(
+                                  `columns_dialog_open`,
+                                  `not columns_dialog_open`
+                                ).stopPropagation();
+                              },
                             },
                           }),
                           toolbarPopover({
@@ -223,15 +214,18 @@ export function toolbar(
                               else 'Filtered by ' || (select count(distinct column_id) from filter_term) || ' fields'
                             end`,
                             on: {
-                              click: [
-                                setScalar(`ui.columns_dialog_open`, `false`),
-                                setScalar(`ui.sort_dialog_open`, `false`),
-                                setScalar(
-                                  `ui.filter_dialog_open`,
-                                  `not ui.filter_dialog_open`
-                                ),
-                                stopPropagation(),
-                              ],
+                              click: (s) => {
+                                if (toolbar.hideColumns) {
+                                  s.setScalar(`columns_dialog_open`, `false`);
+                                }
+                                if (toolbar.sort) {
+                                  s.setScalar(`sort_dialog_open`, `false`);
+                                }
+                                s.setScalar(
+                                  `filter_dialog_open`,
+                                  `not filter_dialog_open`
+                                ).stopPropagation();
+                              },
                             },
                           }),
                           toolbarPopover({
@@ -255,15 +249,18 @@ export function toolbar(
                 else 'Sorted by ' || (select count(*) from column where sort_index is not null) || ' fields'
                 end`,
                             on: {
-                              click: [
-                                setScalar(`ui.filter_dialog_open`, `false`),
-                                setScalar(`ui.columns_dialog_open`, `false`),
-                                setScalar(
-                                  `ui.sort_dialog_open`,
-                                  `not ui.sort_dialog_open`
-                                ),
-                                stopPropagation(),
-                              ],
+                              click: (s) => {
+                                if (toolbar.hideColumns) {
+                                  s.setScalar(`columns_dialog_open`, `false`);
+                                }
+                                if (toolbar.filter) {
+                                  s.setScalar(`filter_dialog_open`, `false`);
+                                }
+                                s.setScalar(
+                                  `sort_dialog_open`,
+                                  `not sort_dialog_open`
+                                ).stopPropagation();
+                              },
                             },
                           }),
                           toolbarPopover({
@@ -280,24 +277,23 @@ export function toolbar(
             select({
               slots: { select: { props: { value: `row_height` } } },
               on: {
-                change: [
-                  setScalar(`row_height`, `cast(target_value as bigint)`),
-                ],
+                change: (s) =>
+                  s.setScalar(`row_height`, `cast(target_value as bigint)`),
               },
               children: [
-                element("option", {
+                nodes.element("option", {
                   props: { value: `44` },
                   children: `'Short Rows'`,
                 }),
-                element("option", {
+                nodes.element("option", {
                   props: { value: `56` },
                   children: `'Medium Rows'`,
                 }),
-                element("option", {
+                nodes.element("option", {
                   props: { value: `88` },
                   children: `'Tall Rows'`,
                 }),
-                element("option", {
+                nodes.element("option", {
                   props: { value: `128` },
                   children: `'Extra Tall Rows'`,
                 }),
@@ -306,19 +302,19 @@ export function toolbar(
               variant: "plain",
               color: "neutral",
             }),
-            ifNode(
+            nodes.if(
               `status = 'fallback_triggered' and dg_refresh_key != 0`,
               typography({
                 startDecorator: circularProgress({ size: "sm" }),
                 level: "body2",
-                children: ifNode(
-                  `row_count = 100`,
-                  `'Reloading...'`,
-                  `'Loading more rows...'`
-                ),
+                children: nodes.if({
+                  expr: `row_count = 100`,
+                  then: `'Reloading...'`,
+                  else: `'Loading more rows...'`,
+                }),
               })
             ),
-            ifNode(
+            nodes.if(
               `saving_edit`,
               typography({
                 startDecorator: circularProgress({ size: "sm" }),
@@ -326,7 +322,7 @@ export function toolbar(
                 children: `'Saving change...'`,
               })
             ),
-            ifNode(
+            nodes.if(
               `display_error_message is not null`,
               alert({
                 startDecorator: materialIcon("Report"),
@@ -336,7 +332,7 @@ export function toolbar(
                 children: `display_error_message`,
               })
             ),
-            ifNode(
+            nodes.if(
               `status = 'failed'`,
               alert({
                 startDecorator: materialIcon("Report"),
@@ -346,29 +342,29 @@ export function toolbar(
                 children: `'Failed to load data'`,
               })
             ),
-            element("div", { styles: flexGrowStyles }),
+            nodes.element("div", { styles: flexGrowStyles }),
             toolbar.delete
-              ? state({
-                  procedure: [scalar(`deleting`, `false`)],
+              ? nodes.state({
+                  procedure: (s) => s.scalar(`deleting`, `false`),
                   children: [
                     iconButton({
                       size: "sm",
                       color: "danger",
                       variant: "soft",
                       children: materialIcon("DeleteOutlined"),
-                      on: { click: [setScalar(`deleting`, `true`)] },
+                      on: { click: (s) => s.setScalar(`deleting`, `true`) },
                     }),
                     confirmDangerDialog({
                       open: `deleting`,
-                      onClose: [setScalar(`deleting`, `false`)],
-                      description: element("span", {
+                      onClose: (s) => s.setScalar(`deleting`, `false`),
+                      description: nodes.element("span", {
                         children: [
                           `'Are you sure you want to delete '`,
-                          ifNode(
-                            `selected_all`,
-                            state({
-                              procedure: [
-                                dynamicQuery({
+                          nodes.if({
+                            expr: `selected_all`,
+                            then: nodes.state({
+                              procedure: (s) =>
+                                s.dynamicQuery({
                                   query: makeCountQuery(
                                     baseDts,
                                     `db.` + ident(tableModel.name),
@@ -377,48 +373,47 @@ export function toolbar(
                                   columnCount: 1,
                                   resultTable: `dyn_count`,
                                 }),
-                              ],
                               children: `(select field_0 from dyn_count)`,
                             }),
-                            `(select count(*) from selected_row)`
-                          ),
+                            else: `(select count(*) from selected_row)`,
+                          }),
                           `' records?'`,
                         ],
                       }),
-                      onConfirm: (closeModal) => [
-                        serviceProc([
-                          startTransaction(),
-                          if_(
-                            `selected_all`,
-                            [
-                              dynamicQuery({
-                                query: makeIdsQuery(
-                                  baseDts,
-                                  `db.` + ident(tableModel.name),
-                                  matchConfig
-                                ),
-                                columnCount: 1,
-                                resultTable: `ids`,
-                              }),
-                              modify(
-                                `delete from db.${ident(
-                                  tableModel.name
-                                )} where id in (select cast(field_0 as bigint) from ids)`
-                              ),
-                            ],
-                            [
-                              modify(
-                                `delete from db.${ident(
-                                  tableModel.name
-                                )} where id in (select id from ui.selected_row)`
-                              ),
-                            ]
-                          ),
-                          commitTransaction(),
-                          triggerQueryRefresh(),
-                        ]),
-                        ...closeModal,
-                      ],
+                      onConfirm: (closeModal) => (s) =>
+                        s
+                          .serviceProc((s) =>
+                            s
+                              .startTransaction()
+                              .if({
+                                condition: `selected_all`,
+                                then: (s) =>
+                                  s
+                                    .dynamicQuery({
+                                      query: makeIdsQuery(
+                                        baseDts,
+                                        `db.` + ident(tableModel.name),
+                                        matchConfig
+                                      ),
+                                      columnCount: 1,
+                                      resultTable: `ids`,
+                                    })
+                                    .modify(
+                                      `delete from db.${ident(
+                                        tableModel.name
+                                      )} where id in (select cast(field_0 as bigint) from ids)`
+                                    ),
+                                else: (s) =>
+                                  s.modify(
+                                    `delete from db.${ident(
+                                      tableModel.name
+                                    )} where id in (select id from ui.selected_row)`
+                                  ),
+                              })
+                              .commitTransaction()
+                              .statements(triggerQueryRefresh())
+                          )
+                          .statements(closeModal),
                     }),
                   ],
                 })
@@ -458,15 +453,15 @@ export function toolbar(
                   },
                 },
                 on: {
-                  input: [
-                    setScalar("ui.quick_search_query", "target_value"),
-                    triggerQueryRefresh(),
-                  ],
+                  input: (s) =>
+                    s
+                      .setScalar("ui.quick_search_query", "target_value")
+                      .statements(triggerQueryRefresh()),
                 },
               }),
             addButton,
-          ]
-        ),
+          ],
+        }),
       ],
     }),
   });

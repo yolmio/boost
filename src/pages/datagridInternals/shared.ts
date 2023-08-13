@@ -1,16 +1,10 @@
-import { element, eventHandlers, ifNode, state } from "../../nodeHelpers";
+import { nodes } from "../../nodeHelpers";
 import {
-  commitUiChanges,
-  delay,
-  if_,
-  record,
-  scalar,
-  setScalar,
-  spawn,
-  stopPropagation,
-} from "../../procHelpers";
+  BasicStatements,
+  DomStatements,
+  StateStatements,
+} from "../../statements";
 import { createStyles } from "../../styleUtils";
-import { BaseStatement, ClientProcStatement, StateStatement } from "../../yom";
 import { ColumnEventHandlers, RowHeight } from "./types";
 
 export function rowHeightInPixels(height: RowHeight) {
@@ -26,35 +20,36 @@ export function rowHeightInPixels(height: RowHeight) {
   }
 }
 
-export function editFocusState(): StateStatement[] {
-  return [
-    record(
+export function editFocusState() {
+  return new StateStatements()
+    .record(
       "focus_state",
       "select 0 as column, 0 as row, false as should_focus"
-    ),
-    record(
+    )
+    .record(
       "editing_state",
       "select 0 as column, 0 as row, false as is_editing"
-    ),
-    scalar(`start_edit_with_char`, { type: "String", maxLength: 1 }),
-    scalar("saving_edit", "false"),
-    scalar(`display_error_message`, { type: "String", maxLength: 2000 }),
-    scalar(`remove_error_task`, { type: "BigInt" }),
-  ];
+    )
+    .scalar(`start_edit_with_char`, { type: "String", maxLength: 1 })
+    .scalar("saving_edit", "false")
+    .scalar(`display_error_message`, { type: "String", maxLength: 2000 })
+    .scalar(`remove_error_task`, { type: "BigInt" });
 }
 
 export function colKeydownHandlers(columns: ColumnEventHandlers[]) {
-  const statements: ClientProcStatement[] = [];
+  const statements = new DomStatements();
   for (let i = 0; i < columns.length; i++) {
     const column = columns[i];
     if (column.keydownHeaderHandler) {
-      statements.push(
-        if_(`cell.row = 0 and cell.column = ${i}`, column.keydownHeaderHandler)
+      statements.if(
+        `cell.row = 0 and cell.column = ${i}`,
+        column.keydownHeaderHandler
       );
     }
     if (column.keydownCellHandler) {
-      statements.push(
-        if_(`cell.row != 0 and cell.column = ${i}`, column.keydownCellHandler)
+      statements.if(
+        `cell.row != 0 and cell.column = ${i}`,
+        column.keydownCellHandler
       );
     }
   }
@@ -62,37 +57,42 @@ export function colKeydownHandlers(columns: ColumnEventHandlers[]) {
 }
 
 export function colClickHandlers(columns: ColumnEventHandlers[]) {
-  const headerStatements: ClientProcStatement[] = [];
-  const cellStatements: ClientProcStatement[] = [];
+  const headerStatements = new DomStatements();
+  const cellStatements = new DomStatements();
   for (let i = 0; i < columns.length; i++) {
     const column = columns[i];
     if (column.headerClickHandler) {
-      headerStatements.push(
-        if_(`cell.column = ${i}`, column.headerClickHandler)
-      );
+      headerStatements.if(`cell.column = ${i}`, column.headerClickHandler);
     }
     if (column.cellClickHandler) {
-      cellStatements.push(if_(`cell.column = ${i}`, column.cellClickHandler));
+      cellStatements.if(`cell.column = ${i}`, column.cellClickHandler);
     }
   }
-  if (headerStatements.length === 0 && cellStatements.length === 0) {
-    return [];
+  if (headerStatements.statementsIsEmpty && cellStatements.statementsIsEmpty) {
+    return new DomStatements();
   }
-  return [if_(`cell.row = 0`, headerStatements, cellStatements)];
+  return new DomStatements().if({
+    condition: `cell.row = 0`,
+    then: headerStatements,
+    else: cellStatements,
+  });
 }
 
 export function refreshKeyState() {
-  return [scalar("dg_refresh_key", { type: "Int" }, "0")];
+  return new BasicStatements().scalar("dg_refresh_key", { type: "Int" }, "0");
 }
 
 export function triggerQueryRefresh() {
-  return setScalar(`ui.dg_refresh_key`, `ui.dg_refresh_key + 1`);
+  return new BasicStatements().setScalar(
+    `ui.dg_refresh_key`,
+    `ui.dg_refresh_key + 1`
+  );
 }
 
 export interface ResizeableSeperatorOpts {
   minWidth?: number;
   width: string;
-  setWidth: (width: string) => BaseStatement;
+  setWidth: (width: string) => BasicStatements;
 }
 
 const styles = createStyles({
@@ -140,14 +140,14 @@ export function resizeableSeperator({
   if (typeof minWidth === "number") {
     newValue = `case when ${newValue} < ${minWidth} then ${minWidth} else ${newValue} end`;
   }
-  return state({
-    procedure: [
-      scalar("start_width", { type: "BigInt" }),
-      scalar(`start_x`, { type: "BigInt" }),
-      scalar(`pending_width`, { type: "BigInt" }),
-      scalar(`waiting`, `false`),
-    ],
-    children: element("div", {
+  return nodes.state({
+    procedure: (s) =>
+      s
+        .scalar("start_width", { type: "BigInt" })
+        .scalar(`start_x`, { type: "BigInt" })
+        .scalar(`pending_width`, { type: "BigInt" })
+        .scalar(`waiting`, `false`),
+    children: nodes.element("div", {
       styles: styles.seperatorWrapper,
       dynamicClasses: [
         {
@@ -156,36 +156,34 @@ export function resizeableSeperator({
         },
       ],
       on: {
-        mouseDown: [
-          setScalar("start_width", width),
-          setScalar(`start_x`, `event.client_x`),
-        ],
-        click: [stopPropagation()],
+        mouseDown: (s) =>
+          s
+            .setScalar("start_width", width)
+            .setScalar(`start_x`, `event.client_x`),
+        click: (s) => s.stopPropagation(),
       },
       children: [
-        element("div", {
+        nodes.element("div", {
           styles: styles.seperator,
         }),
-        ifNode(
+        nodes.if(
           `start_width is not null`,
-          eventHandlers({
+          nodes.eventHandlers({
             document: {
-              mouseMove: [
-                setScalar(`pending_width`, newValue),
-                if_(`not waiting`, [
-                  spawn({
+              mouseMove: (s) =>
+                s.setScalar(`pending_width`, newValue).if(`not waiting`, (s) =>
+                  s.spawn({
                     detached: true,
-                    statements: [
-                      setScalar(`waiting`, `true`),
-                      delay(`16`),
-                      setWidth(`pending_width`),
-                      setScalar(`waiting`, `false`),
-                      commitUiChanges(),
-                    ],
-                  }),
-                ]),
-              ],
-              mouseUp: [setScalar(`start_width`, `null`)],
+                    procedure: (s) =>
+                      s
+                        .setScalar(`waiting`, `true`)
+                        .delay(`16`)
+                        .statements(setWidth(`pending_width`))
+                        .setScalar(`waiting`, `false`)
+                        .commitUiChanges(),
+                  })
+                ),
+              mouseUp: (s) => s.setScalar(`start_width`, `null`),
             },
           })
         ),

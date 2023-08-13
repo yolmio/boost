@@ -1,13 +1,11 @@
 import { button } from "../components/button";
 import { InsertDialogOpts } from "../components/insertDialog";
-import { Table } from "../appTypes";
-import { element } from "../nodeHelpers";
-import { if_, modify, scalar, setScalar, table } from "../procHelpers";
+import { Table } from "../app";
+import { nodes } from "../nodeHelpers";
 import { app } from "../app";
 import { upcaseFirst } from "../utils/inflectors";
 import { ident, stringLiteral } from "../utils/sqlHelpers";
 import { getTableBaseUrl } from "../utils/url";
-import { StateStatement } from "../yom";
 import {
   columnFromField,
   columnFromVirtual,
@@ -23,7 +21,7 @@ import { checkbox } from "../components/checkbox";
 import { DefaultView } from "./datagridInternals/datagridBase";
 import { resizeableSeperator } from "./datagridInternals/shared";
 import { FieldEditProcConfig } from "./datagridInternals/editHelper";
-import { addPage } from "../appHelpers";
+import { BasicStatements, StateStatements } from "../statements";
 
 export interface ToolbarOpts {
   views?: boolean;
@@ -84,7 +82,7 @@ function idColumn(
     initialWidth: 150,
     initiallyDisplaying: false,
     header: [
-      element("span", {
+      nodes.element("span", {
         styles: sharedStyles.headerText,
         children: stringLiteral(idDisplayName),
       }),
@@ -92,7 +90,9 @@ function idColumn(
       resizeableSeperator({
         minWidth: 50,
         setWidth: (width) =>
-          modify(`update ui.column set width = ${width} where id = ${index}`),
+          new BasicStatements().modify(
+            `update ui.column set width = ${width} where id = ${index}`
+          ),
         width: `(select width from ui.column where id = ${index})`,
       }),
     ],
@@ -107,11 +107,11 @@ function idColumn(
 }
 
 function toggleRowSelection(id: string) {
-  return if_(
-    `exists (select id from ui.selected_row where id = ${id})`,
-    [modify(`delete from selected_row where id = ${id}`)],
-    [modify(`insert into selected_row (id) values (${id})`)]
-  );
+  return new BasicStatements().if({
+    condition: `exists (select id from ui.selected_row where id = ${id})`,
+    then: (s) => s.modify(`delete from selected_row where id = ${id}`),
+    else: (s) => s.modify(`insert into selected_row (id) values (${id})`),
+  });
 }
 
 function getColumns(
@@ -133,7 +133,7 @@ function getColumns(
           checked: `selected_all or exists (select id from selected_row where id = cast(record.field_0 as bigint))`,
           slots: { input: { props: { tabIndex: "-1" } } },
           on: {
-            click: [toggleRowSelection(`cast(record.field_0 as bigint)`)],
+            click: toggleRowSelection(`cast(record.field_0 as bigint)`),
           },
         }),
       header: checkbox({
@@ -142,27 +142,27 @@ function getColumns(
         checked: `selected_all`,
         slots: { input: { props: { tabIndex: "-1" } } },
         on: {
-          click: [
-            setScalar(`selected_all`, `not selected_all`),
-            modify(`delete from selected_row`),
-          ],
+          click: (s) =>
+            s
+              .setScalar(`selected_all`, `not selected_all`)
+              .modify(`delete from selected_row`),
         },
       }),
-      keydownCellHandler: [
-        if_(`event.key = 'Enter' or event.key = ' '`, [
-          scalar(
-            `row_id`,
-            `(select field_0 from ui.dg_table limit 1 offset cell.row - 1)`
-          ),
-          toggleRowSelection(`cast(row_id as bigint)`),
-        ]),
-      ],
-      keydownHeaderHandler: [
-        if_(`event.key = 'Enter' or event.key = ' '`, [
-          setScalar(`selected_all`, `not selected_all`),
-          modify(`delete from selected_row`),
-        ]),
-      ],
+      keydownCellHandler: (s) =>
+        s.if(`event.key = 'Enter' or event.key = ' '`, (s) =>
+          s
+            .scalar(
+              `row_id`,
+              `(select field_0 from ui.dg_table limit 1 offset cell.row - 1)`
+            )
+            .statements(toggleRowSelection(`cast(row_id as bigint)`))
+        ),
+      keydownHeaderHandler: (s) =>
+        s.if(`event.key = 'Enter' or event.key = ' '`, (s) =>
+          s
+            .setScalar(`selected_all`, `not selected_all`)
+            .modify(`delete from selected_row`)
+        ),
       viewStorageName: "dg_checkbox_col",
     });
   }
@@ -278,12 +278,12 @@ export function datagridPage(opts: DatagridPageOpts) {
       }
     }
   }
-  const extraState: StateStatement[] = [];
+  const extraState = new StateStatements();
   if (selectable) {
-    extraState.push(
-      scalar(`selected_all`, `false`),
-      table(`selected_row`, [{ name: "id", type: { type: "BigInt" } }])
-    );
+    extraState.scalar(`selected_all`, `false`);
+    extraState.table(`selected_row`, [
+      { name: "id", type: { type: "BigInt" } },
+    ]);
   }
   const content = styledDatagrid({
     columns,
@@ -295,7 +295,7 @@ export function datagridPage(opts: DatagridPageOpts) {
     extraState,
     defaultView: opts.defaultView,
   });
-  addPage({
+  app.ui.pages.push({
     path,
     content,
   });

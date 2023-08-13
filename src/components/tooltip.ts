@@ -167,7 +167,7 @@ export function tooltip(opts: TooltipOpts) {
   const arrowId = stringLiteral(getUniqueUiId());
   return state({
     procedure: [scalar(`tooltip_hover`, `false`)],
-    children: ifNode(
+    children: nodes.if(
       opts.open + ` or tooltip_hover`,
       portal(
         slot("root", {

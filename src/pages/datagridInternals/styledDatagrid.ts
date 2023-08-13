@@ -3,11 +3,9 @@ import { InsertDialogOpts } from "../../components/insertDialog";
 import { list, listItem, listItemButton } from "../../components/list";
 import { materialIcon } from "../../components/materialIcon";
 import { getUniqueUiId } from "../../components/utils";
-import { addDecisionTable, addPage } from "../../app";
-import { BoolEnumLikeConfig, DurationSize, Table } from "../../app";
-import { element, eventHandlers, ifNode, state } from "../../nodeHelpers";
+import { app, BoolEnumLikeConfig, DurationSize, Table } from "../../app";
+import { nodes } from "../../nodeHelpers";
 import { Node } from "../../nodeTypes";
-import { exit, if_, modify, scalar, setScalar } from "../../procHelpers";
 import { createStyles } from "../../styleUtils";
 import { ident, stringLiteral } from "../../utils/sqlHelpers";
 import { StateStatement } from "../../yom";
@@ -23,6 +21,11 @@ import { toolbar } from "./toolbar";
 import { Cell, ColumnEventHandlers } from "./types";
 import { viewDrawer } from "./viewDrawer";
 import { triggerQueryRefresh } from "./shared";
+import {
+  DomStatements,
+  StateStatements,
+  StateStatementsOrFn,
+} from "../../statements";
 
 export interface ToolbarConfig {
   views: boolean;
@@ -189,7 +192,7 @@ export function columnPopover(
   sort: SortConfig | undefined
 ) {
   function updateBetweenColumns(before: string, after: string) {
-    return modify(
+    return new DomStatements().modify(
       `update ui.column set ordering = ordering.new(${before}, ${after}) where id = ${i}`
     );
   }
@@ -197,21 +200,22 @@ export function columnPopover(
     return `(select ordering from ui.column order by ordering offset ${n} limit 1)`;
   }
   function setColumnSort(asc: boolean) {
-    return if_(
-      `exists (select 1 from ui.column where sort_index is not null and id = ${i})`,
-      [modify(`update ui.column set sort_asc = ${asc} where id = ${i}`)],
-      [
-        modify(
-          `update ui.column set sort_index = sort_index + 1 where sort_index is not null`
-        ),
-        modify(
-          `update ui.column set sort_index = 0, sort_asc = ${asc} where id = ${i}`
-        ),
-      ]
-    );
+    return new DomStatements().if({
+      condition: `exists (select 1 from ui.column where sort_index is not null and id = ${i})`,
+      then: (s) =>
+        s.modify(`update ui.column set sort_asc = ${asc} where id = ${i}`),
+      else: (s) =>
+        s
+          .modify(
+            `update ui.column set sort_index = sort_index + 1 where sort_index is not null`
+          )
+          .modify(
+            `update ui.column set sort_index = 0, sort_asc = ${asc} where id = ${i}`
+          ),
+    });
   }
-  return state({
-    procedure: [scalar("dialog_open", "false")],
+  return nodes.state({
+    procedure: (s) => s.scalar("dialog_open", "false"),
     children: [
       iconButton({
         variant: "plain",
@@ -219,14 +223,14 @@ export function columnPopover(
         size: "sm",
         props: { id: `${popoverId} || '-${i}'`, tabIndex: "-1" },
         on: {
-          click: [setScalar(`ui.dialog_open`, `true`)],
+          click: (s) => s.setScalar(`ui.dialog_open`, `true`),
         },
         children: materialIcon({
           fontSize: "md",
           name: "MoreVert",
         }),
       }),
-      ifNode(
+      nodes.if(
         "dialog_open",
         list({
           styles: styles.columnDialog,
@@ -248,14 +252,18 @@ export function columnPopover(
             },
           },
           on: {
-            clickAway: [setScalar(`ui.dialog_open`, `false`)],
+            clickAway: (s) => s.setScalar(`ui.dialog_open`, `false`),
           },
           children: [
             sort
               ? [
                   listItem({
                     on: {
-                      click: [setColumnSort(true), triggerQueryRefresh()],
+                      click: (s) =>
+                        s.statements(
+                          setColumnSort(true),
+                          triggerQueryRefresh()
+                        ),
                     },
                     children: listItemButton({
                       variant: "plain",
@@ -265,7 +273,11 @@ export function columnPopover(
                   }),
                   listItem({
                     on: {
-                      click: [setColumnSort(false), triggerQueryRefresh()],
+                      click: (s) =>
+                        s.statements(
+                          setColumnSort(false),
+                          triggerQueryRefresh()
+                        ),
                     },
                     children: listItemButton({
                       variant: "plain",
@@ -277,11 +289,10 @@ export function columnPopover(
               : undefined,
             listItem({
               on: {
-                click: [
-                  modify(
+                click: (s) =>
+                  s.modify(
                     `update ui.column set displaying = false where id = ${i}`
                   ),
-                ],
               },
               children: listItemButton({
                 variant: "plain",
@@ -291,17 +302,19 @@ export function columnPopover(
             }),
             listItem({
               on: {
-                click: [
-                  scalar(
-                    `next_col`,
-                    `(select min(ordering) from ui.column where ordering > (select ordering from ui.column where id = ${i}))`
-                  ),
-                  if_(`next_col is null`, [exit()]),
-                  updateBetweenColumns(
-                    `next_col`,
-                    `(select min(ordering) from ui.column where ordering > next_col)`
-                  ),
-                ],
+                click: (s) =>
+                  s
+                    .scalar(
+                      `next_col`,
+                      `(select min(ordering) from ui.column where ordering > (select ordering from ui.column where id = ${i}))`
+                    )
+                    .if(`next_col is null`, (s) => s.return())
+                    .statements(
+                      updateBetweenColumns(
+                        `next_col`,
+                        `(select min(ordering) from ui.column where ordering > next_col)`
+                      )
+                    ),
               },
               children: listItemButton({
                 variant: "plain",
@@ -311,26 +324,28 @@ export function columnPopover(
             }),
             listItem({
               on: {
-                click: [
-                  scalar(
-                    `current_col`,
-                    `(select ordering from ui.column where id = ${i})`
-                  ),
-                  scalar(
-                    `prev_col`,
-                    `(select max(ordering) from ui.column where ordering < current_col)`
-                  ),
-                  if_(
-                    `prev_col is null or (select count(*) from column where ordering < current_col) <= ${
-                      startFixedColumns + 1
-                    }`,
-                    [exit()]
-                  ),
-                  updateBetweenColumns(
-                    `(select max(ordering) from ui.column where ordering < prev_col)`,
-                    `prev_col`
-                  ),
-                ],
+                click: (s) =>
+                  s
+                    .scalar(
+                      `current_col`,
+                      `(select ordering from ui.column where id = ${i})`
+                    )
+                    .scalar(
+                      `prev_col`,
+                      `(select max(ordering) from ui.column where ordering < current_col)`
+                    )
+                    .if(
+                      `prev_col is null or (select count(*) from column where ordering < current_col) <= ${
+                        startFixedColumns + 1
+                      }`,
+                      (s) => s.return()
+                    )
+                    .statements(
+                      updateBetweenColumns(
+                        `(select max(ordering) from ui.column where ordering < prev_col)`,
+                        `prev_col`
+                      )
+                    ),
               },
               children: listItemButton({
                 variant: "plain",
@@ -340,12 +355,10 @@ export function columnPopover(
             }),
             listItem({
               on: {
-                click: [
-                  updateBetweenColumns(
-                    `(select max(ordering) from ui.column)`,
-                    `null`
-                  ),
-                ],
+                click: updateBetweenColumns(
+                  `(select max(ordering) from ui.column)`,
+                  `null`
+                ),
               },
               children: listItemButton({
                 variant: "plain",
@@ -355,12 +368,10 @@ export function columnPopover(
             }),
             listItem({
               on: {
-                click: [
-                  updateBetweenColumns(
-                    getColumnN(startFixedColumns),
-                    getColumnN(startFixedColumns + 1)
-                  ),
-                ],
+                click: updateBetweenColumns(
+                  getColumnN(startFixedColumns),
+                  getColumnN(startFixedColumns + 1)
+                ),
               },
               children: listItemButton({
                 variant: "plain",
@@ -402,16 +413,14 @@ function addSupergridDatagridDts(
     }
   }
   const idToDisplayName = `${datagridName}_dg_col_id_to_display_name`;
-  addDecisionTable({
-    bound: false,
+  app.addDecisionTable({
     parameters: [{ name: "id", type: "SmallUint" }],
     csv: `input.id,display_name\n` + displayNames.join("\n"),
     name: idToDisplayName,
     output: { name: "display_name", type: "String" },
   });
   const idToDefaultOp = `${datagridName}_dg_col_id_to_op`;
-  addDecisionTable({
-    bound: false,
+  app.addDecisionTable({
     parameters: [{ name: "id", type: "SmallUint" }],
     csv: `input.id,op\n` + defaultOps.join("\n"),
     name: idToDefaultOp,
@@ -427,7 +436,7 @@ export interface StyledDatagridConfig {
   columns: SuperGridColumn[];
   idField: string;
   pageSize: number;
-  extraState?: StateStatement[];
+  extraState?: StateStatementsOrFn;
   defaultView?: DefaultView;
 }
 
@@ -457,27 +466,26 @@ export function styledDatagrid(config: StyledDatagridConfig) {
         config.tableModel,
         config.toolbar.search?.matchConfig
       ),
-      state({
-        procedure: [scalar(`show_query_err`, `false`)],
+      nodes.state({
+        procedure: (s) => s.scalar(`show_query_err`, `false`),
         children: [
-          eventHandlers({
+          nodes.eventHandlers({
             document: {
-              keydown: [
-                if_(`event.meta_key and event.key = 'v'`, [
-                  setScalar(`show_query_err`, `not show_query_err`),
-                ]),
-              ],
+              keydown: (s) =>
+                s.if(`event.meta_key and event.key = 'v'`, (s) =>
+                  s.setScalar(`show_query_err`, `not show_query_err`)
+                ),
             },
           }),
-          ifNode(
+          nodes.if(
             `show_query_err`,
-            element("div", {
+            nodes.element("div", {
               styles: styles.queryError,
               children: [
-                element("p", {
+                nodes.element("p", {
                   children: `dg_error.message`,
                 }),
-                element("p", {
+                nodes.element("p", {
                   children: `dg_error.description`,
                 }),
               ],
@@ -485,17 +493,17 @@ export function styledDatagrid(config: StyledDatagridConfig) {
           ),
         ],
       }),
-      element("div", {
+      nodes.element("div", {
         styles: styles.drawerGridWrapper,
         children: [
           viewDrawer(config.datagridName, dts),
-          ifNode(
-            `(status = 'requested' or status = 'fallback_triggered') and dg_refresh_key = 0`,
-            element("div", {
+          nodes.if({
+            expr: `(status = 'requested' or status = 'fallback_triggered') and dg_refresh_key = 0`,
+            then: nodes.element("div", {
               styles: sharedStyles.emptyGrid,
             }),
-            dg
-          ),
+            else: dg,
+          }),
         ],
       }),
     ],

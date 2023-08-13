@@ -9,6 +9,10 @@ export abstract class StatementsBase<Statement extends object> {
     this[BACKING_ARRAY].push(statement);
   }
 
+  get statementsIsEmpty() {
+    return this[BACKING_ARRAY].length === 0;
+  }
+
   modify(sql: string) {
     this.pushToBacking({ t: "Modify", sql } as yom.ModifyStatement as any);
     return this;
@@ -587,6 +591,45 @@ export class ServiceStatements extends StatementsBase<yom.ServiceProcStatement> 
     this.pushToBacking({ t: "Navigate", to, replace });
     return this;
   }
+
+  /**
+   * This is how you actually add the users to our authorization system, just inserting into the users table is not enough.
+   *
+   * @param query - Expects a sql query with the following fields:
+   *
+   * db_id: biguint (id of the user in the database)
+   *
+   * eamil: string (email of the user, will be sent an email and invited to yolm)
+   *
+   * notification_type: string (either "none" or "new_app" or "user")
+   *
+   * @param outputTable - The name of the table that should be created to store the users that have been added.
+   *
+   * It has the following fields:
+   *
+   * db_id: biguint (id of the user in the database)
+   *
+   * global_id: uuid (id of the user in yolm's authentication system)
+   */
+  addUsers(query: yom.SqlExpression, outputTable = "added_user") {
+    this.pushToBacking({ t: "AddUsers", query, outputTable });
+    return this;
+  }
+
+  removeUsers(query: yom.SqlExpression) {
+    this.pushToBacking({ t: "RemoveUsers", query });
+    return this;
+  }
+
+  removeFiles(query: yom.SqlExpression) {
+    this.pushToBacking({ t: "RemoveFiles", query });
+    return this;
+  }
+
+  setQueryParam(param: string, value: string, replace?: string) {
+    this.pushToBacking({ t: "SetQueryParam", param, value, replace });
+    return this;
+  }
 }
 
 export type StateStatementsOrFn = StatementsOrFn<StateStatements>;
@@ -651,7 +694,7 @@ export class ScriptStatements extends StatementsBase<yom.ScriptStatement> {
     return this;
   }
 
-  addUsers(query: string, outputTable?: string) {
+  addUsers(query: yom.SqlExpression, outputTable = "added_user") {
     this.pushToBacking({ t: "AddUsers", query, outputTable });
     return this;
   }

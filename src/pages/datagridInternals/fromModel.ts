@@ -1,17 +1,10 @@
 import { Field, VirtualField, VirtualType } from "../../app";
-import { element, switchNode } from "../../nodeHelpers";
-import {
-  commitUiChanges,
-  if_,
-  modify,
-  scalar,
-  setScalar,
-} from "../../procHelpers";
+import { nodes } from "../../nodeHelpers";
 import { app } from "../../app";
 import { ident, stringLiteral } from "../../utils/sqlHelpers";
-import { ClientProcStatement, FieldType } from "../../yom";
+import * as yom from "../../yom";
 import { fieldCell } from "./cells";
-import { FieldEditProcConfig, FieldEditStatements, doEdit } from "./editHelper";
+import { FieldEditProcConfig, doEdit } from "./editHelper";
 import {
   columnPopover,
   FilterType,
@@ -26,6 +19,7 @@ import { materialIcon } from "../../components/materialIcon";
 import { Style } from "../../styleTypes";
 import { triggerQueryRefresh, resizeableSeperator } from "./shared";
 import { Cell } from "./types";
+import { BasicStatements, DomStatements } from "../../statements";
 
 function filterTypeFromField(type: Field): FilterType {
   switch (type.type) {
@@ -99,7 +93,7 @@ function filterTypeFromVirtual(type: VirtualType): FilterType {
   }
 }
 
-function getFieldProcFieldType(field: Field): FieldType {
+function getFieldProcFieldType(field: Field): yom.FieldType {
   switch (field.type) {
     case "TinyInt":
     case "SmallInt":
@@ -135,13 +129,12 @@ function getFieldProcFieldType(field: Field): FieldType {
   }
 }
 
-function getVirtualProcFieldType(virtual: VirtualField): FieldType {
+function getVirtualProcFieldType(virtual: VirtualField): yom.FieldType {
   switch (virtual.type.type) {
     case "SmallInt":
     case "Int":
     case "BigInt":
     case "Bool":
-    case "Date":
     case "Date":
     case "Double":
     case "Real":
@@ -210,70 +203,73 @@ function getFieldCellWidth(
   return 250;
 }
 
-export const editWithCharCellKeydownHandler = [
-  if_(`event.key = 'Enter'`, [
-    modify(
-      `update ui.focus_state set column = cell.column, row = cell.row, should_focus = false`
-    ),
-    modify(
-      `update ui.editing_state set column = cell.column, row = cell.row, is_editing = true`
-    ),
-    setScalar(`ui.start_edit_with_char`, `null`),
-  ]),
-  if_(`char_length(event.key) = 1`, [
-    modify(
-      `update ui.focus_state set column = cell.column, row = cell.row, should_focus = false`
-    ),
-    modify(
-      `update ui.editing_state set column = cell.column, row = cell.row, is_editing = true`
-    ),
-    setScalar(`ui.start_edit_with_char`, `event.key`),
-  ]),
-];
+export const editWithCharCellKeydownHandler = new DomStatements()
+  .if(`event.key = 'Enter'`, (s) =>
+    s
+      .modify(
+        `update ui.focus_state set column = cell.column, row = cell.row, should_focus = false`
+      )
+      .modify(
+        `update ui.editing_state set column = cell.column, row = cell.row, is_editing = true`
+      )
+      .setScalar(`ui.start_edit_with_char`, `null`)
+  )
+  .if(`char_length(event.key) = 1`, (s) =>
+    s
+      .modify(
+        `update ui.focus_state set column = cell.column, row = cell.row, should_focus = false`
+      )
+      .modify(
+        `update ui.editing_state set column = cell.column, row = cell.row, is_editing = true`
+      )
+      .setScalar(`ui.start_edit_with_char`, `event.key`)
+  );
 
-export const opaqueCellKeydownHandler = [
-  if_(`event.key = 'Enter'`, [
-    modify(
-      `update ui.focus_state set column = cell.column, row = cell.row, should_focus = false`
-    ),
-    modify(
-      `update ui.editing_state set column = cell.column, row = cell.row, is_editing = true`
-    ),
-    setScalar(`ui.start_edit_with_char`, `null`),
-  ]),
-];
+export const opaqueCellKeydownHandler = new DomStatements().if(
+  `event.key = 'Enter'`,
+  (s) =>
+    s
+      .modify(
+        `update ui.focus_state set column = cell.column, row = cell.row, should_focus = false`
+      )
+      .modify(
+        `update ui.editing_state set column = cell.column, row = cell.row, is_editing = true`
+      )
+      .setScalar(`ui.start_edit_with_char`, `null`)
+);
 
 export const dynamicBooleanCellKeydownHandler = (
   col: number,
   sqlName: string,
   tableName: string
-) => [
-  if_(`event.key = 'Enter'`, [
-    scalar(
-      `row_id`,
-      `(select field_0 from ui.dg_table limit 1 offset cell.row - 1)`
-    ),
-    commitUiChanges(),
-    scalar(
-      `prev_value`,
-      `(select field_${col} from ui.dg_table where field_0 = row_id)`
-    ),
-    modify(
-      `update ui.dg_table set field_${col} = not (field_${col} = 'true') where field_0 = row_id`
-    ),
-    ...doEdit({
-      dbValue: `(select field_${col} from ui.dg_table where field_0 = row_id) = 'true'`,
-      fieldName: sqlName,
-      recordId: `cast(row_id as bigint)`,
-      tableName,
-      resetValue: [
-        modify(
-          `update ui.dg_table set field_${col} = prev_value where field_0 = row_id`
-        ),
-      ],
-    }),
-  ]),
-];
+) =>
+  new DomStatements().if(`event.key = 'Enter'`, (s) =>
+    s
+      .scalar(
+        `row_id`,
+        `(select field_0 from ui.dg_table limit 1 offset cell.row - 1)`
+      )
+      .commitUiChanges()
+      .scalar(
+        `prev_value`,
+        `(select field_${col} from ui.dg_table where field_0 = row_id)`
+      )
+      .modify(
+        `update ui.dg_table set field_${col} = not (field_${col} = 'true') where field_0 = row_id`
+      )
+      .statements(
+        doEdit({
+          dbValue: `(select field_${col} from ui.dg_table where field_0 = row_id) = 'true'`,
+          fieldName: sqlName,
+          recordId: `cast(row_id as bigint)`,
+          tableName,
+          resetValue: (s) =>
+            s.modify(
+              `update ui.dg_table set field_${col} = prev_value where field_0 = row_id`
+            ),
+        })
+      )
+  );
 
 const stringSortConfig: SortConfig = {
   ascNode: `'A → Z'`,
@@ -290,7 +286,7 @@ const numberSortConfig: SortConfig = {
 const checkboxSortConfig = lazy((): SortConfig => {
   const styles: Style = { ml: 1, display: "inline-flex" };
   return {
-    ascNode: element("span", {
+    ascNode: nodes.element("span", {
       styles,
       children: [
         materialIcon("CheckBoxOutlined"),
@@ -298,7 +294,7 @@ const checkboxSortConfig = lazy((): SortConfig => {
         materialIcon("CheckBoxOutlineBlank"),
       ],
     }),
-    descNode: element("span", {
+    descNode: nodes.element("span", {
       styles,
       children: [
         materialIcon("CheckBoxOutlineBlank"),
@@ -329,7 +325,7 @@ export function columnFromField({
   immutable,
   ...restOpts
 }: SuperColumnFieldOpts): SuperGridColumn | undefined {
-  let keydownHandler: ClientProcStatement[] = [];
+  let keydownHandler = new DomStatements();
   let noFilter = false;
   let noSort = false;
   let displayName = field.displayName;
@@ -440,7 +436,7 @@ export function columnFromField({
     initiallyDisplaying: true,
     initialWidth: getFieldCellWidth(field, table, 46),
     header: [
-      element("span", {
+      nodes.element("span", {
         styles: sharedStyles.headerText,
         children: stringLiteral(displayName),
       }),
@@ -448,7 +444,7 @@ export function columnFromField({
       resizeableSeperator({
         minWidth: 50,
         setWidth: (width) =>
-          modify(
+          new BasicStatements().modify(
             `update ui.column set width = ${width} where id = ${columnIndex}`
           ),
         width: `(select width from ui.column where id = ${columnIndex})`,
@@ -505,7 +501,7 @@ export function columnFromVirtual(
     initiallyDisplaying: true,
     initialWidth: 250,
     header: [
-      element("span", {
+      nodes.element("span", {
         styles: sharedStyles.headerText,
         children: stringLiteral(virtual.displayName),
       }),
@@ -513,7 +509,7 @@ export function columnFromVirtual(
       resizeableSeperator({
         minWidth: 50,
         setWidth: (width) =>
-          modify(
+          new BasicStatements().modify(
             `update ui.column set width = ${width} where id = ${columnIndex}`
           ),
         width: `(select width from ui.column where id = ${columnIndex})`,
@@ -532,33 +528,34 @@ export const simpleBooleanCellKeydownHandler = (
   fieldName: string,
   idField: string,
   tableName: string
-) => [
-  if_(`event.key = 'Enter'`, [
-    scalar(
-      `row_id`,
-      `(select ${idField} from ui.dg_table limit 1 offset cell.row - 1)`
-    ),
-    commitUiChanges(),
-    scalar(
-      `prev_value`,
-      `(select ${fieldName} from ui.dg_table where ${idField} = row_id)`
-    ),
-    modify(
-      `update ui.dg_table set ${fieldName} = not ${fieldName} where ${idField} = row_id`
-    ),
-    ...doEdit({
-      dbValue: `(select ${fieldName} from ui.dg_table where ${idField} = row_id)`,
-      fieldName: fieldName,
-      recordId: `row_id`,
-      tableName,
-      resetValue: [
-        modify(
-          `update ui.dg_table set ${fieldName} = prev_value where ${idField} = row_id`
-        ),
-      ],
-    }),
-  ]),
-];
+) =>
+  new DomStatements().if(`event.key = 'Enter'`, (s) =>
+    s
+      .scalar(
+        `row_id`,
+        `(select ${idField} from ui.dg_table limit 1 offset cell.row - 1)`
+      )
+      .commitUiChanges()
+      .scalar(
+        `prev_value`,
+        `(select ${fieldName} from ui.dg_table where ${idField} = row_id)`
+      )
+      .modify(
+        `update ui.dg_table set ${fieldName} = not ${fieldName} where ${idField} = row_id`
+      )
+      .statements(
+        doEdit({
+          dbValue: `(select ${fieldName} from ui.dg_table where ${idField} = row_id)`,
+          fieldName: fieldName,
+          recordId: `row_id`,
+          tableName,
+          resetValue: (s) =>
+            s.modify(
+              `update ui.dg_table set ${fieldName} = prev_value where ${idField} = row_id`
+            ),
+        })
+      )
+  );
 
 export interface SimpleColumnFieldOpts extends FieldEditProcConfig {
   table: string;
@@ -576,7 +573,7 @@ export function simpleColumnFromField({
   immutable,
   ...restOpts
 }: SimpleColumnFieldOpts): SimpleColumn | undefined {
-  let keydownHandler: ClientProcStatement[] = [];
+  let keydownHandler = new DomStatements();
   let displayName = field.displayName;
   if (field.type === "Ordering" || field.type === "Time") {
     return;
@@ -624,17 +621,17 @@ export function simpleColumnFromField({
         break;
     }
   }
-  const toggleColumnSort = if_<ClientProcStatement>(
-    `sort_info.col = ${columnIndex}`,
-    [
-      if_(
-        `sort_info.ascending`,
-        [modify(`update sort_info set ascending = false`)],
-        [modify(`update sort_info set col = null`)]
-      ),
-    ],
-    [modify(`update sort_info set col = ${columnIndex}, ascending = true`)]
-  );
+  const toggleColumnSort = new DomStatements().if({
+    condition: `sort_info.col = ${columnIndex}`,
+    then: (s) =>
+      s.if({
+        condition: `sort_info.ascending`,
+        then: (s) => s.modify(`update sort_info set ascending = false`),
+        else: (s) => s.modify(`update sort_info set col = null`),
+      }),
+    else: (s) =>
+      s.modify(`update sort_info set col = ${columnIndex}, ascending = true`),
+  });
   return {
     keydownCellHandler: keydownHandler,
     cell: fieldCell({
@@ -646,33 +643,35 @@ export function simpleColumnFromField({
     }),
     width: getFieldCellWidth(field, table, 10),
     header: [
-      element("span", {
+      nodes.element("span", {
         styles: sharedStyles.headerText,
         children: stringLiteral(displayName),
       }),
-      switchNode(
-        [
-          `sort_info.col = ${columnIndex} and sort_info.ascending`,
-          materialIcon("ArrowUpward"),
-        ],
-        [
-          `sort_info.col = ${columnIndex} and not sort_info.ascending`,
-          materialIcon("ArrowDownward"),
-        ]
+      nodes.switch(
+        {
+          condition: `sort_info.col = ${columnIndex} and sort_info.ascending`,
+          node: materialIcon("ArrowUpward"),
+        },
+        {
+          condition: `sort_info.col = ${columnIndex} and not sort_info.ascending`,
+          node: materialIcon("ArrowDownward"),
+        }
       ),
       resizeableSeperator({
         minWidth: 50,
         setWidth: (width) =>
-          modify(
+          new BasicStatements().modify(
             `update ui.column_width set width = ${width} where col = ${columnIndex}`
           ),
         width: `(select width from ui.column_width where col = ${columnIndex})`,
       }),
     ],
-    keydownHeaderHandler: [
-      if_(`event.key = 'Enter'`, [toggleColumnSort, triggerQueryRefresh()]),
-    ],
-    headerClickHandler: [toggleColumnSort, triggerQueryRefresh()],
+    keydownHeaderHandler: (s) =>
+      s.if(`event.key = 'Enter'`, (s) =>
+        s.statements(toggleColumnSort, triggerQueryRefresh())
+      ),
+    headerClickHandler: (s) =>
+      s.statements(toggleColumnSort, triggerQueryRefresh()),
     queryGeneration: {
       expr: `record.${ident(field.name)}`,
       sqlName: field.name,
@@ -688,43 +687,46 @@ export function simpleColumnFromVirtual(
   columnIndex: number,
   startFixedColumns: number
 ): SimpleColumn {
-  const toggleColumnSort = if_<ClientProcStatement>(
-    `sort_info.col = ${columnIndex}`,
-    [
-      if_(
-        `sort_info.ascending`,
-        [modify(`update sort_info set ascending = false`)],
-        [modify(`update sort_info set col = null`)]
-      ),
-    ],
-    [modify(`update sort_info set col = ${columnIndex}, ascending = true`)]
-  );
+  const toggleColumnSort = new DomStatements().if({
+    condition: `sort_info.col = ${columnIndex}`,
+    then: (s) =>
+      s.if({
+        condition: `sort_info.ascending`,
+        then: (s) => s.modify(`update sort_info set ascending = false`),
+        else: (s) => s.modify(`update sort_info set col = null`),
+      }),
+    else: (s) =>
+      s.modify(`update sort_info set col = ${columnIndex}, ascending = true`),
+  });
   return {
     cell: ({ value }) => value,
     width: 250,
-    keydownHeaderHandler: [
-      if_(`event.key = 'Enter'`, [toggleColumnSort, triggerQueryRefresh()]),
-    ],
-    headerClickHandler: [toggleColumnSort, triggerQueryRefresh()],
+    keydownHeaderHandler: (s) =>
+      s.if(
+        `event.key = 'Enter'`,
+        s.statements(toggleColumnSort, triggerQueryRefresh())
+      ),
+    headerClickHandler: (s) =>
+      s.statements(toggleColumnSort, triggerQueryRefresh()),
     header: [
-      element("span", {
+      nodes.element("span", {
         styles: sharedStyles.headerText,
         children: stringLiteral(virtual.displayName),
       }),
-      switchNode(
-        [
-          `sort_info.col = ${columnIndex} and sort_info.ascending`,
-          materialIcon("ArrowUpward"),
-        ],
-        [
-          `sort_info.col = ${columnIndex} and not sort_info.ascending`,
-          materialIcon("ArrowDownward"),
-        ]
+      nodes.switch(
+        {
+          condition: `sort_info.col = ${columnIndex} and sort_info.ascending`,
+          node: materialIcon("ArrowUpward"),
+        },
+        {
+          condition: `sort_info.col = ${columnIndex} and not sort_info.ascending`,
+          node: materialIcon("ArrowDownward"),
+        }
       ),
       resizeableSeperator({
         minWidth: 50,
         setWidth: (width) =>
-          modify(
+          new BasicStatements().modify(
             `update ui.column_width set width = ${width} where col = ${columnIndex}`
           ),
         width: `(select width from ui.column_width where col = ${columnIndex})`,

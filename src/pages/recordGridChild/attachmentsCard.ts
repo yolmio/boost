@@ -152,7 +152,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                     ],
                   },
                 }),
-                ifNode(
+                nodes.if(
                   `uploading`,
                   circularProgress({ size: "sm" }),
                   materialIcon({
@@ -179,7 +179,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                 )} where ${ctx.table.name} = ${ctx.recordId}`
               ),
             ],
-            children: ifNode(
+            children: nodes.if(
               `exists (select 1 from attachment)`,
               each({
                 table: "attachment",
@@ -192,7 +192,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                   children: element("div", {
                     styles: styles.attachment,
                     children: [
-                      ifNode(
+                      nodes.if(
                         `editing`,
                         state({
                           procedure: [
@@ -284,7 +284,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                                 },
                               },
                             }),
-                            ifNode(
+                            nodes.if(
                               `submitting`,
                               circularProgress({
                                 styles: styles.editLoading,
@@ -353,7 +353,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
             ),
           }),
         }),
-        ifNode(
+        nodes.if(
           `failed_upload or failed_edit`,
           element("div", {
             styles: styles.failureAlert,

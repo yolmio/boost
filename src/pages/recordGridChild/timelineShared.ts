@@ -191,7 +191,7 @@ export function recordDefaultItemContent(
             },
           ],
         }),
-        ifNode(
+        nodes.if(
           `editing`,
           updateDialog({
             table: tableModel.name,
@@ -264,7 +264,7 @@ export function recordDefaultItemContent(
                       );
                     }
                     if (field.type === "Bool") {
-                      return ifNode(
+                      return nodes.if(
                         value.exprValue,
                         chip({
                           variant: "soft",
@@ -289,7 +289,7 @@ export function recordDefaultItemContent(
                     if (field.notNull) {
                       return content;
                     }
-                    return ifNode(value.exprValue + ` is not null`, content);
+                    return nodes.if(value.exprValue + ` is not null`, content);
                   } else {
                     return element("div", {
                       styles: styles.itemValueWrapper,

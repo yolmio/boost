@@ -1,6 +1,5 @@
-import { element, ifNode, portal } from "../../nodeHelpers";
+import { nodes } from "../../nodeHelpers";
 import { Node } from "../../nodeTypes";
-import { if_, setScalar } from "../../procHelpers";
 import { createStyles } from "../../styleUtils";
 
 export interface Opts {
@@ -26,10 +25,10 @@ const styles = createStyles({
 });
 
 export function toolbarPopover({ openScalar, buttonId, children }: Opts) {
-  return ifNode(
+  return nodes.if(
     openScalar,
-    portal(
-      element("div", {
+    nodes.portal(
+      nodes.element("div", {
         styles: styles.popover,
         props: { tabIndex: `-1` },
         floating: {
@@ -44,10 +43,11 @@ export function toolbarPopover({ openScalar, buttonId, children }: Opts) {
           flip: { crossAxis: `false`, mainAxis: `false` },
         },
         on: {
-          clickAway: [setScalar(openScalar, `false`)],
-          keydown: [
-            if_(`event.key = 'Escape'`, [setScalar(openScalar, `false`)]),
-          ],
+          clickAway: (s) => s.setScalar(openScalar, `false`),
+          keydown: (s) =>
+            s.if(`event.key = 'Escape'`, (s) =>
+              s.setScalar(openScalar, `false`)
+            ),
         },
         children,
       })

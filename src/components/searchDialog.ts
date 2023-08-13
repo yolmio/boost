@@ -1313,322 +1313,330 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
   });
 }
 
-// export interface RecordSelectDialog {
-//   table: string;
-//   displayValues?: TableSearchDisplay[];
-//   onSelect: (id: string, label: string) => yom.DomProcStatement[];
-//   open: string;
-//   onClose: yom.DomProcStatement[];
-//   placeholder?: string;
-// }
+export interface RecordSelectDialog {
+  table: string;
+  displayValues?: TableSearchDisplay[];
+  onSelect: (id: string, label: string) => DomStatementsOrFn;
+  open: string;
+  onClose: DomStatementsOrFn;
+  placeholder?: string;
+}
 
-// export function recordSelectDialog(opts: RecordSelectDialog) {
-//   const tableModel = app.db.tables[opts.table];
-//   if (!tableModel.recordDisplayName) {
-//     throw new Error("tableSearchDialog expects recordDisplayName to exist");
-//   }
-//   const displayValues = opts.displayValues?.map((value) =>
-//     prepareDisplayValue(tableModel, value)
-//   );
-//   const nameExpr = tableModel.recordDisplayName.expr(
-//     ...tableModel.recordDisplayName.fields.map((f) => `record.${f}`)
-//   );
-//   const inputId = stringLiteral(getUniqueUiId());
-//   const listboxId = stringLiteral(getUniqueUiId());
-//   const optionId = (id: string) => `${inputId} || '-' || ${id}`;
-//   const fieldNameGenerator = new SequentialIDGenerator();
-//   const extraValuesIds: string[] = [];
-//   const tableFields = displayValues?.map((v): yom.ProcTableField => {
-//     const name = fieldNameGenerator.next();
-//     extraValuesIds.push(name);
-//     return { name, type: v.type };
-//   });
-//   let extraValuesSelect = ``;
-//   if (displayValues) {
-//     extraValuesSelect = `,`;
-//     extraValuesSelect += displayValues
-//       .map((v, id) => {
-//         return v.expr + " as " + extraValuesIds[id];
-//       })
-//       .join(",");
-//   }
-//   const searchConfig = tableModel.searchConfig;
-//   if (!searchConfig) {
-//     throw new Error(`Table ${tableModel.name} does not have searchConfig`);
-//   }
-//   function scrollToItem(alignToTop: boolean) {
-//     return block([
-//       getBoundingClientRect(listboxId, `container_rect`),
-//       getBoundingClientRect(
-//         optionId(`(select id from ui.result where active)`),
-//         `item_rect`
-//       ),
-//       if_(
-//         `not (item_rect.top >= container_rect.top and item_rect.bottom <= container_rect.bottom)`,
-//         scrollElIntoView({
-//           elementId: optionId(`(select id from ui.result where active)`),
-//           block: alignToTop ? `'start'` : `'end'`,
-//         })
-//       ),
-//     ]);
-//   }
-//   return modal({
-//     open: opts.open,
-//     onClose: opts.onClose,
-//     children: (closeModal) =>
-//       nodes.element("div", {
-//         styles: styles.dialog(),
-//         on: { click: [stopPropagation()] },
-//         focusLock: {},
-//         scrollLock: { enabled: `true` },
-//         children: nodes.state({
-//           procedure: [scalar("query", "''")],
-//           children: nodes.state({
-//             watch: ["query"],
-//             procedure: [
-//               table("result", [
-//                 { name: "label", type: { type: "String", maxLength: 1000 } },
-//                 { name: "id", type: { type: "BigInt" } },
-//                 { name: "index", type: { type: "BigInt" } },
-//                 { name: "active", type: { type: "Bool" } },
-//                 ...(tableFields ?? []),
-//               ]),
-//               if_(
-//                 `trim(query) = ''`,
-//                 modify(`insert into result
-//                 select
-//                   ${nameExpr} as label,
-//                   rank() over () = 1 as active,
-//                   rank() over () as index,
-//                   record.id as id ${extraValuesSelect}
-//                 from db.${opts.table} as record
-//                 limit 15`),
-//                 [
-//                   search({
-//                     query: "query",
-//                     resultTable: `tmp_result`,
-//                     limit: `10`,
-//                     config: {
-//                       tokenizer: {
-//                         splitter: { type: "Alphanumeric" },
-//                         filters: [{ type: "AsciiFold" }, { type: "Lowercase" }],
-//                       },
-//                       style: {
-//                         type: "Fuzzy",
-//                         ...app.searchConfig.defaultFuzzyConfig,
-//                       },
-//                       tables: [searchConfig],
-//                     },
-//                   }),
-//                   modify(`insert into result
-//                 select
-//                   ${nameExpr} as label,
-//                   rank() over () = 1 as active,
-//                   rank() over () as index,
-//                   record_id as id ${extraValuesSelect}
-//                 from tmp_result
-//                 join db.${opts.table} as record on record_id = id`),
-//                 ]
-//               ),
-//             ],
-//             children: [
-//               eventHandlers({
-//                 document: {
-//                   keydown: [if_(`event.key = 'Escape'`, closeModal)],
-//                 },
-//               }),
-//               nodes.element("header", {
-//                 styles: styles.header,
-//                 children: [
-//                   nodes.element("label", {
-//                     styles: styles.searchIcon,
-//                     props: { htmlFor: inputId },
-//                     children: materialIcon({
-//                       name: "Search",
-//                       fontSize: "xl3",
-//                     }),
-//                   }),
-//                   mode({
-//                     render: "'immediate'",
-//                     children: nodes.element("input", {
-//                       styles: styles.input,
-//                       props: {
-//                         id: inputId,
-//                         placeholder: opts.placeholder ?? `'Select a record…'`,
-//                         "aria-autocomplete": `'list'`,
-//                         "aria-haspopup": `'listbox'`,
-//                         "aria-controls": listboxId,
-//                         "aria-expanded": `true`,
-//                         "aria-activedescendant": optionId(
-//                           `(select id from ui.result where active)`
-//                         ),
-//                         type: `'text'`,
-//                         spellCheck: `'false'`,
-//                         autoComplete: `'off'`,
-//                         autoCapitalize: `'off'`,
-//                         role: `'combobox'`,
-//                         value: `query`,
-//                       },
-//                       on: {
-//                         input: [
-//                           setScalar("ui.query", "target_value"),
-//                           modify(`update ui.result set active = false`),
-//                         ],
-//                         keydown: {
-//                           detachedFromNode: true,
-//                           procedure: [
-//                             if_(`event.key = 'Escape'`, closeModal),
-//                             if_(
-//                               `event.is_composing or event.shift_key or event.meta_key or event.alt_key or event.ctrl_key`,
-//                               exit()
-//                             ),
-//                             if_(`event.key = 'Enter' or event.key = 'Tab'`, [
-//                               record(
-//                                 `selected_record`,
-//                                 `select id, label from ui.result where active`
-//                               ),
-//                               if_(`selected_record.id is not null`, [
-//                                 preventDefault(),
-//                                 ...opts.onSelect(
-//                                   `selected_record.id`,
-//                                   `selected_record.label`
-//                                 ),
-//                               ]),
-//                               exit(),
-//                             ]),
-//                             if_(`event.key = 'ArrowDown'`, [
-//                               preventDefault(),
-//                               if_(
-//                                 `not exists (select id from ui.result)`,
-//                                 exit()
-//                               ),
-//                               scalar(
-//                                 `next_index`,
-//                                 `(select index from ui.result where active) + 1`
-//                               ),
-//                               modify(`update ui.result set active = false`),
-//                               if_(
-//                                 `exists (select id from ui.result where index = next_index)`,
-//                                 [
-//                                   modify(
-//                                     `update ui.result set active = true where index = next_index`
-//                                   ),
-//                                 ],
-//                                 [
-//                                   modify(
-//                                     `update ui.result set active = true where index = 1`
-//                                   ),
-//                                 ]
-//                               ),
-//                               scrollToItem(false),
-//                               exit(),
-//                             ]),
-//                             if_(`event.key = 'ArrowUp'`, [
-//                               preventDefault(),
-//                               if_(
-//                                 `not exists (select index from ui.result)`,
-//                                 exit()
-//                               ),
-//                               scalar(
-//                                 `next_index`,
-//                                 `(select index from ui.result where active) - 1`
-//                               ),
-//                               modify(`update ui.result set active = false`),
-//                               if_(
-//                                 `exists (select id from ui.result where index = next_index)`,
-//                                 [
-//                                   modify(
-//                                     `update ui.result set active = true where index = next_index`
-//                                   ),
-//                                 ],
-//                                 [
-//                                   modify(
-//                                     `update ui.result set active = true where index = (select max(index) from ui.result)`
-//                                   ),
-//                                 ]
-//                               ),
-//                               scrollToItem(true),
-//                               exit(),
-//                             ]),
-//                           ],
-//                         },
-//                       },
-//                     }),
-//                   }),
-//                   iconButton({
-//                     variant: "plain",
-//                     color: "neutral",
-//                     children: materialIcon("Close"),
-//                     on: { click: closeModal },
-//                   }),
-//                 ],
-//               }),
-//               divider(),
-//               nodes.element("ul", {
-//                 props: {
-//                   id: listboxId,
-//                   role: `'listbox'`,
-//                 },
-//                 styles: styles.listbox,
-//                 children: each({
-//                   table: "result",
-//                   recordName: "search_record",
-//                   key: "id",
-//                   children: nodes.element("li", {
-//                     props: {
-//                       id: optionId(`search_record.id`),
-//                       role: `'option'`,
-//                       "aria-selected": `search_record.active`,
-//                       tabIndex: "0",
-//                     },
-//                     styles: styles.option,
-//                     on: {
-//                       click: {
-//                         detachedFromNode: true,
-//                         procedure: opts.onSelect(
-//                           `search_record.id`,
-//                           `search_record.label`
-//                         ),
-//                       },
-//                     },
-//                     children: [
-//                       nodes.element("span", {
-//                         styles: styles.optionLabel,
-//                         children: `search_record.label`,
-//                       }),
-//                       displayValues
-//                         ? nodes.element("div", {
-//                             styles: { display: "flex", gap: 1 },
-//                             children: displayValues.map((v, i) => {
-//                               const value =
-//                                 `search_record.` + extraValuesIds[i];
-//                               return nodes.if(
-//                                 value + ` is not null`,
-//                                 nodes.element("div", {
-//                                   styles: styles.optionExtraData,
-//                                   children: [
-//                                     nodes.element("p", {
-//                                       styles: styles.optionExtraDataLabel,
-//                                       children: `${stringLiteral(
-//                                         v.label
-//                                       )} || ':'`,
-//                                     }),
-//                                     nodes.element("span", {
-//                                       children: value,
-//                                     }),
-//                                   ],
-//                                 })
-//                               );
-//                             }),
-//                           })
-//                         : undefined,
-//                     ],
-//                   }),
-//                 }),
-//               }),
-//             ],
-//           }),
-//         }),
-//       }),
-//   });
-// }
+export function recordSelectDialog(opts: RecordSelectDialog) {
+  const tableModel = app.db.tables[opts.table];
+  if (!tableModel.recordDisplayName) {
+    throw new Error("tableSearchDialog expects recordDisplayName to exist");
+  }
+  const displayValues = opts.displayValues?.map((value) =>
+    prepareDisplayValue(tableModel, value)
+  );
+  const nameExpr = tableModel.recordDisplayName.expr(
+    ...tableModel.recordDisplayName.fields.map((f) => `record.${f}`)
+  );
+  const inputId = stringLiteral(getUniqueUiId());
+  const listboxId = stringLiteral(getUniqueUiId());
+  const optionId = (id: string) => `${inputId} || '-' || ${id}`;
+  const fieldNameGenerator = new SequentialIDGenerator();
+  const extraValuesIds: string[] = [];
+  const tableFields = displayValues?.map((v): yom.ProcTableField => {
+    const name = fieldNameGenerator.next();
+    extraValuesIds.push(name);
+    return { name, type: v.type };
+  });
+  let extraValuesSelect = ``;
+  if (displayValues) {
+    extraValuesSelect = `,`;
+    extraValuesSelect += displayValues
+      .map((v, id) => {
+        return v.expr + " as " + extraValuesIds[id];
+      })
+      .join(",");
+  }
+  const searchConfig = tableModel.searchConfig;
+  if (!searchConfig) {
+    throw new Error(`Table ${tableModel.name} does not have searchConfig`);
+  }
+  function scrollToItem(alignToTop: boolean) {
+    return new DomStatements().block((s) =>
+      s
+        .getBoundingClientRect(listboxId, `container_rect`)
+        .getBoundingClientRect(
+          optionId(`(select id from ui.result where active)`),
+          `item_rect`
+        )
+        .if(
+          `not (item_rect.top >= container_rect.top and item_rect.bottom <= container_rect.bottom)`,
+          (s) =>
+            s.scrollElIntoView({
+              elementId: optionId(`(select id from ui.result where active)`),
+              block: alignToTop ? `'start'` : `'end'`,
+            })
+        )
+    );
+  }
+  return modal({
+    open: opts.open,
+    onClose: opts.onClose,
+    children: (closeModal) =>
+      nodes.element("div", {
+        styles: styles.dialog(),
+        on: { click: (s) => s.stopPropagation() },
+        focusLock: {},
+        scrollLock: { enabled: `true` },
+        children: nodes.state({
+          procedure: (s) => s.scalar("query", "''"),
+          children: nodes.state({
+            watch: ["query"],
+            procedure: (s) =>
+              s
+                .table("result", [
+                  { name: "label", type: { type: "String", maxLength: 1000 } },
+                  { name: "id", type: { type: "BigInt" } },
+                  { name: "index", type: { type: "BigInt" } },
+                  { name: "active", type: { type: "Bool" } },
+                  ...(tableFields ?? []),
+                ])
+                .if({
+                  condition: `trim(query) = ''`,
+                  then: (s) =>
+                    s.modify(`insert into result
+                select
+                  ${nameExpr} as label,
+                  rank() over () = 1 as active,
+                  rank() over () as index,
+                  record.id as id ${extraValuesSelect}
+                from db.${opts.table} as record
+                limit 15`),
+                  else: (s) =>
+                    s.search({
+                      query: "query",
+                      resultTable: `tmp_result`,
+                      limit: `10`,
+                      config: {
+                        tokenizer: {
+                          splitter: { type: "Alphanumeric" },
+                          filters: [
+                            { type: "AsciiFold" },
+                            { type: "Lowercase" },
+                          ],
+                        },
+                        style: {
+                          type: "Fuzzy",
+                          ...app.searchConfig.defaultFuzzyConfig,
+                        },
+                        tables: [searchConfig],
+                      },
+                    }).modify(`insert into result
+                select
+                  ${nameExpr} as label,
+                  rank() over () = 1 as active,
+                  rank() over () as index,
+                  record_id as id ${extraValuesSelect}
+                from tmp_result
+                join db.${opts.table} as record on record_id = id`),
+                }),
+            children: [
+              nodes.eventHandlers({
+                document: {
+                  keydown: (s) => s.if(`event.key = 'Escape'`, closeModal),
+                },
+              }),
+              nodes.element("header", {
+                styles: styles.header,
+                children: [
+                  nodes.element("label", {
+                    styles: styles.searchIcon,
+                    props: { htmlFor: inputId },
+                    children: materialIcon({
+                      name: "Search",
+                      fontSize: "xl3",
+                    }),
+                  }),
+                  nodes.mode({
+                    render: "'immediate'",
+                    children: nodes.element("input", {
+                      styles: styles.input,
+                      props: {
+                        id: inputId,
+                        placeholder: opts.placeholder ?? `'Select a record…'`,
+                        "aria-autocomplete": `'list'`,
+                        "aria-haspopup": `'listbox'`,
+                        "aria-controls": listboxId,
+                        "aria-expanded": `true`,
+                        "aria-activedescendant": optionId(
+                          `(select id from ui.result where active)`
+                        ),
+                        type: `'text'`,
+                        spellCheck: `'false'`,
+                        autoComplete: `'off'`,
+                        autoCapitalize: `'off'`,
+                        role: `'combobox'`,
+                        value: `query`,
+                      },
+                      on: {
+                        input: (s) =>
+                          s
+                            .setScalar("ui.query", "target_value")
+                            .modify(`update ui.result set active = false`),
+                        keydown: {
+                          detachedFromNode: true,
+                          procedure: (s) =>
+                            s
+                              .if(`event.key = 'Escape'`, closeModal)
+                              .if(
+                                `event.is_composing or event.shift_key or event.meta_key or event.alt_key or event.ctrl_key`,
+                                (s) => s.return()
+                              )
+                              .if(
+                                `event.key = 'Enter' or event.key = 'Tab'`,
+                                (s) =>
+                                  s
+                                    .record(
+                                      `selected_record`,
+                                      `select id, label from ui.result where active`
+                                    )
+                                    .if(`selected_record.id is not null`, (s) =>
+                                      s
+                                        .preventDefault()
+                                        .statements(
+                                          opts.onSelect(
+                                            `selected_record.id`,
+                                            `selected_record.label`
+                                          )
+                                        )
+                                    )
+                                    .return()
+                              )
+                              .if(`event.key = 'ArrowDown'`, (s) =>
+                                s
+                                  .preventDefault()
+                                  .if(
+                                    `not exists (select id from ui.result)`,
+                                    (s) => s.return()
+                                  )
+                                  .scalar(
+                                    `next_index`,
+                                    `(select index from ui.result where active) + 1`
+                                  )
+                                  .modify(`update ui.result set active = false`)
+                                  .if({
+                                    condition: `exists (select id from ui.result where index = next_index)`,
+                                    then: (s) =>
+                                      s.modify(
+                                        `update ui.result set active = true where index = next_index`
+                                      ),
+                                    else: (s) =>
+                                      s.modify(
+                                        `update ui.result set active = true where index = 1`
+                                      ),
+                                  })
+                                  .statements(scrollToItem(false))
+                                  .return()
+                              )
+                              .if(`event.key = 'ArrowUp'`, (s) =>
+                                s
+                                  .preventDefault()
+                                  .if(
+                                    `not exists (select index from ui.result)`,
+                                    (s) => s.return()
+                                  )
+                                  .scalar(
+                                    `next_index`,
+                                    `(select index from ui.result where active) - 1`
+                                  )
+                                  .modify(`update ui.result set active = false`)
+                                  .if({
+                                    condition: `exists (select id from ui.result where index = next_index)`,
+                                    then: (s) =>
+                                      s.modify(
+                                        `update ui.result set active = true where index = next_index`
+                                      ),
+                                    else: (s) =>
+                                      s.modify(
+                                        `update ui.result set active = true where index = (select max(index) from ui.result)`
+                                      ),
+                                  })
+                                  .statements(scrollToItem(true))
+                                  .return()
+                              ),
+                        },
+                      },
+                    }),
+                  }),
+                  iconButton({
+                    variant: "plain",
+                    color: "neutral",
+                    children: materialIcon("Close"),
+                    on: { click: closeModal },
+                  }),
+                ],
+              }),
+              divider(),
+              nodes.element("ul", {
+                props: {
+                  id: listboxId,
+                  role: `'listbox'`,
+                },
+                styles: styles.listbox,
+                children: nodes.each({
+                  table: "result",
+                  recordName: "search_record",
+                  key: "id",
+                  children: nodes.element("li", {
+                    props: {
+                      id: optionId(`search_record.id`),
+                      role: `'option'`,
+                      "aria-selected": `search_record.active`,
+                      tabIndex: "0",
+                    },
+                    styles: styles.option,
+                    on: {
+                      click: {
+                        detachedFromNode: true,
+                        procedure: opts.onSelect(
+                          `search_record.id`,
+                          `search_record.label`
+                        ),
+                      },
+                    },
+                    children: [
+                      nodes.element("span", {
+                        styles: styles.optionLabel,
+                        children: `search_record.label`,
+                      }),
+                      displayValues
+                        ? nodes.element("div", {
+                            styles: { display: "flex", gap: 1 },
+                            children: displayValues.map((v, i) => {
+                              const value =
+                                `search_record.` + extraValuesIds[i];
+                              return nodes.if(
+                                value + ` is not null`,
+                                nodes.element("div", {
+                                  styles: styles.optionExtraData,
+                                  children: [
+                                    nodes.element("p", {
+                                      styles: styles.optionExtraDataLabel,
+                                      children: `${stringLiteral(
+                                        v.label
+                                      )} || ':'`,
+                                    }),
+                                    nodes.element("span", {
+                                      children: value,
+                                    }),
+                                  ],
+                                })
+                              );
+                            }),
+                          })
+                        : undefined,
+                    ],
+                  }),
+                }),
+              }),
+            ],
+          }),
+        }),
+      }),
+  });
+}

@@ -1,19 +1,7 @@
-import { each, element, ifNode, state, switchNode } from "../../nodeHelpers";
+import { nodes } from "../../nodeHelpers";
 import { Node } from "../../nodeTypes";
-import {
-  abortTask,
-  commitUiChanges,
-  delay,
-  exit,
-  if_,
-  modify,
-  scalar,
-  setScalar,
-  spawn,
-} from "../../procHelpers";
 import { app } from "../../app";
 import { stringLiteral } from "../../utils/sqlHelpers";
-import { ClientProcStatement } from "../../yom";
 import { button } from "../../components/button";
 import { iconButton } from "../../components/iconButton";
 import { input } from "../../components/input";
@@ -33,6 +21,7 @@ import { createStyles, flexGrowStyles } from "../../styleUtils";
 import { styles as sharedStyles } from "./styles";
 import { getUniqueUiId } from "../../components/utils";
 import { SuperGridColumn, SuperGridDts } from "./styledDatagrid";
+import { DomStatements, DomStatementsOrFn } from "../../statements";
 
 const styles = createStyles({
   checkboxWrapper: {
@@ -130,7 +119,7 @@ function typeSpecificOps(columns: SuperGridColumn[], filterTerm: string): Node {
     });
   }
   genTypes.sort((a, b) => a.columns.length - b.columns.length);
-  const switchCases: [string, Node][] = [];
+  const switchCases: { condition: string; node: Node }[] = [];
   for (let i = 0; i < genTypes.length; i++) {
     const { columns, type, notNull } = genTypes[i];
     const caseExpr =
@@ -141,19 +130,19 @@ function typeSpecificOps(columns: SuperGridColumn[], filterTerm: string): Node {
     switch (type.type) {
       case "string":
         opts.push(
-          element("option", {
+          nodes.element("option", {
             props: { value: "'str_eq'" },
             children: "'is'",
           }),
-          element("option", {
+          nodes.element("option", {
             props: { value: "'str_ne'" },
             children: "'is not'",
           }),
-          element("option", {
+          nodes.element("option", {
             props: { value: "'str_contains'" },
             children: "'contains'",
           }),
-          element("option", {
+          nodes.element("option", {
             props: { value: "'str_not_contains'" },
             children: "'does not contain'",
           })
@@ -161,27 +150,27 @@ function typeSpecificOps(columns: SuperGridColumn[], filterTerm: string): Node {
         break;
       case "number":
         opts.push(
-          element("option", {
+          nodes.element("option", {
             props: { value: "'num_eq'" },
             children: "'='",
           }),
-          element("option", {
+          nodes.element("option", {
             props: { value: "'num_ne'" },
             children: "'≠'",
           }),
-          element("option", {
+          nodes.element("option", {
             props: { value: "'num_lt'" },
             children: "'<'",
           }),
-          element("option", {
+          nodes.element("option", {
             props: { value: "'num_lte'" },
             children: "'≤'",
           }),
-          element("option", {
+          nodes.element("option", {
             props: { value: "'num_gt'" },
             children: "'>'",
           }),
-          element("option", {
+          nodes.element("option", {
             props: { value: "'num_gte'" },
             children: "'≥'",
           })
@@ -189,27 +178,27 @@ function typeSpecificOps(columns: SuperGridColumn[], filterTerm: string): Node {
         break;
       case "date":
         opts.push(
-          element("option", {
+          nodes.element("option", {
             props: { value: "'date_eq'" },
             children: "'is'",
           }),
-          element("option", {
+          nodes.element("option", {
             props: { value: "'date_ne'" },
             children: "'is not'",
           }),
-          element("option", {
+          nodes.element("option", {
             props: { value: "'date_lt'" },
             children: "'is before'",
           }),
-          element("option", {
+          nodes.element("option", {
             props: { value: "'date_lte'" },
             children: "'is on or before'",
           }),
-          element("option", {
+          nodes.element("option", {
             props: { value: "'date_gt'" },
             children: "'is after'",
           }),
-          element("option", {
+          nodes.element("option", {
             props: { value: "'date_gte'" },
             children: "'is on or after'",
           })
@@ -217,27 +206,27 @@ function typeSpecificOps(columns: SuperGridColumn[], filterTerm: string): Node {
         break;
       case "timestamp":
         opts.push(
-          element("option", {
+          nodes.element("option", {
             props: { value: "'timestamp_eq'" },
             children: "'is'",
           }),
-          element("option", {
+          nodes.element("option", {
             props: { value: "'timestamp_ne'" },
             children: "'is not'",
           }),
-          element("option", {
+          nodes.element("option", {
             props: { value: "'timestamp_lt'" },
             children: "'is before'",
           }),
-          element("option", {
+          nodes.element("option", {
             props: { value: "'timestamp_lte'" },
             children: "'is on or before'",
           }),
-          element("option", {
+          nodes.element("option", {
             props: { value: "'timestamp_gt'" },
             children: "'is after'",
           }),
-          element("option", {
+          nodes.element("option", {
             props: { value: "'timestamp_gte'" },
             children: "'is on or after'",
           })
@@ -245,11 +234,11 @@ function typeSpecificOps(columns: SuperGridColumn[], filterTerm: string): Node {
         break;
       case "enum":
         opts.push(
-          element("option", {
+          nodes.element("option", {
             props: { value: "'enum_eq'" },
             children: "'is'",
           }),
-          element("option", {
+          nodes.element("option", {
             props: { value: "'enum_ne'" },
             children: "'is not'",
           })
@@ -257,11 +246,11 @@ function typeSpecificOps(columns: SuperGridColumn[], filterTerm: string): Node {
         break;
       case "table":
         opts.push(
-          element("option", {
+          nodes.element("option", {
             props: { value: "'fk_eq'" },
             children: "'is'",
           }),
-          element("option", {
+          nodes.element("option", {
             props: { value: "'fk_ne'" },
             children: "'is not'",
           })
@@ -269,7 +258,7 @@ function typeSpecificOps(columns: SuperGridColumn[], filterTerm: string): Node {
         break;
       case "bool":
         opts.push(
-          element("option", {
+          nodes.element("option", {
             props: { value: "'bool_eq'" },
             children: "'is'",
           })
@@ -277,7 +266,7 @@ function typeSpecificOps(columns: SuperGridColumn[], filterTerm: string): Node {
         break;
       case "enum_like_bool":
         opts.push(
-          element("option", {
+          nodes.element("option", {
             props: { value: "'enum_like_bool_eq'" },
             children: "'is'",
           })
@@ -285,27 +274,27 @@ function typeSpecificOps(columns: SuperGridColumn[], filterTerm: string): Node {
         break;
       case "duration":
         opts.push(
-          element("option", {
+          nodes.element("option", {
             props: { value: "'minute_duration_eq'" },
             children: "'='",
           }),
-          element("option", {
+          nodes.element("option", {
             props: { value: "'minute_duration_ne'" },
             children: "'≠'",
           }),
-          element("option", {
+          nodes.element("option", {
             props: { value: "'minute_duration_lt'" },
             children: "'<'",
           }),
-          element("option", {
+          nodes.element("option", {
             props: { value: "'minute_duration_lte'" },
             children: "'≤'",
           }),
-          element("option", {
+          nodes.element("option", {
             props: { value: "'minute_duration_gt'" },
             children: "'>'",
           }),
-          element("option", {
+          nodes.element("option", {
             props: { value: "'minute_duration_gte'" },
             children: "'≥'",
           })
@@ -316,61 +305,61 @@ function typeSpecificOps(columns: SuperGridColumn[], filterTerm: string): Node {
     }
     if (notNull && type.type !== "enum_like_bool") {
       opts.push(
-        element("option", {
+        nodes.element("option", {
           props: { value: "'empty'" },
           children: "'is empty'",
         })
       );
       opts.push(
-        element("option", {
+        nodes.element("option", {
           props: { value: "'not_empty'" },
           children: "'is not empty'",
         })
       );
     }
-    switchCases.push([caseExpr, opts]);
+    switchCases.push({ condition: caseExpr, node: opts });
   }
-  return switchNode(...switchCases);
+  return nodes.switch(...switchCases);
 }
 
 const dateOptions = [
-  element("option", {
+  nodes.element("option", {
     children: "'today'",
     props: { value: "'today'" },
   }),
-  element("option", {
+  nodes.element("option", {
     children: "'tomorrow'",
     props: { value: "'tomorrow'" },
   }),
-  element("option", {
+  nodes.element("option", {
     children: "'yesterday'",
     props: { value: "'yesterday'" },
   }),
-  element("option", {
+  nodes.element("option", {
     children: "'week ago'",
     props: { value: "'week ago'" },
   }),
-  element("option", {
+  nodes.element("option", {
     children: "'week from now'",
     props: { value: "'week from now'" },
   }),
-  element("option", {
+  nodes.element("option", {
     children: "'month ago'",
     props: { value: "'month ago'" },
   }),
-  element("option", {
+  nodes.element("option", {
     children: "'month from now'",
     props: { value: "'month from now'" },
   }),
-  element("option", {
+  nodes.element("option", {
     children: "'number of days ago...'",
     props: { value: "'number of days ago'" },
   }),
-  element("option", {
+  nodes.element("option", {
     children: "'number of days from now...'",
     props: { value: "'number of days from now'" },
   }),
-  element("option", {
+  nodes.element("option", {
     children: "'exact date...'",
     props: { value: "'exact date'" },
   }),
@@ -386,142 +375,143 @@ function columnFilter(
     const col = columns[i];
     if (col.displayName) {
       options.push(
-        element("option", {
+        nodes.element("option", {
           props: { value: i.toString() },
           children: stringLiteral(col.displayName!),
         })
       );
     }
   }
-  const switchCases: [string, Node][] = [];
+  const switchCases: { condition: string; node: Node }[] = [];
   if (columns.some((col) => col.filter?.type?.type === "string")) {
-    switchCases.push([
-      `dt.is_string_filter_op(${filterTerm}.op)`,
-      state({
-        procedure: [
-          scalar(`debounce_handle`, { type: "BigUint" }),
-          scalar(`did_trigger_refresh`, `false`),
-        ],
+    switchCases.push({
+      condition: `dt.is_string_filter_op(${filterTerm}.op)`,
+      node: nodes.state({
+        procedure: (s) =>
+          s
+            .scalar(`debounce_handle`, { type: "BigUint" })
+            .scalar(`did_trigger_refresh`, `false`),
         children: input({
           size: "sm",
           slots: {
             input: {
               props: { value: `${filterTerm}.value_1` },
               on: {
-                input: [
-                  modify(
-                    `update ui.filter_term set value_1 = target_value where id = ${filterTerm}.id`
-                  ),
-                  setScalar(`did_trigger_refresh`, `false`),
-                  if_("debounce_handle is not null", [
-                    abortTask(`debounce_handle`),
-                  ]),
-                  spawn({
-                    detached: true,
-                    handleScalar: "task_handle",
-                    statements: [
-                      delay(`500`),
-                      triggerQueryRefresh(),
-                      setScalar(`did_trigger_refresh`, `true`),
-                      setScalar(`debounce_handle`, `null`),
-                      commitUiChanges(),
-                    ],
-                  }),
-                  setScalar(`debounce_handle`, `task_handle`),
-                ],
-                blur: [
-                  if_(`did_trigger_refresh`, [exit()]),
-                  if_("debounce_handle is not null", [
-                    abortTask(`debounce_handle`),
-                    setScalar(`debounce_handle`, `null`),
-                  ]),
-                  triggerQueryRefresh(),
-                ],
-              },
-            },
-          },
-        }),
-      }),
-    ]);
-  }
-  if (columns.some((col) => col.filter?.type?.type === "number")) {
-    switchCases.push([
-      `dt.is_number_filter_op(${filterTerm}.op)`,
-      state({
-        procedure: [
-          scalar(`debounce_handle`, { type: "BigUint" }),
-          scalar(`did_trigger_refresh`, `false`),
-        ],
-        children: input({
-          size: "sm",
-          slots: {
-            input: {
-              props: { value: `${filterTerm}.value_1` },
-              on: {
-                input: [
-                  if_("literal.number(target_value) is not null", [
-                    modify(
+                input: (s) =>
+                  s
+                    .modify(
                       `update ui.filter_term set value_1 = target_value where id = ${filterTerm}.id`
-                    ),
-                    setScalar(`did_trigger_refresh`, `false`),
-                    if_("debounce_handle is not null", [
-                      abortTask(`debounce_handle`),
-                    ]),
-                    spawn({
+                    )
+                    .setScalar(`did_trigger_refresh`, `false`)
+                    .if("debounce_handle is not null", (s) =>
+                      s.abortTask(`debounce_handle`)
+                    )
+                    .spawn({
                       detached: true,
                       handleScalar: "task_handle",
-                      statements: [
-                        delay(`500`),
-                        triggerQueryRefresh(),
-                        setScalar(`did_trigger_refresh`, `true`),
-                        setScalar(`debounce_handle`, `null`),
-                        commitUiChanges(),
-                      ],
-                    }),
-                    setScalar(`debounce_handle`, `task_handle`),
-                  ]),
-                ],
-                blur: [
-                  if_(`did_trigger_refresh`, [exit()]),
-                  if_("debounce_handle is not null", [
-                    abortTask(`debounce_handle`),
-                    setScalar(`debounce_handle`, `null`),
-                  ]),
-                  triggerQueryRefresh(),
-                ],
+                      procedure: (s) =>
+                        s
+                          .delay(`500`)
+                          .statements(triggerQueryRefresh())
+                          .setScalar(`did_trigger_refresh`, `true`)
+                          .setScalar(`debounce_handle`, `null`)
+                          .commitUiChanges(),
+                    })
+                    .setScalar(`debounce_handle`, `task_handle`),
+                blur: (s) =>
+                  s
+                    .if(`did_trigger_refresh`, (s) => s.return())
+                    .if("debounce_handle is not null", (s) =>
+                      s
+                        .abortTask(`debounce_handle`)
+                        .setScalar(`debounce_handle`, `null`)
+                    )
+                    .statements(triggerQueryRefresh()),
               },
             },
           },
         }),
       }),
-    ]);
+    });
+  }
+  if (columns.some((col) => col.filter?.type?.type === "number")) {
+    switchCases.push({
+      condition: `dt.is_number_filter_op(${filterTerm}.op)`,
+      node: nodes.state({
+        procedure: (s) =>
+          s
+            .scalar(`debounce_handle`, { type: "BigUint" })
+            .scalar(`did_trigger_refresh`, `false`),
+        children: input({
+          size: "sm",
+          slots: {
+            input: {
+              props: { value: `${filterTerm}.value_1` },
+              on: {
+                input: (s) =>
+                  s.if("literal.number(target_value) is not null", (s) =>
+                    s
+                      .modify(
+                        `update ui.filter_term set value_1 = target_value where id = ${filterTerm}.id`
+                      )
+                      .setScalar(`did_trigger_refresh`, `false`)
+                      .if("debounce_handle is not null", (s) =>
+                        s.abortTask(`debounce_handle`)
+                      )
+                      .spawn({
+                        detached: true,
+                        handleScalar: "task_handle",
+                        procedure: (s) =>
+                          s
+                            .delay(`500`)
+                            .statements(triggerQueryRefresh())
+                            .setScalar(`did_trigger_refresh`, `true`)
+                            .setScalar(`debounce_handle`, `null`)
+                            .commitUiChanges(),
+                      })
+                      .setScalar(`debounce_handle`, `task_handle`)
+                  ),
+                blur: (s) =>
+                  s
+                    .if(`did_trigger_refresh`, (s) => s.return())
+                    .if("debounce_handle is not null", (s) =>
+                      s
+                        .abortTask(`debounce_handle`)
+                        .setScalar(`debounce_handle`, `null`)
+                    )
+                    .statements(triggerQueryRefresh()),
+              },
+            },
+          },
+        }),
+      }),
+    });
   }
   if (columns.some((col) => col.filter?.type?.type === "date")) {
-    switchCases.push([
-      `dt.is_date_filter_op(${filterTerm}.op)`,
-      [
+    switchCases.push({
+      condition: `dt.is_date_filter_op(${filterTerm}.op)`,
+      node: [
         select({
           size: "sm",
           on: {
-            input: [
-              if_(
+            input: (s) =>
+              s.if(
                 `${filterTerm}.value_1 is null or ${filterTerm}.value_1 != target_value`,
-                [
-                  scalar(
-                    `new_value_2`,
-                    `case
+                (s) =>
+                  s
+                    .scalar(
+                      `new_value_2`,
+                      `case
                           when ${filterTerm}.value_1 = 'exact date' or target_value = 'exact date' then null
                           when (${filterTerm}.value_1 like 'number%') != (target_value like 'number%') then null
                           else ${filterTerm}.value_2
                         end`
-                  ),
-                  modify(
-                    `update ui.filter_term set value_1 = target_value, value_2 = new_value_2 where id = ${filterTerm}.id`
-                  ),
-                  triggerQueryRefresh(),
-                ]
+                    )
+                    .modify(
+                      `update ui.filter_term set value_1 = target_value, value_2 = new_value_2 where id = ${filterTerm}.id`
+                    )
+                    .statements(triggerQueryRefresh())
               ),
-            ],
           },
           slots: {
             select: {
@@ -532,79 +522,76 @@ function columnFilter(
           },
           children: dateOptions,
         }),
-        switchNode(
-          [
-            `${filterTerm}.value_1 in ('number of days ago', 'number of days from now')`,
-            input({
+        nodes.switch(
+          {
+            condition: `${filterTerm}.value_1 in ('number of days ago', 'number of days from now')`,
+            node: input({
               size: "sm",
               slots: {
                 input: {
                   props: { value: `${filterTerm}.value_2` },
                   on: {
-                    input: [
-                      if_("try_cast(target_value as int) is not null", [
-                        modify(
+                    input: (s) =>
+                      s.if("try_cast(target_value as int) is not null", (s) =>
+                        s.modify(
                           `update ui.filter_term set value_2 = target_value where id = ${filterTerm}.id`
-                        ),
-                      ]),
-                    ],
-                    blur: [triggerQueryRefresh()],
+                        )
+                      ),
+                    blur: triggerQueryRefresh(),
                   },
                 },
               },
             }),
-          ],
-          [
-            `${filterTerm}.value_1 is null or ${filterTerm}.value_1 = 'exact date'`,
-            input({
+          },
+          {
+            condition: `${filterTerm}.value_1 is null or ${filterTerm}.value_1 = 'exact date'`,
+            node: input({
               size: "sm",
               slots: {
                 input: {
                   props: { value: `${filterTerm}.value_2`, type: "'date'" },
                   on: {
-                    input: [
-                      if_("literal.date(target_value) is not null", [
-                        modify(
+                    input: (s) =>
+                      s.if("literal.date(target_value) is not null", (s) =>
+                        s.modify(
                           `update ui.filter_term set value_1 = 'exact date', value_2 = target_value where id = ${filterTerm}.id`
-                        ),
-                      ]),
-                    ],
-                    blur: [triggerQueryRefresh()],
+                        )
+                      ),
+                    blur: triggerQueryRefresh(),
                   },
                 },
               },
             }),
-          ]
+          }
         ),
       ],
-    ]);
+    });
   }
   if (columns.some((col) => col.filter?.type?.type === "timestamp")) {
-    switchCases.push([
-      `dt.is_timestamp_filter_op(${filterTerm}.op)`,
-      [
+    switchCases.push({
+      condition: `dt.is_timestamp_filter_op(${filterTerm}.op)`,
+      node: [
         select({
           size: "sm",
           on: {
-            input: [
-              if_(
+            input: (s) =>
+              s.if(
                 `${filterTerm}.value_1 is null or ${filterTerm}.value_1 != target_value`,
-                [
-                  scalar(
-                    `new_value_2`,
-                    `case
+                (s) =>
+                  s
+                    .scalar(
+                      `new_value_2`,
+                      `case
                           when ${filterTerm}.value_1 = 'exact date' or target_value = 'exact date' then null
                           when (${filterTerm}.value_1 like 'number%') != (target_value like 'number%') then null
                           else ${filterTerm}.value_2
                         end`
-                  ),
-                  modify(
-                    `update ui.filter_term set value_1 = target_value, value_2 = new_value_2 where id = ${filterTerm}.id`
-                  ),
-                  triggerQueryRefresh(),
-                ]
+                    )
+                    .modify(
+                      `update ui.filter_term set value_1 = target_value, value_2 = new_value_2 where id = ${filterTerm}.id`
+                    )
+                    .statements(triggerQueryRefresh())
               ),
-            ],
           },
           slots: {
             select: {
@@ -615,117 +602,114 @@ function columnFilter(
           },
           children: dateOptions,
         }),
-        switchNode(
-          [
-            `${filterTerm}.value_1 in ('number of days ago', 'number of days from now')`,
-            input({
+        nodes.switch(
+          {
+            condition: `${filterTerm}.value_1 in ('number of days ago', 'number of days from now')`,
+            node: input({
               size: "sm",
               slots: {
                 input: {
                   props: { value: `${filterTerm}.value_2` },
                   on: {
-                    input: [
-                      if_("try_cast(target_value as int) is not null", [
-                        modify(
+                    input: (s) =>
+                      s.if("try_cast(target_value as int) is not null", (s) =>
+                        s.modify(
                           `update ui.filter_term set value_2 = target_value where id = ${filterTerm}.id`
-                        ),
-                      ]),
-                    ],
-                    blur: [triggerQueryRefresh()],
+                        )
+                      ),
+                    blur: triggerQueryRefresh(),
                   },
                 },
               },
             }),
-          ],
-          [
-            `${filterTerm}.value_1 is null or ${filterTerm}.value_1 = 'exact date'`,
-            input({
+          },
+          {
+            condition: `${filterTerm}.value_1 is null or ${filterTerm}.value_1 = 'exact date'`,
+            node: input({
               size: "sm",
               slots: {
                 input: {
                   props: { value: `${filterTerm}.value_2`, type: "'date'" },
                   on: {
-                    input: [
-                      if_("literal.date(target_value) is not null", [
-                        modify(
+                    input: (s) =>
+                      s.if("literal.date(target_value) is not null", (s) =>
+                        s.modify(
                           `update ui.filter_term set value_1 = 'exact date', value_2 = target_value where id = ${filterTerm}.id`
-                        ),
-                      ]),
-                    ],
-                    blur: [triggerQueryRefresh()],
+                        )
+                      ),
+                    blur: triggerQueryRefresh(),
                   },
                 },
               },
             }),
-          ]
+          }
         ),
       ],
-    ]);
+    });
   }
   if (columns.some((col) => col.filter?.type?.type === "enum")) {
-    switchCases.push([
-      `dt.is_enum_filter_op(${filterTerm}.op)`,
-      enumSelect(filterTerm, columns),
-    ]);
+    switchCases.push({
+      condition: `dt.is_enum_filter_op(${filterTerm}.op)`,
+      node: enumSelect(filterTerm, columns),
+    });
   }
   if (columns.some((col) => col.filter?.type?.type === "table")) {
-    switchCases.push([
-      `dt.is_fk_filter_op(${filterTerm}.op)`,
-      tableInput(filterTerm, columns),
-    ]);
+    switchCases.push({
+      condition: `dt.is_fk_filter_op(${filterTerm}.op)`,
+      node: tableInput(filterTerm, columns),
+    });
   }
   if (columns.some((col) => col.filter?.type?.type === "bool")) {
-    switchCases.push([
-      `${filterTerm}.op = 'bool_eq'`,
-      element("div", {
+    switchCases.push({
+      condition: `${filterTerm}.op = 'bool_eq'`,
+      node: nodes.element("div", {
         styles: styles.checkboxWrapper,
         children: checkbox({
           variant: "outlined",
           styles: styles.checkbox,
           checked: `${filterTerm}.value_1 = 'true'`,
           on: {
-            checkboxChange: [
-              modify(
-                `update ui.filter_term set value_1 = cast(target_checked as string) where id = ${filterTerm}.id`
-              ),
-              triggerQueryRefresh(),
-            ],
+            checkboxChange: (s) =>
+              s
+                .modify(
+                  `update ui.filter_term set value_1 = cast(target_checked as string) where id = ${filterTerm}.id`
+                )
+                .statements(triggerQueryRefresh()),
           },
         }),
       }),
-    ]);
+    });
   }
   if (columns.some((col) => col.filter?.type?.type === "enum_like_bool")) {
-    switchCases.push([
-      `${filterTerm}.op = 'enum_like_bool_eq'`,
-      enumLikeBoolSelect(filterTerm, columns),
-    ]);
+    switchCases.push({
+      condition: `${filterTerm}.op = 'enum_like_bool_eq'`,
+      node: enumLikeBoolSelect(filterTerm, columns),
+    });
   }
   if (columns.some((col) => col.filter?.type?.type === "duration")) {
-    switchCases.push([
-      `dt.is_minute_duration_filter_op(${filterTerm}.op)`,
-      state({
+    switchCases.push({
+      condition: `dt.is_minute_duration_filter_op(${filterTerm}.op)`,
+      node: nodes.state({
         watch: [`coalesce(try_cast(${filterTerm}.value_1 as bigint), 0)`],
-        procedure: [
-          scalar(
+        procedure: (s) =>
+          s.scalar(
             `value`,
             `coalesce(sfn.display_minutes_duration(try_cast(${filterTerm}.value_1 as bigint)), '')`
           ),
-        ],
         children: durationInput({
           durationSize: "minutes",
           size: "sm",
           slots: { input: { props: { value: `value` } } },
-          onChange: (value) => [
-            setScalar(`value`, value),
-            modify(
-              `update ui.filter_term set value_1 = sfn.parse_minutes_duration(${value}) where id = ${filterTerm}.id`
-            ),
-            triggerQueryRefresh(),
-          ],
+          onChange: (value) => (s) =>
+            s
+              .setScalar(`value`, value)
+              .modify(
+                `update ui.filter_term set value_1 = sfn.parse_minutes_duration(${value}) where id = ${filterTerm}.id`
+              )
+              .statements(triggerQueryRefresh()),
         }),
       }),
-    ]);
+    });
   }
   return [
     select({
@@ -733,15 +717,16 @@ function columnFilter(
       color: "neutral",
       size: "sm",
       on: {
-        input: [
-          scalar("new_id", "cast(target_value as int)"),
-          if_(`${filterTerm}.column_id != new_id`, [
-            modify(
-              `update ui.filter_term set column_id = new_id, op = dt.${dts.idToDefaultOp}(new_id), value_1 = null, value_2 = null, value_3 = null where id = ${filterTerm}.id`
+        input: (s) =>
+          s
+            .scalar("new_id", "cast(target_value as int)")
+            .if(`${filterTerm}.column_id != new_id`, (s) =>
+              s
+                .modify(
+                  `update ui.filter_term set column_id = new_id, op = dt.${dts.idToDefaultOp}(new_id), value_1 = null, value_2 = null, value_3 = null where id = ${filterTerm}.id`
+                )
+                .statements(triggerQueryRefresh())
             ),
-            triggerQueryRefresh(),
-          ]),
-        ],
       },
       slots: { select: { props: { value: `${filterTerm}.column_id` } } },
       children: options,
@@ -751,30 +736,31 @@ function columnFilter(
       color: "neutral",
       size: "sm",
       on: {
-        input: [
-          scalar("new_op", "cast(target_value as enums.dg_filter_op)"),
-          if_(`${filterTerm}.op != new_op`, [
-            modify(
-              `update ui.filter_term set op = new_op where id = ${filterTerm}.id`
+        input: (s) =>
+          s
+            .scalar("new_op", "cast(target_value as enums.dg_filter_op)")
+            .if(`${filterTerm}.op != new_op`, (s) =>
+              s
+                .modify(
+                  `update ui.filter_term set op = new_op where id = ${filterTerm}.id`
+                )
+                .statements(triggerQueryRefresh())
             ),
-            triggerQueryRefresh(),
-          ]),
-        ],
       },
       slots: { select: { props: { value: `${filterTerm}.op` } } },
       children: typeSpecificOps(columns, filterTerm),
     }),
-    switchNode(...switchCases),
+    nodes.switch(...switchCases),
     iconButton({
       variant: "plain",
       color: "neutral",
       size: "sm",
       children: materialIcon("Delete"),
       on: {
-        click: [
-          modify(`delete from ui.filter_term where id = ${filterTerm}.id`),
-          triggerQueryRefresh(),
-        ],
+        click: (s) =>
+          s
+            .modify(`delete from ui.filter_term where id = ${filterTerm}.id`)
+            .statements(triggerQueryRefresh()),
       },
     }),
   ];
@@ -792,44 +778,43 @@ function enumLikeBoolSelect(filterTerm: string, columns: SuperGridColumn[]) {
     color: "neutral",
     size: "sm",
     on: {
-      input: [
-        if_(
+      input: (s) =>
+        s.if(
           `${filterTerm}.value_1 is null or ${filterTerm}.value_1 != target_value`,
-          [
-            modify(
-              `update ui.filter_term set value_1 = target_value where id = ${filterTerm}.id`
-            ),
-            triggerQueryRefresh(),
-          ]
+          (s) =>
+            s
+              .modify(
+                `update ui.filter_term set value_1 = target_value where id = ${filterTerm}.id`
+              )
+              .statements(triggerQueryRefresh())
         ),
-      ],
     },
     slots: { select: { props: { value: `${filterTerm}.value_1` } } },
-    children: switchNode(
+    children: nodes.switch(
       ...cols.map((i) => {
         const col = columns[i];
         if (col.filter!.type.type !== "enum_like_bool") {
           throw new Error("impossible");
         }
-        return [
-          `${filterTerm}.column_id = ${i}`,
-          [
-            element("option", {
+        return {
+          condition: `${filterTerm}.column_id = ${i}`,
+          node: [
+            nodes.element("option", {
               props: { value: `'true'` },
               children: stringLiteral(col.filter!.type.config.true),
             }),
-            element("option", {
+            nodes.element("option", {
               props: { value: `'false'` },
               children: stringLiteral(col.filter!.type.config.false),
             }),
             col.filter!.type.config.null
-              ? element("option", {
+              ? nodes.element("option", {
                   props: { value: `''` },
                   children: stringLiteral(col.filter!.type.config.null),
                 })
               : null,
           ],
-        ] as [string, Node];
+        };
       })
     ),
   });
@@ -852,31 +837,30 @@ function enumSelect(filterTerm: string, columns: SuperGridColumn[]) {
     color: "neutral",
     size: "sm",
     on: {
-      input: [
-        if_(
+      input: (s) =>
+        s.if(
           `${filterTerm}.value_1 is null or ${filterTerm}.value_1 != target_value`,
-          [
-            modify(
-              `update ui.filter_term set value_1 = target_value where id = ${filterTerm}.id`
-            ),
-            triggerQueryRefresh(),
-          ]
+          (s) =>
+            s
+              .modify(
+                `update ui.filter_term set value_1 = target_value where id = ${filterTerm}.id`
+              )
+              .statements(triggerQueryRefresh())
         ),
-      ],
     },
     slots: { select: { props: { value: `${filterTerm}.value_1` } } },
-    children: switchNode(
+    children: nodes.switch(
       ...Object.entries(columnsByEnum).map(([enumName, columns]) => {
         const opts = Object.values(app.enums[enumName].values).map((v) =>
-          element("option", {
+          nodes.element("option", {
             children: stringLiteral(v.displayName),
             props: { value: stringLiteral(v.name) },
           })
         );
-        return [`${filterTerm}.column_id in (${columns.join(",")})`, opts] as [
-          string,
-          Node
-        ];
+        return {
+          condition: `${filterTerm}.column_id in (${columns.join(",")})`,
+          node: opts,
+        };
       })
     ),
   });
@@ -896,54 +880,52 @@ function tableInput(filterTerm: string, columns: SuperGridColumn[]) {
       columnsByTable[tableName].push(i);
     }
   }
-  return switchNode(
+  return nodes.switch(
     ...Object.entries(columnsByTable).map(([tableName, columns]) => {
-      return [
-        `${filterTerm}.column_id in (${columns.join(",")})`,
-        getTableRecordSelect(tableName, {
+      return {
+        condition: `${filterTerm}.column_id in (${columns.join(",")})`,
+        node: getTableRecordSelect(tableName, {
           variant: "outlined",
           color: "neutral",
           size: "sm",
           id: `${filterIdPrefix} || '-' || ${filterTerm}.id`,
-          onComboboxSelectValue: (id, label) => [
-            if_(
+          onComboboxSelectValue: (id, label) => (s) =>
+            s.if(
               `${filterTerm}.value_1 is null or ${filterTerm}.value_1 != cast(${id} as string) or ${id} is null`,
-              [
-                modify(
-                  `update ui.filter_term set value_1 = cast(${id} as string), value_2 = ${label} where id = ${filterTerm}.id`
-                ),
-                triggerQueryRefresh(),
-              ]
+              (s) =>
+                s
+                  .modify(
+                    `update ui.filter_term set value_1 = cast(${id} as string), value_2 = ${label} where id = ${filterTerm}.id`
+                  )
+                  .statements(triggerQueryRefresh())
             ),
-          ],
-          onSelectValue: (value) => [
-            if_(
+          onSelectValue: (value) => (s) =>
+            s.if(
               `${filterTerm}.value_1 is null or ${filterTerm}.value_1 != cast(${value} as string)`,
-              [
-                modify(
-                  `update ui.filter_term set value_1 = cast(${value} as string) where id = ${filterTerm}.id`
-                ),
-                triggerQueryRefresh(),
-              ]
+              (s) =>
+                s
+                  .modify(
+                    `update ui.filter_term set value_1 = cast(${value} as string) where id = ${filterTerm}.id`
+                  )
+                  .statements(triggerQueryRefresh())
             ),
-          ],
           value: `cast(${filterTerm}.value_1 as bigint)`,
           initialInputText: `coalesce(${filterTerm}.value_2, '')`,
         }),
-      ] as [string, Node];
+      };
     })
   );
 }
 
 function groupHeader(filterTerm: string, addButton: Node) {
-  return element("div", {
+  return nodes.element("div", {
     styles: styles.groupHeaderRoot,
     children: [
-      element("p", {
+      nodes.element("p", {
         styles: styles.groupHeaderText,
         children: `case when ${filterTerm}.is_any then 'Any' else 'All' end || ' of the following are true...'`,
       }),
-      element("div", { styles: flexGrowStyles }),
+      nodes.element("div", { styles: flexGrowStyles }),
       addButton,
       iconButton({
         variant: "plain",
@@ -951,10 +933,10 @@ function groupHeader(filterTerm: string, addButton: Node) {
         size: "sm",
         children: materialIcon("Delete"),
         on: {
-          click: [
-            modify(`delete from ui.filter_term where id = ${filterTerm}.id`),
-            triggerQueryRefresh(),
-          ],
+          click: (s) =>
+            s
+              .modify(`delete from ui.filter_term where id = ${filterTerm}.id`)
+              .statements(triggerQueryRefresh()),
         },
       }),
     ],
@@ -962,7 +944,7 @@ function groupHeader(filterTerm: string, addButton: Node) {
 }
 
 function termWrapper(children: Node) {
-  return element("div", {
+  return nodes.element("div", {
     styles: styles.termWrapper,
     children,
   });
@@ -974,48 +956,52 @@ function isAnySelector({
   iterIdx,
 }: {
   isAny: string;
-  setIsAny: (v: string) => ClientProcStatement;
+  setIsAny: (v: string) => DomStatementsOrFn;
   iterIdx: string;
 }) {
-  return element("div", {
+  return nodes.element("div", {
     styles: styles.isAnySelectorRoot,
-    children: switchNode(
-      [
-        `${iterIdx} = 0`,
-        element("span", {
+    children: nodes.switch(
+      {
+        condition: `${iterIdx} = 0`,
+        node: nodes.element("span", {
           styles: styles.isAnyText,
           children: "'Where'",
         }),
-      ],
-      [
-        `${iterIdx} = 1`,
-        select({
+      },
+      {
+        condition: `${iterIdx} = 1`,
+        node: select({
           variant: "outlined",
           color: "neutral",
           size: "sm",
           on: {
-            input: [setIsAny(`target_value= 'true'`), triggerQueryRefresh()],
+            input: (s) =>
+              s.statements(
+                setIsAny(`target_value= 'true'`),
+                triggerQueryRefresh()
+              ),
           },
           slots: { select: { props: { value: isAny } } },
           children: [
-            element("option", {
+            nodes.element("option", {
               props: { value: "'false'" },
               children: "'and'",
             }),
-            element("option", {
+            nodes.element("option", {
               props: { value: "'true'" },
               children: "'or'",
             }),
           ],
         }),
-      ],
-      [
-        "true",
-        element("span", {
+      },
+      {
+        condition: "true",
+        node: nodes.element("span", {
           styles: styles.isAnyText,
           children: `case when ${isAny} then 'or' else 'and' end`,
         }),
-      ]
+      }
     ),
   });
 }
@@ -1063,11 +1049,11 @@ export function filterPopover(columns: SuperGridColumn[], dts: SuperGridDts) {
       },
     })
   );
-  const leafGroup = element("div", {
+  const leafGroup = nodes.element("div", {
     styles: styles.leafGroup,
     children: [
       leafGroupHeader,
-      each({
+      nodes.each({
         table: "filter_term",
         where: "group = sub_filter_term.id",
         key: "id",
@@ -1077,8 +1063,8 @@ export function filterPopover(columns: SuperGridColumn[], dts: SuperGridDts) {
           isAnySelector({
             isAny: `sub_filter_term.is_any`,
             iterIdx: `leaf_filter_term.iteration_index`,
-            setIsAny: (e) =>
-              modify(
+            setIsAny: (e) => (s) =>
+              s.modify(
                 `update ui.filter_term set is_any = ${e} where id = sub_filter_term.id`
               ),
           }),
@@ -1087,11 +1073,11 @@ export function filterPopover(columns: SuperGridColumn[], dts: SuperGridDts) {
       }),
     ],
   });
-  const rootGroup = element("div", {
+  const rootGroup = nodes.element("div", {
     styles: styles.rootGroup,
     children: [
       rootGroupHeader,
-      each({
+      nodes.each({
         table: "filter_term",
         where: "group = root_filter_term.id",
         key: "id",
@@ -1101,26 +1087,26 @@ export function filterPopover(columns: SuperGridColumn[], dts: SuperGridDts) {
           isAnySelector({
             isAny: `root_filter_term.is_any`,
             iterIdx: `sub_filter_term.iteration_index`,
-            setIsAny: (e) =>
-              modify(
+            setIsAny: (e) => (s) =>
+              s.modify(
                 `update ui.filter_term set is_any = ${e} where id = root_filter_term.id`
               ),
           }),
-          ifNode(
-            `sub_filter_term.is_any is not null`,
-            leafGroup,
-            columnFilter(`sub_filter_term`, columns, dts)
-          ),
+          nodes.if({
+            expr: `sub_filter_term.is_any is not null`,
+            then: leafGroup,
+            else: columnFilter(`sub_filter_term`, columns, dts),
+          }),
         ]),
       }),
     ],
   });
   return [
-    ifNode(
-      `exists (select 1 from ui.filter_term)`,
-      element("div", {
+    nodes.if({
+      expr: `exists (select 1 from ui.filter_term)`,
+      then: nodes.element("div", {
         styles: styles.termsWrapper,
-        children: each({
+        children: nodes.each({
           table: "filter_term",
           where: "group is null",
           key: "id",
@@ -1130,22 +1116,22 @@ export function filterPopover(columns: SuperGridColumn[], dts: SuperGridDts) {
             isAnySelector({
               isAny: `ui.root_filter_is_any`,
               iterIdx: `root_filter_term.iteration_index`,
-              setIsAny: (v) => setScalar(`ui.root_filter_is_any`, v),
+              setIsAny: (v) => (s) => s.setScalar(`ui.root_filter_is_any`, v),
             }),
-            ifNode(
-              `root_filter_term.is_any is not null`,
-              rootGroup,
-              columnFilter(`root_filter_term`, columns, dts)
-            ),
+            nodes.if({
+              expr: `root_filter_term.is_any is null`,
+              then: rootGroup,
+              else: columnFilter(`root_filter_term`, columns, dts),
+            }),
           ]),
         }),
       }),
-      element("p", {
+      else: nodes.element("p", {
         styles: styles.noTermsText,
         children: "'No filters'",
-      })
-    ),
-    element("div", {
+      }),
+    }),
+    nodes.element("div", {
       styles: sharedStyles.popoverButtons,
       children: [
         button({
@@ -1175,8 +1161,8 @@ function insertFilter(columns: SuperGridColumn[], parentGroup?: string) {
   const ordering = `(select ordering.new(max(ordering)) from ui.filter_term where ${
     parentGroup ? `group = ${parentGroup}` : "group is null"
   })`;
-  return [
-    modify(
+  return new DomStatements()
+    .modify(
       `insert into ui.filter_term (
         id,
         column_id,
@@ -1194,20 +1180,16 @@ function insertFilter(columns: SuperGridColumn[], parentGroup?: string) {
           defaultOpForFieldType(columns.find((col) => col.filter)!.filter!.type)
         )}
       )`
-    ),
-    setScalar(`ui.next_filter_id`, `ui.next_filter_id + 1`),
-  ];
+    )
+    .setScalar(`ui.next_filter_id`, `ui.next_filter_id + 1`);
 }
 
-function insertFilterGroup(
-  columns: SuperGridColumn[],
-  parentGroup?: string
-): ClientProcStatement[] {
+function insertFilterGroup(columns: SuperGridColumn[], parentGroup?: string) {
   const groupOrdering = `(select ordering.new(max(ordering)) from ui.filter_term where ${
     parentGroup ? `group = ${parentGroup}` : "group is null"
   })`;
-  return [
-    modify(
+  return new DomStatements()
+    .modify(
       `insert into ui.filter_term (
         id,
         ${parentGroup ? "group," : ""}
@@ -1221,8 +1203,8 @@ function insertFilterGroup(
         ${groupOrdering},
         true
       )`
-    ),
-    modify(
+    )
+    .modify(
       `insert into ui.filter_term (group, id, ordering, column_id, op)
           values
         (
@@ -1232,7 +1214,6 @@ function insertFilterGroup(
           ${columns.findIndex((col) => Boolean(col.filter))},
           'not_empty'
         )`
-    ),
-    setScalar(`ui.next_filter_id`, `ui.next_filter_id + 2`),
-  ];
+    )
+    .setScalar(`ui.next_filter_id`, `ui.next_filter_id + 2`);
 }

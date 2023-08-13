@@ -1,11 +1,11 @@
-import { ifNode, portal, state } from "../nodeHelpers";
+import { nodes } from "../nodeHelpers";
 import { Node } from "../nodeTypes";
-import { exit, if_, preventDefault, scalar, setScalar } from "../procHelpers";
+import { DomStatements, DomStatementsOrFn } from "../statements";
 import { StyleObject } from "../styleTypes";
 import { createStyles, cssVar } from "../styleUtils";
 import { Variant } from "../theme";
 import { deepmerge } from "../utils/deepmerge";
-import { ClientProcStatement, ElementProps, FloatingOpts } from "../yom";
+import * as yom from "../yom";
 import { listItemButton, ListOpts, styles as listStyles } from "./list";
 import { Color, Size } from "./types";
 import { mergeEls } from "./utils";
@@ -13,7 +13,7 @@ import { mergeEls } from "./utils";
 export interface MenuListOpts extends ListOpts {
   getItemId: (id: string) => string;
   itemCount: string;
-  onItemSelect: (index: string) => ClientProcStatement[];
+  onItemSelect: (index: string) => DomStatementsOrFn;
 }
 
 const styles = createStyles({
@@ -44,11 +44,10 @@ const styles = createStyles({
 });
 
 export function menuList(opts: MenuListOpts) {
-  const onClose = [
-    setScalar("ui.showing_list", "false"),
-    setScalar("ui.active_descendant", "null"),
-    setScalar("ui.selected_index", "null"),
-  ];
+  const onClose = new DomStatements()
+    .setScalar("ui.showing_list", "false")
+    .setScalar("ui.active_descendant", "null")
+    .setScalar("ui.selected_index", "null");
   return mergeEls(
     {
       tag: "div",
@@ -62,40 +61,54 @@ export function menuList(opts: MenuListOpts) {
       on: {
         clickAway: onClose,
         focusAway: onClose,
-        keydown: [
-          if_(
-            `event.is_composing or event.shift_key or event.meta_key or event.alt_key or event.ctrl_key`,
-            exit()
-          ),
-          if_(`event.key in ('Enter', ' ')`, [
-            if_(`ui.active_descendant is not null`, [
-              preventDefault(),
-              ...opts.onItemSelect(`ui.selected_index`),
-            ]),
-            exit(),
-          ]),
-          if_(`event.key = 'ArrowDown'`, [
-            preventDefault(),
-            ...moveDown({
-              getItemId: opts.getItemId,
-              itemCount: opts.itemCount,
-            }),
-            exit(),
-          ]),
-          if_(`event.key = 'ArrowUp'`, [
-            preventDefault(),
-            ...moveUp({ getItemId: opts.getItemId, itemCount: opts.itemCount }),
-            exit(),
-          ]),
-          if_(`event.key = 'Escape'`, [
-            preventDefault(),
-            setScalar(`button_focus_key`, `coalesce(button_focus_key, 0) + 1`),
-            ...onClose,
-            exit(),
-          ]),
-          setScalar(`ui.active_descendant`, `null`),
-        ],
-        ...opts.on,
+        keydown: (s) =>
+          s
+            .if(
+              `event.is_composing or event.shift_key or event.meta_key or event.alt_key or event.ctrl_key`,
+              (s) => s.return()
+            )
+            .if(`event.key in ('Enter', ' ')`, (s) =>
+              s
+                .if(`ui.active_descendant is not null`, (s) =>
+                  s
+                    .preventDefault()
+                    .statements(opts.onItemSelect(`ui.selected_index`))
+                )
+                .return()
+            )
+            .if(`event.key = 'ArrowDown'`, (s) =>
+              s
+                .preventDefault()
+                .statements(
+                  moveDown({
+                    getItemId: opts.getItemId,
+                    itemCount: opts.itemCount,
+                  })
+                )
+                .return()
+            )
+            .if(`event.key = 'ArrowUp'`, (s) =>
+              s
+                .preventDefault()
+                .statements(
+                  moveUp({
+                    getItemId: opts.getItemId,
+                    itemCount: opts.itemCount,
+                  })
+                )
+                .return()
+            )
+            .if(`event.key = 'Escape'`, (s) =>
+              s
+                .preventDefault()
+                .setScalar(
+                  `button_focus_key`,
+                  `coalesce(button_focus_key, 0) + 1`
+                )
+                .statements(onClose)
+                .return()
+            )
+            .setScalar(`ui.active_descendant`, `null`),
       },
     },
     opts
@@ -106,30 +119,28 @@ export function moveUp(opts: {
   getItemId: (id: string) => string;
   itemCount: string;
 }) {
-  return [
-    if_(`${opts.itemCount} != 0`, [
-      setScalar(
+  return new DomStatements().if(`${opts.itemCount} != 0`, (s) =>
+    s
+      .setScalar(
         `ui.selected_index`,
         `case when ui.selected_index = 0 then 0 else coalesce(ui.selected_index - 1, ${opts.itemCount} - 1) end`
-      ),
-      setScalar(`ui.active_descendant`, opts.getItemId(`ui.selected_index`)),
-    ]),
-  ];
+      )
+      .setScalar(`ui.active_descendant`, opts.getItemId(`ui.selected_index`))
+  );
 }
 
 export function moveDown(opts: {
   getItemId: (id: string) => string;
   itemCount: string;
 }) {
-  return [
-    if_(`${opts.itemCount} != 0`, [
-      setScalar(
+  return new DomStatements().if(`${opts.itemCount} != 0`, (s) =>
+    s
+      .setScalar(
         `ui.selected_index`,
         `case when ui.selected_index = ${opts.itemCount} - 1 then ui.selected_index else coalesce(ui.selected_index + 1, 0) end`
-      ),
-      setScalar(`ui.active_descendant`, opts.getItemId(`ui.selected_index`)),
-    ]),
-  ];
+      )
+      .setScalar(`ui.active_descendant`, opts.getItemId(`ui.selected_index`))
+  );
 }
 
 type DeepPartial<T> = T extends object
@@ -142,19 +153,19 @@ export interface PopoverMenuOpts {
   id: string;
   items: PopoverMenuItem[];
   button: (opts: {
-    buttonProps: ElementProps;
-    onButtonClick: ClientProcStatement[];
-    resetState: ClientProcStatement[];
+    buttonProps: yom.ElementProps;
+    onButtonClick: DomStatementsOrFn;
+    resetState: DomStatementsOrFn;
   }) => Node;
   menuListOpts?: Omit<ListOpts, "children" | "floating"> & {
-    floating?: DeepPartial<FloatingOpts>;
+    floating?: DeepPartial<yom.FloatingOpts>;
   };
   usePortal?: boolean;
 }
 
 export interface PopoverMenuItem {
   resetMenuAfter?: boolean;
-  onClick: ClientProcStatement[];
+  onClick: DomStatementsOrFn;
   children: Node;
 }
 
@@ -162,17 +173,19 @@ export function popoverMenu(opts: PopoverMenuOpts) {
   const getItemId = (idx: string) => `${opts.id} || ${idx}`;
   const menuId = opts.id;
   const buttonId = opts.id + `|| '-button'`;
-  const resetState = [
-    setScalar("ui.showing_list", "false"),
-    setScalar("ui.active_descendant", "null"),
-    setScalar("ui.selected_index", "null"),
-  ];
+  const resetState = new DomStatements()
+    .setScalar("ui.showing_list", "false")
+    .setScalar("ui.active_descendant", "null")
+    .setScalar("ui.selected_index", "null");
   const list = menuList({
     ...opts.menuListOpts,
     itemCount: opts.items.length.toString(),
     getItemId,
-    onItemSelect: (idx) =>
-      opts.items.map((item, i) => if_(`${idx} = ${i}`, item.onClick)),
+    onItemSelect: (idx) => (s) => {
+      for (let i = 0; i < opts.items.length; i++) {
+        s.if(`${idx} = ${i}`, opts.items[i].onClick);
+      }
+    },
     floating: deepmerge(
       {
         anchorEl: buttonId,
@@ -202,20 +215,20 @@ export function popoverMenu(opts: PopoverMenuOpts) {
         on: {
           click:
             item.resetMenuAfter ?? true
-              ? [...item.onClick, ...resetState]
+              ? (s) => s.statements(item.onClick, resetState)
               : item.onClick,
         },
         children: item.children,
       })
     ),
   });
-  return state({
-    procedure: [
-      scalar("showing_list", `false`),
-      scalar("active_descendant", { type: "String", maxLength: 100 }),
-      scalar("selected_index", { type: "BigInt" }),
-      scalar(`button_focus_key`, { type: "BigInt" }),
-    ],
+  return nodes.state({
+    procedure: (s) =>
+      s
+        .scalar("showing_list", `false`)
+        .scalar("active_descendant", { type: "String", maxLength: 100 })
+        .scalar("selected_index", { type: "BigInt" })
+        .scalar(`button_focus_key`, { type: "BigInt" }),
     children: [
       opts.button({
         buttonProps: {
@@ -225,14 +238,14 @@ export function popoverMenu(opts: PopoverMenuOpts) {
           "aria-expanded": `case when showing_list then 'true' end`,
           yolmFocusKey: `button_focus_key`,
         },
-        onButtonClick: [
-          setScalar("ui.showing_list", `true`),
-          setScalar(`ui.selected_index`, `0`),
-          setScalar(`ui.active_descendant`, getItemId(`ui.selected_index`)),
-        ],
+        onButtonClick: (s) =>
+          s
+            .setScalar("ui.showing_list", `true`)
+            .setScalar(`ui.selected_index`, `0`)
+            .setScalar(`ui.active_descendant`, getItemId(`ui.selected_index`)),
         resetState,
       }),
-      ifNode(`ui.showing_list`, opts.usePortal ? portal(list) : list),
+      nodes.if(`ui.showing_list`, opts.usePortal ? nodes.portal(list) : list),
     ],
   });
 }

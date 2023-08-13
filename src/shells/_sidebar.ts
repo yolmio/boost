@@ -253,14 +253,14 @@ export function sidebarShell(opts: SidebarShellOpts) {
                         materialIcon(item.icon),
                         stringLiteral(item.label),
                         element("div", { styles: flexGrowStyles }),
-                        ifNode(
+                        nodes.if(
                           `expanded`,
                           materialIcon("KeyboardArrowDown"),
                           materialIcon("KeyboardArrowRight")
                         ),
                       ],
                     }),
-                    ifNode(
+                    nodes.if(
                       `expanded`,
                       element("ul", {
                         styles: styles.list,
