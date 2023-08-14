@@ -17,7 +17,7 @@ import { circularProgress } from "../components/circularProgress";
 import { alert } from "../components/alert";
 import { materialIcon } from "../components/materialIcon";
 
-export interface EditFormPage extends FormStateProcedureExtensions {
+export interface UpdateFormPage extends FormStateProcedureExtensions {
   table: string;
   path?: string;
   content: UpdateFormContent;
@@ -41,7 +41,7 @@ const styles = createStyles({
   },
 });
 
-export function updateFormPage(opts: EditFormPage) {
+export function updateFormPage(opts: UpdateFormPage) {
   const table = app.db.tables[opts.table];
   const pathBase = getTableBaseUrl(opts.table);
   const path = opts.path ?? pathBase + `/{record_id:id}/edit`;

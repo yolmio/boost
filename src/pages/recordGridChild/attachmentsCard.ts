@@ -1,18 +1,4 @@
-import { each, element, ifNode, state } from "../../nodeHelpers";
-import {
-  addFile,
-  commitUiChanges,
-  delay,
-  exit,
-  if_,
-  modify,
-  record,
-  scalar,
-  serviceProc,
-  setScalar,
-  spawn,
-  try_,
-} from "../../procHelpers";
+import { nodes } from "../../nodeHelpers";
 import { app } from "../../app";
 import {
   createStyles,
@@ -25,13 +11,12 @@ import { materialIcon } from "../../components/materialIcon";
 import { typography } from "../../components/typography";
 import { card } from "../../components/card";
 import { Style } from "../../styleTypes";
-import { RecordGridContext } from "./shared";
 import { iconButton } from "../../components/iconButton";
-import { ClientProcStatement } from "../../yom";
 import { deleteRecordDialog } from "../../components/deleteRecordDialog";
 import { input } from "../../components/input";
 import { circularProgress } from "../../components/circularProgress";
 import { alert } from "../../components/alert";
+import { RecordGridBuilder } from "../recordGrid";
 
 export interface Opts {
   styles?: Style;
@@ -79,23 +64,23 @@ const styles = createStyles({
   },
 });
 
-export function content(opts: Opts, ctx: RecordGridContext) {
+export function content(opts: Opts, ctx: RecordGridBuilder) {
   const attachmentTableName = opts.table ?? ctx.table.name + "_attachment";
   const attachmentTable = app.db.tables[attachmentTableName];
   if (!attachmentTable) {
     throw new Error(`Table ${attachmentTableName} does not exist`);
   }
-  return state({
-    procedure: [
-      scalar(`failed_edit`, `false`),
-      scalar(`uploading`, `false`),
-      scalar(`failed_upload`, `false`),
-    ],
+  return nodes.state({
+    procedure: (s) =>
+      s
+        .scalar(`failed_edit`, `false`)
+        .scalar(`uploading`, `false`)
+        .scalar(`failed_upload`, `false`),
     children: card({
       variant: "outlined",
       styles: opts.styles,
       children: [
-        element("div", {
+        nodes.element("div", {
           styles: styles.header,
           children: [
             typography({
@@ -107,59 +92,58 @@ export function content(opts: Opts, ctx: RecordGridContext) {
               tag: "label",
               size: "sm",
               children: [
-                element("input", {
+                nodes.element("input", {
                   styles: visuallyHiddenStyles,
                   props: {
                     type: `'file'`,
                   },
                   on: {
-                    fileChange: [
-                      if_(`uploading`, exit()),
-                      setScalar(`uploading`, `true`),
-                      commitUiChanges(),
-                      try_<ClientProcStatement>({
-                        body: [
-                          addFile({
-                            domUuid: `(select uuid from file)`,
-                            fileRecord: `added_file`,
-                          }),
-                          serviceProc([
-                            modify(
-                              `insert into db.${ident(
-                                attachmentTable.name
-                              )} (name, file, ${
-                                ctx.table.name
-                              }) values ((select name from file), added_file.uuid, ${
-                                ctx.recordId
-                              })`
-                            ),
-                            ctx.triggerRefresh,
-                          ]),
-                        ],
-                        catch: [
-                          setScalar(`failed_upload`, `true`),
-                          spawn({
-                            detached: true,
-                            statements: [
-                              delay("4000"),
-                              setScalar(`failed_upload`, `false`),
-                              commitUiChanges(),
-                            ],
-                          }),
-                        ],
-                      }),
-                      setScalar(`uploading`, `false`),
-                    ],
+                    fileChange: (s) =>
+                      s
+                        .if(`uploading`, (s) => s.return())
+                        .setScalar(`uploading`, `true`)
+                        .commitUiChanges()
+                        .try({
+                          body: (s) =>
+                            s
+                              .addFile({
+                                domUuid: `(select uuid from file)`,
+                                fileRecord: `added_file`,
+                              })
+                              .serviceProc((s) =>
+                                s
+                                  .modify(
+                                    `insert into db.${ident(
+                                      attachmentTable.name
+                                    )} (name, file, ${
+                                      ctx.table.name
+                                    }) values ((select name from file), added_file.uuid, ${
+                                      ctx.recordId
+                                    })`
+                                  )
+                                  .statements(ctx.triggerRefresh)
+                              ),
+                          catch: (s) =>
+                            s.setScalar(`failed_upload`, `true`).spawn({
+                              detached: true,
+                              procedure: (s) =>
+                                s
+                                  .delay("4000")
+                                  .setScalar(`failed_upload`, `false`)
+                                  .commitUiChanges(),
+                            }),
+                        })
+                        .setScalar(`uploading`, `false`),
                   },
                 }),
-                nodes.if(
-                  `uploading`,
-                  circularProgress({ size: "sm" }),
-                  materialIcon({
+                nodes.if({
+                  expr: `uploading`,
+                  then: circularProgress({ size: "sm" }),
+                  else: materialIcon({
                     name: "Upload",
                     title: "'Upload Attachment'",
-                  })
-                ),
+                  }),
+                }),
               ],
               variant: "plain",
               color: "primary",
@@ -167,38 +151,35 @@ export function content(opts: Opts, ctx: RecordGridContext) {
           ],
         }),
         divider({ styles: styles.divider }),
-        element("div", {
+        nodes.element("div", {
           styles: styles.attachmentsList,
-          children: state({
+          children: nodes.state({
             watch: [ctx.refreshKey],
-            procedure: [
-              record(
+            procedure: (s) =>
+              s.record(
                 "attachment",
                 `select id, name, file from db.${ident(
                   attachmentTable.name
                 )} where ${ctx.table.name} = ${ctx.recordId}`
               ),
-            ],
-            children: nodes.if(
-              `exists (select 1 from attachment)`,
-              each({
+            children: nodes.if({
+              expr: `exists (select 1 from attachment)`,
+              then: nodes.each({
                 table: "attachment",
                 recordName: "attachment_record",
-                children: state({
-                  procedure: [
-                    scalar(`deleting`, `false`),
-                    scalar(`editing`, `false`),
-                  ],
-                  children: element("div", {
+                children: nodes.state({
+                  procedure: (s) =>
+                    s.scalar(`deleting`, `false`).scalar(`editing`, `false`),
+                  children: nodes.element("div", {
                     styles: styles.attachment,
                     children: [
-                      nodes.if(
-                        `editing`,
-                        state({
-                          procedure: [
-                            scalar(`new_name`, `attachment_record.name`),
-                            scalar(`submitting`, `false`),
-                          ],
+                      nodes.if({
+                        expr: `editing`,
+                        then: nodes.state({
+                          procedure: (s) =>
+                            s
+                              .scalar(`new_name`, `attachment_record.name`)
+                              .scalar(`submitting`, `false`),
                           children: [
                             input({
                               size: "sm",
@@ -210,76 +191,85 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                                     yolmFocusKey: `true`,
                                   },
                                   on: {
-                                    input: [
-                                      setScalar(`new_name`, `target_value`),
-                                    ],
-                                    blur: [
-                                      if_(`new_name = attachment_record.name`, [
-                                        exit(),
-                                      ]),
-                                      setScalar(`submitting`, `true`),
-                                      commitUiChanges(),
-                                      try_<ClientProcStatement>({
-                                        body: [
-                                          serviceProc([
-                                            modify(
-                                              `update db.${ident(
-                                                attachmentTable.name
-                                              )} set name = new_name where id = attachment_record.id`
+                                    input: (s) =>
+                                      s.setScalar(`new_name`, `target_value`),
+                                    blur: (s) =>
+                                      s
+                                        .if(
+                                          `new_name = attachment_record.name`,
+                                          (s) => s.return()
+                                        )
+                                        .setScalar(`submitting`, `true`)
+                                        .commitUiChanges()
+                                        .try({
+                                          body: (s) =>
+                                            s.serviceProc((s) =>
+                                              s
+                                                .modify(
+                                                  `update db.${ident(
+                                                    attachmentTable.name
+                                                  )} set name = new_name where id = attachment_record.id`
+                                                )
+                                                .statements(ctx.triggerRefresh)
                                             ),
-                                            ctx.triggerRefresh,
-                                          ]),
-                                        ],
-                                        catch: [
-                                          setScalar(`failed_edit`, `true`),
-                                          spawn({
-                                            detached: true,
-                                            statements: [
-                                              delay("4000"),
-                                              setScalar(`failed_edit`, `false`),
-                                              commitUiChanges(),
-                                            ],
-                                          }),
-                                        ],
-                                      }),
-                                      setScalar(`editing`, `false`),
-                                    ],
-                                    keydown: [
-                                      if_(`event.key = 'Enter'`, [
-                                        setScalar(`submitting`, `true`),
-                                        commitUiChanges(),
-                                        try_<ClientProcStatement>({
-                                          body: [
-                                            serviceProc([
-                                              modify(
-                                                `update db.${ident(
-                                                  attachmentTable.name
-                                                )} set name = new_name where id = attachment_record.id`
-                                              ),
-                                              ctx.triggerRefresh,
-                                            ]),
-                                          ],
-                                          catch: [
-                                            setScalar(`failed_edit`, `true`),
-                                            spawn({
-                                              detached: true,
-                                              statements: [
-                                                delay("4000"),
-                                                setScalar(
-                                                  `failed_edit`,
-                                                  `false`
+                                          catch: (s) =>
+                                            s
+                                              .setScalar(`failed_edit`, `true`)
+                                              .spawn({
+                                                detached: true,
+                                                procedure: (s) =>
+                                                  s
+                                                    .delay("4000")
+                                                    .setScalar(
+                                                      `failed_edit`,
+                                                      `false`
+                                                    )
+                                                    .commitUiChanges(),
+                                              }),
+                                        })
+                                        .setScalar(`editing`, `false`),
+                                    keydown: (s) =>
+                                      s
+                                        .if(`event.key = 'Enter'`, (s) =>
+                                          s
+                                            .setScalar(`submitting`, `true`)
+                                            .commitUiChanges()
+                                            .try({
+                                              body: (s) =>
+                                                s.serviceProc((s) =>
+                                                  s
+                                                    .modify(
+                                                      `update db.${ident(
+                                                        attachmentTable.name
+                                                      )} set name = new_name where id = attachment_record.id`
+                                                    )
+                                                    .statements(
+                                                      ctx.triggerRefresh
+                                                    )
                                                 ),
-                                                commitUiChanges(),
-                                              ],
-                                            }),
-                                          ],
-                                        }),
-                                        setScalar(`editing`, `false`),
-                                      ]),
-                                      if_(`event.key = 'Escape'`, [
-                                        setScalar(`editing`, `false`),
-                                      ]),
-                                    ],
+                                              catch: (s) =>
+                                                s
+                                                  .setScalar(
+                                                    `failed_edit`,
+                                                    `true`
+                                                  )
+                                                  .spawn({
+                                                    detached: true,
+                                                    procedure: (s) =>
+                                                      s
+                                                        .delay("4000")
+                                                        .setScalar(
+                                                          `failed_edit`,
+                                                          `false`
+                                                        )
+                                                        .commitUiChanges(),
+                                                  }),
+                                            })
+                                            .setScalar(`editing`, `false`)
+                                        )
+                                        .if(`event.key = 'Escape'`, (s) =>
+                                          s.setScalar(`editing`, `false`)
+                                        ),
                                   },
                                 },
                               },
@@ -293,16 +283,16 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                             ),
                           ],
                         }),
-                        element("a", {
+                        else: nodes.element("a", {
                           styles: styles.attachmentLink,
                           props: {
                             href: `'/_a/file/' || sys.account || '/' || sys.app || '/' || attachment_record.file`,
                             target: "'_blank'",
                           },
                           children: "attachment_record.name",
-                        })
-                      ),
-                      element("div", { styles: flexGrowStyles }),
+                        }),
+                      }),
+                      nodes.element("div", { styles: flexGrowStyles }),
                       iconButton({
                         href: `'/_a/file/' || sys.account || '/' || sys.app || '/' || attachment_record.file`,
                         props: { download: "attachment_record.name" },
@@ -322,14 +312,16 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                           name: "EditOutlined",
                           title: "'Edit'",
                         }),
-                        on: { click: [setScalar(`editing`, `not editing`)] },
+                        on: {
+                          click: (s) => s.setScalar(`editing`, `not editing`),
+                        },
                       }),
                       deleteRecordDialog({
-                        onClose: [setScalar(`deleting`, `false`)],
+                        onClose: (s) => s.setScalar(`deleting`, `false`),
                         open: `deleting`,
                         recordId: `attachment_record.id`,
                         table: attachmentTable.name,
-                        afterDeleteService: [ctx.triggerRefresh],
+                        afterDeleteService: ctx.triggerRefresh,
                       }),
                       iconButton({
                         variant: "plain",
@@ -339,23 +331,23 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                           name: "DeleteOutlined",
                           title: "'Delete'",
                         }),
-                        on: { click: [setScalar(`deleting`, `true`)] },
+                        on: { click: (s) => s.setScalar(`deleting`, `true`) },
                       }),
                     ],
                   }),
                 }),
               }),
-              typography({
+              else: typography({
                 level: "body2",
                 styles: { fontSize: "md" },
                 children: "'No attachments'",
-              })
-            ),
+              }),
+            }),
           }),
         }),
         nodes.if(
           `failed_upload or failed_edit`,
-          element("div", {
+          nodes.element("div", {
             styles: styles.failureAlert,
             children: alert({
               color: "danger",

@@ -1,15 +1,14 @@
 import { AddressFieldGroup } from "../../app";
-import { element, state } from "../../nodeHelpers";
-import { record } from "../../procHelpers";
+import { nodes } from "../../nodeHelpers";
 import { createStyles } from "../../styleUtils";
 import { ident } from "../../utils/sqlHelpers";
 import { displayAddressText } from "./displayAddressText";
 import { divider } from "../../components/divider";
 import { materialIcon } from "../../components/materialIcon";
 import { typography } from "../../components/typography";
-import { RecordGridContext } from "./shared";
 import { card } from "../../components/card";
 import { Style } from "../../styleTypes";
+import { RecordGridBuilder } from "../recordGrid";
 
 export interface Opts {
   styles?: Style;
@@ -34,7 +33,7 @@ const styles = createStyles({
   },
 });
 
-export function content(opts: Opts, ctx: RecordGridContext) {
+export function content(opts: Opts, ctx: RecordGridBuilder) {
   const groups: { header: string; fieldGroup: AddressFieldGroup }[] = [];
   let allSelectFields = "";
   for (const group of opts.groups) {
@@ -55,7 +54,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
     variant: "outlined",
     styles: opts.styles,
     children: [
-      element("div", {
+      nodes.element("div", {
         styles: styles.header,
         children: [
           typography({
@@ -67,18 +66,17 @@ export function content(opts: Opts, ctx: RecordGridContext) {
         ],
       }),
       divider({ styles: styles.divider }),
-      state({
+      nodes.state({
         watch: [ctx.refreshKey],
-        procedure: [
-          record(
+        procedure: (s) =>
+          s.record(
             "record",
             `select ${allSelectFields} from db.${ident(
               ctx.table.name
             )} where id = ${ctx.recordId}`
           ),
-        ],
         children: groups.map(({ header, fieldGroup }) => [
-          element("h6", {
+          nodes.element("h6", {
             styles: styles.groupHeader,
             children: header,
           }),

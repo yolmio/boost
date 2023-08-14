@@ -1,21 +1,5 @@
 import { VirtualType } from "../../app";
-import {
-  each,
-  element,
-  eventHandlers,
-  ifNode,
-  sourceMap,
-  state,
-} from "../../nodeHelpers";
-import {
-  exit,
-  getElProperty,
-  getWindowProperty,
-  if_,
-  scalar,
-  setScalar,
-  table,
-} from "../../procHelpers";
+import { nodes } from "../../nodeHelpers";
 import { app } from "../../app";
 import { Style } from "../../styleTypes";
 import { ident, stringLiteral } from "../../utils/sqlHelpers";
@@ -26,25 +10,26 @@ import { typography } from "../../components/typography";
 import { button } from "../../components/button";
 import { insertDialog } from "../../components/insertDialog";
 import { divider } from "../../components/divider";
-import { DynamicClass, SqlExpression, StateStatement } from "../../yom";
+import * as yom from "../../yom";
 import { Node } from "../../nodeTypes";
 import { FormStateProcedureExtensions } from "../../formState";
 import { getUniqueUiId } from "../../components/utils";
 import { AutoLabelOnLeftFieldOverride } from "../../components/internal/updateFormShared";
-import { RecordGridContext } from "./shared";
 import { recordDefaultItemContent, styles } from "./timelineShared";
+import { StateStatementsOrFn } from "../../statements";
+import { RecordGridBuilder } from "../recordGrid";
 
 export type TableDisplayValue =
   | string
   | {
-      expr: SqlExpression;
+      expr: yom.SqlExpression;
       label: string;
       type: VirtualType;
-      display: (e: SqlExpression) => Node;
+      display: (e: yom.SqlExpression) => Node;
     };
 
 interface ValueExpr {
-  expr: SqlExpression;
+  expr: yom.SqlExpression;
   type: VirtualType;
 }
 
@@ -53,19 +38,19 @@ type TableValue = string | ValueExpr;
 export interface RecordDefaultTableItemContent {
   type: "RecordDefault";
   headerValues?: TableValue[];
-  header: (...values: SqlExpression[]) => Node;
+  header: (...values: yom.SqlExpression[]) => Node;
   displayValues?: TableDisplayValue[];
   disableDefaultAction?: boolean;
   customAction?: {
     values: TableValue[];
-    node: (...values: SqlExpression[]) => Node;
+    node: (...values: yom.SqlExpression[]) => Node;
   };
 }
 
 export interface CustomTableItemContent {
   type: "Custom";
   values: TableValue[];
-  node: (...values: SqlExpression[]) => Node;
+  node: (...values: yom.SqlExpression[]) => Node;
 }
 
 type InsertDialogOpts = {
@@ -75,8 +60,8 @@ type InsertDialogOpts = {
 export interface TableTimelineSource {
   table: string;
   customFrom?: string;
-  dateExpr?: SqlExpression;
-  foreignKeyExpr?: SqlExpression;
+  dateExpr?: yom.SqlExpression;
+  foreignKeyExpr?: yom.SqlExpression;
   disableInsert?: boolean;
   itemContent: RecordDefaultTableItemContent | CustomTableItemContent;
   insertDialogOpts?: InsertDialogOpts;
@@ -89,16 +74,16 @@ export interface TableTimelineSource {
 export interface Opts {
   dateField?: string;
   timelineHeader: string;
-  additionalState?: (ctx: RecordGridContext) => StateStatement[];
-  afterHeaderNode?: (ctx: RecordGridContext) => Node;
+  additionalState?: StateStatementsOrFn;
+  afterHeaderNode?: Node;
   styles?: Style;
-  sources: (ctx: RecordGridContext) => TableTimelineSource[];
+  sources: TableTimelineSource[];
 }
 
 const addButtonId = stringLiteral(getUniqueUiId());
 
-export function content(opts: Opts, ctx: RecordGridContext) {
-  const sources = opts.sources(ctx);
+export function content(opts: Opts, ctx: RecordGridBuilder) {
+  const sources = opts.sources;
   const query = createUnionQuery({
     orderBy: "date desc, union_source_idx, id desc",
     limit: `row_count`,
@@ -178,7 +163,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
     }),
   });
   const sourceIconStyles: any = {};
-  const sourceIconDynamicClasses: DynamicClass[] = [];
+  const sourceIconDynamicClasses: yom.DynamicClass[] = [];
   for (let i = 0; i < sources.length; i++) {
     sourceIconStyles["&.table-" + i] = sources[i].icon.styles;
     sourceIconDynamicClasses.push({
@@ -186,24 +171,24 @@ export function content(opts: Opts, ctx: RecordGridContext) {
       classes: "table-" + i,
     });
   }
-  const item = element("div", {
+  const item = nodes.element("div", {
     styles: styles.item,
     children: [
-      element("div", {
+      nodes.element("div", {
         styles: styles.date,
         children: [
-          element("span", {
+          nodes.element("span", {
             children: `format.date(record.date, '%-d %b')`,
           }),
-          element("span", {
+          nodes.element("span", {
             children: `format.date(record.date, '%Y')`,
           }),
         ],
       }),
-      element("div", {
+      nodes.element("div", {
         styles: styles.iconWrapper,
         children: [
-          element("span", {
+          nodes.element("span", {
             styles: {
               ...styles.icon,
               ...sourceIconStyles,
@@ -219,15 +204,14 @@ export function content(opts: Opts, ctx: RecordGridContext) {
           }),
           nodes.if(
             `record.iteration_index != (select count(*) from result) - 1`,
-            element("span", {
+            nodes.element("span", {
               styles: styles.line,
             })
           ),
         ],
       }),
-      {
-        t: "Switch",
-        cases: sources.map(({ itemContent, table: tableName }, sourceIdx) => {
+      nodes.switch(
+        ...sources.map(({ itemContent, table: tableName }, sourceIdx) => {
           let node: Node;
           if (itemContent.type === "RecordDefault") {
             node = recordDefaultItemContent(ctx, {
@@ -291,56 +275,58 @@ export function content(opts: Opts, ctx: RecordGridContext) {
             condition: `record.union_source_idx = ${sourceIdx}`,
             node,
           };
-        }),
-      },
+        })
+      ),
     ],
   });
-  return sourceMap(
+  return nodes.sourceMap(
     `timeline`,
-    state({
-      procedure: [scalar(`row_count`, `50`)],
-      children: state({
+    nodes.state({
+      procedure: (s) => s.scalar(`row_count`, `50`),
+      children: nodes.state({
         watch: [ctx.refreshKey, `row_count`],
-        procedure: [
-          table(`result`, query.query),
-          scalar(`service_row_count`, `row_count`),
-          ...(opts.additionalState?.(ctx) ?? []),
-        ],
+        procedure: (s) =>
+          s
+            .table(`result`, query.query)
+            .scalar(`service_row_count`, `row_count`)
+            .statements(opts.additionalState),
         statusScalar: `status`,
-        children: element("div", {
+        children: nodes.element("div", {
           styles: opts.styles ? [styles.root, opts.styles] : styles.root,
           children: [
-            eventHandlers({
+            nodes.eventHandlers({
               document: {
-                scroll: [
-                  if_(
-                    `status != 'received' or (service_row_count is not null and (select count(*) from result) < service_row_count)`,
-                    [exit()]
-                  ),
-                  getWindowProperty("scrollY", "scroll_y"),
-                  getWindowProperty("innerHeight", "height"),
-                  getElProperty(
-                    "scrollHeight",
-                    "doc_scroll_height",
-                    "'yolm-document-body'"
-                  ),
-                  if_(`doc_scroll_height - scroll_y - height < 500`, [
-                    setScalar(`row_count`, `row_count + 50`),
-                  ]),
-                ],
+                scroll: (s) =>
+                  s
+                    .if(
+                      `status != 'received' or (service_row_count is not null and (select count(*) from result) < service_row_count)`,
+                      (s) => s.return()
+                    )
+                    .getWindowProperty("scrollY", "scroll_y")
+                    .getWindowProperty("innerHeight", "height")
+                    .getElProperty(
+                      "scrollHeight",
+                      "doc_scroll_height",
+                      "'yolm-document-body'"
+                    )
+                    .if(`doc_scroll_height - scroll_y - height < 500`, (s) =>
+                      s.setScalar(`row_count`, `row_count + 50`)
+                    ),
               },
             }),
             divider(),
-            element("div", {
+            nodes.element("div", {
               styles: styles.header,
               children: [
                 typography({ level: "h5", children: opts.timelineHeader }),
-                state({
-                  procedure: sources.map((_, i) =>
-                    scalar(`adding_${i}`, `false`)
-                  ),
+                nodes.state({
+                  procedure: (s) => {
+                    for (let i = 0; i < sources.length; i++) {
+                      s.scalar(`adding_${i}`, `false`);
+                    }
+                  },
                   children: [
-                    element("div", {
+                    nodes.element("div", {
                       styles: styles.addButtonWrapper,
                       children: popoverMenu({
                         menuListOpts: {
@@ -371,7 +357,8 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                             children:
                               `'Add ' || ` +
                               stringLiteral(app.db.tables[t.table].displayName),
-                            onClick: [setScalar(`ui.adding_${i}`, `true`)],
+                            onClick: (s) =>
+                              s.setScalar(`ui.adding_${i}`, `true`),
                           })),
                       }),
                     }),
@@ -406,7 +393,8 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                         const ignoreFields = Object.keys(withValues);
                         return insertDialog({
                           open: `ui.adding_${i}`,
-                          onClose: [setScalar(`ui.adding_${i}`, `false`)],
+                          onClose: (s) =>
+                            s.setScalar(`ui.adding_${i}`, `false`),
                           table: t.table,
                           content: {
                             type: "AutoLabelOnLeft",
@@ -418,10 +406,10 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                           beforeTransactionStart: opts.beforeTransactionStart,
                           afterTransactionStart: opts.afterTransactionStart,
                           beforeTransactionCommit: opts.beforeTransactionCommit,
-                          afterTransactionCommit: (state) => [
-                            ...(opts.afterTransactionCommit?.(state) ?? []),
-                            ctx.triggerRefresh,
-                          ],
+                          afterTransactionCommit: (state, s) => {
+                            opts.afterTransactionCommit?.(state, s);
+                            s.statements(ctx.triggerRefresh);
+                          },
                           afterSubmitClient: opts.afterSubmitClient,
                         });
                       }),
@@ -429,10 +417,10 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                 }),
               ],
             }),
-            opts.afterHeaderNode?.(ctx),
-            element("div", {
+            opts.afterHeaderNode,
+            nodes.element("div", {
               styles: styles.items,
-              children: each({
+              children: nodes.each({
                 table: `result`,
                 recordName: `record`,
                 key: `record.id || '_' || record.union_source_idx`,

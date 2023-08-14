@@ -5,14 +5,11 @@ import {
   InsertFormField,
   withMultiInsertFormState,
 } from "../formState";
-import { addPage } from "../appHelpers";
-import { element, ifNode, state } from "../nodeHelpers";
+import { nodes } from "../nodeHelpers";
 import { Node } from "../nodeTypes";
-import { scalar, setScalar } from "../procHelpers";
 import { app } from "../app";
 import { downcaseFirst, pluralize } from "../utils/inflectors";
 import { stringLiteral } from "../utils/sqlHelpers";
-import { ClientProcStatement, StateStatement } from "../yom";
 import { button } from "../components/button";
 import { card } from "../components/card";
 import { checkbox } from "../components/checkbox";
@@ -29,6 +26,7 @@ import { formControl } from "../components/formControl";
 import { getTableBaseUrl } from "../utils/url";
 import { getUniqueUiId } from "../components/utils";
 import { labelOnLeftFormField } from "../components/internal/labelOnLeftFormField";
+import { DomStatementsOrFn, StateStatementsOrFn } from "../statements";
 
 export interface CardFormField extends InsertFormField {
   emptyComboboxQuery?: (
@@ -38,7 +36,7 @@ export interface CardFormField extends InsertFormField {
   onChange?: (
     formState: FormState,
     cursor: FormStateTableCursor
-  ) => ClientProcStatement[];
+  ) => DomStatementsOrFn;
 }
 
 export interface MultiCardInsertPageOpts extends FormStateProcedureExtensions {
@@ -62,7 +60,7 @@ export interface MultiCardInsertPageOpts extends FormStateProcedureExtensions {
   afterInsertScreen?: {
     node: Node;
     /** State hoisted above the form state, so that you can store information to display in the after insert screen */
-    state?: StateStatement[];
+    state?: StateStatementsOrFn;
   };
 }
 
@@ -161,15 +159,17 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
     afterTransactionStart: opts.afterTransactionStart,
     beforeTransactionCommit: opts.beforeTransactionCommit,
     afterTransactionCommit: opts.afterTransactionCommit,
-    afterSubmitClient: (state) => [
-      ...(opts.afterSubmitClient?.(state) ?? []),
-      opts.afterInsertScreen ? setScalar(`ui.added`, `true`) : null,
-    ],
+    afterSubmitClient: (state, s) => {
+      opts.afterSubmitClient?.(state, s);
+      if (opts.afterInsertScreen) {
+        s.setScalar(`added`, `true`);
+      }
+    },
     initializeFormState: opts.initialCardRecord
       ? (state) => state.addRecordToTable(opts.table, opts.initialCardRecord!)
       : undefined,
-    children: ({ formState, onSubmit }) =>
-      element("div", {
+    children: (formState) =>
+      nodes.element("div", {
         styles: styles.root(),
         children: [
           opts.sharedSection
@@ -178,11 +178,11 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
                   level: "h5",
                   children: opts.sharedSection.header,
                 }),
-                element("div", {
+                nodes.element("div", {
                   styles: styles.sharedFields,
                   children: opts.sharedSection.fields.map((f) => {
                     const field = table.fields[f.field];
-                    const fieldHelper = formState.fieldHelper(f.field);
+                    const fieldHelper = formState.field(f.field);
                     const control = fieldFormControl({
                       field,
                       id: stringLiteral(getUniqueUiId()),
@@ -217,7 +217,7 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
               pluralize(table.displayName)
             )}'`,
           }),
-          element("div", {
+          nodes.element("div", {
             styles: styles.grid,
             children: [
               formState.each(opts.table, (cursor) =>
@@ -240,7 +240,7 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
                         ),
                       });
                     }),
-                    element("div", {
+                    nodes.element("div", {
                       styles: styles.cardFooterFields,
                       children: [
                         opts.cardFooterFields &&
@@ -252,11 +252,9 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
                                 variant: "outlined",
                                 checked: fieldHelper.value,
                                 on: {
-                                  checkboxChange: [
-                                    fieldHelper.setValue(
-                                      `not ${fieldHelper.value}`
-                                    ),
-                                  ],
+                                  checkboxChange: fieldHelper.setValue(
+                                    `not ${fieldHelper.value}`
+                                  ),
                                 },
                                 label: stringLiteral(field.displayName),
                               });
@@ -267,22 +265,22 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
                                 "for card footer fields"
                             );
                           }),
-                        element("div", { styles: flexGrowStyles }),
+                        nodes.element("div", { styles: flexGrowStyles }),
                         iconButton({
                           color: "danger",
                           variant: "plain",
                           size: "sm",
                           children: materialIcon("Delete"),
-                          on: { click: [cursor.delete] },
+                          on: { click: cursor.delete },
                         }),
                       ],
                     }),
                   ],
                 })
               ),
-              element("div", {
+              nodes.element("div", {
                 styles: styles.addButtonWrapper,
-                children: element("button", {
+                children: nodes.element("button", {
                   styles: styles.addButton,
                   children: typography({
                     startDecorator: materialIcon("Add"),
@@ -291,32 +289,30 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
                     )}`,
                   }),
                   on: {
-                    click: [
-                      ...formState.addRecordToTable(
-                        opts.table,
-                        opts.initialNewValues ?? {}
-                      ),
-                    ],
+                    click: formState.addRecordToTable(
+                      opts.table,
+                      opts.initialNewValues ?? {}
+                    ),
                   },
                 }),
               }),
             ],
           }),
           nodes.if(
-            formState.getFormError + " is not null",
+            formState.hasFormError,
             alert({
               variant: "soft",
               color: "danger",
               startDecorator: materialIcon("Warning"),
               children: typography({
                 color: "danger",
-                children: formState.getFormError,
+                children: formState.formError,
               }),
             })
           ),
-          element("div", {
+          nodes.element("div", {
             styles: styles.buttons,
-            on: { click: onSubmit },
+            on: { click: formState.onSubmit },
             children: [
               button({
                 size: "lg",
@@ -332,15 +328,17 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
   });
   let content = formContent;
   if (opts.afterInsertScreen) {
-    content = state({
-      procedure: [
-        scalar(`added`, `false`),
-        ...(opts.afterInsertScreen.state ?? []),
-      ],
-      children: nodes.if(`added`, opts.afterInsertScreen.node, content),
+    content = nodes.state({
+      procedure: (s) =>
+        s.scalar(`added`, `false`).statements(opts.afterInsertScreen?.state),
+      children: nodes.if({
+        expr: `added`,
+        then: opts.afterInsertScreen.node,
+        else: content,
+      }),
     });
   }
-  addPage({
+  app.ui.pages.push({
     path: opts.path ?? "/" + getTableBaseUrl(table.name) + "/add",
     content,
   });

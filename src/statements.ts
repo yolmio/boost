@@ -392,7 +392,7 @@ export class BasicStatements extends StatementsBase<yom.BasicStatement> {
       : new BasicStatements().statements(p);
   }
 
-  static normalizeToArray(p: BasicStatementsOrFn) {
+  static normalizeToArray(p: BasicStatementsOrFn | undefined | false | null) {
     return BasicStatements.normalize(p)[BACKING_ARRAY];
   }
 }
@@ -400,11 +400,11 @@ export class BasicStatements extends StatementsBase<yom.BasicStatement> {
 export type DomStatementsOrFn = StatementsOrFn<DomStatements>;
 
 export class DomStatements extends StatementsBase<yom.DomProcStatement> {
-  static normalize(p: DomStatementsOrFn) {
+  static normalize(p: DomStatementsOrFn | undefined | false | null) {
     return p instanceof DomStatements ? p : new DomStatements().statements(p);
   }
 
-  static normalizeToArray(p: DomStatementsOrFn) {
+  static normalizeToArray(p: DomStatementsOrFn | undefined | false | null) {
     return DomStatements.normalize(p)[BACKING_ARRAY];
   }
 
@@ -562,7 +562,7 @@ export class ServiceStatements extends StatementsBase<yom.ServiceProcStatement> 
       : new ServiceStatements().statements(p);
   }
 
-  static normalizeToArray(p: ServiceStatementsOrFn) {
+  static normalizeToArray(p: ServiceStatementsOrFn | false | undefined | null) {
     return ServiceStatements.normalize(p)[BACKING_ARRAY];
   }
 
@@ -655,7 +655,7 @@ export class StateStatements extends StatementsBase<yom.StateStatement> {
       : new StateStatements().statements(p);
   }
 
-  static normalizeToArray(p: StateStatementsOrFn) {
+  static normalizeToArray(p: StateStatementsOrFn | undefined | null | false) {
     return StateStatements.normalize(p)[BACKING_ARRAY];
   }
 
@@ -679,7 +679,7 @@ export class ScriptStatements extends StatementsBase<yom.ScriptStatement> {
       : new ScriptStatements().statements(p);
   }
 
-  static normalizeToArray(p: ScriptStatementsOrFn) {
+  static normalizeToArray(p: ScriptStatementsOrFn | undefined | false | null) {
     return ScriptStatements.normalize(p)[BACKING_ARRAY];
   }
 

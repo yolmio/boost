@@ -1,15 +1,4 @@
-import { each, element, ifNode, sourceMap, state } from "../../nodeHelpers";
-import {
-  commitUiChanges,
-  exit,
-  if_,
-  modify,
-  scalar,
-  serviceProc,
-  setScalar,
-  table,
-  try_,
-} from "../../procHelpers";
+import { nodes } from "../../nodeHelpers";
 import { createStyles, flexGrowStyles } from "../../styleUtils";
 import { alert } from "../../components/alert";
 import { button } from "../../components/button";
@@ -22,10 +11,10 @@ import { input } from "../../components/input";
 import { materialIcon } from "../../components/materialIcon";
 import { textarea } from "../../components/textarea";
 import { typography } from "../../components/typography";
-import { RecordGridContext } from "./shared";
 import { app } from "../../app";
 import { card } from "../../components/card";
 import { Style } from "../../styleTypes";
+import { RecordGridBuilder } from "../recordGrid";
 
 export interface Opts {
   styles?: Style;
@@ -97,7 +86,7 @@ const styles = createStyles({
   },
 });
 
-export function content(opts: Opts, ctx: RecordGridContext) {
+export function content(opts: Opts, ctx: RecordGridBuilder) {
   let foreignKeyField = opts.foreignKeyField;
   const notesTable = opts.notesTable ?? ctx.table.name + "_note";
   if (!foreignKeyField) {
@@ -115,15 +104,15 @@ export function content(opts: Opts, ctx: RecordGridContext) {
     }
     foreignKeyField = fkField.name;
   }
-  return sourceMap(
+  return nodes.sourceMap(
     "notesListCard",
     card({
       variant: "outlined",
       styles: opts.styles,
-      children: state({
-        procedure: [scalar(`adding`, `false`)],
+      children: nodes.state({
+        procedure: (s) => s.scalar(`adding`, `false`),
         children: [
-          element("div", {
+          nodes.element("div", {
             styles: styles.header,
             children: [
               typography({
@@ -134,25 +123,25 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                 variant: "plain",
                 color: "primary",
                 size: "sm",
-                children: nodes.if(
-                  `adding`,
-                  materialIcon("Close"),
-                  materialIcon("Add")
-                ),
-                on: { click: [setScalar(`ui.adding`, `not ui.adding`)] },
+                children: nodes.if({
+                  expr: `adding`,
+                  then: materialIcon("Close"),
+                  else: materialIcon("Add"),
+                }),
+                on: { click: (s) => s.setScalar(`ui.adding`, `not ui.adding`) },
               }),
             ],
           }),
           divider(),
           nodes.if(
             `adding`,
-            state({
-              procedure: [
-                scalar(`content`, `''`),
-                scalar(`in_progress`, `false`),
-                scalar(`failed`, `false`),
-              ],
-              children: element("div", {
+            nodes.state({
+              procedure: (s) =>
+                s
+                  .scalar(`content`, `''`)
+                  .scalar(`in_progress`, `false`)
+                  .scalar(`failed`, `false`),
+              children: nodes.element("div", {
                 styles: styles.addingForm,
                 children: [
                   textarea({
@@ -160,7 +149,8 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                       textarea: {
                         props: { value: `content`, yolmFocusKey: `true` },
                         on: {
-                          input: [setScalar(`ui.content`, `target_value`)],
+                          input: (s) =>
+                            s.setScalar(`ui.content`, `target_value`),
                         },
                       },
                     },
@@ -173,34 +163,35 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                       children: `'Unable to add note at this time'`,
                     })
                   ),
-                  element("div", {
+                  nodes.element("div", {
                     styles: styles.addingButtons,
                     children: [
                       button({
                         children: "'Add note'",
                         loading: `in_progress`,
                         on: {
-                          click: [
-                            if_(`in_progress`, exit()),
-                            setScalar(`in_progress`, `true`),
-                            setScalar(`failed`, `false`),
-                            commitUiChanges(),
-                            try_({
-                              body: [
-                                serviceProc([
-                                  modify(
-                                    `insert into db.${notesTable} (content, date, ${foreignKeyField}) values (ui.content, current_date(), ${ctx.recordId})`
-                                  ),
-                                  ctx.triggerRefresh,
-                                ]),
-                                setScalar(`ui.adding`, `false`),
-                              ],
-                              catch: [
-                                setScalar(`ui.in_progress`, `false`),
-                                setScalar(`ui.failed`, `true`),
-                              ],
-                            }),
-                          ],
+                          click: (s) =>
+                            s
+                              .if(`in_progress`, (s) => s.return())
+                              .setScalar(`in_progress`, `true`)
+                              .setScalar(`failed`, `false`)
+                              .commitUiChanges()
+                              .try({
+                                body: (s) =>
+                                  s
+                                    .serviceProc((s) =>
+                                      s
+                                        .modify(
+                                          `insert into db.${notesTable} (content, date, ${foreignKeyField}) values (ui.content, current_date(), ${ctx.recordId})`
+                                        )
+                                        .statements(ctx.triggerRefresh)
+                                    )
+                                    .setScalar(`ui.adding`, `false`),
+                                catch: (s) =>
+                                  s
+                                    .setScalar(`ui.in_progress`, `false`)
+                                    .setScalar(`ui.failed`, `true`),
+                              }),
                         },
                       }),
                     ],
@@ -209,40 +200,39 @@ export function content(opts: Opts, ctx: RecordGridContext) {
               }),
             })
           ),
-          state({
+          nodes.state({
             watch: [ctx.refreshKey],
-            procedure: [
-              table(
+            procedure: (s) =>
+              s.table(
                 `note`,
                 `select content, date, id from db.${notesTable} where ${foreignKeyField} = ${ctx.recordId} order by date desc, id desc`
               ),
-            ],
-            children: nodes.if(
-              `exists (select id from note)`,
-              element("div", {
+            children: nodes.if({
+              expr: `exists (select id from note)`,
+              then: nodes.element("div", {
                 styles: styles.notes,
-                children: each({
+                children: nodes.each({
                   table: `note`,
                   recordName: `note_record`,
                   key: `id`,
                   children: [
                     nodes.if(`note_record.iteration_index != 0`, divider()),
-                    state({
-                      procedure: [
-                        scalar(`deleting`, `false`),
-                        scalar(`editing`, `false`),
-                      ],
+                    nodes.state({
+                      procedure: (s) =>
+                        s
+                          .scalar(`deleting`, `false`)
+                          .scalar(`editing`, `false`),
                       children: [
-                        nodes.if(
-                          `editing`,
-                          state({
-                            procedure: [
-                              scalar(`content`, `note_record.content`),
-                              scalar(`date`, `note_record.date`),
-                              scalar(`in_progress`, `false`),
-                              scalar(`failed`, `false`),
-                            ],
-                            children: element("div", {
+                        nodes.if({
+                          expr: `editing`,
+                          then: nodes.state({
+                            procedure: (s) =>
+                              s
+                                .scalar(`content`, `note_record.content`)
+                                .scalar(`date`, `note_record.date`)
+                                .scalar(`in_progress`, `false`)
+                                .scalar(`failed`, `false`),
+                            children: nodes.element("div", {
                               styles: styles.editing,
                               children: [
                                 formControl({
@@ -260,17 +250,15 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                                         },
                                       },
                                       on: {
-                                        input: [
-                                          if_(
+                                        input: (s) =>
+                                          s.if(
                                             `try_cast(target_value as date) is not null`,
-                                            [
-                                              setScalar(
+                                            (s) =>
+                                              s.setScalar(
                                                 `ui.date`,
                                                 `cast(target_value as date)`
-                                              ),
-                                            ]
+                                              )
                                           ),
-                                        ],
                                       },
                                     }),
                                   ],
@@ -280,9 +268,8 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                                     textarea: { props: { value: `content` } },
                                   },
                                   on: {
-                                    input: [
-                                      setScalar(`ui.content`, `target_value`),
-                                    ],
+                                    input: (s) =>
+                                      s.setScalar(`ui.content`, `target_value`),
                                   },
                                 }),
                                 nodes.if(
@@ -293,7 +280,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                                     children: `'Unable to edit note at this time'`,
                                   })
                                 ),
-                                element("div", {
+                                nodes.element("div", {
                                   styles: styles.editButtons,
                                   children: [
                                     button({
@@ -301,35 +288,41 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                                       color: "neutral",
                                       children: `'Cancel'`,
                                       on: {
-                                        click: [
-                                          setScalar(`ui.editing`, `false`),
-                                        ],
+                                        click: (s) =>
+                                          s.setScalar(`ui.editing`, `false`),
                                       },
                                     }),
                                     button({
                                       children: `'Confirm changes'`,
                                       loading: `in_progress`,
                                       on: {
-                                        click: [
-                                          if_(`in_progress`, exit()),
-                                          setScalar(`ui.in_progress`, `true`),
-                                          setScalar(`ui.failed`, `false`),
-                                          commitUiChanges(),
-                                          try_({
-                                            body: [
-                                              serviceProc([
-                                                modify(
-                                                  `update db.${notesTable} set content = ui.content, date = ui.date where id = note_record.id`
-                                                ),
-                                                ctx.triggerRefresh,
-                                              ]),
-                                              setScalar(`ui.editing`, `false`),
-                                            ],
-                                            catch: [
-                                              setScalar(`failed`, `true`),
-                                            ],
-                                          }),
-                                        ],
+                                        click: (s) =>
+                                          s
+                                            .if(`in_progress`, (s) =>
+                                              s.return()
+                                            )
+                                            .setScalar(`ui.in_progress`, `true`)
+                                            .setScalar(`ui.failed`, `false`)
+                                            .commitUiChanges()
+                                            .try({
+                                              body: (s) =>
+                                                s
+                                                  .serviceProc((s) =>
+                                                    s
+                                                      .modify(
+                                                        `update db.${notesTable} set content = ui.content, date = ui.date where id = note_record.id`
+                                                      )
+                                                      .statements(
+                                                        ctx.triggerRefresh
+                                                      )
+                                                  )
+                                                  .setScalar(
+                                                    `ui.editing`,
+                                                    `false`
+                                                  ),
+                                              catch: (s) =>
+                                                s.setScalar(`failed`, `true`),
+                                            }),
                                       },
                                     }),
                                   ],
@@ -337,24 +330,27 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                               ],
                             }),
                           }),
-                          element("div", {
+                          else: nodes.element("div", {
                             styles: styles.note,
                             children: [
-                              element("div", {
+                              nodes.element("div", {
                                 styles: styles.noteHeader,
                                 children: [
-                                  element("p", {
+                                  nodes.element("p", {
                                     styles: styles.noteDate,
                                     children: `format.date(note_record.date, '%-d %b %Y')`,
                                   }),
-                                  element("div", { styles: flexGrowStyles }),
+                                  nodes.element("div", {
+                                    styles: flexGrowStyles,
+                                  }),
                                   iconButton({
                                     color: "neutral",
                                     variant: "plain",
                                     size: "sm",
                                     children: materialIcon("EditOutlined"),
                                     on: {
-                                      click: [setScalar(`ui.editing`, `true`)],
+                                      click: (s) =>
+                                        s.setScalar(`ui.editing`, `true`),
                                     },
                                   }),
                                   iconButton({
@@ -363,35 +359,36 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                                     size: "sm",
                                     children: materialIcon("DeleteOutlined"),
                                     on: {
-                                      click: [setScalar(`ui.deleting`, `true`)],
+                                      click: (s) =>
+                                        s.setScalar(`ui.deleting`, `true`),
                                     },
                                   }),
                                 ],
                               }),
-                              element("p", {
+                              nodes.element("p", {
                                 styles: styles.noteContent,
                                 children: `note_record.content`,
                               }),
                             ],
-                          })
-                        ),
+                          }),
+                        }),
                         deleteRecordDialog({
                           open: `ui.deleting`,
-                          onClose: [setScalar(`ui.deleting`, `false`)],
+                          onClose: (s) => s.setScalar(`ui.deleting`, `false`),
                           table: notesTable,
                           recordId: `note_record.id`,
-                          afterDeleteService: [ctx.triggerRefresh],
+                          afterDeleteService: ctx.triggerRefresh,
                         }),
                       ],
                     }),
                   ],
                 }),
               }),
-              element("p", {
+              else: nodes.element("p", {
                 styles: styles.emptyText,
                 children: `'No notes'`,
-              })
-            ),
+              }),
+            }),
           }),
         ],
       }),

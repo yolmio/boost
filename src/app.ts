@@ -25,6 +25,11 @@ import {
   DatagridPageOpts as SimpleDatagridPageOpts,
 } from "./pages/simpleDatagrid";
 import { datagridPage, DatagridPageOpts } from "./pages/datagrid";
+import { updateFormPage, UpdateFormPage } from "./pages/updateForm";
+import {
+  multiCardInsertPage,
+  MultiCardInsertPageOpts,
+} from "./pages/multiCardInsert";
 import { ComponentOpts } from "./components/types";
 
 /**
@@ -83,71 +88,11 @@ export class App {
   }
 
   addScalarFunction(f: HelperScalarFunction) {
-    const inputs: { [name: string]: Parameter } = {};
-    for (const input of f.parameters) {
-      inputs[input.name] = {
-        name: input.name,
-        type:
-          typeof input.type === "string" ? { type: input.type } : input.type,
-        notNull: input.notNull,
-      };
-    }
-    const newDt: ScalarFunction = {
-      name: f.name,
-      description: f.description,
-      inputs,
-      procedure: BasicStatements.normalizeToArray(f.procedure),
-      returnType:
-        typeof f.returnType === "string"
-          ? { type: f.returnType }
-          : f.returnType,
-    };
-    app.scalarFunctions[f.name] = newDt;
+    app.scalarFunctions[f.name] = scalarFunctionFromHelper(f);
   }
 
   addDecisionTable(dt: HelperDecisionTable) {
-    const inputs: { [name: string]: Parameter } = {};
-    const outputs: { [name: string]: DecisionTableOutput } = {};
-    if (dt.output) {
-      outputs[dt.output.name] = {
-        name: dt.output.name,
-        type:
-          typeof dt.output.type === "string"
-            ? { type: dt.output.type }
-            : dt.output.type,
-        collation: dt.output.collation,
-      };
-    }
-    if (dt.outputs) {
-      for (const output of dt.outputs) {
-        outputs[output.name] = {
-          name: output.name,
-          type:
-            typeof output.type === "string"
-              ? { type: output.type }
-              : output.type,
-          collation: output.collation,
-        };
-      }
-    }
-    if (dt.parameters) {
-      for (const input of dt.parameters) {
-        inputs[input.name] = {
-          name: input.name,
-          type: fieldTypeFromHelper(input.type),
-          notNull: input.notNull,
-        };
-      }
-    }
-    const newDt: DecisionTable = {
-      name: dt.name,
-      description: dt.description,
-      csv: dt.csv,
-      outputs,
-      inputs,
-      setup: dt.setup,
-    };
-    app.decisionTables[dt.name] = newDt;
+    app.decisionTables[dt.name] = dtFromHelper(dt);
   }
 
   addEnum(enum_: HelperEnum) {
@@ -280,6 +225,14 @@ export class Ui {
     insertFormPage(opts);
   }
 
+  addUpdateFormPage(opts: UpdateFormPage) {
+    updateFormPage(opts);
+  }
+
+  addMultiCardInsert(opts: MultiCardInsertPageOpts) {
+    multiCardInsertPage(opts);
+  }
+
   addRecordGridPage(
     table: string,
     fn: (builder: RecordGridBuilder) => unknown
@@ -352,6 +305,14 @@ export class Db {
     const builder = new TableBuilder(name);
     f(builder);
     this.tables[name] = builder.finish();
+  }
+
+  addScalarFunction(f: HelperScalarFunction) {
+    app.scalarFunctions[f.name] = scalarFunctionFromHelper(f);
+  }
+
+  addDecisionTable(dt: HelperDecisionTable) {
+    app.decisionTables[dt.name] = dtFromHelper(dt);
   }
 }
 
@@ -1999,6 +1960,25 @@ interface HelperScalarFunction {
   returnType: yom.ScalarType | yom.SimpleScalarTypes | yom.ScalarIntegerTypes;
 }
 
+function scalarFunctionFromHelper(f: HelperScalarFunction): ScalarFunction {
+  const inputs: { [name: string]: Parameter } = {};
+  for (const input of f.parameters) {
+    inputs[input.name] = {
+      name: input.name,
+      type: typeof input.type === "string" ? { type: input.type } : input.type,
+      notNull: input.notNull,
+    };
+  }
+  return {
+    name: f.name,
+    description: f.description,
+    inputs,
+    procedure: BasicStatements.normalizeToArray(f.procedure),
+    returnType:
+      typeof f.returnType === "string" ? { type: f.returnType } : f.returnType,
+  };
+}
+
 function fieldTypeFromHelper(ty: HelperFieldType): yom.FieldType {
   return typeof ty == "string" ? { type: ty } : ty;
 }
@@ -2071,11 +2051,53 @@ interface HelperDecisionTableOutput {
 interface HelperDecisionTable {
   name: string;
   description?: string;
-  setup?: yom.BasicStatement[];
+  setup?: BasicStatementsOrFn;
   parameters?: HelperFunctionParam[];
   outputs?: HelperDecisionTableOutput[];
   output?: HelperDecisionTableOutput;
   csv: string;
+}
+
+function dtFromHelper(dt: HelperDecisionTable): DecisionTable {
+  const inputs: { [name: string]: Parameter } = {};
+  const outputs: { [name: string]: DecisionTableOutput } = {};
+  if (dt.output) {
+    outputs[dt.output.name] = {
+      name: dt.output.name,
+      type:
+        typeof dt.output.type === "string"
+          ? { type: dt.output.type }
+          : dt.output.type,
+      collation: dt.output.collation,
+    };
+  }
+  if (dt.outputs) {
+    for (const output of dt.outputs) {
+      outputs[output.name] = {
+        name: output.name,
+        type:
+          typeof output.type === "string" ? { type: output.type } : output.type,
+        collation: output.collation,
+      };
+    }
+  }
+  if (dt.parameters) {
+    for (const input of dt.parameters) {
+      inputs[input.name] = {
+        name: input.name,
+        type: fieldTypeFromHelper(input.type),
+        notNull: input.notNull,
+      };
+    }
+  }
+  return {
+    name: dt.name,
+    description: dt.description,
+    csv: dt.csv,
+    outputs,
+    inputs,
+    setup: BasicStatements.normalizeToArray(dt.setup),
+  };
 }
 
 /**

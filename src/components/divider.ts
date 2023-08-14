@@ -8,7 +8,7 @@ import { SingleElementComponentOpts, mergeEls } from "./utils";
 type Orientation = "vertical" | "horizontal";
 type Inset = "none" | "context";
 
-export interface IconButtonOpts extends SingleElementComponentOpts {
+export interface DividerOpts extends SingleElementComponentOpts {
   orientation?: "vertical" | "horizontal";
   inset?: "none" | "context";
 
@@ -100,7 +100,7 @@ const styles = createStyles({
   },
 });
 
-export function divider(opts: IconButtonOpts = {}): ElementNode {
+export function divider(opts: DividerOpts = {}): ElementNode {
   const role = opts.role ?? (opts.children ? undefined : "seperator");
   const orientation = opts.orientation ?? "horizontal";
   const rootStyles = styles.root(

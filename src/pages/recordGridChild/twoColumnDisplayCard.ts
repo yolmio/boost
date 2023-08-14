@@ -1,12 +1,11 @@
-import { element, state } from "../../nodeHelpers";
+import { nodes } from "../../nodeHelpers";
 import { Node } from "../../nodeTypes";
-import { record } from "../../procHelpers";
 import { createStyles } from "../../styleUtils";
 import { ident, stringLiteral } from "../../utils/sqlHelpers";
 import { inlineFieldDisplay } from "../../components/internal/fieldInlineDisplay";
-import { RecordGridContext } from "./shared";
 import { Style } from "../../styleTypes";
 import { card } from "../../components/card";
+import { RecordGridBuilder } from "../recordGrid";
 
 const styles = createStyles({
   root: {
@@ -47,12 +46,12 @@ type Cell =
 
 export interface Opts {
   styles?: Style;
-  cells: ((ctx: RecordGridContext) => Cell[]) | Cell[];
+  cells: Cell[];
 }
 
-export function content(opts: Opts, ctx: RecordGridContext) {
+export function content(opts: Opts, ctx: RecordGridBuilder) {
   let selectFields = "";
-  const cells = Array.isArray(opts.cells) ? opts.cells : opts.cells(ctx);
+  const cells = opts.cells;
   for (let i = 0; i < cells.length; i++) {
     const cell = cells[i];
     selectFields += ", ";
@@ -72,10 +71,10 @@ export function content(opts: Opts, ctx: RecordGridContext) {
   return card({
     variant: "outlined",
     styles: opts.styles,
-    children: state({
+    children: nodes.state({
       watch: [ctx.refreshKey],
-      procedure: [record(`record`, query)],
-      children: element("dl", {
+      procedure: (s) => s.record(`record`, query),
+      children: nodes.element("dl", {
         styles: styles.root,
         children: cells.map((row, i) => {
           let label: string;
@@ -89,11 +88,11 @@ export function content(opts: Opts, ctx: RecordGridContext) {
             const expr = `record.e_${i}`;
             value = row.display ? (row.display(expr) as Node) : expr;
           }
-          return element("div", {
+          return nodes.element("div", {
             styles: styles.cell,
             children: [
-              element("dt", { styles: styles.label, children: label }),
-              element("dd", { styles: styles.data, children: value }),
+              nodes.element("dt", { styles: styles.label, children: label }),
+              nodes.element("dd", { styles: styles.data, children: value }),
             ],
           });
         }),

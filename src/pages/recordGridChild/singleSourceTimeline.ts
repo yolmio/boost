@@ -1,97 +1,67 @@
 import { button } from "../../components/button";
-import { chip } from "../../components/chip";
-import { confirmDangerDialog } from "../../components/confirmDangerDialog";
 import { divider } from "../../components/divider";
-import { iconButton } from "../../components/iconButton";
 import { InsertDialogOpts, insertDialog } from "../../components/insertDialog";
-import { inlineFieldDisplay } from "../../components/internal/fieldInlineDisplay";
 import { AutoLabelOnLeftFieldOverride } from "../../components/internal/insertFormShared";
 import { materialIcon } from "../../components/materialIcon";
-import { popoverMenu } from "../../components/menu";
 import { typography } from "../../components/typography";
-import { updateDialog } from "../../components/updateDialog";
-import { getUniqueUiId } from "../../components/utils";
-import {
-  each,
-  element,
-  eventHandlers,
-  ifNode,
-  sourceMap,
-  state,
-} from "../../nodeHelpers";
+import { nodes } from "../../nodeHelpers";
 import { Node } from "../../nodeTypes";
-import {
-  commitTransaction,
-  commitUiChanges,
-  exit,
-  getElProperty,
-  getWindowProperty,
-  if_,
-  modify,
-  scalar,
-  serviceProc,
-  setScalar,
-  startTransaction,
-  table,
-  try_,
-} from "../../procHelpers";
 import { app } from "../../app";
 import { Style } from "../../styleTypes";
-import { ident, stringLiteral } from "../../utils/sqlHelpers";
-import { ClientProcStatement, SqlExpression, StateStatement } from "../../yom";
-import { RecordGridContext } from "./shared";
+import { ident } from "../../utils/sqlHelpers";
 import { recordDefaultItemContent, styles } from "./timelineShared";
+import * as yom from "../../yom";
+import { StateStatementsOrFn } from "../../statements";
+import { RecordGridBuilder } from "../recordGrid";
 
 export type TableDisplayValue =
   | string
   | {
-      expr: SqlExpression;
-      display: (e: SqlExpression) => Node;
+      expr: yom.SqlExpression;
+      display: (e: yom.SqlExpression) => Node;
       label: string;
     };
 
-type TableValue = string | { expr: SqlExpression };
+type TableValue = string | { expr: yom.SqlExpression };
 
 export interface RecordDefaultTableItemContent {
   type: "RecordDefault";
   headerValues?: TableValue[];
-  header: (...values: SqlExpression[]) => Node;
+  header: (...values: yom.SqlExpression[]) => Node;
   displayValues?: TableDisplayValue[];
   disableDefaultAction?: boolean;
   customAction?: {
     values: TableValue[];
-    node: (...values: SqlExpression[]) => Node;
+    node: (...values: yom.SqlExpression[]) => Node;
   };
 }
 
 export interface CustomTableItemContent {
   type: "Custom";
   values: TableValue[];
-  node: (...values: SqlExpression[]) => Node;
+  node: (...values: yom.SqlExpression[]) => Node;
 }
 
 export interface Opts {
   styles?: Style;
   timelineHeader: string;
-  additionalState?: (ctx: RecordGridContext) => StateStatement[];
-  afterHeaderNode?: (ctx: RecordGridContext) => Node;
+  additionalState?: StateStatementsOrFn;
+  afterHeaderNode?: Node;
 
   table: string;
-  dateExpr: SqlExpression;
-  customFrom?: (ctx: RecordGridContext) => string;
-  foreignKeyExpr?: SqlExpression;
+  dateExpr: yom.SqlExpression;
+  customFrom?: string;
+  foreignKeyExpr?: yom.SqlExpression;
   disableInsert?: boolean;
-  itemContent: (
-    ctx: RecordGridContext
-  ) => RecordDefaultTableItemContent | CustomTableItemContent;
-  insertDialogOpts?: (ctx: RecordGridContext) => InsertDialogOpts;
+  itemContent: RecordDefaultTableItemContent | CustomTableItemContent;
+  insertDialogOpts?: InsertDialogOpts;
   icon: {
     styles: Style;
     content: Node;
   };
 }
 
-export function content(opts: Opts, ctx: RecordGridContext) {
+export function content(opts: Opts, ctx: RecordGridBuilder) {
   const fields = new Set<string>();
   const exprs: { expr: string; name: string }[] = [];
   function addValue(value: TableValue, exprName: string) {
@@ -105,8 +75,8 @@ export function content(opts: Opts, ctx: RecordGridContext) {
     }
   }
   const tableModel = app.db.tables[opts.table];
-  const itemContent = opts.itemContent(ctx);
-  const insertDialogOpts = opts.insertDialogOpts?.(ctx);
+  const itemContent = opts.itemContent;
+  const insertDialogOpts = opts.insertDialogOpts;
   const withValues: Record<string, string> = insertDialogOpts?.withValues ?? {};
   let foreignKeyField = Object.values(tableModel.fields).find(
     (f) => f.type === "ForeignKey" && f.table === ctx.table.name
@@ -182,24 +152,24 @@ export function content(opts: Opts, ctx: RecordGridContext) {
       )
     );
   }
-  const item = element("div", {
+  const item = nodes.element("div", {
     styles: styles.item,
     children: [
-      element("div", {
+      nodes.element("div", {
         styles: styles.date,
         children: [
-          element("span", {
+          nodes.element("span", {
             children: `format.date(record.date, '%-d %b')`,
           }),
-          element("span", {
+          nodes.element("span", {
             children: `format.date(record.date, '%Y')`,
           }),
         ],
       }),
-      element("div", {
+      nodes.element("div", {
         styles: styles.iconWrapper,
         children: [
-          element("span", {
+          nodes.element("span", {
             styles: {
               ...styles.icon,
               ...opts.icon.styles,
@@ -208,7 +178,7 @@ export function content(opts: Opts, ctx: RecordGridContext) {
           }),
           nodes.if(
             `record.iteration_index != (select count(*) from result) - 1`,
-            element("span", {
+            nodes.element("span", {
               styles: styles.line,
             })
           ),
@@ -247,48 +217,48 @@ export function content(opts: Opts, ctx: RecordGridContext) {
     )} as record where ${foreignKeyExpr} = ${ctx.recordId}`;
   }
   fullQuery += ` limit row_count`;
-  return sourceMap(
+  return nodes.sourceMap(
     `singleSourceTimeline`,
-    state({
-      procedure: [scalar(`row_count`, `50`)],
-      children: state({
+    nodes.state({
+      procedure: (s) => s.scalar(`row_count`, `50`),
+      children: nodes.state({
         watch: [ctx.refreshKey, `row_count`],
-        procedure: [
-          table(`result`, fullQuery),
-          scalar(`service_row_count`, `row_count`),
-          ...(opts.additionalState?.(ctx) ?? []),
-        ],
+        procedure: (s) =>
+          s
+            .table(`result`, fullQuery)
+            .scalar(`service_row_count`, `row_count`)
+            .statements(opts.additionalState),
         statusScalar: `status`,
-        children: element("div", {
+        children: nodes.element("div", {
           styles: opts.styles ? [styles.root, opts.styles] : styles.root,
           children: [
-            eventHandlers({
+            nodes.eventHandlers({
               document: {
-                scroll: [
-                  if_(
-                    `status != 'received' or (service_row_count is not null and (select count(*) from result) < service_row_count)`,
-                    [exit()]
-                  ),
-                  getWindowProperty("scrollY", "scroll_y"),
-                  getWindowProperty("innerHeight", "height"),
-                  getElProperty(
-                    "scrollHeight",
-                    "doc_scroll_height",
-                    "'yolm-document-body'"
-                  ),
-                  if_(`doc_scroll_height - scroll_y - height < 500`, [
-                    setScalar(`row_count`, `row_count + 50`),
-                  ]),
-                ],
+                scroll: (s) =>
+                  s
+                    .if(
+                      `status != 'received' or (service_row_count is not null and (select count(*) from result) < service_row_count)`,
+                      (s) => s.return()
+                    )
+                    .getWindowProperty("scrollY", "scroll_y")
+                    .getWindowProperty("innerHeight", "height")
+                    .getElProperty(
+                      "scrollHeight",
+                      "doc_scroll_height",
+                      "'yolm-document-body'"
+                    )
+                    .if(`doc_scroll_height - scroll_y - height < 500`, (s) =>
+                      s.setScalar(`row_count`, `row_count + 50`)
+                    ),
               },
             }),
             divider(),
-            element("div", {
+            nodes.element("div", {
               styles: styles.header,
               children: [
                 typography({ level: "h5", children: opts.timelineHeader }),
-                state({
-                  procedure: [scalar(`adding`, `false`)],
+                nodes.state({
+                  procedure: (s) => s.scalar(`adding`, `false`),
                   children: [
                     button({
                       variant: "soft",
@@ -297,12 +267,12 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                       children: `'Add'`,
                       startDecorator: materialIcon("Add"),
                       on: {
-                        click: [setScalar(`adding`, `true`)],
+                        click: (s) => s.setScalar(`adding`, `true`),
                       },
                     }),
                     insertDialog({
                       open: `ui.adding`,
-                      onClose: [setScalar(`ui.adding`, `false`)],
+                      onClose: (s) => s.setScalar(`ui.adding`, `false`),
                       table: opts.table,
                       content: {
                         type: "AutoLabelOnLeft",
@@ -317,21 +287,20 @@ export function content(opts: Opts, ctx: RecordGridContext) {
                         insertDialogOpts?.afterTransactionStart,
                       beforeTransactionCommit:
                         insertDialogOpts?.beforeTransactionCommit,
-                      afterTransactionCommit: (state) => [
-                        ...(insertDialogOpts?.afterTransactionCommit?.(state) ??
-                          []),
-                        ctx.triggerRefresh,
-                      ],
+                      afterTransactionCommit: (state, s) => {
+                        insertDialogOpts?.afterTransactionCommit?.(state, s);
+                        s.statements(ctx.triggerRefresh);
+                      },
                       afterSubmitClient: insertDialogOpts?.afterSubmitClient,
                     }),
                   ],
                 }),
               ],
             }),
-            opts.afterHeaderNode?.(ctx),
-            element("div", {
+            opts.afterHeaderNode,
+            nodes.element("div", {
               styles: styles.items,
-              children: each({
+              children: nodes.each({
                 table: `result`,
                 recordName: `record`,
                 key: `record.id`,

@@ -7,23 +7,13 @@ import { popoverMenu } from "../../components/menu";
 import { typography } from "../../components/typography";
 import { updateDialog } from "../../components/updateDialog";
 import { getUniqueUiId } from "../../components/utils";
-import { Node, Table, VirtualType } from "../../app";
-import { element, ifNode, state } from "../../nodeHelpers";
-import {
-  commitTransaction,
-  commitUiChanges,
-  exit,
-  modify,
-  scalar,
-  serviceProc,
-  setScalar,
-  startTransaction,
-  try_,
-} from "../../procHelpers";
+import { Table } from "../../app";
+import { nodes } from "../../nodeHelpers";
 import { createStyles } from "../../styleUtils";
 import { ident, stringLiteral } from "../../utils/sqlHelpers";
-import { ClientProcStatement, SqlExpression } from "../../yom";
-import { RecordGridContext } from "./shared";
+import { RecordGridBuilder } from "../recordGrid";
+import * as yom from "../../yom";
+import { Node } from "../../nodeTypes";
 
 export const styles = createStyles({
   root: {
@@ -118,11 +108,11 @@ export const styles = createStyles({
 });
 
 type GenericDisplayValue =
-  | { type: "field"; field: string; exprValue: SqlExpression }
+  | { type: "field"; field: string; exprValue: yom.SqlExpression }
   | {
       type: "expr";
-      exprValue: SqlExpression;
-      display: (expr: SqlExpression) => Node;
+      exprValue: yom.SqlExpression;
+      display: (expr: yom.SqlExpression) => Node;
       label: string;
     };
 
@@ -137,7 +127,7 @@ interface RecordDefaultTableItemContentOpts {
 const basePopoverMenuId = stringLiteral(getUniqueUiId());
 
 export function recordDefaultItemContent(
-  ctx: RecordGridContext,
+  ctx: RecordGridBuilder,
   opts: RecordDefaultTableItemContentOpts
 ) {
   const {
@@ -158,8 +148,9 @@ export function recordDefaultItemContent(
   if (customAction) {
     action = customAction;
   } else if (!disableDefaultAction) {
-    action = state({
-      procedure: [scalar(`editing`, `false`), scalar(`deleting`, `false`)],
+    action = nodes.state({
+      procedure: (s) =>
+        s.scalar(`editing`, `false`).scalar(`deleting`, `false`),
       children: [
         popoverMenu({
           menuListOpts: {
@@ -182,11 +173,11 @@ export function recordDefaultItemContent(
             }),
           items: [
             {
-              onClick: [setScalar(`ui.editing`, `true`)],
+              onClick: (s) => s.setScalar(`ui.editing`, `true`),
               children: `'Edit'`,
             },
             {
-              onClick: [setScalar(`ui.deleting`, `true`)],
+              onClick: (s) => s.setScalar(`ui.deleting`, `true`),
               children: `'Delete'`,
             },
           ],
@@ -196,7 +187,7 @@ export function recordDefaultItemContent(
           updateDialog({
             table: tableModel.name,
             open: `ui.editing`,
-            onClose: [setScalar(`ui.editing`, `false`)],
+            onClose: (s) => s.setScalar(`ui.editing`, `false`),
             recordId: `record.id`,
             content: {
               type: "AutoLabelOnLeft",
@@ -206,35 +197,35 @@ export function recordDefaultItemContent(
           })
         ),
         confirmDangerDialog({
-          onConfirm: (closeModal) => [
-            setScalar(`dialog_waiting`, `true`),
-            commitUiChanges(),
-            try_<ClientProcStatement>({
-              body: [
-                serviceProc([
-                  startTransaction(),
-                  modify(
-                    `delete from db.${ident(
-                      tableModel.name
-                    )} where id = record.id`
+          onConfirm: (closeModal) => (s) =>
+            s
+              .setScalar(`dialog_waiting`, `true`)
+              .commitUiChanges()
+              .try({
+                body: (s) =>
+                  s.serviceProc((s) =>
+                    s
+                      .startTransaction()
+                      .modify(
+                        `delete from db.${ident(
+                          tableModel.name
+                        )} where id = record.id`
+                      )
+                      .commitTransaction()
+                      .statements(ctx.triggerRefresh)
                   ),
-                  commitTransaction(),
-                  ctx.triggerRefresh,
-                ]),
-              ],
-              catch: [
-                setScalar(`dialog_waiting`, `false`),
-                setScalar(
-                  `dialog_error`,
-                  `'Unable to delete, try again another time.'`
-                ),
-                exit(),
-              ],
-            }),
-            ...closeModal,
-          ],
+                catch: (s) =>
+                  s
+                    .setScalar(`dialog_waiting`, `false`)
+                    .setScalar(
+                      `dialog_error`,
+                      `'Unable to delete, try again another time.'`
+                    )
+                    .return(),
+              })
+              .statements(closeModal),
           open: `ui.deleting`,
-          onClose: [setScalar(`ui.deleting`, `false`)],
+          onClose: (s) => s.setScalar(`ui.deleting`, `false`),
           description: `'Are you sure you want to delete this ' || ${stringLiteral(
             tableModel.displayName.toLowerCase()
           )} || '?'`,
@@ -242,10 +233,10 @@ export function recordDefaultItemContent(
       ],
     });
   }
-  return element("div", {
+  return nodes.element("div", {
     styles: styles.itemContent,
     children: [
-      element("div", {
+      nodes.element("div", {
         styles: styles.itemLeft,
         children: [
           typography({
@@ -253,7 +244,7 @@ export function recordDefaultItemContent(
             children: header,
           }),
           displayValues
-            ? element("div", {
+            ? nodes.element("div", {
                 styles: styles.itemValues,
                 children: displayValues.map((value) => {
                   if (value.type === "field") {
@@ -274,10 +265,10 @@ export function recordDefaultItemContent(
                         })
                       );
                     }
-                    const content = element("div", {
+                    const content = nodes.element("div", {
                       styles: styles.itemValueWrapper,
                       children: [
-                        element("p", {
+                        nodes.element("p", {
                           styles: styles.itemValue,
                           children: `${stringLiteral(
                             field.displayName
@@ -291,10 +282,10 @@ export function recordDefaultItemContent(
                     }
                     return nodes.if(value.exprValue + ` is not null`, content);
                   } else {
-                    return element("div", {
+                    return nodes.element("div", {
                       styles: styles.itemValueWrapper,
                       children: [
-                        element("p", {
+                        nodes.element("p", {
                           styles: styles.itemValue,
                           children: `${stringLiteral(value.label)} || ':'`,
                         }),

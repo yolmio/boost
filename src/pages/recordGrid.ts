@@ -19,6 +19,12 @@ import * as namedPageHeader from "./recordGridChild/namedPageHeader";
 import * as notesCard from "./recordGridChild/notesCard";
 import * as simpleLinkRelationCard from "./recordGridChild/simpleLinkRelationCard";
 import * as simpleLinkAssociationCard from "./recordGridChild/simpleLinkAssociationCard";
+import * as timeline from "./recordGridChild/timeline";
+import * as singleSourceTimeline from "./recordGridChild/singleSourceTimeline";
+import * as addressesCard from "./recordGridChild/addressesCard";
+import * as attachmentsCard from "./recordGridChild/attachmentsCard";
+import * as notesListCard from "./recordGridChild/notesListCard";
+import * as twoColumnDisplayCard from "./recordGridChild/twoColumnDisplayCard";
 
 export class RecordGridBuilder {
   table: Table;
@@ -108,6 +114,36 @@ export class RecordGridBuilder {
 
   simpleLinkAssociationCard(opts: simpleLinkAssociationCard.Opts) {
     this.#children.push(simpleLinkAssociationCard.content(opts, this));
+    return this;
+  }
+
+  timeline(opts: timeline.Opts) {
+    this.#children.push(timeline.content(opts, this));
+    return this;
+  }
+
+  singleSourceTimeline(opts: singleSourceTimeline.Opts) {
+    this.#children.push(singleSourceTimeline.content(opts, this));
+    return this;
+  }
+
+  addressesCard(opts: addressesCard.Opts) {
+    this.#children.push(addressesCard.content(opts, this));
+    return this;
+  }
+
+  attachmentsCard(opts: attachmentsCard.Opts) {
+    this.#children.push(attachmentsCard.content(opts, this));
+    return this;
+  }
+
+  notesListCard(opts: notesListCard.Opts) {
+    this.#children.push(notesListCard.content(opts, this));
+    return this;
+  }
+
+  twoColumnDisplayCard(opts: twoColumnDisplayCard.Opts) {
+    this.#children.push(twoColumnDisplayCard.content(opts, this));
     return this;
   }
 
