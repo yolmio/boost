@@ -31,6 +31,7 @@ import {
   MultiCardInsertPageOpts,
 } from "./pages/multiCardInsert";
 import { ComponentOpts } from "./components/types";
+import { addMigrationScript, MigrationScriptOpts } from "./migrate";
 
 /**
  * The app singleton.
@@ -88,11 +89,11 @@ export class App {
   }
 
   addScalarFunction(f: HelperScalarFunction) {
-    app.scalarFunctions[f.name] = scalarFunctionFromHelper(f);
+    this.scalarFunctions[f.name] = scalarFunctionFromHelper(f);
   }
 
   addDecisionTable(dt: HelperDecisionTable) {
-    app.decisionTables[dt.name] = dtFromHelper(dt);
+    this.decisionTables[dt.name] = dtFromHelper(dt);
   }
 
   addEnum(enum_: HelperEnum) {
@@ -182,6 +183,10 @@ export class App {
       name,
       procedure: ScriptStatements.normalizeToArray(procedure),
     });
+  }
+
+  addMigrationScript(opts: MigrationScriptOpts) {
+    addMigrationScript(opts);
   }
 
   generateYom() {
@@ -308,11 +313,11 @@ export class Db {
   }
 
   addScalarFunction(f: HelperScalarFunction) {
-    app.scalarFunctions[f.name] = scalarFunctionFromHelper(f);
+    this.scalarFunctions[f.name] = scalarFunctionFromHelper(f);
   }
 
   addDecisionTable(dt: HelperDecisionTable) {
-    app.decisionTables[dt.name] = dtFromHelper(dt);
+    this.decisionTables[dt.name] = dtFromHelper(dt);
   }
 }
 
@@ -494,6 +499,16 @@ export class Table {
 
   getBaseUrl() {
     return pluralize(this.name.split("_").join(" ")).split(" ").join("-");
+  }
+
+  getRecordDisplayNameExpr(record?: string) {
+    const displayNameFn = this.recordDisplayName;
+    if (!displayNameFn) {
+      throw new Error("table " + this.name + " has no recordDisplayName");
+    }
+    return displayNameFn.expr(
+      ...displayNameFn.fields.map((f) => `${record ?? this.identName}.${f}`)
+    );
   }
 
   /**

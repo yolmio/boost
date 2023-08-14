@@ -147,6 +147,11 @@ export class RecordGridBuilder {
     return this;
   }
 
+  custom(node: Node) {
+    this.#children.push(node);
+    return this;
+  }
+
   createPage() {
     const tableLowercase = stringLiteral(this.table.displayName.toLowerCase());
     const content = nodes.state({

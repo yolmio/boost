@@ -1,9 +1,7 @@
-import { addScript, addScriptDbFromMappingFile } from "./appHelpers";
-import { loadDb, modify, saveDb, table } from "./procHelpers";
-import { app } from "./singleton";
-import { ScriptStatement } from "./yom";
+import { app } from "./app";
 import * as path from "path";
 import toposort from "toposort";
+import { ScriptStatements, ScriptStatementsOrFn } from "./statements";
 
 function isTableReferencedByOthers(t: string) {
   for (const otherTable of Object.values(app.db.tables)) {
@@ -21,7 +19,7 @@ export interface MigrationScriptOpts {
   outputDir: string;
   scriptName?: string;
   scriptDbName?: string;
-  before?: ScriptStatement[];
+  before?: ScriptStatementsOrFn;
   ignoreTables?: string[];
   transformTableName?: (v: string) => string;
   transformFieldName?: (v: string) => string;
@@ -35,14 +33,17 @@ export interface MigrationScriptOpts {
   >;
 }
 
-export function createMigrationScript(opts: MigrationScriptOpts) {
+export function addMigrationScript(opts: MigrationScriptOpts) {
   const scriptName = opts.scriptName ?? "migrate";
   const scriptDbName = opts.scriptDbName ?? scriptName;
-  addScriptDbFromMappingFile(
-    scriptDbName,
-    path.join(opts.inputDir, "map.json")
-  );
-  const tableImports: ScriptStatement[] = [];
+  app.scriptDbs.push({
+    name: scriptDbName,
+    definition: {
+      type: "MappingFile",
+      file: path.join(opts.inputDir, "map.json"),
+    },
+  });
+  const tableImports = new ScriptStatements();
   const graph: [string, string][] = [];
   for (const t of Object.values(app.db.tables)) {
     if (opts.ignoreTables?.includes(t.name)) {
@@ -81,36 +82,31 @@ export function createMigrationScript(opts: MigrationScriptOpts) {
     if (tableOpts.where) {
       insertSql += ` where ${tableOpts.where}`;
     }
-    tableImports.push(modify(insertSql));
+    tableImports.modify(insertSql);
     if (isTableReferencedByOthers(t.name)) {
-      tableImports.push(
-        table(
-          `${t.name}_mapping`,
-          [
-            {
-              name: "old_id",
-              notNull: true,
-              indexed: true,
-              type: { type: "Int" },
-            },
-            {
-              name: "new_id",
-              notNull: true,
-              type: { type: "Int" },
-            },
-          ],
-          `select id as old_id, rank() over () - 1 as new_id from ${scriptDbName}.${scriptDbTableName}`
-        )
+      tableImports.table(
+        `${t.name}_mapping`,
+        [
+          {
+            name: "old_id",
+            notNull: true,
+            indexed: true,
+            type: { type: "Int" },
+          },
+          {
+            name: "new_id",
+            notNull: true,
+            type: { type: "Int" },
+          },
+        ],
+        `select id as old_id, rank() over () - 1 as new_id from ${scriptDbName}.${scriptDbTableName}`
       );
     }
   }
-  addScript({
-    name: scriptName,
-    procedure: [
-      loadDb(opts.inputDir, scriptDbName),
-      ...(opts.before ?? []),
-      ...tableImports,
-      saveDb(opts.outputDir),
-    ],
-  });
+  app.addScript(scriptName, (s) =>
+    s
+      .loadDb(opts.inputDir, scriptDbName)
+      .statements(opts.before, tableImports)
+      .saveDb(opts.outputDir)
+  );
 }

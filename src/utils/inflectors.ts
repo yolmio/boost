@@ -320,3 +320,9 @@ export function downcaseFirst(s: string): string {
   }
   return s.charAt(0).toLowerCase() + s.slice(1);
 }
+
+export function camelize(s: string) {
+  return normalizeCase(s)
+    .map((v, i) => (i === 0 ? v : upcaseFirst(v)))
+    .join("");
+}

@@ -1,4 +1,4 @@
-import { Field, VirtualType } from "../appTypes";
+import { Field, VirtualType } from "../app";
 import { app } from "../app";
 import { SequentialIDGenerator } from "../utils/SequentialIdGenerator";
 import { FieldIntegerTypes, SqlExpression } from "../yom";

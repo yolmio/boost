@@ -69,6 +69,11 @@ export class DashboardGridBuilder {
     return this;
   }
 
+  custom(node: Node) {
+    this.#children.push(node);
+    return this;
+  }
+
   createPage() {
     return {
       path: this.#path,

@@ -20,7 +20,7 @@ import { circularProgress } from "./circularProgress";
 import { materialIcon } from "./materialIcon";
 import { DomStatementsOrFn } from "../statements";
 
-export interface EditDialogOpts extends FormStateProcedureExtensions {
+export interface UpdateDialogOpts extends FormStateProcedureExtensions {
   open: string;
   onClose: DomStatementsOrFn;
   table: string;
@@ -44,7 +44,7 @@ const styles = createStyles({
   },
 });
 
-export function updateDialog(opts: EditDialogOpts) {
+export function updateDialog(opts: UpdateDialogOpts) {
   const tableModel = app.db.tables[opts.table];
   return nodes.sourceMap(
     `updateDialog(${opts.table})`,

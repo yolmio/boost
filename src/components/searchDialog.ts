@@ -596,9 +596,10 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
                                       s.modify(
                                         `update ui.result set active = true where index = next_index`
                                       ),
-                                    else: s.modify(
-                                      `update ui.result set active = true where index = (select max(index) from ui.result)`
-                                    ),
+                                    else: (s) =>
+                                      s.modify(
+                                        `update ui.result set active = true where index = (select max(index) from ui.result)`
+                                      ),
                                   })
                                   .statements((s) => scrollToItem(true, s))
                                   .return()

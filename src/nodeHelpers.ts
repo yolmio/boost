@@ -171,6 +171,18 @@ function sourceMap(source: string, children: ui.Node): ui.SourceMapNode {
   return { t: "SourceMap", source, children };
 }
 
+function lineChart(opts: Omit<ui.LineChartNode, "t">): ui.LineChartNode {
+  return { t: "LineChart", ...opts };
+}
+
+function barChart(opts: Omit<ui.BarChartNode, "t">): ui.BarChartNode {
+  return { t: "BarChart", ...opts };
+}
+
+function pieChart(opts: Omit<ui.PieChartNode, "t">): ui.PieChartNode {
+  return { t: "PieChart", ...opts };
+}
+
 export const nodes = {
   each,
   state,
@@ -185,4 +197,7 @@ export const nodes = {
   dataGrid,
   eventHandlers,
   sourceMap,
+  lineChart,
+  barChart,
+  pieChart,
 };
