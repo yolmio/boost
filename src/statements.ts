@@ -19,6 +19,25 @@ export abstract class StatementsBase<Statement extends object> {
     return this;
   }
 
+  break() {
+    this.pushToBacking({ t: "Break" } as yom.BreakStatement as any);
+    return this;
+  }
+
+  continue() {
+    this.pushToBacking({ t: "Continue" } as yom.ContinueStatement as any);
+    return this;
+  }
+
+  throwError(message: yom.SqlExpression, description?: yom.SqlExpression) {
+    this.pushToBacking({
+      t: "Throw",
+      message,
+      description,
+    } as yom.ThrowStatement as any);
+    return this;
+  }
+
   return(expr?: yom.SqlExpression) {
     this.pushToBacking({
       t: "ReturnExpr",
