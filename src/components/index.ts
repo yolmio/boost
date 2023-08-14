@@ -18,3 +18,4 @@ export { getTableRecordSelect } from "./tableRecordSelect";
 export { deleteRecordDialog, DeleteRecordDialog } from "./deleteRecordDialog";
 export { textarea, TextareaOpts } from "./textarea";
 export { svgIcon, SvgIconOpts } from "./svgIcon";
+export { input, InputOpts } from "./input";
