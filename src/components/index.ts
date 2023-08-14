@@ -16,3 +16,5 @@ export { formControl, FormControlOpts } from "./formControl";
 export { enumSelect, EnumSelectOpts } from "./enumSelect";
 export { getTableRecordSelect } from "./tableRecordSelect";
 export { deleteRecordDialog, DeleteRecordDialog } from "./deleteRecordDialog";
+export { textarea, TextareaOpts } from "./textarea";
+export { svgIcon, SvgIconOpts } from "./svgIcon";
