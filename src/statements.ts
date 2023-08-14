@@ -1,4 +1,5 @@
 import type * as yom from "./yom";
+import * as util from "util";
 
 export const BACKING_ARRAY = Symbol("BACKING_ARRAY");
 
@@ -149,6 +150,13 @@ export abstract class StatementsBase<Statement extends object> {
       const arr = new (this.constructor as any)();
       s(arr);
       return arr[BACKING_ARRAY];
+    } else if (s === this) {
+      throw new Error(
+        "Cannot call any helper functions with itself, i.e. \n" +
+          " const statements = new BasicStatements();\n" +
+          "statements.statements(statements); statements.if('true', statements);\n" +
+          "You did something like the above"
+      );
     } else if (s) {
       return s[BACKING_ARRAY] as any;
     }
@@ -196,6 +204,12 @@ export abstract class StatementsBase<Statement extends object> {
         onTrue: this.normalizeGenericStatements(condition.then),
         onFalse: this.normalizeGenericStatements(condition.else),
       } as yom.IfStatement<any> as any);
+    }
+    try {
+      JSON.stringify(this[BACKING_ARRAY]);
+    } catch (e) {
+      console.trace();
+      console.log(util.inspect(this[BACKING_ARRAY]));
     }
     return this;
   }

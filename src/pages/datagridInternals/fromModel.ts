@@ -565,6 +565,20 @@ export interface SimpleColumnFieldOpts extends FieldEditProcConfig {
   immutable?: boolean;
 }
 
+function simpleToggleColumnSort(columnIndex: number) {
+  return new DomStatements().if({
+    condition: `sort_info.col = ${columnIndex}`,
+    then: (s) =>
+      s.if({
+        condition: `sort_info.ascending`,
+        then: (s) => s.modify(`update sort_info set ascending = false`),
+        else: (s) => s.modify(`update sort_info set col = null`),
+      }),
+    else: (s) =>
+      s.modify(`update sort_info set col = ${columnIndex}, ascending = true`),
+  });
+}
+
 export function simpleColumnFromField({
   field,
   table,
@@ -621,17 +635,7 @@ export function simpleColumnFromField({
         break;
     }
   }
-  const toggleColumnSort = new DomStatements().if({
-    condition: `sort_info.col = ${columnIndex}`,
-    then: (s) =>
-      s.if({
-        condition: `sort_info.ascending`,
-        then: (s) => s.modify(`update sort_info set ascending = false`),
-        else: (s) => s.modify(`update sort_info set col = null`),
-      }),
-    else: (s) =>
-      s.modify(`update sort_info set col = ${columnIndex}, ascending = true`),
-  });
+  const toggleColumnSort = simpleToggleColumnSort(columnIndex);
   return {
     keydownCellHandler: keydownHandler,
     cell: fieldCell({
@@ -687,27 +691,10 @@ export function simpleColumnFromVirtual(
   columnIndex: number,
   startFixedColumns: number
 ): SimpleColumn {
-  const toggleColumnSort = new DomStatements().if({
-    condition: `sort_info.col = ${columnIndex}`,
-    then: (s) =>
-      s.if({
-        condition: `sort_info.ascending`,
-        then: (s) => s.modify(`update sort_info set ascending = false`),
-        else: (s) => s.modify(`update sort_info set col = null`),
-      }),
-    else: (s) =>
-      s.modify(`update sort_info set col = ${columnIndex}, ascending = true`),
-  });
+  const toggleColumnSort = simpleToggleColumnSort(columnIndex);
   return {
     cell: ({ value }) => value,
     width: 250,
-    keydownHeaderHandler: (s) =>
-      s.if(
-        `event.key = 'Enter'`,
-        s.statements(toggleColumnSort, triggerQueryRefresh())
-      ),
-    headerClickHandler: (s) =>
-      s.statements(toggleColumnSort, triggerQueryRefresh()),
     header: [
       nodes.element("span", {
         styles: sharedStyles.headerText,
@@ -732,6 +719,12 @@ export function simpleColumnFromVirtual(
         width: `(select width from ui.column_width where col = ${columnIndex})`,
       }),
     ],
+    keydownHeaderHandler: (s) =>
+      s.if(`event.key = 'Enter'`, (s) =>
+        s.statements(toggleColumnSort, triggerQueryRefresh())
+      ),
+    headerClickHandler: (s) =>
+      s.statements(toggleColumnSort, triggerQueryRefresh()),
     queryGeneration: {
       expr: virtual.expr(...virtual.fields.map((f) => `record.${ident(f)}`)),
       sqlName: virtual.name,

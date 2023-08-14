@@ -350,11 +350,11 @@ app.ui.addDashboardGridPage((page) =>
     })
 );
 
-// datagridPage({
-//   table: "customer",
-//   viewButton: true,
-//   toolbar: { add: { type: "dialog" } },
-// });
+ui.addDatagridPage({
+  table: "customer",
+  viewButton: true,
+  toolbar: { add: { type: "dialog" } },
+});
 
 ui.addRecordGridPage("customer", (page) => {
   page
@@ -382,13 +382,13 @@ ui.addRecordGridPage("customer", (page) => {
     .createUpdatePage();
 });
 
-// simpleDatagridPage({
-//   table: "album",
-//   toolbar: {
-//     add: { type: "dialog" },
-//   },
-//   viewButton: true,
-// });
+ui.addSimpleDatagridPage({
+  table: "album",
+  toolbar: {
+    add: { type: "dialog" },
+  },
+  viewButton: true,
+});
 
 ui.addRecordGridPage("album", (page) => {
   page
@@ -405,13 +405,13 @@ ui.addRecordGridPage("album", (page) => {
     .createUpdatePage();
 });
 
-// simpleDatagridPage({
-//   table: "artist",
-//   toolbar: {
-//     add: { type: "dialog" },
-//   },
-//   viewButton: true,
-// });
+ui.addSimpleDatagridPage({
+  table: "artist",
+  toolbar: {
+    add: { type: "dialog" },
+  },
+  viewButton: true,
+});
 
 ui.addRecordGridPage("artist", (page) => {
   page
@@ -434,20 +434,20 @@ ui.addRecordGridPage("artist", (page) => {
     .createUpdatePage();
 });
 
-// simpleDatagridPage({
-//   table: "genre",
-//   toolbar: {
-//     add: { type: "dialog" },
-//   },
-// });
+ui.addSimpleDatagridPage({
+  table: "genre",
+  toolbar: {
+    add: { type: "dialog" },
+  },
+});
 
-// simpleDatagridPage({
-//   table: "playlist",
-//   toolbar: {
-//     add: { type: "dialog" },
-//   },
-//   viewButton: true,
-// });
+ui.addSimpleDatagridPage({
+  table: "playlist",
+  toolbar: {
+    add: { type: "dialog" },
+  },
+  viewButton: true,
+});
 
 ui.addRecordGridPage("playlist", (page) => {
   page
@@ -464,11 +464,11 @@ ui.addRecordGridPage("playlist", (page) => {
     .createUpdatePage();
 });
 
-// datagridPage({
-//   table: "track",
-//   viewButton: true,
-//   toolbar: { add: { type: "dialog" } },
-// });
+ui.addDatagridPage({
+  table: "track",
+  viewButton: true,
+  toolbar: { add: { type: "dialog" } },
+});
 
 ui.addRecordGridPage("track", (page) => {
   page
@@ -494,11 +494,11 @@ ui.addRecordGridPage("track", (page) => {
     .createUpdatePage();
 });
 
-// datagridPage({
-//   table: "invoice",
-//   viewButton: true,
-//   toolbar: { add: { type: "dialog" } },
-// });
+ui.addDatagridPage({
+  table: "invoice",
+  viewButton: true,
+  toolbar: { add: { type: "dialog" } },
+});
 
 ui.addRecordGridPage("invoice", (page) => {
   page

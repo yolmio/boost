@@ -1,41 +1,4 @@
-import { navbarShell } from "@yolm/boost/shells/navbar";
-import {
-  addEnum,
-  addScalarFunction,
-  addTable,
-  addTableFromCatalog,
-} from "@yolm/boost/appHelpers";
-import {
-  addUsers,
-  if_,
-  modify,
-  navigate,
-  removeUsers,
-  returnExpr,
-  scalar,
-  setScalar,
-} from "@yolm/boost/procHelpers";
-import { dbManagementPage } from "@yolm/boost/pages/dbManagement";
-import { datagridPage } from "@yolm/boost/pages/datagrid";
-import { simpleDatagridPage } from "@yolm/boost/pages/simpleDatagrid";
-import { recordGridPage } from "@yolm/boost/pages/recordGrid";
-import { dashboardGridPage } from "@yolm/boost/pages/dashboardGrid";
-import { insertFormPage } from "@yolm/boost/pages/insertForm";
-import { updateFormPage } from "@yolm/boost/pages/updateForm";
-import { button } from "@yolm/boost/components/button";
-import { multiCardInsertPage } from "@yolm/boost/pages/multiCardInsert";
-import { materialIcon } from "@yolm/boost/components/materialIcon";
-import { app, setTheme } from "@yolm/boost/singleton";
-import { element } from "@yolm/boost/nodeHelpers";
-import {
-  ReportParameter,
-  SimpleReportsPageBuilder,
-} from "@yolm/boost/pages/simpleReportPage";
-import { ServiceProcStatement } from "@yolm/boost/yom";
-import { colors } from "@yolm/boost/colors";
-import { colorChannel } from "@yolm/boost/colorManipulator";
-
-import { app, nodes, statements, utils, components } from "@yolm/boost";
+import { app, components } from "@yolm/boost";
 
 const { button } = components;
 
@@ -90,7 +53,7 @@ const primaryDarkPalette = {
   900: "#05112E",
 };
 
-setTheme({
+app.setTheme({
   fontFamily: {
     body: "Arimo, sans-serif",
   },
