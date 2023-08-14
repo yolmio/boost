@@ -13,20 +13,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - uses: oven-sh/setup-bun@v1
+      # Setup Node.js environment
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          bun-version: latest
+          registry-url: https://registry.npmjs.org/
+          node-version: "18"
+      # Install dependencies
+      - run: npm ci
 
-      - run: bun i
-
-      - run: bun run build
+      # Compile Typescript
+      - run: npm run build
 
       # Configure Git
       - name: Git configuration
         run: |
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --global user.name "GitHub Actions"
-
       # Bump package version
       # Use tag latest
       - name: Bump release version
@@ -62,7 +65,6 @@ jobs:
           git add "CHANGELOG.md"
           git commit -m "chore: release ${{ env.NEW_VERSION }}"
           git tag ${{ env.NEW_VERSION }}
-
       # Publish version to public repository
       - name: Publish
         run: npm publish --verbose --access public --tag ${{ env.RELEASE_TAG }}
@@ -75,7 +77,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git push origin && git push --tags
-
       # Read version changelog
       - id: get-changelog
         name: Get version changelog
