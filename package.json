@@ -5,7 +5,8 @@
   "license": "MIT",
   "files": [
     "dist/**",
-    "material-icons/**"
+    "material-icons/**",
+    "scripts/**"
   ],
   "scripts": {
     "build": "esbuild src/index.ts --bundle --outdir=dist --format=esm --platform=node --minify --sourcemap",
