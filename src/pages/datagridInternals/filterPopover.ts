@@ -1120,8 +1120,8 @@ export function filterPopover(columns: SuperGridColumn[], dts: SuperGridDts) {
             }),
             nodes.if({
               expr: `root_filter_term.is_any is null`,
-              then: rootGroup,
-              else: columnFilter(`root_filter_term`, columns, dts),
+              then: columnFilter(`root_filter_term`, columns, dts),
+              else: rootGroup,
             }),
           ]),
         }),
