@@ -225,11 +225,9 @@ export function generateYom(): yom.Model {
   <link rel="apple-touch-icon" sizes="180x180" href="/global_assets/logo/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/global_assets/logo/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/global_assets/logo/favicon-16x16.png">
-  <link rel="manifest" href="/global_assets/logo/site.webmanifest">
   <link rel="mask-icon" href="/global_assets/logo/safari-pinned-tab.svg" color="#5a35a3">
   <link rel="shortcut icon" href="/global_assets/logo/favicon.ico">
   <meta name="msapplication-TileColor" content="#00aba9">
-  <meta name="msapplication-config" content="/global_assets/logo/browserconfig.xml">
   <meta name="theme-color" content="#ffffff">`;
       break;
     case "App":
@@ -237,11 +235,9 @@ export function generateYom(): yom.Model {
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/logo/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/logo/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/assets/logo/favicon-16x16.png">
-  <link rel="manifest" href="/assets/logo/site.webmanifest">
   <link rel="mask-icon" href="/assets/logo/safari-pinned-tab.svg" color="${app.ui.webAppConfig.logoGeneration.safariPinnedTabColor}">
   <link rel="shortcut icon" href="/assets/logo/favicon.ico">
   <meta name="msapplication-TileColor" content="${app.ui.webAppConfig.logoGeneration.msTileColor}">
-  <meta name="msapplication-config" content="/assets/logo/browserconfig.xml">
   <meta name="theme-color" content="${app.ui.webAppConfig.logoGeneration.themeColor}">`;
       break;
     case "Account":
@@ -249,11 +245,9 @@ export function generateYom(): yom.Model {
   <link rel="apple-touch-icon" sizes="180x180" href="/account_assets/logo/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/account_assets/logo/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/account_assets/logo/favicon-16x16.png">
-  <link rel="manifest" href="/account_assets/logo/site.webmanifest">
   <link rel="mask-icon" href="/account_assets/logo/safari-pinned-tab.svg" color="${app.ui.webAppConfig.logoGeneration.safariPinnedTabColor}">
   <link rel="shortcut icon" href="/account_assets/logo/favicon.ico">
   <meta name="msapplication-TileColor" content="${app.ui.webAppConfig.logoGeneration.msTileColor}">
-  <meta name="msapplication-config" content="/account_assets/logo/browserconfig.xml">
   <meta name="theme-color" content="${app.ui.webAppConfig.logoGeneration.themeColor}">`;
       break;
     case "Custom":

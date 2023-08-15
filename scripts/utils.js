@@ -89,7 +89,6 @@ export function runScript(name) {
     stdio: "inherit",
     env: {
       ...process.env,
-      RUST_MIN_STACK: "10000000",
       RUST_BACKTRACE: "1",
     },
   });

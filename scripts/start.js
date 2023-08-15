@@ -73,7 +73,6 @@ try {
     stdio: "inherit",
     env: {
       ...process.env,
-      RUST_MIN_STACK: "10000000",
       RUST_BACKTRACE: "1",
       YOLM_DEV_SERVER_DELAY: process.env.YOLM_DEV_SERVER_DELAY ?? "0",
     },
