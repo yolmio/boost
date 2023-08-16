@@ -39,8 +39,19 @@ import { addMigrationScript, MigrationScriptOpts } from "./migrate";
  * This is where everything about the app is configured, the database, the ui, the api, everything.
  */
 export class App {
+  /**
+   * The name of the application it will show up at: yolm.app/{YOUR_ACCOUNT_NAME}/{APP_NAME}
+   *
+   * It needs to be unique within an account
+   */
   name = "please-rename";
+  /**
+   * The title of the html document for this application
+   */
   title = "please-rename";
+  /*
+   * Used in displaying the name of this app to the user (not in the url)
+   */
   displayName = "Please Rename";
   theme: Theme = createTheme();
   displayNameConfig: DisplayNameConfig = {

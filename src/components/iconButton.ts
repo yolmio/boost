@@ -11,7 +11,7 @@ export interface IconButtonOpts
     SingleElementComponentOpts {
   /** expression for if the button is disabled */
   disabled?: string;
-  /** expression for href, will make button into <a> tag and add this prop */
+  /** expression for href, will make button into an anchor tag and add this prop */
   href?: string;
 
   children: Node;

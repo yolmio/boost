@@ -1,11 +1,10 @@
 {
-  "name": "consulting",
-  "version": "0.0.0",
+  "name": "hello_world",
+  "version": "0.1",
   "type": "module",
   "license": "MIT",
   "dependencies": {
-    "@faker-js/faker": "^8.0.2",
-    "@yolm/boost": "0.1"
+    "@yolm/boost": "0.2"
   },
   "devDependencies": {
     "tsx": "^3.12.0"

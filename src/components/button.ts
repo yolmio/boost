@@ -25,7 +25,7 @@ export interface ButtonOpts
   disabled?: yom.SqlExpression;
   /** expression for if the button shouhld be put into a loading state */
   loading?: yom.SqlExpression;
-  /** expression for href, will make button into <a> tag and add this prop */
+  /** expression for href, will make button into anchor tag and add this prop */
   href?: yom.SqlExpression;
 
   startDecorator?: Node;

@@ -844,6 +844,15 @@ ui.addRecordGridPage("customer", (page) => {
         gridColumnSpan: 12,
         lg: { gridColumnSpan: 4 },
       },
+    })
+    .simpleLinkRelationCard({
+      table: "order",
+      displayValues: ["order_date", "shipped_date"],
+
+      styles: {
+        gridColumnSpan: 12,
+        lg: { gridColumnSpan: 6 },
+      },
     });
 });
 
