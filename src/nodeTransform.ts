@@ -618,6 +618,7 @@ export function transformNode(
   let transformed: yom.Node;
   switch (node.t) {
     case "EventHandlers":
+    case "Recurse":
       transformed = node;
       break;
     case "Portal":
@@ -627,6 +628,7 @@ export function transformNode(
     case "Mode":
     case "Each":
     case "SourceMap":
+    case "Recursive":
       transformed = {
         ...node,
         children: transformNode(node.children, styleToClass),

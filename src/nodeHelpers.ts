@@ -183,6 +183,21 @@ function pieChart(opts: Omit<ui.PieChartNode, "t">): ui.PieChartNode {
   return { t: "PieChart", ...opts };
 }
 
+function recursive(props: Omit<ui.RecursiveNode, "t">): ui.RecursiveNode {
+  return { t: "Recursive", ...props };
+}
+
+function recurse(props: Omit<ui.RecurseNode, "t">): ui.RecurseNode;
+function recurse(where: yom.SqlExpression): ui.RecurseNode;
+function recurse(
+  props: Omit<ui.RecurseNode, "t"> | yom.SqlExpression
+): ui.RecurseNode {
+  if (typeof props === "string") {
+    return { t: "Recurse", where: props, recordName: "recurse_record" };
+  }
+  return { t: "Recurse", ...props };
+}
+
 export const nodes = {
   each,
   state,
@@ -200,4 +215,6 @@ export const nodes = {
   lineChart,
   barChart,
   pieChart,
+  recurse,
+  recursive,
 };

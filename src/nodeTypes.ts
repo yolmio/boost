@@ -19,9 +19,17 @@ export type Node =
   | PieChartNode
   | DataGridNode
   | SourceMapNode
-  | yom.EventHandlersNode;
+  | RecursiveNode
+  | RecurseNode
+  | EventHandlersNode;
+
+export type RecurseNode = yom.RecurseNode;
+export type EventHandlersNode = yom.EventHandlersNode;
 
 export type EachNode = Omit<yom.EachNode, "children"> & { children: Node };
+export type RecursiveNode = Omit<yom.RecursiveNode, "children"> & {
+  children: Node;
+};
 export type StateNode = Omit<yom.StateNode, "children"> & { children: Node };
 export type ModeNode = Omit<yom.ModeNode, "children"> & { children: Node };
 export type RouteNode = Omit<yom.RouteNode, "children"> & { children: Node };

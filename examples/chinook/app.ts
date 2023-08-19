@@ -9,6 +9,25 @@ immutable datagrid based off current user
 filter/virtual fields
 Different pages/views for different users
 
+nodes.recursive({
+  table: "filter_term",
+  record_name: "filter_term_record",
+  filter: "filter_term.id is null",
+  key: "id",
+  children: [
+    nodes.if({
+      condition: `filter_term.is_any is null`,
+      then: nodes.element("div", {
+        children: nodes.recurse({
+          filter: `filter_term_record.id = filter_term.group`
+        })
+      }),
+      else: columnFilterStuff()
+    })
+  ]
+
+})
+
 */
 
 app.name = "chinook";
@@ -355,6 +374,25 @@ ui.addDatagridPage({
   viewButton: true,
   toolbar: { add: { type: "dialog" } },
 });
+
+// ui.addDatagridPage("customer", (page) => {
+//   page
+//     .viewButton()
+//     .extraServiceState((s) => s.scalar("is_cool", "(select true from db.user)"))
+//     .toolbar()
+//     .addButton()
+//     .fieldOrder(["company", "email", "phone", "fax", "support_rep"])
+//     .fieldOverride("company", {
+//       immutable: "is_cool",
+//     })
+//     .addColumn({
+//       header: "chicken",
+//       cell: (row) =>
+//         components.button({
+//           on: { click: page.doEdit({}) },
+//         }),
+//     });
+// });
 
 ui.addRecordGridPage("customer", (page) => {
   page

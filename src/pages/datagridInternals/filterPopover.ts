@@ -22,6 +22,7 @@ import { styles as sharedStyles } from "./styles";
 import { getUniqueUiId } from "../../components/utils";
 import { SuperGridColumn, SuperGridDts } from "./styledDatagrid";
 import { DomStatements, DomStatementsOrFn } from "../../statements";
+import { lazy } from "../../utils/memoize";
 
 const styles = createStyles({
   checkboxWrapper: {
@@ -57,17 +58,7 @@ const styles = createStyles({
   popoverMenu: {
     width: 200,
   },
-  leafGroup: {
-    backgroundColor: "neutral-200",
-    dark: { backgroundColor: "neutral-600" },
-    display: "flex",
-    flexDirection: "column",
-    borderRadius: "xs",
-    px: 1.5,
-    pb: 1,
-    gap: 1,
-  },
-  rootGroup: {
+  filterGroup: {
     backgroundColor: "neutral-100",
     dark: { backgroundColor: "neutral-700" },
     display: "flex",
@@ -76,6 +67,10 @@ const styles = createStyles({
     px: 1.5,
     pb: 1,
     gap: 1,
+    "&.leaf": {
+      backgroundColor: "neutral-200",
+      dark: { backgroundColor: "neutral-600" },
+    },
   },
   termsWrapper: {
     py: 1,
@@ -759,7 +754,7 @@ function columnFilter(
       on: {
         click: (s) =>
           s
-            .modify(`delete from ui.filter_term where id = ${filterTerm}.id`)
+            .modify(`delete from filter_term_record`)
             .statements(triggerQueryRefresh()),
       },
     }),
@@ -917,70 +912,45 @@ function tableInput(filterTerm: string, columns: SuperGridColumn[]) {
   );
 }
 
-function groupHeader(filterTerm: string, addButton: Node) {
-  return nodes.element("div", {
-    styles: styles.groupHeaderRoot,
-    children: [
-      nodes.element("p", {
-        styles: styles.groupHeaderText,
-        children: `case when ${filterTerm}.is_any then 'Any' else 'All' end || ' of the following are true...'`,
-      }),
-      nodes.element("div", { styles: flexGrowStyles }),
-      addButton,
-      iconButton({
-        variant: "plain",
-        color: "neutral",
-        size: "sm",
-        children: materialIcon("Delete"),
-        on: {
-          click: (s) =>
-            s
-              .modify(`delete from ui.filter_term where id = ${filterTerm}.id`)
-              .statements(triggerQueryRefresh()),
-        },
-      }),
-    ],
-  });
-}
+const groupBaseId = getUniqueUiId();
 
-function termWrapper(children: Node) {
-  return nodes.element("div", {
-    styles: styles.termWrapper,
-    children,
-  });
-}
-
-function isAnySelector({
-  isAny,
-  setIsAny,
-  iterIdx,
-}: {
-  isAny: string;
-  setIsAny: (v: string) => DomStatementsOrFn;
-  iterIdx: string;
-}) {
+const isAnySelector = lazy(() => {
+  const isAny = `case
+    when filter_term_record.recursion_depth = 0
+      then ui.root_filter_is_any
+    else (select is_any from filter_term where id = filter_term_record.group) end`;
   return nodes.element("div", {
     styles: styles.isAnySelectorRoot,
     children: nodes.switch(
       {
-        condition: `${iterIdx} = 0`,
+        condition: `filter_term_record.iteration_index = 0`,
         node: nodes.element("span", {
           styles: styles.isAnyText,
           children: "'Where'",
         }),
       },
       {
-        condition: `${iterIdx} = 1`,
+        condition: `filter_term_record.iteration_index = 1`,
         node: select({
           variant: "outlined",
           color: "neutral",
           size: "sm",
           on: {
             input: (s) =>
-              s.statements(
-                setIsAny(`target_value= 'true'`),
-                triggerQueryRefresh()
-              ),
+              s
+                .if({
+                  condition: `filter_term_record.recursion_depth = 0`,
+                  then: (s) =>
+                    s.setScalar(
+                      `ui.root_filter_is_any`,
+                      `target_value= 'true'`
+                    ),
+                  else: (s) =>
+                    s.modify(
+                      `update filter_term set is_any = target_value= 'true' where id = filter_term_record.group`
+                    ),
+                })
+                .statements(triggerQueryRefresh()),
           },
           slots: { select: { props: { value: isAny } } },
           children: [
@@ -1004,126 +974,115 @@ function isAnySelector({
       }
     ),
   });
-}
-
-const groupBaseId = getUniqueUiId();
+});
 
 export function filterPopover(columns: SuperGridColumn[], dts: SuperGridDts) {
-  const rootGroupHeader = groupHeader(
-    "root_filter_term",
-    popoverMenu({
-      menuListOpts: {
-        styles: styles.popoverMenu,
-      },
-      id: `${stringLiteral(groupBaseId)} || '-' || root_filter_term.id`,
-      button: ({ buttonProps, onButtonClick }) =>
-        iconButton({
-          variant: "plain",
-          color: "neutral",
-          size: "sm",
-          props: buttonProps,
-          children: materialIcon("Add"),
-          on: { click: onButtonClick },
-        }),
-      items: [
-        {
-          onClick: insertFilter(columns, `root_filter_term.id`),
-          children: `'Add condition'`,
-        },
-        {
-          onClick: insertFilterGroup(columns, `root_filter_term.id`),
-          children: `'Add condition group'`,
-        },
-      ],
-    })
-  );
-  const leafGroupHeader = groupHeader(
-    `sub_filter_term`,
-    iconButton({
-      variant: "plain",
-      color: "neutral",
-      size: "sm",
-      children: materialIcon("Add"),
-      on: {
-        click: insertFilter(columns, `sub_filter_term.id`),
-      },
-    })
-  );
-  const leafGroup = nodes.element("div", {
-    styles: styles.leafGroup,
-    children: [
-      leafGroupHeader,
-      nodes.each({
-        table: "filter_term",
-        where: "group = sub_filter_term.id",
-        key: "id",
-        recordName: "leaf_filter_term",
-        orderBy: "ordering",
-        children: termWrapper([
-          isAnySelector({
-            isAny: `sub_filter_term.is_any`,
-            iterIdx: `leaf_filter_term.iteration_index`,
-            setIsAny: (e) => (s) =>
-              s.modify(
-                `update ui.filter_term set is_any = ${e} where id = sub_filter_term.id`
-              ),
-          }),
-          columnFilter(`leaf_filter_term`, columns, dts),
-        ]),
-      }),
-    ],
-  });
-  const rootGroup = nodes.element("div", {
-    styles: styles.rootGroup,
-    children: [
-      rootGroupHeader,
-      nodes.each({
-        table: "filter_term",
-        where: "group = root_filter_term.id",
-        key: "id",
-        recordName: "sub_filter_term",
-        orderBy: "ordering",
-        children: termWrapper([
-          isAnySelector({
-            isAny: `root_filter_term.is_any`,
-            iterIdx: `sub_filter_term.iteration_index`,
-            setIsAny: (e) => (s) =>
-              s.modify(
-                `update ui.filter_term set is_any = ${e} where id = root_filter_term.id`
-              ),
-          }),
-          nodes.if({
-            expr: `sub_filter_term.is_any is not null`,
-            then: leafGroup,
-            else: columnFilter(`sub_filter_term`, columns, dts),
-          }),
-        ]),
-      }),
-    ],
-  });
   return [
     nodes.if({
       expr: `exists (select 1 from ui.filter_term)`,
-      then: nodes.element("div", {
-        styles: styles.termsWrapper,
-        children: nodes.each({
-          table: "filter_term",
-          where: "group is null",
-          key: "id",
-          recordName: "root_filter_term",
-          orderBy: "ordering",
-          children: termWrapper([
-            isAnySelector({
-              isAny: `ui.root_filter_is_any`,
-              iterIdx: `root_filter_term.iteration_index`,
-              setIsAny: (v) => (s) => s.setScalar(`ui.root_filter_is_any`, v),
-            }),
+      then: nodes.recursive({
+        table: "filter_term",
+        where: "group is null",
+        key: "id",
+        recordName: "filter_term_record",
+        orderBy: "ordering",
+        children: nodes.element("div", {
+          styles: styles.termWrapper,
+          children: [
+            isAnySelector(),
             nodes.if({
-              expr: `root_filter_term.is_any is null`,
-              then: columnFilter(`root_filter_term`, columns, dts),
-              else: rootGroup,
+              expr: `filter_term_record.is_any is null`,
+              then: columnFilter(`filter_term_record`, columns, dts),
+              else: nodes.element("div", {
+                styles: styles.filterGroup,
+                dynamicClasses: [
+                  {
+                    condition: `filter_term_record.recursion_depth = 1`,
+                    classes: "leaf",
+                  },
+                ],
+                children: [
+                  nodes.element("div", {
+                    styles: styles.groupHeaderRoot,
+                    children: [
+                      nodes.element("p", {
+                        styles: styles.groupHeaderText,
+                        children: `case when filter_term_record.is_any then 'Any' else 'All' end || ' of the following are true...'`,
+                      }),
+                      nodes.element("div", { styles: flexGrowStyles }),
+                      nodes.if({
+                        expr: `filter_term_record.recursion_depth = 0`,
+                        then: popoverMenu({
+                          menuListOpts: {
+                            styles: styles.popoverMenu,
+                          },
+                          id: `${stringLiteral(
+                            groupBaseId
+                          )} || '-' || filter_term_record.id`,
+                          button: ({ buttonProps, onButtonClick }) =>
+                            iconButton({
+                              variant: "plain",
+                              color: "neutral",
+                              size: "sm",
+                              props: buttonProps,
+                              children: materialIcon("Add"),
+                              on: { click: onButtonClick },
+                            }),
+                          items: [
+                            {
+                              onClick: insertFilter(
+                                columns,
+                                `filter_term_record.id`
+                              ),
+                              children: `'Add condition'`,
+                            },
+                            {
+                              onClick: insertFilterGroup(
+                                columns,
+                                `filter_term_record.id`
+                              ),
+                              children: `'Add condition group'`,
+                            },
+                          ],
+                        }),
+                        else: iconButton({
+                          variant: "plain",
+                          color: "neutral",
+                          size: "sm",
+                          children: materialIcon("Add"),
+                          on: {
+                            click: insertFilter(
+                              columns,
+                              `filter_term_record.id`
+                            ),
+                          },
+                        }),
+                      }),
+                      iconButton({
+                        variant: "plain",
+                        color: "neutral",
+                        size: "sm",
+                        children: materialIcon("Delete"),
+                        on: {
+                          click: (s) =>
+                            s
+                              .table(
+                                "all_filters",
+                                "select id from filter_term where group = filter_term_record.id union select filter_term_record.id"
+                              )
+                              .modify(
+                                `delete from filter_term where id in (select id from all_filters) or group in (select id from all_filters)`
+                              )
+                              .statements(triggerQueryRefresh()),
+                        },
+                      }),
+                    ],
+                  }),
+                  nodes.recurse("recurse_record.group = filter_term_record.id"),
+                ],
+              }),
             }),
-          ]),
+          ],
         }),
       }),
       else: nodes.element("p", {

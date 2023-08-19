@@ -1487,7 +1487,9 @@ export type Node =
   | PieChartNode
   | DataGridNode
   | EventHandlersNode
-  | SourceMapNode;
+  | SourceMapNode
+  | RecursiveNode
+  | RecurseNode;
 
 export interface SourceMapNode {
   t: "SourceMap";
@@ -1503,6 +1505,22 @@ export interface EachNode {
   orderBy?: string;
   key?: SqlExpression;
   children: Node;
+}
+
+export interface RecursiveNode {
+  t: "Recursive";
+  table: string;
+  recordName: string;
+  where?: SqlExpression;
+  orderBy?: string;
+  key?: SqlExpression;
+  children: Node;
+}
+
+export interface RecurseNode {
+  t: "Recurse";
+  where: SqlExpression;
+  recordName: string;
 }
 
 /**
