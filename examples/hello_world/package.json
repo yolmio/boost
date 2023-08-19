@@ -4,7 +4,7 @@
   "type": "module",
   "license": "MIT",
   "dependencies": {
-    "@yolm/boost": "0.1"
+    "@yolm/boost": "0.2.x"
   },
   "devDependencies": {
     "tsx": "^3.12.0"
