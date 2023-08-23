@@ -4,12 +4,8 @@ import { Table } from "../app";
 import { nodes } from "../nodeHelpers";
 import { app } from "../app";
 import { upcaseFirst } from "../utils/inflectors";
-import { ident, stringLiteral } from "../utils/sqlHelpers";
-import { getTableBaseUrl } from "../utils/url";
-import {
-  columnFromField,
-  columnFromVirtual,
-} from "./datagridInternals/fromModel";
+import { stringLiteral } from "../utils/sqlHelpers";
+import { columnFromField } from "./datagridInternals/fromModel";
 import {
   columnPopover,
   styledDatagrid,
@@ -19,43 +15,23 @@ import {
 import { styles as sharedStyles } from "./datagridInternals/styles";
 import { checkbox } from "../components/checkbox";
 import { DefaultView } from "./datagridInternals/datagridBase";
-import { resizeableSeperator } from "./datagridInternals/shared";
-import { FieldEditProcConfig } from "./datagridInternals/editHelper";
-import { BasicStatements, StateStatements } from "../statements";
-
-export interface ToolbarOpts {
-  views?: boolean;
-  hideColumns?: boolean;
-  filter?: boolean;
-  sort?: boolean;
-  delete?: boolean;
-  export?: boolean;
-  search?: boolean | { matchConfig: string };
-  add?:
-    | "dialog"
-    | "href"
-    | { type: "dialog"; opts?: Partial<InsertDialogOpts> }
-    | { type: "href"; href: string };
-}
-
-/** All options for the datagrid page */
-export interface DatagridPageOpts {
-  table: string;
-  datagridName?: string;
-  path?: string;
-  viewButton?: boolean | { getLink: (id: string) => string };
-  selectable?: boolean;
-  toolbar?: ToolbarOpts;
-  extraColumns?: SuperGridColumn[];
-  ignoreFields?: string[];
-  defaultView?: DefaultView;
-  fields?: FieldConfigs;
-}
+import {
+  DgStateHelpers,
+  FieldEditProcConfig,
+  resizeableSeperator,
+} from "./datagridInternals/shared";
+import {
+  BasicStatements,
+  StateStatements,
+  StateStatementsOrFn,
+} from "../statements";
+import * as yom from "../yom";
+import { Node } from "../nodeTypes";
 
 type FieldConfigs = Record<string, FieldConfig>;
 
 export interface FieldConfig extends FieldEditProcConfig {
-  immutable?: boolean;
+  immutable?: boolean | yom.SqlExpression;
   displayName?: string;
 }
 
@@ -68,7 +44,7 @@ function idColumn(
     .split("_")
     .map((v, i) => (i === 0 ? upcaseFirst(v) : v))
     .join(" ");
-  const sqlName = ident(tableModel.primaryKeyFieldName);
+  const sqlName = tableModel.primaryKeyIdent;
   const sortConfig = {
     ascNode: "'1 → 9'",
     descNode: "'9 → 1'",
@@ -77,26 +53,28 @@ function idColumn(
   };
   return {
     displayName: idDisplayName,
-    filter: { type: { type: "number" }, notNull: true },
+    filter: { type: "number", notNull: true },
     sort: sortConfig,
-    initialWidth: 150,
-    initiallyDisplaying: false,
-    header: [
-      nodes.element("span", {
-        styles: sharedStyles.headerText,
-        children: stringLiteral(idDisplayName),
-      }),
-      columnPopover(index, startFixedColumns, sortConfig),
-      resizeableSeperator({
-        minWidth: 50,
-        setWidth: (width) =>
-          new BasicStatements().modify(
-            `update ui.column set width = ${width} where id = ${index}`
-          ),
-        width: `(select width from ui.column where id = ${index})`,
-      }),
-    ],
-    cell: ({ value }) => value,
+    displayInfo: {
+      initialWidth: 150,
+      initiallyDisplaying: false,
+      header: (state) => [
+        nodes.element("span", {
+          styles: sharedStyles.headerText,
+          children: stringLiteral(idDisplayName),
+        }),
+        columnPopover(state, index, startFixedColumns, sortConfig),
+        resizeableSeperator({
+          minWidth: 50,
+          setWidth: (width) =>
+            new BasicStatements().modify(
+              `update ui.column set width = ${width} where id = ${index}`
+            ),
+          width: `(select width from ui.column where id = ${index})`,
+        }),
+      ],
+      cell: (cell) => cell.value,
+    },
     queryGeneration: {
       expr: sqlName,
       sqlName: tableModel.primaryKeyFieldName,
@@ -114,189 +92,365 @@ function toggleRowSelection(id: string) {
   });
 }
 
-function getColumns(
-  tableName: string,
-  selectable: boolean,
-  viewButtonUrl: ((id: string) => string) | undefined,
-  opts: DatagridPageOpts
-): SuperGridColumn[] {
-  const tableModel = app.db.tables[tableName];
-  const columns: SuperGridColumn[] = [];
-  if (selectable) {
-    columns.push({
-      initiallyDisplaying: true,
-      initialWidth: 36,
-      cell: () =>
-        checkbox({
-          variant: "outlined",
-          size: "sm",
-          checked: `selected_all or exists (select id from selected_row where id = cast(record.field_0 as bigint))`,
-          slots: { input: { props: { tabIndex: "-1" } } },
-          on: {
-            click: toggleRowSelection(`cast(record.field_0 as bigint)`),
-          },
-        }),
-      header: checkbox({
-        variant: "outlined",
-        size: "sm",
-        checked: `selected_all`,
-        slots: { input: { props: { tabIndex: "-1" } } },
-        on: {
-          click: (s) =>
-            s
-              .setScalar(`selected_all`, `not selected_all`)
-              .modify(`delete from selected_row`),
-        },
-      }),
-      keydownCellHandler: (s) =>
-        s.if(`event.key = 'Enter' or event.key = ' '`, (s) =>
-          s
-            .scalar(
-              `row_id`,
-              `(select field_0 from ui.dg_table limit 1 offset cell.row - 1)`
-            )
-            .statements(toggleRowSelection(`cast(row_id as bigint)`))
-        ),
-      keydownHeaderHandler: (s) =>
-        s.if(`event.key = 'Enter' or event.key = ' '`, (s) =>
-          s
-            .setScalar(`selected_all`, `not selected_all`)
-            .modify(`delete from selected_row`)
-        ),
-      viewStorageName: "dg_checkbox_col",
-    });
+export class DatagridToolbarBuilder {
+  #views = true;
+  #hideColumns = true;
+  #filter = true;
+  #sort = true;
+  #delete = false;
+  #export = false;
+  #add?:
+    | { type: "dialog"; opts?: Partial<InsertDialogOpts> }
+    | { type: "href"; href: string };
+
+  insertDialog(opts?: Partial<InsertDialogOpts>) {
+    this.#add = { type: "dialog", opts };
+    return this;
   }
-  if (viewButtonUrl) {
-    columns.push({
-      initialWidth: 76,
-      cell: () =>
-        button({
-          variant: "soft",
-          color: "primary",
-          size: "sm",
-          children: `'View'`,
-          href: viewButtonUrl(`record.field_0`),
-          props: { tabIndex: "-1" },
-        }),
-      header: `'View'`,
-      initiallyDisplaying: true,
-      viewStorageName: "dg_view_button_col",
-    });
+
+  insertPage(href: string) {
+    this.#add = { type: "href", href };
+    return this;
   }
-  const startFixedColumns = columns.length;
-  columns.push(idColumn(tableModel, columns.length, startFixedColumns));
-  let dynamicFieldCount = 1;
-  for (const field of Object.values(tableModel.fields)) {
-    if (opts.ignoreFields?.includes(field.name)) {
-      continue;
-    }
-    const fieldConfig = opts.fields?.[field.name];
-    const column = columnFromField({
-      table: tableModel.name,
-      field,
-      dynIndex: dynamicFieldCount,
-      columnIndex: columns.length,
-      startFixedColumns,
-      beforeEditTransaction: fieldConfig?.beforeEditTransaction,
-      beforeEdit: fieldConfig?.beforeEdit,
-      afterEditTransaction: fieldConfig?.afterEditTransaction,
-      afterEdit: fieldConfig?.afterEdit,
-      immutable: fieldConfig?.immutable,
-    });
-    if (column) {
-      columns.push(column);
-      dynamicFieldCount += 1;
-    }
+
+  views(views?: boolean) {
+    this.#views = views ?? true;
+    return this;
   }
-  for (const virtual of Object.values(tableModel.virtualFields)) {
-    columns.push(
-      columnFromVirtual(
-        tableModel.name,
-        virtual,
-        columns.length,
-        startFixedColumns
-      )
-    );
+
+  hideColumns(hideColumns?: boolean) {
+    this.#hideColumns = hideColumns ?? true;
+    return this;
   }
-  return columns;
+
+  filter(filter?: boolean) {
+    this.#filter = filter ?? true;
+    return this;
+  }
+
+  sort(sort?: boolean) {
+    this.#sort = sort ?? true;
+    return this;
+  }
+
+  delete(del?: boolean) {
+    this.#delete = del ?? true;
+    return this;
+  }
+
+  export(exp?: boolean) {
+    this.#export = exp ?? true;
+    return this;
+  }
+
+  _finish(): ToolbarConfig {
+    return {
+      views: this.#views,
+      hideColumns: this.#hideColumns,
+      filter: this.#filter,
+      sort: this.#sort,
+      delete: this.#delete,
+      export: this.#export,
+      add: this.#add,
+    };
+  }
 }
 
-export function datagridPage(opts: DatagridPageOpts) {
-  const tableModel = app.db.tables[opts.table];
-  const path = opts.path ?? getTableBaseUrl(opts.table);
-  const selectable = opts.selectable ?? true;
-  let getViewButtonUrl: ((id: string) => string) | undefined;
-  if (opts.viewButton === true) {
-    if (!tableModel.getHrefToRecord) {
-      throw new Error(
-        "viewButton is true but table has no getHrefToRecord, on datagrid for table " +
-          opts.table
-      );
-    }
-    getViewButtonUrl = tableModel.getHrefToRecord;
-  } else if (typeof opts.viewButton === "function") {
-    getViewButtonUrl = opts.viewButton;
-  }
-  const columns = getColumns(opts.table, selectable, getViewButtonUrl, opts);
-  if (opts.extraColumns) {
-    columns.push(...opts.extraColumns);
-  }
-  const toolbarConfig: ToolbarConfig = {
-    views: opts.toolbar?.views ?? true,
-    hideColumns: opts.toolbar?.hideColumns ?? true,
-    filter: opts.toolbar?.filter ?? true,
-    sort: opts.toolbar?.sort ?? true,
-    delete: opts.toolbar?.delete ?? false,
-    export: opts.toolbar?.export ?? false,
-  };
-  if (opts.toolbar?.search === true) {
-    toolbarConfig.search = { matchConfig: `${opts.table}_name` };
-  } else if (opts.toolbar?.search) {
-    toolbarConfig.search = opts.toolbar.search;
-  }
-  if (opts.toolbar?.add === "dialog") {
-    toolbarConfig.add = {
-      type: "dialog",
-      opts: {},
-    };
-  } else if (opts.toolbar?.add === "href") {
-    toolbarConfig.add = {
-      type: "href",
-      href: `/${path}/add`,
-    };
-  } else if (opts.toolbar?.add) {
-    toolbarConfig.add = opts.toolbar.add;
-  }
-  if (opts.defaultView) {
-    opts.defaultView = { ...opts.defaultView };
-    if (opts.defaultView.columnOrder) {
-      if (getViewButtonUrl) {
-        opts.defaultView.columnOrder.unshift("dg_view_button_col");
-      }
-      if (selectable) {
-        opts.defaultView.columnOrder.unshift("dg_checkbox_col");
-      }
+export class DatagridPageBuilder {
+  #table: Table;
+  #path?: string;
+  #datagridName?: string;
+  #viewButtonUrl?: (id: yom.SqlExpression) => yom.SqlExpression;
+  #selectable?: boolean;
+  #defaultView?: DefaultView;
+  #immutable?: boolean | yom.SqlExpression;
+  #ignoreFields?: string[];
+  #extraState?: StateStatementsOrFn;
+  #extraColumns: SuperGridColumn[] = [];
+  #fields: FieldConfigs = {};
+  #toolbarConfig?: ToolbarConfig;
+  #pageSize = 100;
+
+  constructor(table: string) {
+    this.#table = app.db.tables[table];
+    if (!this.#table) {
+      throw new Error(`No table ${table} found`);
     }
   }
-  const extraState = new StateStatements();
-  if (selectable) {
-    extraState.scalar(`selected_all`, `false`);
-    extraState.table(`selected_row`, [
-      { name: "id", type: { type: "BigInt" } },
-    ]);
+
+  pageSize(pageSize: number) {
+    this.#pageSize = pageSize;
+    return this;
   }
-  const content = styledDatagrid({
-    columns,
-    datagridName: opts.datagridName ?? opts.table,
-    idField: `field_0`,
-    pageSize: 100,
-    tableModel: tableModel,
-    toolbar: toolbarConfig,
-    extraState,
-    defaultView: opts.defaultView,
-  });
-  app.ui.pages.push({
-    path,
-    content,
-  });
+
+  datagridName(name: string) {
+    this.#datagridName = name;
+    return this;
+  }
+
+  path(path: string) {
+    this.#path = path;
+    return this;
+  }
+
+  viewButton(getLink?: (id: yom.SqlExpression) => yom.SqlExpression) {
+    if (!getLink) {
+      if (!this.#table.getHrefToRecord) {
+        throw new Error(
+          "viewButton is true but table has no getHrefToRecord, on datagrid for table " +
+            this.#table.name
+        );
+      }
+      this.#viewButtonUrl = (id) => this.#table.getHrefToRecord!(id);
+    } else {
+      this.#viewButtonUrl = getLink;
+    }
+    return this;
+  }
+
+  selectable() {
+    this.#selectable = true;
+    return this;
+  }
+
+  defaultView(view: DefaultView) {
+    this.#defaultView = view;
+    return this;
+  }
+
+  immutable(immutable?: boolean | yom.SqlExpression) {
+    this.#immutable = immutable ?? true;
+    return this;
+  }
+
+  ignoreFields(...fields: string[]) {
+    this.#ignoreFields = fields;
+    return this;
+  }
+
+  fieldConfig(field: string, config: FieldConfig) {
+    if (!this.#fields) {
+      this.#fields = {};
+    }
+    this.#fields[field] = config;
+    return this;
+  }
+
+  column(column: SuperGridColumn) {
+    this.#extraColumns.push(column);
+    return this;
+  }
+
+  customFilterColumn(column: {
+    storageName: string;
+    displayName: string;
+    expr: (
+      value1: yom.SqlExpression,
+      value2: yom.SqlExpression,
+      value3: yom.SqlExpression
+    ) => yom.SqlExpression;
+    node: (state: DgStateHelpers) => Node;
+  }) {
+    this.#extraColumns.push({
+      displayName: column.displayName,
+      viewStorageName: column.storageName,
+      filterExpr: column.expr,
+      filter: {
+        type: "custom",
+        node: column.node,
+      },
+    });
+    return this;
+  }
+
+  extraState(state: StateStatementsOrFn) {
+    this.#extraState = state;
+    return this;
+  }
+
+  toolbar(f: (t: DatagridToolbarBuilder) => DatagridToolbarBuilder) {
+    this.#toolbarConfig = f(new DatagridToolbarBuilder())._finish();
+    return this;
+  }
+
+  #getColumns() {
+    const columns: SuperGridColumn[] = [];
+    if (this.#selectable) {
+      columns.push({
+        displayInfo: {
+          initiallyDisplaying: true,
+          initialWidth: 36,
+          cell: () =>
+            checkbox({
+              variant: "outlined",
+              size: "sm",
+              checked: `selected_all or exists (select id from selected_row where id = cast(dg_record.field_0 as bigint))`,
+              slots: { input: { props: { tabIndex: "-1" } } },
+              on: {
+                click: toggleRowSelection(`cast(dg_record.field_0 as bigint)`),
+              },
+            }),
+          header: () =>
+            checkbox({
+              variant: "outlined",
+              size: "sm",
+              checked: `selected_all`,
+              slots: { input: { props: { tabIndex: "-1" } } },
+              on: {
+                click: (s) =>
+                  s
+                    .setScalar(`selected_all`, `not selected_all`)
+                    .modify(`delete from selected_row`),
+              },
+            }),
+        },
+        keydownCellHandler: (s) =>
+          s.if(`event.key = 'Enter' or event.key = ' '`, (s) =>
+            s
+              .scalar(
+                `row_id`,
+                `(select field_0 from ui.dg_table limit 1 offset cell.row - 1)`
+              )
+              .statements(toggleRowSelection(`cast(row_id as bigint)`))
+          ),
+        keydownHeaderHandler: (s) =>
+          s.if(`event.key = 'Enter' or event.key = ' '`, (s) =>
+            s
+              .setScalar(`selected_all`, `not selected_all`)
+              .modify(`delete from selected_row`)
+          ),
+        viewStorageName: "dg_checkbox_col",
+      });
+    }
+    if (this.#viewButtonUrl) {
+      const viewButtonUrl = this.#viewButtonUrl;
+      columns.push({
+        displayInfo: {
+          initialWidth: 76,
+          cell: () =>
+            button({
+              variant: "soft",
+              color: "primary",
+              size: "sm",
+              children: `'View'`,
+              href: viewButtonUrl(`dg_record.field_0`),
+              props: { tabIndex: "-1" },
+            }),
+          header: () => `'View'`,
+          initiallyDisplaying: true,
+        },
+        viewStorageName: "dg_view_button_col",
+      });
+    }
+    const startFixedColumns = columns.length;
+    columns.push(idColumn(this.#table, columns.length, startFixedColumns));
+    let dynamicFieldCount = 1;
+    for (const field of Object.values(this.#table.fields)) {
+      if (this.#ignoreFields?.includes(field.name)) {
+        continue;
+      }
+      const fieldConfig = this.#fields?.[field.name];
+      let immutable;
+      if (typeof fieldConfig?.immutable === "string") {
+        immutable = "field_" + field.name + "_is_immutable";
+      } else if (typeof fieldConfig?.immutable === "boolean") {
+        immutable = fieldConfig.immutable;
+      } else if (typeof this.#immutable === "string") {
+        immutable = "global_is_immutable";
+      } else {
+        immutable = this.#immutable;
+      }
+      const column = columnFromField({
+        table: this.#table.name,
+        field,
+        dynIndex: dynamicFieldCount,
+        columnIndex: columns.length,
+        startFixedColumns,
+        beforeEditTransaction: fieldConfig?.beforeEditTransaction,
+        beforeEdit: fieldConfig?.beforeEdit,
+        afterEditTransaction: fieldConfig?.afterEditTransaction,
+        afterEdit: fieldConfig?.afterEdit,
+        immutable,
+      });
+      if (column) {
+        columns.push(column);
+        dynamicFieldCount += 1;
+      }
+    }
+    // for (const virtual of Object.values(this.#table.virtualFields)) {
+    //   columns.push(
+    //     columnFromVirtual(
+    //       this.#table.name,
+    //       virtual,
+    //       columns.length,
+    //       startFixedColumns
+    //     )
+    //   );
+    // }
+    if (this.#extraColumns) {
+      columns.push(...this.#extraColumns);
+    }
+    return columns;
+  }
+
+  _finish() {
+    const extraState = new StateStatements();
+    if (this.#selectable) {
+      extraState.scalar(`selected_all`, `false`);
+      extraState.table(`selected_row`, [
+        { name: "id", type: { type: "BigInt" } },
+      ]);
+    }
+    if (typeof this.#immutable === "string") {
+      extraState.scalar(`global_is_immutable`, this.#immutable);
+    }
+    for (const field of Object.values(this.#table.fields)) {
+      const fieldConfig = this.#fields?.[field.name];
+      if (typeof fieldConfig?.immutable === "string") {
+        extraState.scalar(
+          `field_${field.name}_is_immutable`,
+          fieldConfig.immutable
+        );
+      }
+    }
+    extraState.statements(this.#extraState);
+    let defaultView;
+    if (this.#defaultView) {
+      defaultView = { ...this.#defaultView };
+      if (defaultView.columnOrder) {
+        if (this.#viewButtonUrl) {
+          defaultView.columnOrder.unshift("dg_view_button_col");
+        }
+        if (this.#selectable) {
+          defaultView.columnOrder.unshift("dg_checkbox_col");
+        }
+      }
+    }
+    const content = nodes.sourceMap(
+      `datagridPage(${this.#table.name})`,
+      styledDatagrid({
+        columns: this.#getColumns(),
+        datagridName: this.#datagridName ?? this.#table.name,
+        idField: `field_0`,
+        pageSize: this.#pageSize,
+        tableModel: this.#table,
+        toolbar: this.#toolbarConfig ?? new DatagridToolbarBuilder()._finish(),
+        extraState,
+        defaultView: this.#defaultView,
+      })
+    );
+    app.ui.pages.push({
+      path: this.#path ?? this.#table.baseUrl,
+      content,
+    });
+  }
+}
+
+export function datagridPage(
+  table: string,
+  f: (t: DatagridPageBuilder) => unknown
+) {
+  const builder = new DatagridPageBuilder(table);
+  f(builder);
+  builder._finish();
 }

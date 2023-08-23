@@ -22,18 +22,17 @@ import {
 import { nodes } from "../../nodeHelpers";
 import { createStyles, visuallyHiddenStyles } from "../../styleUtils";
 import { enumLikeDisplayName } from "../../utils/enumLike";
-import { stringLiteral } from "../../utils/sqlHelpers";
-import { FieldEditProcConfig, displayEditError, doEdit } from "./editHelper";
-import { triggerQueryRefresh } from "./shared";
-import { fieldEditorEventHandlers } from "./editHelper";
+import { parenWrap, stringLiteral } from "../../utils/sqlHelpers";
 import { button } from "../../components/button";
 import { materialIcon } from "../../components/materialIcon";
 import { imageDialog } from "../../components/imageDialog";
 import { getUploadStatements } from "../../utils/image";
-import { Cell, CellProps } from "./types";
+import { CellHelpers, CellNode, FieldEditProcConfig } from "./shared";
 import { styles as sharedStyles } from "./styles";
 import { iconButton } from "../../components/iconButton";
 import { DomStatements } from "../../statements";
+import * as yom from "../../yom";
+import { Node } from "../../nodeTypes";
 
 const styles = createStyles({
   select: {
@@ -96,25 +95,41 @@ const styles = createStyles({
   },
 });
 
-function foreignKeyCell(opts: BaseFieldCellOpts, field: ForeignKeyField): Cell {
+function andNotImmutable(
+  immutable: boolean | undefined | yom.SqlExpression,
+  expr: yom.SqlExpression
+) {
+  return typeof immutable === "string"
+    ? expr + " and not " + parenWrap(expr)
+    : expr;
+}
+
+function foreignKeyCell(
+  opts: BaseFieldCellOpts,
+  field: ForeignKeyField
+): CellNode {
   const toTable = app.db.tables[field.table];
   const nameExpr = toTable.recordDisplayName!.expr(
     ...toTable.recordDisplayName!.fields.map((f) => `r.${f}`)
   );
-  return (props) => {
-    if (opts.immutable) {
+  return (cell) => {
+    function wrapInState(children: Node) {
       return nodes.state({
-        watch: [`${props.value}`],
         procedure: (s) =>
           s.scalar(
             `text`,
-            `(select ${nameExpr} from db.${toTable.name} as r where id = try_cast(${props.value} as bigint))`
+            `(select ${nameExpr} from db.${toTable.name} as r where id = try_cast(${cell.value} as bigint))`
           ),
-        children: nodes.element("span", {
+        children,
+      });
+    }
+    if (opts.immutable === true) {
+      return wrapInState(
+        nodes.element("span", {
           styles: sharedStyles.ellipsisSpan,
           children: `text`,
-        }),
-      });
+        })
+      );
     }
     if (!toTable.searchConfig) {
       throw new Error(
@@ -127,7 +142,7 @@ function foreignKeyCell(opts: BaseFieldCellOpts, field: ForeignKeyField): Cell {
           "."
       );
     }
-    const shouldUseEditedText = `did_edit and ((edited_id is null and ${props.value} is null) or edited_id = try_cast(${props.value} as bigint))`;
+    const shouldUseEditedText = `did_edit and ((edited_id is null and ${cell.value} is null) or edited_id = try_cast(${cell.value} as bigint))`;
     const text = nodes.element("span", {
       styles: sharedStyles.ellipsisSpan,
       children: `case when ${shouldUseEditedText} then edited_text else text end`,
@@ -138,97 +153,80 @@ function foreignKeyCell(opts: BaseFieldCellOpts, field: ForeignKeyField): Cell {
           .scalar(`edited_text`, { type: "String", maxLength: 1000 })
           .scalar(`edited_id`, { type: "BigInt" })
           .scalar(`did_edit`, `false`),
-      children: nodes.state({
-        watch: [`${props.value}`],
-        procedure: (s) =>
-          s.scalar(
-            `text`,
-            `(select ${nameExpr} from db.${toTable.name} as r where id = try_cast(${props.value} as bigint))`
-          ),
-        children: [
-          field.notNull
-            ? text
-            : nodes.element("div", {
-                styles: styles.nullableForeignKeyWrapper,
-                children: [
-                  text,
-                  nodes.if(
-                    `text is not null`,
-                    iconButton({
-                      size: "sm",
-                      variant: "plain",
-                      color: "neutral",
-                      children: materialIcon("Close"),
-                      on: {
-                        click: {
-                          detachedFromNode: true,
-                          procedure: (s) =>
-                            s.scalar(`prev_id`, props.value).statements(
-                              props.setValue(`null`),
-                              doEdit({
-                                ...opts,
-                                dbValue: `null`,
-                                fieldName: field.name,
-                                recordId: props.recordId,
-                                resetValue: props.setValue(`prev_id`),
-                              })
-                            ),
-                        },
+      children: wrapInState([
+        field.notNull
+          ? text
+          : nodes.element("div", {
+              styles: styles.nullableForeignKeyWrapper,
+              children: [
+                text,
+                nodes.if(
+                  andNotImmutable(opts.immutable, `text is not null`),
+                  iconButton({
+                    size: "sm",
+                    variant: "plain",
+                    color: "neutral",
+                    children: materialIcon("Close"),
+                    on: {
+                      click: {
+                        detachedFromNode: true,
+                        procedure: (s) =>
+                          s.scalar(`prev_id`, cell.value).statements(
+                            cell.setValue(`null`),
+                            cell.updateFieldValueInDb({
+                              ...opts,
+                              dbValue: `null`,
+                              fieldName: field.name,
+                              resetValue: cell.setValue(`prev_id`),
+                            })
+                          ),
                       },
-                    })
-                  ),
-                ],
+                    },
+                  })
+                ),
+              ],
+            }),
+        nodes.if(
+          andNotImmutable(opts.immutable, cell.editing),
+          recordSelectDialog({
+            onSelect: (id, label) => (s) =>
+              s.if({
+                condition: `${cell.value} is null or ${id} != try_cast(${cell.value} as bigint)`,
+                then: (s) =>
+                  s
+                    .setScalar(`edited_id`, id)
+                    .setScalar(`edited_text`, label)
+                    .statements(
+                      cell.stopEditingAndFocus,
+                      cell.updateFieldValueInDb({
+                        ...opts,
+                        dbValue: id,
+                        fieldName: field.name,
+                        resetValue: new DomStatements(),
+                      })
+                    ),
+                else: cell.stopEditingAndFocus,
               }),
-          nodes.if(
-            props.editing,
-            recordSelectDialog({
-              onSelect: (id, label) => (s) =>
-                s.if({
-                  condition: `${props.value} is null or ${id} != try_cast(${props.value} as bigint)`,
-                  then: (s) =>
-                    s
-                      .setScalar(`edited_id`, id)
-                      .setScalar(`edited_text`, label)
-                      .modify(`update ui.editing_state set is_editing = false`)
-                      .modify(`update ui.focus_state set should_focus = true`)
-                      .statements(
-                        doEdit({
-                          ...opts,
-                          dbValue: id,
-                          fieldName: field.name,
-                          recordId: props.recordId,
-                          resetValue: new DomStatements(),
-                        })
-                      ),
-                  else: (s) =>
-                    s
-                      .modify(`update ui.editing_state set is_editing = false`)
-                      .modify(`update ui.focus_state set should_focus = true`),
-                }),
-              open: `true`,
-              onClose: (s) =>
-                s
-                  .modify(`update ui.editing_state set is_editing = false`)
-                  .modify(`update ui.focus_state set should_focus = true`),
-              table: toTable.name,
-            })
-          ),
-        ],
-      }),
+            open: `true`,
+            onClose: cell.stopEditingAndFocus,
+            table: toTable.name,
+          })
+        ),
+      ]),
     });
   };
 }
 
-function enumCell(opts: BaseFieldCellOpts, field: EnumField): Cell {
-  return (props) => {
+function enumCell(opts: BaseFieldCellOpts, field: EnumField): CellNode {
+  return (cell) => {
     const enumModel = app.enums[field.enum];
     const display = nodes.element("span", {
       styles: sharedStyles.ellipsisSpan,
       children: enumModel.getDisplayName!(
-        `try_cast(${props.value} as enums.${enumModel.name})`
+        `try_cast(${cell.value} as enums.${enumModel.name})`
       ),
     });
-    if (opts.immutable) {
+    if (opts.immutable === true) {
       return display;
     }
     const options = Object.values(enumModel.values).map((v) =>
@@ -245,27 +243,23 @@ function enumCell(opts: BaseFieldCellOpts, field: EnumField): Cell {
         })
       );
     }
-    const handlers = fieldEditorEventHandlers({
+    const handlers = cell.fieldEditorEventHandlers({
       ...opts,
       fieldName: field.name,
       dbValue: `ui.value`,
-      recordId: props.recordId,
-      value: props.value,
-      setValue: props.setValue,
       validUiValue: `true`,
       changedUiValue: opts.stringified
-        ? `case when ${props.value} is null then value is not null else value is null or try_cast(${props.value} as enums.${enumModel.name}) != value end`
-        : `case when ${props.value} is null then value is not null else value is null or ${props.value} != value end`,
+        ? `case when ${cell.value} is null then value is not null else value is null or try_cast(${cell.value} as enums.${enumModel.name}) != value end`
+        : `case when ${cell.value} is null then value is not null else value is null or ${cell.value} != value end`,
       newUiValue: opts.stringified ? `cast(value as string)` : `value`,
-      nextCol: props.nextCol,
     });
     return nodes.if({
-      expr: props.editing,
+      expr: andNotImmutable(opts.immutable, cell.editing),
       then: nodes.state({
         procedure: (s) =>
           s.scalar(
             `value`,
-            `try_cast(${props.value} as enums.${enumModel.name})`
+            `try_cast(${cell.value} as enums.${enumModel.name})`
           ),
         children: nodes.element("div", {
           styles: styles.selectWrapper,
@@ -295,31 +289,26 @@ function enumCell(opts: BaseFieldCellOpts, field: EnumField): Cell {
   };
 }
 
-function dateCell(opts: BaseFieldCellOpts, field: DateField): Cell {
-  return (props) => {
+function dateCell(opts: BaseFieldCellOpts, field: DateField): CellNode {
+  return (cell) => {
     const formatString = field.formatString ?? "%-d %b %Y";
     const dateValue = opts.stringified
-      ? `try_cast(${props.value} as date)`
-      : props.value;
+      ? `try_cast(${cell.value} as date)`
+      : cell.value;
     const display = nodes.element("span", {
       styles: sharedStyles.ellipsisSpan,
       children: `format.date(${dateValue}, ${stringLiteral(formatString)})`,
     });
-    if (opts.immutable) {
+    if (opts.immutable === true) {
       return display;
     }
-    const { value, recordId, setValue, nextCol } = props;
-    const handlers = fieldEditorEventHandlers({
+    const handlers = cell.fieldEditorEventHandlers({
       ...opts,
       fieldName: field.name,
       tableName: opts.tableName,
       dbValue: `value`,
-      recordId,
-      value,
-      setValue,
       validUiValue: field.notNull ? `value is not null` : `true`,
       changedUiValue: `case when ${dateValue} is null then value is not null else value is null or ${dateValue} != value end`,
-      nextCol,
     });
     const editor = nodes.state({
       procedure: (s) => s.scalar(`value`, dateValue),
@@ -334,40 +323,38 @@ function dateCell(opts: BaseFieldCellOpts, field: DateField): Cell {
       }),
     });
     return nodes.if({
-      expr: props.editing,
+      expr: andNotImmutable(opts.immutable, cell.editing),
       then: editor,
       else: display,
     });
   };
 }
 
-function timestampCell(opts: BaseFieldCellOpts, field: TimestampField): Cell {
-  return (props) => {
+function timestampCell(
+  opts: BaseFieldCellOpts,
+  field: TimestampField
+): CellNode {
+  return (cell) => {
     const formatString = field.formatString ?? "%-d %b %Y %l:%M%p";
     const timestampValue = opts.stringified
-      ? `try_cast(${props.value} as timestamp)`
-      : props.value;
+      ? `try_cast(${cell.value} as timestamp)`
+      : cell.value;
     const display = nodes.element("span", {
       styles: sharedStyles.ellipsisSpan,
       children: `format.date(${timestampValue}, ${stringLiteral(
         formatString
       )})`,
     });
-    if (opts.immutable) {
+    if (opts.immutable === true) {
       return display;
     }
-    const { value, recordId, setValue, nextCol } = props;
-    const handlers = fieldEditorEventHandlers({
+    const handlers = cell.fieldEditorEventHandlers({
       ...opts,
       fieldName: field.name,
       tableName: opts.tableName,
       dbValue: `value`,
-      recordId,
-      value,
-      setValue,
       validUiValue: field.notNull ? `value is not null` : `true`,
       changedUiValue: `case when ${timestampValue} is null then value is not null else value is null or ${timestampValue} != value end`,
-      nextCol,
     });
     const editor = nodes.state({
       procedure: (s) => s.scalar(`value`, timestampValue),
@@ -385,14 +372,18 @@ function timestampCell(opts: BaseFieldCellOpts, field: TimestampField): Cell {
         },
       }),
     });
-    return nodes.if({ expr: props.editing, then: editor, else: display });
+    return nodes.if({
+      expr: andNotImmutable(opts.immutable, cell.editing),
+      then: editor,
+      else: display,
+    });
   };
 }
 
 function numericField(
   opts: BaseFieldCellOpts,
   field: IntegerField | DecimalField | RealField | DoubleField
-): Cell {
+): CellNode {
   let typeName: string;
   switch (field.type) {
     case "TinyInt":
@@ -419,10 +410,10 @@ function numericField(
       typeName = "double";
       break;
   }
-  return (props) => {
+  return (cell) => {
     const numberValue = opts.stringified
-      ? `try_cast(${props.value} as ${typeName})`
-      : props.value;
+      ? `try_cast(${cell.value} as ${typeName})`
+      : cell.value;
     let formatted = `format.decimal(${numberValue})`;
     if (field.type === "Decimal" && field.usage) {
       if (field.usage.type === "Money") {
@@ -437,15 +428,15 @@ function numericField(
       styles: sharedStyles.ellipsisSpan,
       children: formatted,
     });
-    if (opts.immutable) {
+    if (opts.immutable === true) {
       return display;
     }
-    const handlers = castEventHandlers(opts, field, props, typeName);
+    const handlers = castEventHandlers(opts, field, cell, typeName);
     const editor = nodes.state({
       procedure: (s) =>
         s.scalar(
           `value`,
-          `coalesce(start_edit_with_char, cast(${props.value} as string))`
+          `coalesce(start_edit_with_char, cast(${cell.value} as string))`
         ),
       children: nodes.element("input", {
         styles: sharedStyles.cellInput,
@@ -460,31 +451,31 @@ function numericField(
         },
       }),
     });
-    return nodes.if({ expr: props.editing, then: editor, else: display });
+    return nodes.if({
+      expr: andNotImmutable(opts.immutable, cell.editing),
+      then: editor,
+      else: display,
+    });
   };
 }
 
-function stringCell(opts: BaseFieldCellOpts, field: StringField): Cell {
-  return (props) => {
+function stringCell(opts: BaseFieldCellOpts, field: StringField): CellNode {
+  return (cell) => {
     const display = nodes.element("span", {
       styles: sharedStyles.ellipsisSpan,
-      children: props.value,
+      children: cell.value,
     });
-    if (opts.immutable) {
+    if (opts.immutable === true) {
       return display;
     }
-    const { value, recordId, setValue, nextCol } = props;
-    const handlers = fieldEditorEventHandlers({
+    const { value } = cell;
+    const handlers = cell.fieldEditorEventHandlers({
       ...opts,
       fieldName: field.name,
       tableName: opts.tableName,
       dbValue: `case when value = '' then null else value end`,
-      recordId,
-      value,
-      setValue,
       validUiValue: field.notNull ? `value != ''` : `true`,
       changedUiValue: `(${value} is null and ui.value != '') or ui.value != ${value}`,
-      nextCol,
     });
     const editor = nodes.state({
       procedure: (s) =>
@@ -498,55 +489,55 @@ function stringCell(opts: BaseFieldCellOpts, field: StringField): Cell {
         },
       }),
     });
-    return nodes.if({ expr: props.editing, then: editor, else: display });
+    return nodes.if({
+      expr: andNotImmutable(opts.immutable, cell.editing),
+      then: editor,
+      else: display,
+    });
   };
 }
 
 function castEventHandlers(
   opts: BaseFieldCellOpts,
   field: Field,
-  props: CellProps,
+  cell: CellHelpers,
   typeName: string
 ) {
-  const { value, recordId, setValue, nextCol } = props;
-  return fieldEditorEventHandlers({
+  const { value } = cell;
+  return cell.fieldEditorEventHandlers({
     ...opts,
     fieldName: field.name,
     tableName: opts.tableName,
     dbValue: field.notNull
       ? `cast(value as ${typeName})`
       : `try_cast(value as ${typeName})`,
-    recordId,
-    value,
-    setValue,
     validUiValue: field.notNull
       ? `try_cast(value as ${typeName}) is not null`
       : `value = '' or try_cast(value as ${typeName}) is not null`,
     changedUiValue: opts.stringified
       ? `case when ${value} is null then value != '' else ${value} != value end`
       : `case when ${value} is null then value != '' else cast(${value} as string) != value end`,
-    nextCol,
     newUiValue: opts.stringified
       ? `case when value = '' then null else value end`
       : `try_cast(value as ${typeName})`,
   });
 }
 
-function uuidCell(opts: BaseFieldCellOpts, field: UuidField): Cell {
-  return (props) => {
+function uuidCell(opts: BaseFieldCellOpts, field: UuidField): CellNode {
+  return (cell) => {
     const display = nodes.element("span", {
       styles: sharedStyles.ellipsisSpan,
-      children: props.value,
+      children: cell.value,
     });
-    if (opts.immutable) {
+    if (opts.immutable === true) {
       return display;
     }
-    const handlers = castEventHandlers(opts, field, props, "uuid");
+    const handlers = castEventHandlers(opts, field, cell, "uuid");
     const editor = nodes.state({
       procedure: (s) =>
         s.scalar(
           `value`,
-          `coalesce(start_edit_with_char, cast(${props.value} as string))`
+          `coalesce(start_edit_with_char, cast(${cell.value} as string))`
         ),
       children: nodes.element("input", {
         styles: sharedStyles.cellInput,
@@ -557,49 +548,49 @@ function uuidCell(opts: BaseFieldCellOpts, field: UuidField): Cell {
         },
       }),
     });
-    return nodes.if({ expr: props.editing, then: editor, else: display });
+    return nodes.if({
+      expr: andNotImmutable(opts.immutable, cell.editing),
+      then: editor,
+      else: display,
+    });
   };
 }
 
-function boolCell(opts: BaseFieldCellOpts, field: BoolField): Cell {
+function boolCell(opts: BaseFieldCellOpts, field: BoolField): CellNode {
   const { enumLike } = field;
   if (enumLike) {
-    return (props) => {
+    return (cell) => {
       const display = nodes.element("span", {
         styles: sharedStyles.ellipsisSpan,
         children: enumLikeDisplayName(
-          `try_cast(${props.value} as bool)`,
+          `try_cast(${cell.value} as bool)`,
           enumLike
         ),
       });
-      if (opts.immutable) {
+      if (opts.immutable === true) {
         return display;
       }
-      const handlers = fieldEditorEventHandlers({
+      const handlers = cell.fieldEditorEventHandlers({
         ...opts,
         fieldName: field.name,
         dbValue: `try_cast(ui.value as bool)`,
-        recordId: props.recordId,
-        value: props.value,
-        setValue: props.setValue,
         validUiValue: `true`,
         changedUiValue: opts.stringified
-          ? `case when ${props.value} is null then value is not null else ${props.value} != value end`
-          : `case when ${props.value} is null then value is not null else cast(${props.value} as string) != value end`,
-        nextCol: props.nextCol,
+          ? `case when ${cell.value} is null then value is not null else ${cell.value} != value end`
+          : `case when ${cell.value} is null then value is not null else cast(${cell.value} as string) != value end`,
         newUiValue: opts.stringified
           ? `ui.value`
           : `try_cast(ui.value as bool)`,
       });
       return nodes.if({
-        expr: props.editing,
+        expr: andNotImmutable(opts.immutable, cell.editing),
         then: nodes.state({
           procedure: (s) =>
             s.scalar(
               `value`,
               opts.stringified
-                ? props.value
-                : `coalesce(cast(${props.value} as string), '')`
+                ? cell.value
+                : `coalesce(cast(${cell.value} as string), '')`
             ),
           children: nodes.element("div", {
             styles: styles.selectWrapper,
@@ -641,43 +632,57 @@ function boolCell(opts: BaseFieldCellOpts, field: BoolField): Cell {
       });
     };
   }
-  return (props) =>
+  return (cell) =>
     checkbox({
       styles: styles.checkbox,
-      checked: opts.stringified ? props.value + " = 'true'" : props.value,
+      checked: opts.stringified ? cell.value + " = 'true'" : cell.value,
       variant: "outlined",
       color: "neutral",
       slots: {
         input: {
           props: {
             tabIndex: "-1",
-            readOnly: opts.immutable ? "true" : undefined,
+            readOnly:
+              typeof opts.immutable === "string"
+                ? opts.immutable
+                : opts.immutable
+                ? "true"
+                : undefined,
           },
         },
       },
       on: {
-        checkboxChange: opts.immutable
-          ? (s) => s.preventDefault()
-          : {
-              detachedFromNode: true,
-              procedure: (s) =>
-                s.scalar(`prev_value`, props.value).statements(
-                  props.setValue(
-                    opts.stringified
-                      ? `cast(target_checked as string)`
-                      : `target_checked`
-                  ),
-                  doEdit({
-                    ...opts,
-                    fieldName: field.name,
-                    dbValue: opts.stringified
-                      ? `cast(${props.value} as bool)`
-                      : props.value,
-                    recordId: props.recordId,
-                    resetValue: props.setValue(`prev_value`),
-                  })
-                ),
-            },
+        checkboxChange:
+          opts.immutable === true
+            ? (s) => s.preventDefault()
+            : {
+                detachedFromNode: true,
+                procedure: (s) =>
+                  s
+                    .conditionalStatements(
+                      typeof opts.immutable === "string",
+                      (s) =>
+                        s.if(opts.immutable as string, (s) =>
+                          s.preventDefault().return()
+                        )
+                    )
+                    .scalar(`prev_value`, cell.value)
+                    .statements(
+                      cell.setValue(
+                        opts.stringified
+                          ? `cast(target_checked as string)`
+                          : `target_checked`
+                      ),
+                      cell.updateFieldValueInDb({
+                        ...opts,
+                        fieldName: field.name,
+                        dbValue: opts.stringified
+                          ? `cast(${cell.value} as bool)`
+                          : cell.value,
+                        resetValue: cell.setValue(`prev_value`),
+                      })
+                    ),
+              },
       },
     });
 }
@@ -686,32 +691,35 @@ function durationCell(
   opts: BaseFieldCellOpts,
   field: IntegerField,
   usage: DurationUsage
-): Cell {
+): CellNode {
   if (usage.size === "minutes") {
-    return (props) => {
+    return (cell) => {
+      const display = nodes.element("span", {
+        styles: sharedStyles.ellipsisSpan,
+        children: `sfn.display_minutes_duration(try_cast(${cell.value} as bigint))`,
+      });
+      if (opts.immutable === true) {
+        return display;
+      }
       const bigintValue = opts.stringified
-        ? `try_cast(${props.value} as bigint)`
-        : props.value;
-      const handlers = fieldEditorEventHandlers({
+        ? `try_cast(${cell.value} as bigint)`
+        : cell.value;
+      const handlers = cell.fieldEditorEventHandlers({
         ...opts,
         fieldName: field.name,
         dbValue: `sfn.parse_minutes_duration(ui.input_value)`,
-        recordId: props.recordId,
-        value: props.value,
-        setValue: props.setValue,
         validUiValue: field.notNull
           ? `sfn.parse_minutes_duration(input_value) is not null`
           : `input_value = '' or sfn.parse_minutes_duration(input_value) is not null`,
         changedUiValue: field.notNull
           ? `${bigintValue} != sfn.parse_minutes_duration(input_value)`
-          : `(input_value = '' and ${props.value} is not null) or (input_value != '' and ${props.value} is null) or ${bigintValue} != sfn.parse_minutes_duration(input_value)`,
-        nextCol: props.nextCol,
+          : `(input_value = '' and ${cell.value} is not null) or (input_value != '' and ${cell.value} is null) or ${bigintValue} != sfn.parse_minutes_duration(input_value)`,
         newUiValue: opts.stringified
           ? `cast(sfn.parse_minutes_duration(input_value) as string)`
           : `sfn.parse_minutes_duration(input_value)`,
       });
       return nodes.if({
-        expr: props.editing,
+        expr: andNotImmutable(opts.immutable, cell.editing),
         then: nodes.state({
           procedure: (s) =>
             s
@@ -720,7 +728,7 @@ function durationCell(
                 `case when
                   start_edit_with_char is not null and start_edit_with_char in ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')
                     then start_edit_with_char
-                  else sfn.display_minutes_duration(try_cast(${props.value} as bigint))
+                  else sfn.display_minutes_duration(try_cast(${cell.value} as bigint))
                 end`
               )
               .scalar(`input_value`, `value`),
@@ -746,22 +754,22 @@ function durationCell(
             }),
           }),
         }),
-        else: nodes.element("span", {
-          styles: sharedStyles.ellipsisSpan,
-          children: `sfn.display_minutes_duration(try_cast(${props.value} as bigint))`,
-        }),
+        else: display,
       });
     };
   }
   throw new Error("Unsupported duration size: " + usage.size);
 }
 
-function imageCell(opts: BaseFieldCellOpts, group: ImageSetFieldGroup): Cell {
-  return ({ value, recordId, editing, stopEditing, row, column }) => {
+function imageCell(
+  opts: BaseFieldCellOpts,
+  group: ImageSetFieldGroup
+): CellNode {
+  return (cell, state) => {
     const { spawnUploadTasks, joinUploadTasks, updateImagesInDb } =
-      getUploadStatements(opts.tableName, recordId, group);
+      getUploadStatements(opts.tableName, cell.recordId, group);
     return nodes.if({
-      expr: value + " is null",
+      expr: cell.value + " is null",
       then: nodes.state({
         procedure: (s) => s.scalar(`uploading`, `false`),
         children: [
@@ -792,10 +800,11 @@ function imageCell(opts: BaseFieldCellOpts, group: ImageSetFieldGroup): Cell {
                             .serviceProc((s) =>
                               s.statements(
                                 updateImagesInDb,
-                                triggerQueryRefresh()
+                                state.triggerRefresh
                               )
                             ),
-                        catch: displayEditError(`Upload failed`),
+                        catch:
+                          state.displayEditErrorAndRemoveAfter(`Upload failed`),
                       })
                       .setScalar(`uploading`, `false`),
                 },
@@ -817,7 +826,7 @@ function imageCell(opts: BaseFieldCellOpts, group: ImageSetFieldGroup): Cell {
             children: nodes.element("img", {
               styles: styles.img,
               props: {
-                src: `'/_a/file/' || sys.account || '/' || sys.app || '/' || ${value}`,
+                src: `'/_a/file/' || sys.account || '/' || sys.app || '/' || ${cell.value}`,
               },
               on: {
                 click: (s) =>
@@ -825,24 +834,23 @@ function imageCell(opts: BaseFieldCellOpts, group: ImageSetFieldGroup): Cell {
                     .setScalar(`ui.open`, `true`)
                     .modify(`update ui.editing_state set is_editing = false`)
                     .modify(
-                      `update ui.focus_state set should_focus = false, row = ${row}, column = ${column}`
+                      `update ui.focus_state set should_focus = false, row = ${cell.row}, column = ${cell.column}`
                     ),
               },
             }),
           }),
           imageDialog({
-            open: `ui.open or ${editing}`,
+            open: `ui.open or ${cell.editing}`,
             onClose: (s) =>
               s
                 .setScalar(`ui.open`, `false`)
-                .statements(stopEditing)
-                .delay(`10`)
-                .modify(`update ui.focus_state set should_focus = true`),
+                .statements(cell.stopEditingAndFocus)
+                .delay(`10`),
             group: group.name,
             tableName: opts.tableName,
-            recordId,
-            afterReplace: triggerQueryRefresh(),
-            afterRemove: triggerQueryRefresh(),
+            recordId: cell.recordId,
+            afterReplace: state.triggerRefresh,
+            afterRemove: state.triggerRefresh,
           }),
         ],
       }),
@@ -857,10 +865,10 @@ export interface FieldCellOpts extends BaseFieldCellOpts {
 export interface BaseFieldCellOpts extends FieldEditProcConfig {
   tableName: string;
   stringified: boolean;
-  immutable?: boolean;
+  immutable?: boolean | yom.SqlExpression;
 }
 
-export function fieldCell(opts: FieldCellOpts): Cell {
+export function fieldCell(opts: FieldCellOpts): CellNode {
   switch (opts.field.type) {
     case "ForeignKey":
       return foreignKeyCell(opts, opts.field);

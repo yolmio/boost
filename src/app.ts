@@ -22,9 +22,9 @@ import { insertFormPage, InsertFormPageOpts } from "./pages/insertForm";
 import { SimpleReportsPageBuilder } from "./pages/simpleReportPage";
 import {
   simpleDatagridPage,
-  DatagridPageOpts as SimpleDatagridPageOpts,
+  SimpleDatagridPageBuilder,
 } from "./pages/simpleDatagrid";
-import { datagridPage, DatagridPageOpts } from "./pages/datagrid";
+import { datagridPage, DatagridPageBuilder } from "./pages/datagrid";
 import { updateFormPage, UpdateFormPage } from "./pages/updateForm";
 import {
   multiCardInsertPage,
@@ -262,12 +262,15 @@ export class Ui {
     builder.finish();
   }
 
-  addSimpleDatagridPage(opts: SimpleDatagridPageOpts) {
-    simpleDatagridPage(opts);
+  addSimpleDatagridPage(
+    table: string,
+    f: (f: SimpleDatagridPageBuilder) => unknown
+  ) {
+    simpleDatagridPage(table, f);
   }
 
-  addDatagridPage(opts: DatagridPageOpts) {
-    datagridPage(opts);
+  addDatagridPage(table: string, f: (f: DatagridPageBuilder) => unknown) {
+    datagridPage(table, f);
   }
 }
 

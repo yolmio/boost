@@ -9,25 +9,6 @@ immutable datagrid based off current user
 filter/virtual fields
 Different pages/views for different users
 
-nodes.recursive({
-  table: "filter_term",
-  record_name: "filter_term_record",
-  filter: "filter_term.id is null",
-  key: "id",
-  children: [
-    nodes.if({
-      condition: `filter_term.is_any is null`,
-      then: nodes.element("div", {
-        children: nodes.recurse({
-          filter: `filter_term_record.id = filter_term.group`
-        })
-      }),
-      else: columnFilterStuff()
-    })
-  ]
-
-})
-
 */
 
 app.name = "chinook";
@@ -369,30 +350,19 @@ app.ui.addDashboardGridPage((page) =>
     })
 );
 
-ui.addDatagridPage({
-  table: "customer",
-  viewButton: true,
-  toolbar: { add: { type: "dialog" } },
+ui.addDatagridPage("customer", (page) => {
+  page
+    .viewButton()
+    .selectable()
+    .customFilterColumn({
+      storageName: "has_order",
+      displayName: "Has Order",
+      expr: () =>
+        `(select count(*) from db.invoice where customer = record.id) > 0`,
+      node: (state) => `'yo'`,
+    })
+    .toolbar((toolbar) => toolbar.insertDialog().delete());
 });
-
-// ui.addDatagridPage("customer", (page) => {
-//   page
-//     .viewButton()
-//     .extraServiceState((s) => s.scalar("is_cool", "(select true from db.user)"))
-//     .toolbar()
-//     .addButton()
-//     .fieldOrder(["company", "email", "phone", "fax", "support_rep"])
-//     .fieldOverride("company", {
-//       immutable: "is_cool",
-//     })
-//     .addColumn({
-//       header: "chicken",
-//       cell: (row) =>
-//         components.button({
-//           on: { click: page.doEdit({}) },
-//         }),
-//     });
-// });
 
 ui.addRecordGridPage("customer", (page) => {
   page
@@ -420,12 +390,11 @@ ui.addRecordGridPage("customer", (page) => {
     .createUpdatePage();
 });
 
-ui.addSimpleDatagridPage({
-  table: "album",
-  toolbar: {
-    add: { type: "dialog" },
-  },
-  viewButton: true,
+ui.addSimpleDatagridPage("album", (page) => {
+  page
+    .viewButton()
+    .selectable()
+    .toolbar((toolbar) => toolbar.insertDialog().delete());
 });
 
 ui.addRecordGridPage("album", (page) => {
@@ -443,12 +412,11 @@ ui.addRecordGridPage("album", (page) => {
     .createUpdatePage();
 });
 
-ui.addSimpleDatagridPage({
-  table: "artist",
-  toolbar: {
-    add: { type: "dialog" },
-  },
-  viewButton: true,
+ui.addSimpleDatagridPage("artist", (page) => {
+  page
+    .viewButton()
+    .selectable()
+    .toolbar((toolbar) => toolbar.insertDialog().delete());
 });
 
 ui.addRecordGridPage("artist", (page) => {
@@ -472,19 +440,15 @@ ui.addRecordGridPage("artist", (page) => {
     .createUpdatePage();
 });
 
-ui.addSimpleDatagridPage({
-  table: "genre",
-  toolbar: {
-    add: { type: "dialog" },
-  },
+ui.addSimpleDatagridPage("genre", (page) => {
+  page.selectable().toolbar((toolbar) => toolbar.insertDialog().delete());
 });
 
-ui.addSimpleDatagridPage({
-  table: "playlist",
-  toolbar: {
-    add: { type: "dialog" },
-  },
-  viewButton: true,
+ui.addSimpleDatagridPage("playlist", (page) => {
+  page
+    .selectable()
+    .viewButton()
+    .toolbar((toolbar) => toolbar.insertDialog().delete());
 });
 
 ui.addRecordGridPage("playlist", (page) => {
@@ -502,10 +466,11 @@ ui.addRecordGridPage("playlist", (page) => {
     .createUpdatePage();
 });
 
-ui.addDatagridPage({
-  table: "track",
-  viewButton: true,
-  toolbar: { add: { type: "dialog" } },
+ui.addDatagridPage("track", (page) => {
+  page
+    .viewButton()
+    .selectable()
+    .toolbar((toolbar) => toolbar.insertDialog().delete());
 });
 
 ui.addRecordGridPage("track", (page) => {
@@ -532,10 +497,11 @@ ui.addRecordGridPage("track", (page) => {
     .createUpdatePage();
 });
 
-ui.addDatagridPage({
-  table: "invoice",
-  viewButton: true,
-  toolbar: { add: { type: "dialog" } },
+ui.addDatagridPage("invoice", (page) => {
+  page
+    .viewButton()
+    .selectable()
+    .toolbar((toolbar) => toolbar.insertDialog().delete());
 });
 
 ui.addRecordGridPage("invoice", (page) => {

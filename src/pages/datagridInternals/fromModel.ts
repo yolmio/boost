@@ -4,7 +4,6 @@ import { app } from "../../app";
 import { ident, stringLiteral } from "../../utils/sqlHelpers";
 import * as yom from "../../yom";
 import { fieldCell } from "./cells";
-import { FieldEditProcConfig, doEdit } from "./editHelper";
 import {
   columnPopover,
   FilterType,
@@ -17,12 +16,16 @@ import { normalizeCase, upcaseFirst } from "../../utils/inflectors";
 import { lazy } from "../../utils/memoize";
 import { materialIcon } from "../../components/materialIcon";
 import { Style } from "../../styleTypes";
-import { triggerQueryRefresh, resizeableSeperator } from "./shared";
-import { Cell } from "./types";
+import {
+  CellNode,
+  FieldEditProcConfig,
+  resizeableSeperator,
+  dgState,
+} from "./shared";
 import { BasicStatements, DomStatements } from "../../statements";
 
-function filterTypeFromField(type: Field): FilterType {
-  switch (type.type) {
+function filterTypeFromField(field: Field): FilterType {
+  switch (field.type) {
     case "BigInt":
     case "BigUint":
     case "Int":
@@ -35,63 +38,67 @@ function filterTypeFromField(type: Field): FilterType {
     case "Real":
     case "Decimal":
     case "Tx":
-      if ("usage" in type && type.usage) {
-        if (type.usage.type === "Duration") {
-          if (type.usage.size === "minutes") {
-            return { type: "duration", size: "minutes" };
+      if ("usage" in field && field.usage) {
+        if (field.usage.type === "Duration") {
+          if (field.usage.size === "minutes") {
+            return { type: "minutes_duration", notNull: field.notNull };
           }
           throw new Error("Only minute durations supported right now");
         }
       }
-      return { type: "number" };
+      return { type: "number", notNull: field.notNull };
     case "String":
     case "Uuid":
-      return { type: "string" };
+      return { type: "string", notNull: field.notNull };
     case "Enum":
-      return { type: "enum", enum: type.enum };
+      return { type: "enum", enum: field.enum, notNull: field.notNull };
     case "ForeignKey":
-      return { type: "table", table: type.table };
+      return { type: "table", table: field.table, notNull: field.notNull };
     case "Timestamp":
-      return { type: "timestamp" };
+      return { type: "timestamp", notNull: field.notNull };
     case "Date":
-      return { type: "date" };
+      return { type: "date", notNull: field.notNull };
     case "Bool":
-      return type.enumLike
-        ? { type: "enum_like_bool", config: type.enumLike }
-        : { type: "bool" };
+      return field.enumLike
+        ? {
+            type: "enum_like_bool",
+            config: field.enumLike,
+            notNull: field.notNull,
+          }
+        : { type: "bool", notNull: field.notNull };
     case "Time":
     case "Ordering":
-      throw new Error("Filter not supported for type: " + type.type);
+      throw new Error("Filter not supported for type: " + field.type);
   }
 }
 
-function filterTypeFromVirtual(type: VirtualType): FilterType {
-  switch (type.type) {
-    case "BigInt":
-    case "Int":
-    case "SmallInt":
-    case "Double":
-    case "Real":
-    case "Decimal":
-      return { type: "number" };
-    case "String":
-    case "Uuid":
-      return { type: "string" };
-    case "Enum":
-      return { type: "enum", enum: type.enum };
-    case "ForeignKey":
-      return { type: "table", table: type.table };
-    case "Timestamp":
-      return { type: "timestamp" };
-    case "Date":
-      return { type: "date" };
-    case "Bool":
-      return { type: "bool" };
-    case "Time":
-    case "Ordering":
-      throw new Error("Ordering fields should not be used in filters");
-  }
-}
+// function filterTypeFromVirtual(type: VirtualType): FilterType {
+//   switch (type.type) {
+//     case "BigInt":
+//     case "Int":
+//     case "SmallInt":
+//     case "Double":
+//     case "Real":
+//     case "Decimal":
+//       return { type: "number" };
+//     case "String":
+//     case "Uuid":
+//       return { type: "string" };
+//     case "Enum":
+//       return { type: "enum", enum: type.enum };
+//     case "ForeignKey":
+//       return { type: "table", table: type.table };
+//     case "Timestamp":
+//       return { type: "timestamp" };
+//     case "Date":
+//       return { type: "date" };
+//     case "Bool":
+//       return { type: "bool" };
+//     case "Time":
+//     case "Ordering":
+//       throw new Error("Ordering fields should not be used in filters");
+//   }
+// }
 
 function getFieldProcFieldType(field: Field): yom.FieldType {
   switch (field.type) {
@@ -258,7 +265,7 @@ export const dynamicBooleanCellKeydownHandler = (
         `update ui.dg_table set field_${col} = not (field_${col} = 'true') where field_0 = row_id`
       )
       .statements(
-        doEdit({
+        dgState.updateFieldValueInDb({
           dbValue: `(select field_${col} from ui.dg_table where field_0 = row_id) = 'true'`,
           fieldName: sqlName,
           recordId: `cast(row_id as bigint)`,
@@ -313,7 +320,7 @@ export interface SuperColumnFieldOpts extends FieldEditProcConfig {
   dynIndex: number;
   columnIndex: number;
   startFixedColumns: number;
-  immutable?: boolean;
+  immutable?: boolean | yom.SqlExpression;
 }
 
 export function columnFromField({
@@ -419,37 +426,34 @@ export function columnFromField({
   return {
     displayName,
     keydownCellHandler: keydownHandler,
-    filter: !noFilter
-      ? {
-          type: filterTypeFromField(field),
-          notNull: field.notNull ?? false,
-        }
-      : undefined,
+    filter: !noFilter ? filterTypeFromField(field) : undefined,
     sort,
-    cell: fieldCell({
-      ...restOpts,
-      immutable,
-      tableName: table,
-      field,
-      stringified: true,
-    }),
-    initiallyDisplaying: true,
-    initialWidth: getFieldCellWidth(field, table, 46),
-    header: [
-      nodes.element("span", {
-        styles: sharedStyles.headerText,
-        children: stringLiteral(displayName),
+    displayInfo: {
+      cell: fieldCell({
+        ...restOpts,
+        immutable,
+        tableName: table,
+        field,
+        stringified: true,
       }),
-      columnPopover(columnIndex, startFixedColumns, sort),
-      resizeableSeperator({
-        minWidth: 50,
-        setWidth: (width) =>
-          new BasicStatements().modify(
-            `update ui.column set width = ${width} where id = ${columnIndex}`
-          ),
-        width: `(select width from ui.column where id = ${columnIndex})`,
-      }),
-    ],
+      initiallyDisplaying: true,
+      initialWidth: getFieldCellWidth(field, table, 46),
+      header: (state) => [
+        nodes.element("span", {
+          styles: sharedStyles.headerText,
+          children: stringLiteral(displayName),
+        }),
+        columnPopover(state, columnIndex, startFixedColumns, sort),
+        resizeableSeperator({
+          minWidth: 50,
+          setWidth: (width) =>
+            new BasicStatements().modify(
+              `update ui.column set width = ${width} where id = ${columnIndex}`
+            ),
+          width: `(select width from ui.column where id = ${columnIndex})`,
+        }),
+      ],
+    },
     queryGeneration: {
       expr: `record.${ident(field.name)}`,
       sqlName: field.name,
@@ -459,70 +463,72 @@ export function columnFromField({
   };
 }
 
-export function columnFromVirtual(
-  table: string,
-  virtual: VirtualField,
-  columnIndex: number,
-  startFixedColumns: number
-): SuperGridColumn {
-  let sort: SortConfig | undefined;
-  let cell: Cell | undefined;
-  switch (virtual.type.type) {
-    case "BigInt":
-    case "Int":
-    case "SmallInt":
-      if (virtual.type.usage && virtual.type.usage.type === "Duration") {
-        cell = ({ value }) =>
-          `sfn.display_minutes_duration(try_cast(${value} as bigint))`;
-      }
-      sort = numberSortConfig;
-      break;
-    case "Date":
-    case "Double":
-    case "Real":
-    case "Decimal":
-      sort = numberSortConfig;
-      break;
-    case "String":
-      sort = stringSortConfig;
-      break;
-    case "Bool":
-      sort = checkboxSortConfig();
-      break;
-  }
-  return {
-    displayName: virtual.displayName,
-    filter: {
-      type: filterTypeFromVirtual(virtual.type),
-      notNull: false,
-    },
-    sort,
-    cell: cell ?? (({ value }) => value),
-    initiallyDisplaying: true,
-    initialWidth: 250,
-    header: [
-      nodes.element("span", {
-        styles: sharedStyles.headerText,
-        children: stringLiteral(virtual.displayName),
-      }),
-      columnPopover(columnIndex, startFixedColumns, sort),
-      resizeableSeperator({
-        minWidth: 50,
-        setWidth: (width) =>
-          new BasicStatements().modify(
-            `update ui.column set width = ${width} where id = ${columnIndex}`
-          ),
-        width: `(select width from ui.column where id = ${columnIndex})`,
-      }),
-    ],
-    queryGeneration: {
-      expr: virtual.expr(...virtual.fields.map((f) => `record.${ident(f)}`)),
-      sqlName: virtual.name,
-      alwaysGenerate: false,
-    },
-    viewStorageName: virtual.name,
-  };
-}
+// export function columnFromVirtual(
+//   table: string,
+//   virtual: VirtualField,
+//   columnIndex: number,
+//   startFixedColumns: number
+// ): SuperGridColumn {
+//   let sort: SortConfig | undefined;
+//   let cell: CellNode | undefined;
+//   switch (virtual.type.type) {
+//     case "BigInt":
+//     case "Int":
+//     case "SmallInt":
+//       if (virtual.type.usage && virtual.type.usage.type === "Duration") {
+//         cell = ({ value }) =>
+//           `sfn.display_minutes_duration(try_cast(${value} as bigint))`;
+//       }
+//       sort = numberSortConfig;
+//       break;
+//     case "Date":
+//     case "Double":
+//     case "Real":
+//     case "Decimal":
+//       sort = numberSortConfig;
+//       break;
+//     case "String":
+//       sort = stringSortConfig;
+//       break;
+//     case "Bool":
+//       sort = checkboxSortConfig();
+//       break;
+//   }
+//   return {
+//     displayName: virtual.displayName,
+//     filter: {
+//       type: filterTypeFromVirtual(virtual.type),
+//       notNull: false,
+//     },
+//     sort,
+//     displayInfo: {
+//       cell: cell ?? ((cell) => cell.value),
+//       initiallyDisplaying: true,
+//       initialWidth: 250,
+//       header: (state) => [
+//         nodes.element("span", {
+//           styles: sharedStyles.headerText,
+//           children: stringLiteral(virtual.displayName),
+//         }),
+//         columnPopover(state, columnIndex, startFixedColumns, sort),
+//         resizeableSeperator({
+//           minWidth: 50,
+//           setWidth: (width) =>
+//             new BasicStatements().modify(
+//               `update ui.column set width = ${width} where id = ${columnIndex}`
+//             ),
+//           width: `(select width from ui.column where id = ${columnIndex})`,
+//         }),
+//       ],
+//     },
+//     queryGeneration: {
+//       expr: virtual.expr(...virtual.fields.map((f) => `record.${ident(f)}`)),
+//       sqlName: virtual.name,
+//       alwaysGenerate: false,
+//     },
+//     viewStorageName: virtual.name,
+//   };
+// }
 
 export const simpleBooleanCellKeydownHandler = (
   fieldName: string,
@@ -544,7 +550,7 @@ export const simpleBooleanCellKeydownHandler = (
         `update ui.dg_table set ${fieldName} = not ${fieldName} where ${idField} = row_id`
       )
       .statements(
-        doEdit({
+        dgState.updateFieldValueInDb({
           dbValue: `(select ${fieldName} from ui.dg_table where ${idField} = row_id)`,
           fieldName: fieldName,
           recordId: `row_id`,
@@ -562,7 +568,7 @@ export interface SimpleColumnFieldOpts extends FieldEditProcConfig {
   field: Field;
   idField: string;
   columnIndex: number;
-  immutable?: boolean;
+  immutable?: boolean | yom.SqlExpression;
 }
 
 function simpleToggleColumnSort(columnIndex: number) {
@@ -672,10 +678,10 @@ export function simpleColumnFromField({
     ],
     keydownHeaderHandler: (s) =>
       s.if(`event.key = 'Enter'`, (s) =>
-        s.statements(toggleColumnSort, triggerQueryRefresh())
+        s.statements(toggleColumnSort, dgState.triggerRefresh)
       ),
     headerClickHandler: (s) =>
-      s.statements(toggleColumnSort, triggerQueryRefresh()),
+      s.statements(toggleColumnSort, dgState.triggerRefresh),
     queryGeneration: {
       expr: `record.${ident(field.name)}`,
       sqlName: field.name,
@@ -685,51 +691,51 @@ export function simpleColumnFromField({
   };
 }
 
-export function simpleColumnFromVirtual(
-  table: string,
-  virtual: VirtualField,
-  columnIndex: number,
-  startFixedColumns: number
-): SimpleColumn {
-  const toggleColumnSort = simpleToggleColumnSort(columnIndex);
-  return {
-    cell: ({ value }) => value,
-    width: 250,
-    header: [
-      nodes.element("span", {
-        styles: sharedStyles.headerText,
-        children: stringLiteral(virtual.displayName),
-      }),
-      nodes.switch(
-        {
-          condition: `sort_info.col = ${columnIndex} and sort_info.ascending`,
-          node: materialIcon("ArrowUpward"),
-        },
-        {
-          condition: `sort_info.col = ${columnIndex} and not sort_info.ascending`,
-          node: materialIcon("ArrowDownward"),
-        }
-      ),
-      resizeableSeperator({
-        minWidth: 50,
-        setWidth: (width) =>
-          new BasicStatements().modify(
-            `update ui.column_width set width = ${width} where col = ${columnIndex}`
-          ),
-        width: `(select width from ui.column_width where col = ${columnIndex})`,
-      }),
-    ],
-    keydownHeaderHandler: (s) =>
-      s.if(`event.key = 'Enter'`, (s) =>
-        s.statements(toggleColumnSort, triggerQueryRefresh())
-      ),
-    headerClickHandler: (s) =>
-      s.statements(toggleColumnSort, triggerQueryRefresh()),
-    queryGeneration: {
-      expr: virtual.expr(...virtual.fields.map((f) => `record.${ident(f)}`)),
-      sqlName: virtual.name,
-      alwaysGenerate: false,
-      procFieldType: getVirtualProcFieldType(virtual),
-    },
-  };
-}
+// export function simpleColumnFromVirtual(
+//   table: string,
+//   virtual: VirtualField,
+//   columnIndex: number,
+//   startFixedColumns: number
+// ): SimpleColumn {
+//   const toggleColumnSort = simpleToggleColumnSort(columnIndex);
+//   return {
+//     cell: ({ value }) => value,
+//     width: 250,
+//     header: [
+//       nodes.element("span", {
+//         styles: sharedStyles.headerText,
+//         children: stringLiteral(virtual.displayName),
+//       }),
+//       nodes.switch(
+//         {
+//           condition: `sort_info.col = ${columnIndex} and sort_info.ascending`,
+//           node: materialIcon("ArrowUpward"),
+//         },
+//         {
+//           condition: `sort_info.col = ${columnIndex} and not sort_info.ascending`,
+//           node: materialIcon("ArrowDownward"),
+//         }
+//       ),
+//       resizeableSeperator({
+//         minWidth: 50,
+//         setWidth: (width) =>
+//           new BasicStatements().modify(
+//             `update ui.column_width set width = ${width} where col = ${columnIndex}`
+//           ),
+//         width: `(select width from ui.column_width where col = ${columnIndex})`,
+//       }),
+//     ],
+//     keydownHeaderHandler: (s) =>
+//       s.if(`event.key = 'Enter'`, (s) =>
+//         s.statements(toggleColumnSort, dgState.triggerRefresh)
+//       ),
+//     headerClickHandler: (s) =>
+//       s.statements(toggleColumnSort, dgState.triggerRefresh),
+//     queryGeneration: {
+//       expr: virtual.expr(...virtual.fields.map((f) => `record.${ident(f)}`)),
+//       sqlName: virtual.name,
+//       alwaysGenerate: false,
+//       procFieldType: getVirtualProcFieldType(virtual),
+//     },
+//   };
+// }

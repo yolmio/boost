@@ -14,7 +14,6 @@ import {
   eqFilterType,
   FilterType,
 } from "./styledDatagrid";
-import { triggerQueryRefresh } from "./shared";
 import { checkbox } from "../../components/checkbox";
 import { durationInput } from "../../components/durationInput";
 import { createStyles, flexGrowStyles } from "../../styleUtils";
@@ -23,6 +22,7 @@ import { getUniqueUiId } from "../../components/utils";
 import { SuperGridColumn, SuperGridDts } from "./styledDatagrid";
 import { DomStatements, DomStatementsOrFn } from "../../statements";
 import { lazy } from "../../utils/memoize";
+import { DgStateHelpers } from "./shared";
 
 const styles = createStyles({
   checkboxWrapper: {
@@ -86,6 +86,174 @@ const styles = createStyles({
   },
 });
 
+const opsByType = {
+  string: [
+    nodes.element("option", {
+      props: { value: "'str_eq'" },
+      children: "'is'",
+    }),
+    nodes.element("option", {
+      props: { value: "'str_ne'" },
+      children: "'is not'",
+    }),
+    nodes.element("option", {
+      props: { value: "'str_contains'" },
+      children: "'contains'",
+    }),
+    nodes.element("option", {
+      props: { value: "'str_not_contains'" },
+      children: "'does not contain'",
+    }),
+  ],
+  number: [
+    nodes.element("option", {
+      props: { value: "'num_eq'" },
+      children: "'='",
+    }),
+    nodes.element("option", {
+      props: { value: "'num_ne'" },
+      children: "'≠'",
+    }),
+    nodes.element("option", {
+      props: { value: "'num_lt'" },
+      children: "'<'",
+    }),
+    nodes.element("option", {
+      props: { value: "'num_lte'" },
+      children: "'≤'",
+    }),
+    nodes.element("option", {
+      props: { value: "'num_gt'" },
+      children: "'>'",
+    }),
+    nodes.element("option", {
+      props: { value: "'num_gte'" },
+      children: "'≥'",
+    }),
+  ],
+  date: [
+    nodes.element("option", {
+      props: { value: "'date_eq'" },
+      children: "'is'",
+    }),
+    nodes.element("option", {
+      props: { value: "'date_ne'" },
+      children: "'is not'",
+    }),
+    nodes.element("option", {
+      props: { value: "'date_lt'" },
+      children: "'is before'",
+    }),
+    nodes.element("option", {
+      props: { value: "'date_lte'" },
+      children: "'is on or before'",
+    }),
+    nodes.element("option", {
+      props: { value: "'date_gt'" },
+      children: "'is after'",
+    }),
+    nodes.element("option", {
+      props: { value: "'date_gte'" },
+      children: "'is on or after'",
+    }),
+  ],
+  timestamp: [
+    nodes.element("option", {
+      props: { value: "'timestamp_eq'" },
+      children: "'is'",
+    }),
+    nodes.element("option", {
+      props: { value: "'timestamp_ne'" },
+      children: "'is not'",
+    }),
+    nodes.element("option", {
+      props: { value: "'timestamp_lt'" },
+      children: "'is before'",
+    }),
+    nodes.element("option", {
+      props: { value: "'timestamp_lte'" },
+      children: "'is on or before'",
+    }),
+    nodes.element("option", {
+      props: { value: "'timestamp_gt'" },
+      children: "'is after'",
+    }),
+    nodes.element("option", {
+      props: { value: "'timestamp_gte'" },
+      children: "'is on or after'",
+    }),
+  ],
+  enum: [
+    nodes.element("option", {
+      props: { value: "'enum_eq'" },
+      children: "'is'",
+    }),
+    nodes.element("option", {
+      props: { value: "'enum_ne'" },
+      children: "'is not'",
+    }),
+  ],
+  table: [
+    nodes.element("option", {
+      props: { value: "'fk_eq'" },
+      children: "'is'",
+    }),
+    nodes.element("option", {
+      props: { value: "'fk_ne'" },
+      children: "'is not'",
+    }),
+  ],
+  bool: [
+    nodes.element("option", {
+      props: { value: "'bool_eq'" },
+      children: "'is'",
+    }),
+  ],
+  minutes_duration: [
+    nodes.element("option", {
+      props: { value: "'minute_duration_eq'" },
+      children: "'='",
+    }),
+    nodes.element("option", {
+      props: { value: "'minute_duration_ne'" },
+      children: "'≠'",
+    }),
+    nodes.element("option", {
+      props: { value: "'minute_duration_lt'" },
+      children: "'<'",
+    }),
+    nodes.element("option", {
+      props: { value: "'minute_duration_lte'" },
+      children: "'≤'",
+    }),
+    nodes.element("option", {
+      props: { value: "'minute_duration_gt'" },
+      children: "'>'",
+    }),
+    nodes.element("option", {
+      props: { value: "'minute_duration_gte'" },
+      children: "'≥'",
+    }),
+  ],
+  enum_like_bool: [
+    nodes.element("option", {
+      props: { value: "'enum_like_bool_eq'" },
+      children: "'is'",
+    }),
+  ],
+};
+
+const nullableOpts = [
+  nodes.element("option", {
+    props: { value: "'empty'" },
+    children: "'is empty'",
+  }),
+  nodes.element("option", {
+    props: { value: "'not_empty'" },
+    children: "'is not empty'",
+  }),
+];
+
 function typeSpecificOps(columns: SuperGridColumn[], filterTerm: string): Node {
   interface TypeGenInfo {
     type: FilterType;
@@ -95,20 +263,19 @@ function typeSpecificOps(columns: SuperGridColumn[], filterTerm: string): Node {
   const genTypes: TypeGenInfo[] = [];
   for (let i = 0; i < columns.length; i++) {
     const column = columns[i];
-    if (!column.filter) {
+    if (!column.filter || column.filter.type === "custom") {
       continue;
     }
+    const { notNull } = column.filter;
     const prevInfo = genTypes.find(
-      (t) =>
-        t.notNull === column.filter!.notNull &&
-        eqFilterType(t.type, column.filter!.type)
+      (t) => t.notNull === notNull && eqFilterType(t.type, column.filter!)
     );
     if (prevInfo) {
       prevInfo.columns.push(i);
       continue;
     }
     genTypes.push({
-      type: column.filter.type,
+      type: column.filter,
       columns: [i],
       notNull: column.filter.notNull,
     });
@@ -122,195 +289,11 @@ function typeSpecificOps(columns: SuperGridColumn[], filterTerm: string): Node {
         ? `true`
         : `${filterTerm}.column_id in (${columns.join(",")})`;
     const opts: Node[] = [];
-    switch (type.type) {
-      case "string":
-        opts.push(
-          nodes.element("option", {
-            props: { value: "'str_eq'" },
-            children: "'is'",
-          }),
-          nodes.element("option", {
-            props: { value: "'str_ne'" },
-            children: "'is not'",
-          }),
-          nodes.element("option", {
-            props: { value: "'str_contains'" },
-            children: "'contains'",
-          }),
-          nodes.element("option", {
-            props: { value: "'str_not_contains'" },
-            children: "'does not contain'",
-          })
-        );
-        break;
-      case "number":
-        opts.push(
-          nodes.element("option", {
-            props: { value: "'num_eq'" },
-            children: "'='",
-          }),
-          nodes.element("option", {
-            props: { value: "'num_ne'" },
-            children: "'≠'",
-          }),
-          nodes.element("option", {
-            props: { value: "'num_lt'" },
-            children: "'<'",
-          }),
-          nodes.element("option", {
-            props: { value: "'num_lte'" },
-            children: "'≤'",
-          }),
-          nodes.element("option", {
-            props: { value: "'num_gt'" },
-            children: "'>'",
-          }),
-          nodes.element("option", {
-            props: { value: "'num_gte'" },
-            children: "'≥'",
-          })
-        );
-        break;
-      case "date":
-        opts.push(
-          nodes.element("option", {
-            props: { value: "'date_eq'" },
-            children: "'is'",
-          }),
-          nodes.element("option", {
-            props: { value: "'date_ne'" },
-            children: "'is not'",
-          }),
-          nodes.element("option", {
-            props: { value: "'date_lt'" },
-            children: "'is before'",
-          }),
-          nodes.element("option", {
-            props: { value: "'date_lte'" },
-            children: "'is on or before'",
-          }),
-          nodes.element("option", {
-            props: { value: "'date_gt'" },
-            children: "'is after'",
-          }),
-          nodes.element("option", {
-            props: { value: "'date_gte'" },
-            children: "'is on or after'",
-          })
-        );
-        break;
-      case "timestamp":
-        opts.push(
-          nodes.element("option", {
-            props: { value: "'timestamp_eq'" },
-            children: "'is'",
-          }),
-          nodes.element("option", {
-            props: { value: "'timestamp_ne'" },
-            children: "'is not'",
-          }),
-          nodes.element("option", {
-            props: { value: "'timestamp_lt'" },
-            children: "'is before'",
-          }),
-          nodes.element("option", {
-            props: { value: "'timestamp_lte'" },
-            children: "'is on or before'",
-          }),
-          nodes.element("option", {
-            props: { value: "'timestamp_gt'" },
-            children: "'is after'",
-          }),
-          nodes.element("option", {
-            props: { value: "'timestamp_gte'" },
-            children: "'is on or after'",
-          })
-        );
-        break;
-      case "enum":
-        opts.push(
-          nodes.element("option", {
-            props: { value: "'enum_eq'" },
-            children: "'is'",
-          }),
-          nodes.element("option", {
-            props: { value: "'enum_ne'" },
-            children: "'is not'",
-          })
-        );
-        break;
-      case "table":
-        opts.push(
-          nodes.element("option", {
-            props: { value: "'fk_eq'" },
-            children: "'is'",
-          }),
-          nodes.element("option", {
-            props: { value: "'fk_ne'" },
-            children: "'is not'",
-          })
-        );
-        break;
-      case "bool":
-        opts.push(
-          nodes.element("option", {
-            props: { value: "'bool_eq'" },
-            children: "'is'",
-          })
-        );
-        break;
-      case "enum_like_bool":
-        opts.push(
-          nodes.element("option", {
-            props: { value: "'enum_like_bool_eq'" },
-            children: "'is'",
-          })
-        );
-        break;
-      case "duration":
-        opts.push(
-          nodes.element("option", {
-            props: { value: "'minute_duration_eq'" },
-            children: "'='",
-          }),
-          nodes.element("option", {
-            props: { value: "'minute_duration_ne'" },
-            children: "'≠'",
-          }),
-          nodes.element("option", {
-            props: { value: "'minute_duration_lt'" },
-            children: "'<'",
-          }),
-          nodes.element("option", {
-            props: { value: "'minute_duration_lte'" },
-            children: "'≤'",
-          }),
-          nodes.element("option", {
-            props: { value: "'minute_duration_gt'" },
-            children: "'>'",
-          }),
-          nodes.element("option", {
-            props: { value: "'minute_duration_gte'" },
-            children: "'≥'",
-          })
-        );
-        break;
-      default:
-        throw new Error("ahhh");
+    if (type.type !== "custom") {
+      opts.push(opsByType[type.type]);
     }
     if (notNull && type.type !== "enum_like_bool") {
-      opts.push(
-        nodes.element("option", {
-          props: { value: "'empty'" },
-          children: "'is empty'",
-        })
-      );
-      opts.push(
-        nodes.element("option", {
-          props: { value: "'not_empty'" },
-          children: "'is not empty'",
-        })
-      );
+      opts.push(nullableOpts);
     }
     switchCases.push({ condition: caseExpr, node: opts });
   }
@@ -361,15 +344,16 @@ const dateOptions = [
 ];
 
 function columnFilter(
+  state: DgStateHelpers,
   filterTerm: string,
   columns: SuperGridColumn[],
   dts: SuperGridDts
 ) {
-  const options: Node[] = [];
+  const columnOptions: Node[] = [];
   for (let i = 0; i < columns.length; i++) {
     const col = columns[i];
     if (col.displayName) {
-      options.push(
+      columnOptions.push(
         nodes.element("option", {
           props: { value: i.toString() },
           children: stringLiteral(col.displayName!),
@@ -378,7 +362,7 @@ function columnFilter(
     }
   }
   const switchCases: { condition: string; node: Node }[] = [];
-  if (columns.some((col) => col.filter?.type?.type === "string")) {
+  if (columns.some((col) => col.filter?.type === "string")) {
     switchCases.push({
       condition: `dt.is_string_filter_op(${filterTerm}.op)`,
       node: nodes.state({
@@ -407,7 +391,7 @@ function columnFilter(
                       procedure: (s) =>
                         s
                           .delay(`500`)
-                          .statements(triggerQueryRefresh())
+                          .statements(state.triggerRefresh)
                           .setScalar(`did_trigger_refresh`, `true`)
                           .setScalar(`debounce_handle`, `null`)
                           .commitUiChanges(),
@@ -421,7 +405,7 @@ function columnFilter(
                         .abortTask(`debounce_handle`)
                         .setScalar(`debounce_handle`, `null`)
                     )
-                    .statements(triggerQueryRefresh()),
+                    .statements(state.triggerRefresh),
               },
             },
           },
@@ -429,7 +413,7 @@ function columnFilter(
       }),
     });
   }
-  if (columns.some((col) => col.filter?.type?.type === "number")) {
+  if (columns.some((col) => col.filter?.type === "number")) {
     switchCases.push({
       condition: `dt.is_number_filter_op(${filterTerm}.op)`,
       node: nodes.state({
@@ -459,7 +443,7 @@ function columnFilter(
                         procedure: (s) =>
                           s
                             .delay(`500`)
-                            .statements(triggerQueryRefresh())
+                            .statements(state.triggerRefresh)
                             .setScalar(`did_trigger_refresh`, `true`)
                             .setScalar(`debounce_handle`, `null`)
                             .commitUiChanges(),
@@ -474,7 +458,7 @@ function columnFilter(
                         .abortTask(`debounce_handle`)
                         .setScalar(`debounce_handle`, `null`)
                     )
-                    .statements(triggerQueryRefresh()),
+                    .statements(state.triggerRefresh),
               },
             },
           },
@@ -482,7 +466,7 @@ function columnFilter(
       }),
     });
   }
-  if (columns.some((col) => col.filter?.type?.type === "date")) {
+  if (columns.some((col) => col.filter?.type === "date")) {
     switchCases.push({
       condition: `dt.is_date_filter_op(${filterTerm}.op)`,
       node: [
@@ -505,7 +489,7 @@ function columnFilter(
                     .modify(
                       `update ui.filter_term set value_1 = target_value, value_2 = new_value_2 where id = ${filterTerm}.id`
                     )
-                    .statements(triggerQueryRefresh())
+                    .statements(state.triggerRefresh)
               ),
           },
           slots: {
@@ -532,7 +516,7 @@ function columnFilter(
                           `update ui.filter_term set value_2 = target_value where id = ${filterTerm}.id`
                         )
                       ),
-                    blur: triggerQueryRefresh(),
+                    blur: state.triggerRefresh,
                   },
                 },
               },
@@ -552,7 +536,7 @@ function columnFilter(
                           `update ui.filter_term set value_1 = 'exact date', value_2 = target_value where id = ${filterTerm}.id`
                         )
                       ),
-                    blur: triggerQueryRefresh(),
+                    blur: state.triggerRefresh,
                   },
                 },
               },
@@ -562,7 +546,7 @@ function columnFilter(
       ],
     });
   }
-  if (columns.some((col) => col.filter?.type?.type === "timestamp")) {
+  if (columns.some((col) => col.filter?.type === "timestamp")) {
     switchCases.push({
       condition: `dt.is_timestamp_filter_op(${filterTerm}.op)`,
       node: [
@@ -585,7 +569,7 @@ function columnFilter(
                     .modify(
                       `update ui.filter_term set value_1 = target_value, value_2 = new_value_2 where id = ${filterTerm}.id`
                     )
-                    .statements(triggerQueryRefresh())
+                    .statements(state.triggerRefresh)
               ),
           },
           slots: {
@@ -612,7 +596,7 @@ function columnFilter(
                           `update ui.filter_term set value_2 = target_value where id = ${filterTerm}.id`
                         )
                       ),
-                    blur: triggerQueryRefresh(),
+                    blur: state.triggerRefresh,
                   },
                 },
               },
@@ -632,7 +616,7 @@ function columnFilter(
                           `update ui.filter_term set value_1 = 'exact date', value_2 = target_value where id = ${filterTerm}.id`
                         )
                       ),
-                    blur: triggerQueryRefresh(),
+                    blur: state.triggerRefresh,
                   },
                 },
               },
@@ -642,19 +626,19 @@ function columnFilter(
       ],
     });
   }
-  if (columns.some((col) => col.filter?.type?.type === "enum")) {
+  if (columns.some((col) => col.filter?.type === "enum")) {
     switchCases.push({
       condition: `dt.is_enum_filter_op(${filterTerm}.op)`,
-      node: enumSelect(filterTerm, columns),
+      node: enumSelect(state, filterTerm, columns),
     });
   }
-  if (columns.some((col) => col.filter?.type?.type === "table")) {
+  if (columns.some((col) => col.filter?.type === "table")) {
     switchCases.push({
       condition: `dt.is_fk_filter_op(${filterTerm}.op)`,
-      node: tableInput(filterTerm, columns),
+      node: tableInput(state, filterTerm, columns),
     });
   }
-  if (columns.some((col) => col.filter?.type?.type === "bool")) {
+  if (columns.some((col) => col.filter?.type === "bool")) {
     switchCases.push({
       condition: `${filterTerm}.op = 'bool_eq'`,
       node: nodes.element("div", {
@@ -669,19 +653,19 @@ function columnFilter(
                 .modify(
                   `update ui.filter_term set value_1 = cast(target_checked as string) where id = ${filterTerm}.id`
                 )
-                .statements(triggerQueryRefresh()),
+                .statements(state.triggerRefresh),
           },
         }),
       }),
     });
   }
-  if (columns.some((col) => col.filter?.type?.type === "enum_like_bool")) {
+  if (columns.some((col) => col.filter?.type === "enum_like_bool")) {
     switchCases.push({
       condition: `${filterTerm}.op = 'enum_like_bool_eq'`,
-      node: enumLikeBoolSelect(filterTerm, columns),
+      node: enumLikeBoolSelect(state, filterTerm, columns),
     });
   }
-  if (columns.some((col) => col.filter?.type?.type === "duration")) {
+  if (columns.some((col) => col.filter?.type === "minutes_duration")) {
     switchCases.push({
       condition: `dt.is_minute_duration_filter_op(${filterTerm}.op)`,
       node: nodes.state({
@@ -701,10 +685,19 @@ function columnFilter(
               .modify(
                 `update ui.filter_term set value_1 = sfn.parse_minutes_duration(${value}) where id = ${filterTerm}.id`
               )
-              .statements(triggerQueryRefresh()),
+              .statements(state.triggerRefresh),
         }),
       }),
     });
+  }
+  for (let i = 0; i < columns.length; i++) {
+    const col = columns[i];
+    if (col.filter?.type === "custom") {
+      switchCases.push({
+        condition: `${filterTerm}.column_id = ${i}`,
+        node: col.filter.node(state),
+      });
+    }
   }
   return [
     select({
@@ -720,31 +713,34 @@ function columnFilter(
                 .modify(
                   `update ui.filter_term set column_id = new_id, op = dt.${dts.idToDefaultOp}(new_id), value_1 = null, value_2 = null, value_3 = null where id = ${filterTerm}.id`
                 )
-                .statements(triggerQueryRefresh())
+                .statements(state.triggerRefresh)
             ),
       },
       slots: { select: { props: { value: `${filterTerm}.column_id` } } },
-      children: options,
+      children: columnOptions,
     }),
-    select({
-      variant: "outlined",
-      color: "neutral",
-      size: "sm",
-      on: {
-        input: (s) =>
-          s
-            .scalar("new_op", "cast(target_value as enums.dg_filter_op)")
-            .if(`${filterTerm}.op != new_op`, (s) =>
-              s
-                .modify(
-                  `update ui.filter_term set op = new_op where id = ${filterTerm}.id`
-                )
-                .statements(triggerQueryRefresh())
-            ),
-      },
-      slots: { select: { props: { value: `${filterTerm}.op` } } },
-      children: typeSpecificOps(columns, filterTerm),
-    }),
+    nodes.if(
+      `${filterTerm}.op != 'custom'`,
+      select({
+        variant: "outlined",
+        color: "neutral",
+        size: "sm",
+        on: {
+          input: (s) =>
+            s
+              .scalar("new_op", "cast(target_value as enums.dg_filter_op)")
+              .if(`${filterTerm}.op != new_op`, (s) =>
+                s
+                  .modify(
+                    `update ui.filter_term set op = new_op where id = ${filterTerm}.id`
+                  )
+                  .statements(state.triggerRefresh)
+              ),
+        },
+        slots: { select: { props: { value: `${filterTerm}.op` } } },
+        children: typeSpecificOps(columns, filterTerm),
+      })
+    ),
     nodes.switch(...switchCases),
     iconButton({
       variant: "plain",
@@ -755,16 +751,20 @@ function columnFilter(
         click: (s) =>
           s
             .modify(`delete from filter_term_record`)
-            .statements(triggerQueryRefresh()),
+            .statements(state.triggerRefresh),
       },
     }),
   ];
 }
 
-function enumLikeBoolSelect(filterTerm: string, columns: SuperGridColumn[]) {
+function enumLikeBoolSelect(
+  state: DgStateHelpers,
+  filterTerm: string,
+  columns: SuperGridColumn[]
+) {
   const cols = [];
   for (let i = 0; i < columns.length; i++) {
-    if (columns[i].filter?.type?.type === "enum_like_bool") {
+    if (columns[i].filter?.type === "enum_like_bool") {
       cols.push(i);
     }
   }
@@ -781,14 +781,14 @@ function enumLikeBoolSelect(filterTerm: string, columns: SuperGridColumn[]) {
               .modify(
                 `update ui.filter_term set value_1 = target_value where id = ${filterTerm}.id`
               )
-              .statements(triggerQueryRefresh())
+              .statements(state.triggerRefresh)
         ),
     },
     slots: { select: { props: { value: `${filterTerm}.value_1` } } },
     children: nodes.switch(
       ...cols.map((i) => {
         const col = columns[i];
-        if (col.filter!.type.type !== "enum_like_bool") {
+        if (col.filter!.type !== "enum_like_bool") {
           throw new Error("impossible");
         }
         return {
@@ -796,16 +796,16 @@ function enumLikeBoolSelect(filterTerm: string, columns: SuperGridColumn[]) {
           node: [
             nodes.element("option", {
               props: { value: `'true'` },
-              children: stringLiteral(col.filter!.type.config.true),
+              children: stringLiteral(col.filter!.config.true),
             }),
             nodes.element("option", {
               props: { value: `'false'` },
-              children: stringLiteral(col.filter!.type.config.false),
+              children: stringLiteral(col.filter!.config.false),
             }),
-            col.filter!.type.config.null
+            col.filter!.config.null
               ? nodes.element("option", {
                   props: { value: `''` },
-                  children: stringLiteral(col.filter!.type.config.null),
+                  children: stringLiteral(col.filter!.config.null),
                 })
               : null,
           ],
@@ -815,12 +815,16 @@ function enumLikeBoolSelect(filterTerm: string, columns: SuperGridColumn[]) {
   });
 }
 
-function enumSelect(filterTerm: string, columns: SuperGridColumn[]) {
+function enumSelect(
+  state: DgStateHelpers,
+  filterTerm: string,
+  columns: SuperGridColumn[]
+) {
   const columnsByEnum: Record<string, number[]> = {};
   for (let i = 0; i < columns.length; i++) {
     const column = columns[i];
-    if (column.filter?.type?.type === "enum") {
-      const enumName = column.filter.type.enum;
+    if (column.filter?.type === "enum") {
+      const enumName = column.filter.enum;
       if (!columnsByEnum[enumName]) {
         columnsByEnum[enumName] = [];
       }
@@ -840,7 +844,7 @@ function enumSelect(filterTerm: string, columns: SuperGridColumn[]) {
               .modify(
                 `update ui.filter_term set value_1 = target_value where id = ${filterTerm}.id`
               )
-              .statements(triggerQueryRefresh())
+              .statements(state.triggerRefresh)
         ),
     },
     slots: { select: { props: { value: `${filterTerm}.value_1` } } },
@@ -863,12 +867,16 @@ function enumSelect(filterTerm: string, columns: SuperGridColumn[]) {
 
 const filterIdPrefix = stringLiteral(getUniqueUiId());
 
-function tableInput(filterTerm: string, columns: SuperGridColumn[]) {
+function tableInput(
+  state: DgStateHelpers,
+  filterTerm: string,
+  columns: SuperGridColumn[]
+) {
   const columnsByTable: Record<string, number[]> = {};
   for (let i = 0; i < columns.length; i++) {
     const column = columns[i];
-    if (column.filter?.type?.type === "table") {
-      const tableName = column.filter.type.table;
+    if (column.filter?.type === "table") {
+      const tableName = column.filter.table;
       if (!columnsByTable[tableName]) {
         columnsByTable[tableName] = [];
       }
@@ -892,7 +900,7 @@ function tableInput(filterTerm: string, columns: SuperGridColumn[]) {
                   .modify(
                     `update ui.filter_term set value_1 = cast(${id} as string), value_2 = ${label} where id = ${filterTerm}.id`
                   )
-                  .statements(triggerQueryRefresh())
+                  .statements(state.triggerRefresh)
             ),
           onSelectValue: (value) => (s) =>
             s.if(
@@ -902,7 +910,7 @@ function tableInput(filterTerm: string, columns: SuperGridColumn[]) {
                   .modify(
                     `update ui.filter_term set value_1 = cast(${value} as string) where id = ${filterTerm}.id`
                   )
-                  .statements(triggerQueryRefresh())
+                  .statements(state.triggerRefresh)
             ),
           value: `cast(${filterTerm}.value_1 as bigint)`,
           initialInputText: `coalesce(${filterTerm}.value_2, '')`,
@@ -950,7 +958,7 @@ const isAnySelector = lazy(() => {
                       `update filter_term set is_any = target_value= 'true' where id = filter_term_record.group`
                     ),
                 })
-                .statements(triggerQueryRefresh()),
+                .setScalar(`ui.dg_refresh_key`, `ui.dg_refresh_key + 1`),
           },
           slots: { select: { props: { value: isAny } } },
           children: [
@@ -976,7 +984,11 @@ const isAnySelector = lazy(() => {
   });
 });
 
-export function filterPopover(columns: SuperGridColumn[], dts: SuperGridDts) {
+export function filterPopover(
+  state: DgStateHelpers,
+  columns: SuperGridColumn[],
+  dts: SuperGridDts
+) {
   return [
     nodes.if({
       expr: `exists (select 1 from ui.filter_term)`,
@@ -992,7 +1004,7 @@ export function filterPopover(columns: SuperGridColumn[], dts: SuperGridDts) {
             isAnySelector(),
             nodes.if({
               expr: `filter_term_record.is_any is null`,
-              then: columnFilter(`filter_term_record`, columns, dts),
+              then: columnFilter(state, `filter_term_record`, columns, dts),
               else: nodes.element("div", {
                 styles: styles.filterGroup,
                 dynamicClasses: [
@@ -1073,7 +1085,7 @@ export function filterPopover(columns: SuperGridColumn[], dts: SuperGridDts) {
                               .modify(
                                 `delete from filter_term where id in (select id from all_filters) or group in (select id from all_filters)`
                               )
-                              .statements(triggerQueryRefresh()),
+                              .statements(state.triggerRefresh),
                         },
                       }),
                     ],
@@ -1136,7 +1148,7 @@ function insertFilter(columns: SuperGridColumn[], parentGroup?: string) {
         ${parentGroup ? parentGroup + "," : ""}
         ${ordering},
         ${stringLiteral(
-          defaultOpForFieldType(columns.find((col) => col.filter)!.filter!.type)
+          defaultOpForFieldType(columns.find((col) => col.filter)!.filter!)
         )}
       )`
     )

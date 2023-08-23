@@ -8,24 +8,18 @@ import { nodes } from "../../nodeHelpers";
 import { Node } from "../../nodeTypes";
 import { createStyles } from "../../styleUtils";
 import { ident, stringLiteral } from "../../utils/sqlHelpers";
-import { StateStatement } from "../../yom";
 import {
   addDatagridDts,
   BaseColumn,
-  BaseColumnQueryGeneration,
   datagridBase,
   DefaultView,
 } from "./datagridBase";
 import { styles as sharedStyles } from "./styles";
 import { toolbar } from "./toolbar";
-import { Cell, ColumnEventHandlers } from "./types";
 import { viewDrawer } from "./viewDrawer";
-import { triggerQueryRefresh } from "./shared";
-import {
-  DomStatements,
-  StateStatements,
-  StateStatementsOrFn,
-} from "../../statements";
+import { DomStatements, StateStatementsOrFn } from "../../statements";
+import { DgStateHelpers } from "./shared";
+import * as yom from "../../yom";
 
 export interface ToolbarConfig {
   views: boolean;
@@ -47,38 +41,38 @@ export interface SortConfig {
   descText: string;
 }
 
-export interface FilterConfig {
-  type: FilterType;
-  notNull: boolean;
-}
-
-export interface SuperGridColumn extends ColumnEventHandlers {
-  queryGeneration?: BaseColumnQueryGeneration;
+export interface SuperGridColumn extends BaseColumn {
   viewStorageName: string;
   displayName?: string;
-  initialWidth: number;
-  initiallyDisplaying: boolean;
-  header: Node;
-  filter?: FilterConfig;
+  filter?: FilterType;
   sort?: SortConfig;
-  cell: Cell;
 }
 
 export type FilterType =
-  | { type: "string" | "number" | "date" | "bool" | "timestamp" }
+  | {
+      type: "string" | "number" | "date" | "bool" | "timestamp";
+      notNull: boolean;
+    }
   | {
       type: "table";
       table: string;
+      notNull: boolean;
     }
   | {
       type: "enum";
       enum: string;
+      notNull: boolean;
     }
   | {
       type: "enum_like_bool";
       config: BoolEnumLikeConfig;
+      notNull: boolean;
     }
-  | { type: "duration"; size: DurationSize };
+  | { type: "minutes_duration"; notNull: boolean }
+  | {
+      type: "custom";
+      node: (state: DgStateHelpers) => Node;
+    };
 
 export function eqFilterType(l: FilterType, r: FilterType) {
   if (typeof l === "string") {
@@ -114,11 +108,10 @@ export function defaultOpForFieldType(type: FilterType) {
       return "bool_eq";
     case "enum_like_bool":
       return "enum_like_bool_eq";
-    case "duration":
-      if (type.size === "minutes") {
-        return "minute_duration_eq";
-      }
-      throw new Error("unhandled duration size");
+    case "minutes_duration":
+      return "minute_duration_eq";
+    case "custom":
+      return "custom";
   }
 }
 
@@ -187,6 +180,7 @@ const styles = createStyles({
 const popoverId = stringLiteral(getUniqueUiId());
 
 export function columnPopover(
+  state: DgStateHelpers,
   i: number,
   startFixedColumns: number,
   sort: SortConfig | undefined
@@ -260,10 +254,7 @@ export function columnPopover(
                   listItem({
                     on: {
                       click: (s) =>
-                        s.statements(
-                          setColumnSort(true),
-                          triggerQueryRefresh()
-                        ),
+                        s.statements(setColumnSort(true), state.triggerRefresh),
                     },
                     children: listItemButton({
                       variant: "plain",
@@ -276,7 +267,7 @@ export function columnPopover(
                       click: (s) =>
                         s.statements(
                           setColumnSort(false),
-                          triggerQueryRefresh()
+                          state.triggerRefresh
                         ),
                     },
                     children: listItemButton({
@@ -406,7 +397,7 @@ function addSupergridDatagridDts(
       displayNames.push(`${i},${stringLiteral(col.displayName)}`);
     }
     if (col.filter) {
-      const op = defaultOpForFieldType(col.filter.type);
+      const op = defaultOpForFieldType(col.filter);
       defaultOps.push(
         [i, "cast(" + stringLiteral(op) + "as enums.dg_filter_op)"].join(",")
       );
@@ -441,30 +432,22 @@ export interface StyledDatagridConfig {
 }
 
 export function styledDatagrid(config: StyledDatagridConfig) {
-  const baseColumns = config.columns.map(
-    (c): BaseColumn => ({
-      cell: c.cell,
-      header: c.header,
-      initiallyDisplaying: c.initiallyDisplaying,
-      initialWidth: c.initialWidth,
-      keydownCellHandler: c.keydownCellHandler,
-      keydownHeaderHandler: c.keydownHeaderHandler,
-      queryGeneration: c.queryGeneration,
-      viewStorageName: c.viewStorageName,
-    })
-  );
   const superDts = addSupergridDatagridDts(config.datagridName, config.columns);
-  const dts = addDatagridDts(config.datagridName, baseColumns);
+  const dts = addDatagridDts(config.datagridName, config.columns);
   return datagridBase({
     source: "db." + ident(config.tableModel.name),
-    children: (dg) => [
-      toolbar(
-        config.toolbar,
-        config.columns,
-        dts,
-        superDts,
-        config.tableModel,
-        config.toolbar.search?.matchConfig
+    children: (dg, state) => [
+      nodes.sourceMap(
+        "datagrid toolbar",
+        toolbar(
+          state,
+          config.toolbar,
+          config.columns,
+          dts,
+          superDts,
+          config.tableModel,
+          config.toolbar.search?.matchConfig
+        )
       ),
       nodes.state({
         procedure: (s) => s.scalar(`show_query_err`, `false`),
@@ -509,7 +492,7 @@ export function styledDatagrid(config: StyledDatagridConfig) {
     ],
     datagridName: config.datagridName,
     dts,
-    columns: baseColumns,
+    columns: config.columns,
     enableViews: config.toolbar.views,
     idField: config.idField,
     datagridStyles: {

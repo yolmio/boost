@@ -4,10 +4,10 @@ import { button } from "../../components/button";
 import { iconButton } from "../../components/iconButton";
 import { materialIcon } from "../../components/materialIcon";
 import { select } from "../../components/select";
-import { triggerQueryRefresh } from "./shared";
 import { createStyles } from "../../styleUtils";
 import { SortConfig, SuperGridColumn } from "./styledDatagrid";
 import { Node, SwitchNodeCase } from "../../nodeTypes";
+import { DgStateHelpers } from "./shared";
 
 const styles = createStyles({
   columns: {
@@ -16,7 +16,7 @@ const styles = createStyles({
   },
 });
 
-export function sortPopover(columns: SuperGridColumn[]) {
+export function sortPopover(state: DgStateHelpers, columns: SuperGridColumn[]) {
   const sorts = new Map<SortConfig, number[]>();
   const options: Node[] = [];
   for (let i = 0; i < columns.length; i++) {
@@ -72,7 +72,7 @@ export function sortPopover(columns: SuperGridColumn[]) {
                       .modify(
                         `update ui.column set sort_index = null where id = column_record.id`
                       )
-                      .statements(triggerQueryRefresh())
+                      .statements(state.triggerRefresh)
                   ),
             },
             slots: { select: { props: { value: "column_record.id" } } },
@@ -88,7 +88,7 @@ export function sortPopover(columns: SuperGridColumn[]) {
                   .modify(
                     `update ui.column set sort_asc = target_value = 'asc' where id = column_record.id`
                   )
-                  .statements(triggerQueryRefresh()),
+                  .statements(state.triggerRefresh),
             },
             slots: {
               select: {
@@ -120,7 +120,7 @@ export function sortPopover(columns: SuperGridColumn[]) {
                   .modify(
                     `update ui.column set sort_index = null where id = column_record.id`
                   )
-                  .statements(triggerQueryRefresh()),
+                  .statements(state.triggerRefresh),
             },
           }),
         ],
@@ -141,7 +141,7 @@ export function sortPopover(columns: SuperGridColumn[]) {
                 .modify(
                   `update ui.column set sort_index = 0, sort_asc = true where id = try_cast(target_value as int)`
                 )
-                .statements(triggerQueryRefresh()),
+                .statements(state.triggerRefresh),
           },
           slots: {
             select: { props: { value: "'default'", yolmFocusKey: `adding` } },

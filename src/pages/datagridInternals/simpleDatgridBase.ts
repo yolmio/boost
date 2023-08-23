@@ -1,39 +1,46 @@
 import { nodes } from "../../nodeHelpers";
 import { DataGridStyles, Node } from "../../nodeTypes";
-import {
-  BasicStatements,
-  StateStatements,
-  StateStatementsOrFn,
-} from "../../statements";
+import { StateStatements, StateStatementsOrFn } from "../../statements";
 import { ident } from "../../utils/sqlHelpers";
 import * as yom from "../../yom";
 import {
+  DgStateHelpers,
   colClickHandlers,
   colKeydownHandlers,
+  dgState,
   editFocusState,
   refreshKeyState,
   rowHeightInPixels,
-  triggerQueryRefresh,
+  RowHeight,
+  ColumnEventHandlers,
+  CellNode,
+  CellHelpers,
 } from "./shared";
-import { Cell, ColumnEventHandlers, RowHeight } from "./types";
 
 export interface SimpleDatagridBaseOpts {
   datagridStyles: DataGridStyles;
-  children: (dgNode: Node) => Node;
+  children: (dgNode: Node, state: DgStateHelpers) => Node;
   columns: SimpleBaseColumn[];
-  extraState?: StateStatementsOrFn;
   idField: string;
   source: string;
   idFieldSource: string;
   rowHeight: RowHeight;
   pageSize?: number;
   allow?: yom.SqlExpression;
+  /**
+   * Extra state, kept outside of the query state, so only refreshed on view change.
+   */
+  extraState?: StateStatementsOrFn;
+  /**
+   * Re-evaluated every time the datagrid query is refreshed.
+   */
+  extraQueryState?: StateStatementsOrFn;
 }
 
 export interface SimpleBaseColumn extends ColumnEventHandlers {
   queryGeneration?: SimpleBaseColumnQueryGeneration;
   initialWidth: number;
-  cell: Cell;
+  cell: CellNode;
   header: Node;
 }
 
@@ -44,7 +51,7 @@ export interface SimpleBaseColumnQueryGeneration {
   procFieldType: yom.FieldType;
 }
 
-export function simplDatagridBase(opts: SimpleDatagridBaseOpts) {
+export function simpleDatagridBase(opts: SimpleDatagridBaseOpts) {
   const { columns, datagridStyles, allow } = opts;
   const getResultsProc = getQuery(
     columns,
@@ -53,12 +60,13 @@ export function simplDatagridBase(opts: SimpleDatagridBaseOpts) {
     opts.idField,
     typeof opts.pageSize === "number"
   );
+  getResultsProc.statements(opts.extraQueryState);
   const rowHeight = rowHeightInPixels(opts.rowHeight);
   let children = opts.children(
     nodes.dataGrid({
       table: "dg_table",
       tableKey: opts.idField,
-      recordName: "record",
+      recordName: "dg_record",
       rowHeight: rowHeight.toString(),
       headerHeight: "44",
       focusedColumn: "focus_state.column",
@@ -94,40 +102,38 @@ export function simplDatagridBase(opts: SimpleDatagridBaseOpts) {
             ? (s) =>
                 s
                   .setScalar(`ui.row_count`, `ui.row_count + ${opts.pageSize}`)
-                  .statements(triggerQueryRefresh())
+                  .statements(dgState.triggerRefresh)
             : undefined,
       },
       columns: columns.map((col, i) => {
         const fieldIdent = col.queryGeneration?.sqlName
           ? ident(col.queryGeneration.sqlName)
-          : null;
+          : undefined;
+        const name =
+          col.queryGeneration?.sqlName ??
+          (typeof col.header === "string" ? col.header : `cell_${i}`);
         return {
           cell: nodes.sourceMap(
-            col.queryGeneration?.sqlName ??
-              (typeof col.header === "string" ? col.header : `cell_${i}`),
-            col.cell({
-              value: fieldIdent ? `record.` + fieldIdent : `null`,
-              editing: `editing_state.is_editing and editing_state.column = ${i} and editing_state.row - 1 = record.iteration_index`,
-              setValue: (v) =>
-                fieldIdent
-                  ? new BasicStatements().modify(
-                      `update ui.dg_table set ${fieldIdent} = ${v} where dg_table.${opts.idField} = record.${opts.idField}`
-                    )
-                  : new BasicStatements(),
-              recordId: `record.${opts.idField}`,
-              nextCol: i + 1 === columns.length ? `null` : (i + 1).toString(),
-              stopEditing: new BasicStatements()
-                .modify(`update ui.editing_state set is_editing = false`)
-                .modify(`update ui.focus_state set should_focus = true`),
-              column: i.toString(),
-              row: `record.iteration_index + 1`,
-            })
+            "cell " + name,
+            col.cell(
+              new CellHelpers(
+                {
+                  column: i,
+                  field: fieldIdent,
+                  idField: opts.idField,
+                },
+                i + 1 === columns.length ? `null` : (i + 1).toString(),
+                `dg_record.${opts.idField}`
+              ),
+              dgState
+            )
           ),
-          header: col.header,
+          header: nodes.sourceMap("cell header " + name, col.header),
           width: `(select width from column_width where col = ${i})`,
         };
       }),
-    })
+    }),
+    dgState
   );
   children = nodes.state({
     watch: ["dg_refresh_key"],

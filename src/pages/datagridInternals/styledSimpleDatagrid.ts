@@ -9,18 +9,17 @@ import { nodes } from "../../nodeHelpers";
 import { Node } from "../../nodeTypes";
 import { createStyles, flexGrowStyles } from "../../styleUtils";
 import { ident, stringLiteral } from "../../utils/sqlHelpers";
-import { SqlExpression, StateStatement } from "../../yom";
+import { SqlExpression } from "../../yom";
 import {
   getCountQuery,
   SimpleBaseColumn,
   SimpleBaseColumnQueryGeneration,
-  simplDatagridBase,
+  simpleDatagridBase,
 } from "./simpleDatgridBase";
 import { styles as sharedStyles } from "./styles";
-import { triggerQueryRefresh } from "./shared";
-import { Cell, ColumnEventHandlers, RowHeight } from "./types";
 import { circularProgress } from "../../components/circularProgress";
 import { StateStatements } from "../../statements";
+import { CellNode, dgState, ColumnEventHandlers, RowHeight } from "./shared";
 
 export interface ToolbarConfig {
   header: Node;
@@ -36,7 +35,7 @@ export interface SimpleColumn extends ColumnEventHandlers {
   queryGeneration?: SimpleBaseColumnQueryGeneration;
   width: number;
   header: Node;
-  cell: Cell;
+  cell: CellNode;
 }
 
 export interface StyledSimpleGridConfig {
@@ -105,16 +104,18 @@ export function styledSimpleDatagrid(config: StyledSimpleGridConfig) {
             type: "AutoLabelOnLeft",
             ignoreFields: Object.keys(withValues),
           },
-          afterTransactionCommit: (state, s) =>
-            s.statements(
-              (config.toolbar.add as any).opts?.afterTransactionCommit?.(state),
-              triggerQueryRefresh()
-            ),
+          afterTransactionCommit: (formState, s) => {
+            (config.toolbar.add as any).opts?.afterTransactionCommit?.(
+              formState,
+              s
+            );
+            s.statements(dgState.triggerRefresh);
+          },
         }),
       ],
     });
   }
-  let content: Node = simplDatagridBase({
+  let content: Node = simpleDatagridBase({
     source: "db." + ident(config.tableModel.name),
     idFieldSource: ident(config.tableModel.primaryKeyFieldName),
     children: (dg) =>
@@ -226,7 +227,7 @@ export function styledSimpleDatagrid(config: StyledSimpleGridConfig) {
                                     ),
                                 })
                                 .commitTransaction()
-                                .statements(triggerQueryRefresh())
+                                .statements(dgState.triggerRefresh)
                             )
                             .statements(closeModal),
                       }),

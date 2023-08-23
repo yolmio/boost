@@ -2,11 +2,11 @@ import { nodes } from "../../nodeHelpers";
 import { button } from "../../components/button";
 import { checkbox } from "../../components/checkbox";
 import { input } from "../../components/input";
-import { triggerQueryRefresh } from "./shared";
 import { createStyles } from "../../styleUtils";
 import { divider } from "../../components/divider";
 import { styles as sharedStyles } from "./styles";
 import { SuperGridDts } from "./styledDatagrid";
+import { DgStateHelpers } from "./shared";
 
 const styles = createStyles({
   columnsWrapper: {
@@ -18,7 +18,7 @@ const styles = createStyles({
   },
 });
 
-export function columnsPopover(dts: SuperGridDts) {
+export function columnsPopover(state: DgStateHelpers, dts: SuperGridDts) {
   return nodes.state({
     procedure: (s) => s.scalar(`filter_text`, `''`),
     children: [
@@ -60,7 +60,7 @@ export function columnsPopover(dts: SuperGridDts) {
                   .modify(
                     `update ui.column set displaying = not displaying where id = column_record.id`
                   )
-                  .if(`column_record.displaying`, triggerQueryRefresh()),
+                  .if(`column_record.displaying`, state.triggerRefresh),
             },
           }),
         }),
@@ -76,7 +76,7 @@ export function columnsPopover(dts: SuperGridDts) {
               click: (s) =>
                 s
                   .modify(`update ui.column set displaying = true`)
-                  .statements(triggerQueryRefresh()),
+                  .statements(state.triggerRefresh),
             },
           }),
           button({
@@ -89,7 +89,7 @@ export function columnsPopover(dts: SuperGridDts) {
                   .modify(
                     `update ui.column set displaying = false where id != 0`
                   )
-                  .statements(triggerQueryRefresh()),
+                  .statements(state.triggerRefresh),
             },
           }),
         ],

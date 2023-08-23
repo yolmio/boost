@@ -1,11 +1,24 @@
-import { nodes } from "../../nodeHelpers";
+import { HelperEventHandlers, nodes } from "../../nodeHelpers";
 import {
   BasicStatements,
   DomStatements,
+  DomStatementsOrFn,
+  ServiceStatementsOrFn,
   StateStatements,
 } from "../../statements";
 import { createStyles } from "../../styleUtils";
-import { ColumnEventHandlers, RowHeight } from "./types";
+import * as yom from "../../yom";
+import { ident, parenWrap } from "../../utils/sqlHelpers";
+import { Node } from "../../nodeTypes";
+
+export interface ColumnEventHandlers {
+  keydownCellHandler?: DomStatementsOrFn;
+  keydownHeaderHandler?: DomStatementsOrFn;
+  headerClickHandler?: DomStatementsOrFn;
+  cellClickHandler?: DomStatementsOrFn;
+}
+
+export type RowHeight = "short" | "medium" | "tall" | "extraTall";
 
 export function rowHeightInPixels(height: RowHeight) {
   switch (height) {
@@ -32,9 +45,234 @@ export function editFocusState() {
     )
     .scalar(`start_edit_with_char`, { type: "String", maxLength: 1 })
     .scalar("saving_edit", "false")
-    .scalar(`display_error_message`, { type: "String", maxLength: 2000 })
-    .scalar(`remove_error_task`, { type: "BigInt" });
+    .scalar(`display_error_message`, { type: "String", maxLength: 2000 });
 }
+
+interface UpdateCellFieldOpts extends FieldEditProcConfig {
+  tableName: string;
+  fieldName: string;
+  dbValue: yom.SqlExpression;
+  resetValue: DomStatementsOrFn;
+  recordId: yom.SqlExpression;
+}
+
+export class DgStateHelpers {
+  focusState = {
+    column: "focus_state.column" as yom.SqlExpression,
+    row: "focus_state.row" as yom.SqlExpression,
+    shouldFocus: "focus_state.should_focus" as yom.SqlExpression,
+  };
+  editingState = {
+    column: "editing_state.column" as yom.SqlExpression,
+    row: "editing_state.row" as yom.SqlExpression,
+    isEditing: "editing_state.is_editing" as yom.SqlExpression,
+  };
+  startEditWithChar = "start_edit_with_char" as yom.SqlExpression;
+  savingEdit = "saving_edit" as yom.SqlExpression;
+  displayErrorMessage = "display_error_message" as yom.SqlExpression;
+  refreshKey = "ui.dg_refresh_key" as yom.SqlExpression;
+
+  get triggerRefresh() {
+    return new BasicStatements().setScalar(
+      this.refreshKey,
+      `${this.refreshKey} + 1`
+    );
+  }
+
+  setErrorMessage(message: yom.SqlExpression) {
+    return new BasicStatements().setScalar(this.displayErrorMessage, message);
+  }
+
+  setSavingEdit(saving: yom.SqlExpression) {
+    return new BasicStatements().setScalar(this.savingEdit, saving);
+  }
+
+  setStartEditWithChar(char: yom.SqlExpression) {
+    return new BasicStatements().setScalar(this.startEditWithChar, char);
+  }
+
+  displayEditErrorAndRemoveAfter(
+    message: yom.SqlExpression,
+    delay: yom.SqlExpression = "4000"
+  ) {
+    return new DomStatements().statements(this.setErrorMessage(message)).spawn({
+      detached: true,
+      procedure: (s) =>
+        s
+          .delay(delay)
+          .statements(this.setErrorMessage(`null`))
+          .commitUiChanges(),
+    });
+  }
+
+  doEditTransaction(opts: {
+    beforeTransaction?: ServiceStatementsOrFn;
+    transactionBody: ServiceStatementsOrFn;
+    afterTransaction?: ServiceStatementsOrFn;
+    onError: (errRecord: string) => DomStatementsOrFn;
+  }) {
+    return new DomStatements()
+      .statements(this.setSavingEdit(`true`), this.setErrorMessage(`null`))
+      .commitUiChanges()
+      .try({
+        body: (s) =>
+          s.serviceProc((s) =>
+            s
+              .statements(opts.beforeTransaction)
+              .startTransaction()
+              .statements(opts.transactionBody)
+              .commitTransaction()
+              .statements(opts.afterTransaction, this.triggerRefresh)
+          ),
+        errorName: `edit_err`,
+        catch: opts.onError(`edit_err`),
+        finally: this.setSavingEdit(`false`),
+      });
+  }
+
+  updateFieldValueInDb(opts: UpdateCellFieldOpts) {
+    return this.doEditTransaction({
+      transactionBody: (s) =>
+        s.modify(
+          `update db.${ident(opts.tableName)} set ${ident(opts.fieldName)} = ${
+            opts.dbValue
+          } where id = ${opts.recordId}`
+        ),
+      onError: () => (s) =>
+        s.statements(
+          opts.resetValue,
+          this.displayEditErrorAndRemoveAfter(`'Error saving edit'`)
+        ),
+    });
+  }
+}
+
+export const dgState = new DgStateHelpers();
+
+export type FieldEditStatements = (
+  newValue: string,
+  recordId: string
+) => ServiceStatementsOrFn;
+
+export interface FieldEditProcConfig {
+  beforeEditTransaction?: FieldEditStatements;
+  beforeEdit?: FieldEditStatements;
+  afterEdit?: FieldEditStatements;
+  afterEditTransaction?: FieldEditStatements;
+}
+
+export interface FieldEditorHelpersOpts extends FieldEditProcConfig {
+  tableName: string;
+  fieldName: string;
+  dbValue: yom.SqlExpression;
+  newUiValue?: yom.SqlExpression;
+  validUiValue: yom.SqlExpression;
+  changedUiValue: yom.SqlExpression;
+  recordId?: yom.SqlExpression;
+}
+
+export class CellHelpers {
+  record = `dg_record`;
+  row: yom.SqlExpression = `${this.record}.iteration_index + 1`;
+
+  constructor(
+    private opts: {
+      column: number;
+      field?: string;
+      idField: string;
+    },
+    public nextCol: yom.SqlExpression,
+    public recordId: yom.SqlExpression
+  ) {}
+
+  get value(): yom.SqlExpression {
+    return this.opts.field ? this.record + `.` + this.opts.field : `null`;
+  }
+  get editing(): yom.SqlExpression {
+    return `editing_state.is_editing and editing_state.column = ${this.opts.column} and editing_state.row = ${this.row}`;
+  }
+  setValue(v: yom.SqlExpression) {
+    return this.opts.field
+      ? new BasicStatements().modify(
+          `update ui.dg_table set ${this.opts.field} = ${v} where dg_table.${this.opts.idField} = ${this.record}.${this.opts.idField}`
+        )
+      : new BasicStatements();
+  }
+
+  get stopEditingAndFocus() {
+    return new BasicStatements()
+      .modify(`update ui.editing_state set is_editing = false`)
+      .modify(`update ui.focus_state set should_focus = true`);
+  }
+
+  get column(): yom.SqlExpression {
+    return this.column.toString();
+  }
+
+  updateFieldValueInDb(
+    opts: Omit<UpdateCellFieldOpts, "recordId"> & {
+      recordId?: yom.SqlExpression;
+    }
+  ) {
+    return dgState.updateFieldValueInDb({
+      ...opts,
+      recordId: opts.recordId ?? this.recordId,
+    });
+  }
+
+  fieldEditorEventHandlers(opts: FieldEditorHelpersOpts): HelperEventHandlers {
+    const editStatements = new DomStatements()
+      .scalar(`prev_value`, this.value)
+      .statements(
+        this.setValue(opts.newUiValue ?? `ui.value`),
+        this.updateFieldValueInDb({
+          ...opts,
+          resetValue: this.setValue(`prev_value`),
+        })
+      );
+    const displayErrAndExit = new DomStatements()
+      .statements(dgState.displayEditErrorAndRemoveAfter(`'Invalid value'`))
+      .return();
+    return {
+      click: (s) => s.stopPropagation(),
+      keydown: {
+        detachedFromNode: true,
+        procedure: (s) =>
+          s
+            .stopPropagation()
+            .if(`event.key = 'Enter'`, (s) =>
+              s
+                .statements(this.stopEditingAndFocus)
+                .if(`not ${parenWrap(opts.validUiValue)}`, displayErrAndExit)
+                .if(opts.changedUiValue, editStatements)
+            )
+            .if(`event.key = 'Escape'`, this.stopEditingAndFocus)
+            .if(`event.key = 'Tab'`, (s) =>
+              s
+                .preventDefault()
+                .scalar(`next_col`, { type: "SmallInt" }, this.nextCol)
+                .modify(`update ui.editing_state set is_editing = false`)
+                .modify(
+                  `update ui.focus_state set should_focus = true, column = next_col`
+                )
+                .if(`next_col is null`, (s) => s.return())
+                .if(`not ${parenWrap(opts.validUiValue)}`, displayErrAndExit)
+                .if(opts.changedUiValue, editStatements)
+            ),
+      },
+      blur: {
+        detachedFromNode: true,
+        procedure: (s) =>
+          s
+            .modify(`update ui.editing_state set is_editing = false`)
+            .if(`not ${parenWrap(opts.validUiValue)}`, displayErrAndExit)
+            .if(opts.changedUiValue, editStatements),
+      },
+    };
+  }
+}
+
+export type CellNode = (cell: CellHelpers, state: DgStateHelpers) => Node;
 
 export function colKeydownHandlers(columns: ColumnEventHandlers[]) {
   const statements = new DomStatements();
@@ -80,13 +318,6 @@ export function colClickHandlers(columns: ColumnEventHandlers[]) {
 
 export function refreshKeyState() {
   return new BasicStatements().scalar("dg_refresh_key", { type: "Int" }, "0");
-}
-
-export function triggerQueryRefresh() {
-  return new BasicStatements().setScalar(
-    `ui.dg_refresh_key`,
-    `ui.dg_refresh_key + 1`
-  );
 }
 
 export interface ResizeableSeperatorOpts {

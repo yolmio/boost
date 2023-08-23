@@ -2,23 +2,26 @@ import { nodes } from "../../nodeHelpers";
 import { DataGridStyles, Node } from "../../nodeTypes";
 import { app } from "../../app";
 import { ident, stringLiteral } from "../../utils/sqlHelpers";
-import { ServiceProcStatement, StateStatement } from "../../yom";
 import {
+  CellHelpers,
+  CellNode,
+  DgStateHelpers as DgStateHelpers,
   colClickHandlers,
   colKeydownHandlers,
   editFocusState,
   refreshKeyState,
   rowHeightInPixels,
-  triggerQueryRefresh,
+  ColumnEventHandlers,
+  RowHeight,
+  dgState,
 } from "./shared";
-import { Cell, ColumnEventHandlers, RowHeight } from "./types";
 import {
-  BasicStatements,
   DomStatements,
   ServiceStatements,
   StateStatements,
   StateStatementsOrFn,
 } from "../../statements";
+import * as yom from "../../yom";
 
 export interface DefaultView {
   columnOrder?: string[];
@@ -28,7 +31,7 @@ export interface DefaultView {
 
 export interface DatagridBaseOpts {
   datagridStyles: DataGridStyles;
-  children: (dgNode: Node) => Node;
+  children: (dgNode: Node, state: DgStateHelpers) => Node;
   dts: DatagridDts;
   datagridName: string;
   quickSearchMatchConfig?: string;
@@ -37,7 +40,14 @@ export interface DatagridBaseOpts {
   enableViews: boolean;
   pageSize?: number;
   defaultRowHeight?: RowHeight;
+  /**
+   * Extra state, kept outside of the query state, so only refreshed on view change.
+   */
   extraState?: StateStatementsOrFn;
+  /**
+   * Re-evaluated every time the datagrid query is refreshed.
+   */
+  extraQueryState?: StateStatementsOrFn;
   idField: string;
   source: string;
   defaultView?: DefaultView;
@@ -76,11 +86,12 @@ export function datagridBase(opts: DatagridBaseOpts) {
     query: makeDynamicQuery(dts, opts.source, opts.quickSearchMatchConfig),
     columnCount: columns.filter((v) => Boolean(v.queryGeneration)).length,
   });
+  getResultsProc.statements(opts.extraQueryState);
   let children = opts.children(
     nodes.dataGrid({
       table: "dg_table",
       tableKey: opts.idField,
-      recordName: "record",
+      recordName: "dg_record",
       rowHeight: "row_height",
       headerHeight: "44",
       focusedColumn: "focus_state.column",
@@ -115,36 +126,42 @@ export function datagridBase(opts: DatagridBaseOpts) {
           typeof opts.pageSize === "number"
             ? new DomStatements()
                 .setScalar(`ui.row_count`, `ui.row_count + ${opts.pageSize}`)
-                .statements(triggerQueryRefresh())
+                .statements(dgState.triggerRefresh)
             : undefined,
       },
-      columns: columns.map((col, i) => {
-        const field = columnToResultField.get(i);
-        return {
-          cell: col.cell({
-            value: field ? `record.` + field : `null`,
-            editing: `editing_state.is_editing and editing_state.column = ${i} and editing_state.row - 1 = record.iteration_index`,
-            setValue: (v) =>
-              field
-                ? new BasicStatements().modify(
-                    `update ui.dg_table set ${field} = ${v} where dg_table.${opts.idField} = record.${opts.idField}`
-                  )
-                : new BasicStatements(),
-            recordId: `cast(record.${opts.idField} as bigint)`,
-            nextCol: `(select id from ui.column where displaying and ordering > (select ordering from ui.column where id = ${i}) order by ordering limit 1)`,
-            stopEditing: new BasicStatements()
-              .modify(`update ui.editing_state set is_editing = false`)
-              .modify(`update ui.focus_state set should_focus = true`),
-            row: `record.iteration_index + 1`,
-            column: i.toString(),
-          }),
-          header: col.header,
-          width: `(select width from column where id = ${i})`,
-          ordering: `(select ordering from column where id = ${i})`,
-          visible: `(select displaying from column where id = ${i})`,
-        };
-      }),
-    })
+      columns: columns
+        .map((col, i) => [col, i] as const)
+        .filter(([col]) => Boolean(col.displayInfo))
+        .map(([col, i]) => {
+          const field = columnToResultField.get(i);
+          const { cell, header } = col.displayInfo!;
+          return {
+            cell: nodes.sourceMap(
+              "cell " + col.viewStorageName ?? `(${i})`,
+              cell(
+                new CellHelpers(
+                  {
+                    column: i,
+                    field: field,
+                    idField: opts.idField,
+                  },
+                  `(select id from ui.column where displaying and ordering > (select ordering from ui.column where id = ${i}) order by ordering limit 1)`,
+                  `cast(dg_record.${opts.idField} as bigint)`
+                ),
+                dgState
+              )
+            ),
+            header: nodes.sourceMap(
+              "header cell " + col.viewStorageName ?? `(${i})`,
+              header(dgState)
+            ),
+            width: `(select width from column where id = ${i})`,
+            ordering: `(select ordering from column where id = ${i})`,
+            visible: `(select displaying from column where id = ${i})`,
+          };
+        }),
+    }),
+    dgState
   );
   children = nodes.state({
     watch: opts.enableViews
@@ -167,7 +184,12 @@ export function datagridBase(opts: DatagridBaseOpts) {
   const initialColumnInsertValues = opts.columns
     .map((col, i) => {
       const generate = col.queryGeneration?.alwaysGenerate ?? false;
-      return `(${i}, ${col.initialWidth}, ${col.initiallyDisplaying}, ordering.n_after(${i}), ${generate})`;
+      const prevDisplayCount = opts.columns
+        .slice(0, i)
+        .filter((v) => Boolean(v.displayInfo)).length;
+      const initialWidth = col.displayInfo?.initialWidth ?? 0;
+      const initiallyDisplaying = col.displayInfo?.initiallyDisplaying ?? false;
+      return `(${i}, ${initialWidth}, ${initiallyDisplaying}, ordering.n_after(${prevDisplayCount}), ${generate})`;
     })
     .join(",");
   mainStateProc
@@ -359,21 +381,31 @@ export function datagridBase(opts: DatagridBaseOpts) {
 }
 
 export interface BaseColumnQueryGeneration {
-  expr: string;
+  expr: yom.SqlExpression;
   sqlName: string;
   alwaysGenerate: boolean;
 }
 
-export interface BaseColumn extends ColumnEventHandlers {
-  queryGeneration?: BaseColumnQueryGeneration;
-  viewStorageName?: string;
+export interface BaseColumnDisplayInfo {
   initialWidth: number;
-  cell: Cell;
-  header: Node;
+  cell: CellNode;
+  header: (state: DgStateHelpers) => Node;
   initiallyDisplaying: boolean;
 }
 
+export interface BaseColumn extends ColumnEventHandlers {
+  queryGeneration?: BaseColumnQueryGeneration;
+  filterExpr?: (
+    value1: yom.SqlExpression,
+    value2: yom.SqlExpression,
+    value3: yom.SqlExpression
+  ) => yom.SqlExpression;
+  displayInfo?: BaseColumnDisplayInfo;
+  viewStorageName?: string;
+}
+
 export interface DatagridDts {
+  idToFilterExpr?: string;
   idToSqlExpr: string;
   idToSqlName: string;
   idToStorageName: string;
@@ -391,6 +423,7 @@ export function addDatagridDts(
   const sqlExprs: string[] = [];
   const storageNamesToIds: string[] = [];
   const idsToStorageNames: string[] = [];
+  const idsToFilterExpr: string[] = [];
   for (let i = 0; i < columns.length; i++) {
     const col = columns[i];
     if (col.queryGeneration) {
@@ -402,6 +435,16 @@ export function addDatagridDts(
       const storageName = stringLiteral(col.viewStorageName);
       storageNamesToIds.push([storageName, i].join(","));
       idsToStorageNames.push([i, storageName].join(","));
+    }
+    if (col.filterExpr) {
+      idsToFilterExpr.push(
+        [
+          i,
+          stringLiteral(
+            col.filterExpr(`input.value_1`, `input.value_2`, `input.value_3`)
+          ),
+        ].join(",")
+      );
     }
   }
   const idToSqlNameDt = `${datagridName}_dg_col_id_to_sql_name`;
@@ -432,16 +475,44 @@ export function addDatagridDts(
   });
   const idToSqlExprDt = `${datagridName}_dg_col_id_to_sql_expr`;
   app.addDecisionTable({
-    parameters: [{ name: "id", type: "SmallUint" }],
+    parameters: [{ name: "id", type: "SmallUint", notNull: true }],
     csv: `input.id,sql_expr\n` + sqlExprs.join("\n"),
     name: idToSqlExprDt,
     output: { name: "sql_expr", type: "String" },
   });
+  let idToFilterExpr;
+  if (idsToFilterExpr.length > 0) {
+    idToFilterExpr = `${datagridName}_dg_col_id_to_filter_expr`;
+    app.addDecisionTable({
+      parameters: [
+        { name: "id", type: "SmallUint", notNull: true },
+        {
+          name: "value_1",
+          type: { type: "String", maxLength: 200 },
+          notNull: false,
+        },
+        {
+          name: "value_2",
+          type: { type: "String", maxLength: 200 },
+          notNull: false,
+        },
+        {
+          name: "value_3",
+          type: { type: "String", maxLength: 200 },
+          notNull: false,
+        },
+      ],
+      csv: `input.id,sql_expr\n` + idsToFilterExpr.join("\n"),
+      name: idToFilterExpr,
+      output: { name: "sql_expr", type: "String" },
+    });
+  }
   return {
     idToSqlExpr: idToSqlExprDt,
     idToSqlName: idToSqlNameDt,
     storageNameToId: storageNameToIdDt,
     idToStorageName,
+    idToFilterExpr,
   };
 }
 
@@ -636,14 +707,24 @@ export function duplicateView(viewId: string) {
 }
 
 function filterExpr(dts: DatagridDts) {
-  const serializeFilter = (filter: string) =>
-    `dt.encode_dg_filter_op(
+  function serializeFilter(filter: string) {
+    const encodeFilterOp = `dt.encode_dg_filter_op(
       op => ${filter}.op,
       col_name => dt.${dts.idToSqlName}(${filter}.column_id),
       value_1 => ${filter}.value_1,
       value_2 => ${filter}.value_2,
       value_3 => ${filter}.value_3
     )`;
+    if (dts.idToFilterExpr) {
+      return `case
+        when ${filter}.op = 'custom' then
+          dt.${dts.idToFilterExpr}(${filter}.column_id, ${filter}.value_1, ${filter}.value_2, ${filter}.value_3)
+        else ${encodeFilterOp}
+      end`;
+    } else {
+      return encodeFilterOp;
+    }
+  }
   return `
 (select
   string_agg(
@@ -866,6 +947,7 @@ function addDgFilterOp() {
         "minute_duration_lte",
         "minute_duration_gt",
         "minute_duration_gte",
+        "custom",
       ],
       withBoolDts: [
         {

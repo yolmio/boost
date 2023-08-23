@@ -11,7 +11,6 @@ import { typography } from "../../components/typography";
 import { columnsPopover as columnsPopover } from "./columnsPopover";
 import { filterPopover } from "./filterPopover";
 import { sortPopover as sortPopover } from "./sortPopover";
-import { triggerQueryRefresh } from "./shared";
 import { toolbarPopover } from "./toolbarPopover";
 import { confirmDangerDialog } from "../../components/confirmDangerDialog";
 import { ident, stringLiteral } from "../../utils/sqlHelpers";
@@ -23,6 +22,7 @@ import { Table } from "../../app";
 import { select } from "../../components/select";
 import { Node } from "../../nodeTypes";
 import { insertDialog } from "../../components/insertDialog";
+import { DgStateHelpers } from "./shared";
 
 const columnsButtonId = stringLiteral(getUniqueUiId());
 const sortButtonId = stringLiteral(getUniqueUiId());
@@ -67,6 +67,7 @@ const styles = createStyles({
 });
 
 export function toolbar(
+  state: DgStateHelpers,
   toolbar: ToolbarConfig,
   columns: SuperGridColumn[],
   baseDts: DatagridDts,
@@ -105,11 +106,10 @@ export function toolbar(
             type: "AutoLabelOnLeft",
             ignoreFields: Object.keys(withValues),
           },
-          afterTransactionCommit: (state) => [
-            ...((toolbar.add as any).opts?.afterTransactionCommit?.(state) ??
-              []),
-            triggerQueryRefresh(),
-          ],
+          afterTransactionCommit: (formState, s) => {
+            (toolbar.add as any).opts?.afterTransactionCommit?.(formState, s);
+            s.statements(state.triggerRefresh);
+          },
         }),
       ],
     });
@@ -196,7 +196,7 @@ export function toolbar(
                           toolbarPopover({
                             openScalar: "ui.columns_dialog_open",
                             buttonId: columnsButtonId,
-                            children: columnsPopover(superDts),
+                            children: columnsPopover(state, superDts),
                           }),
                         ]
                       : null,
@@ -231,7 +231,7 @@ export function toolbar(
                           toolbarPopover({
                             openScalar: `ui.filter_dialog_open`,
                             buttonId: filterButtonId,
-                            children: filterPopover(columns, superDts),
+                            children: filterPopover(state, columns, superDts),
                           }),
                         ]
                       : null,
@@ -266,7 +266,7 @@ export function toolbar(
                           toolbarPopover({
                             openScalar: `ui.sort_dialog_open`,
                             buttonId: sortButtonId,
-                            children: sortPopover(columns),
+                            children: sortPopover(state, columns),
                           }),
                         ]
                       : null,
@@ -411,7 +411,7 @@ export function toolbar(
                                   ),
                               })
                               .commitTransaction()
-                              .statements(triggerQueryRefresh())
+                              .statements(state.triggerRefresh)
                           )
                           .statements(closeModal),
                     }),
@@ -456,7 +456,7 @@ export function toolbar(
                   input: (s) =>
                     s
                       .setScalar("ui.quick_search_query", "target_value")
-                      .statements(triggerQueryRefresh()),
+                      .statements(state.triggerRefresh),
                 },
               }),
             addButton,
