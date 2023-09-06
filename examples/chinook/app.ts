@@ -356,10 +356,41 @@ ui.addDatagridPage("customer", (page) => {
     .selectable()
     .customFilterColumn({
       storageName: "has_order",
-      displayName: "Has Order",
-      expr: () =>
-        `(select count(*) from db.invoice where customer = record.id) > 0`,
-      node: (state) => `'yo'`,
+      expr: () => `'record.first_name like ''%a%'' '`,
+    })
+    .customFilterColumn({
+      storageName: "purchased_track",
+      expr: (value1) => `coalesce(
+        'exists (select 1 from db.track
+            join db.invoice_line
+              on track.id = invoice_line.track
+            join db.invoice
+              on invoice.id = invoice_line.invoice
+          where name like ''%'' || ' || literal.string(${value1}) || ' || ''%''
+          and customer = record.id)',
+          'true'
+        )`,
+      node: (helper) =>
+        helper.debounceState(
+          components.input({
+            size: "sm",
+            slots: {
+              input: {
+                props: { value: helper.value1 },
+                on: {
+                  input: (s) =>
+                    s.statements(
+                      helper.setValue1(
+                        `case when target_value = '' then null else target_value end`
+                      ),
+                      helper.debounceInputTriggerRefresh
+                    ),
+                  blur: helper.debounceBlurHandler,
+                },
+              },
+            },
+          })
+        ),
     })
     .toolbar((toolbar) => toolbar.insertDialog().delete());
 });

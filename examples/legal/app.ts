@@ -466,7 +466,7 @@ ui.addRecordGridPage("contact", (page) =>
   page
     .namedPageHeader({
       chips: ["mailing_list"],
-      subHeader: "dt.display_contact_type(type)",
+      subHeader: "rfn.display_contact_type(type)",
     })
     .twoColumnDisplayCard({
       styles: { gridColumnSpan: 12, lg: { gridColumnSpan: 8 } },
@@ -681,7 +681,7 @@ ui.addSimpleDatagridPage({
 ui.addRecordGridPage("matter", (page) =>
   page
     .namedPageHeader({
-      subHeader: "dt.display_matter_type(type)",
+      subHeader: "rfn.display_matter_type(type)",
       chips: [
         {
           fields: ["close_date"],

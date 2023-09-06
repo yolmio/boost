@@ -15,7 +15,8 @@ export interface Model {
   db: Database;
   ui: UiModel;
   enums?: Enum[];
-  decisionTables?: DecisionTable[];
+  recordRuleFunctions?: RecordRuleFunction[];
+  ruleFunctions?: RuleFunction[];
   scalarFunctions?: ScalarFunction[];
   tableFunctions?: TableFunction[];
   scripts?: Script[];
@@ -401,7 +402,8 @@ export interface Database {
   enableTransactionQueries: boolean;
   defaultUniqueDistinctNulls?: boolean;
   tables: Table[];
-  decisionTables?: DecisionTable[];
+  recordRuleFunctions?: RecordRuleFunction[];
+  ruleFunctions?: RuleFunction[];
   scalarFunctions?: ScalarFunction[];
   tableFunctions?: TableFunction[];
   searchMatches?: SearchMatchConfig[];
@@ -416,18 +418,28 @@ export interface ScalarFunction {
   returnType: ScalarType;
 }
 
-export interface DecisionTableOutput {
+export interface RecordRuleFunctionOutput {
   name: string;
   collation?: Collation;
   type: ScalarType;
 }
 
-export interface DecisionTable {
+export interface RuleFunction {
   name: string;
   parameters?: Parameter[];
   setup?: BasicStatement[];
-  outputs: DecisionTableOutput[];
-  csv: string;
+  returnType: ScalarType;
+  header: string[];
+  rules: string[][];
+}
+
+export interface RecordRuleFunction {
+  name: string;
+  parameters?: Parameter[];
+  setup?: BasicStatement[];
+  outputs: RecordRuleFunctionOutput[];
+  header: string[];
+  rules: string[][];
 }
 
 export interface ReturnTableStatement {
@@ -1625,7 +1637,7 @@ export interface ModeNode {
 
 export interface IfNode {
   t: "If";
-  expr: SqlExpression;
+  condition: SqlExpression;
   then?: Node;
   else?: Node;
 }

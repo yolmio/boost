@@ -32,7 +32,7 @@ export interface DefaultView {
 export interface DatagridBaseOpts {
   datagridStyles: DataGridStyles;
   children: (dgNode: Node, state: DgStateHelpers) => Node;
-  dts: DatagridDts;
+  dts: DatagridRfns;
   datagridName: string;
   quickSearchMatchConfig?: string;
   columns: BaseColumn[];
@@ -237,7 +237,7 @@ export function datagridBase(opts: DatagridBaseOpts) {
         .modify(
           `insert into filter_term
             select id,
-              dt.${dts.storageNameToId}(column_name) as column_id,
+              rfn.${dts.storageNameToId}(column_name) as column_id,
               group,
               ordering,
               is_any,
@@ -341,11 +341,11 @@ export function datagridBase(opts: DatagridBaseOpts) {
                   sort_asc = view_column.sort_asc,
                   sort_index = view_column.sort_index,
                   displaying = view_column.displaying
-                where id = dt.${dts.storageNameToId}(view_column.name)`
+                where id = rfn.${dts.storageNameToId}(view_column.name)`
                     )
                 )
                 .forEachQuery(
-                  `select id from column where id not in (select dt.${dts.storageNameToId}(name) from db.datagrid_view_column where view = view_record.id)`,
+                  `select id from column where id not in (select rfn.${dts.storageNameToId}(name) from db.datagrid_view_column where view = view_record.id)`,
                   `column_record`,
                   (s) =>
                     s.modify(
@@ -404,7 +404,7 @@ export interface BaseColumn extends ColumnEventHandlers {
   viewStorageName?: string;
 }
 
-export interface DatagridDts {
+export interface DatagridRfns {
   idToFilterExpr?: string;
   idToSqlExpr: string;
   idToSqlName: string;
@@ -412,78 +412,75 @@ export interface DatagridDts {
   storageNameToId: string;
 }
 
-/**
- * Create decision tables that help handle the query generation for the datagrid.
- */
-export function addDatagridDts(
+export function addDatagridRfns(
   datagridName: string,
   columns: BaseColumn[]
-): DatagridDts {
-  const sqlNames: string[] = [];
-  const sqlExprs: string[] = [];
-  const storageNamesToIds: string[] = [];
-  const idsToStorageNames: string[] = [];
-  const idsToFilterExpr: string[] = [];
+): DatagridRfns {
+  const sqlNames: string[][] = [];
+  const sqlExprs: string[][] = [];
+  const storageNamesToIds: string[][] = [];
+  const idsToStorageNames: string[][] = [];
+  const idsToFilterExpr: string[][] = [];
   for (let i = 0; i < columns.length; i++) {
     const col = columns[i];
     if (col.queryGeneration) {
       const sqlName = stringLiteral(ident(col.queryGeneration.sqlName));
-      sqlNames.push([i, sqlName].join(","));
-      sqlExprs.push([i, stringLiteral(col.queryGeneration.expr)].join(","));
+      sqlNames.push([i.toString(), sqlName]);
+      sqlExprs.push([i.toString(), stringLiteral(col.queryGeneration.expr)]);
     }
     if (col.viewStorageName) {
       const storageName = stringLiteral(col.viewStorageName);
-      storageNamesToIds.push([storageName, i].join(","));
-      idsToStorageNames.push([i, storageName].join(","));
+      storageNamesToIds.push([storageName, i.toString()]);
+      idsToStorageNames.push([i.toString(), storageName]);
     }
     if (col.filterExpr) {
-      idsToFilterExpr.push(
-        [
-          i,
-          stringLiteral(
-            col.filterExpr(`input.value_1`, `input.value_2`, `input.value_3`)
-          ),
-        ].join(",")
-      );
+      idsToFilterExpr.push([
+        i.toString(),
+        col.filterExpr(`input.value_1`, `input.value_2`, `input.value_3`),
+      ]);
     }
   }
   const idToSqlNameDt = `${datagridName}_dg_col_id_to_sql_name`;
-  app.addDecisionTable({
+  app.addRuleFunction({
     parameters: [{ name: "id", type: "SmallUint" }],
-    csv: `input.id,sql_name\n` + sqlNames.join("\n"),
+    header: ["input.id", "sql_name"],
+    rules: sqlNames,
     name: idToSqlNameDt,
-    output: { name: "sql_name", type: "String" },
+    returnType: "String",
   });
   const storageNameToIdDt = `${datagridName}_dg_col_storage_name_to_id`;
-  app.addDecisionTable({
+  app.addRuleFunction({
     parameters: [
       {
         name: "sql_name",
         type: { type: "String", maxLength: 2000 },
       },
     ],
-    csv: `input.sql_name,id\n` + storageNamesToIds.join("\n"),
+    header: ["input.sql_name", "id"],
+    rules: storageNamesToIds,
     name: storageNameToIdDt,
-    output: { name: "id", type: "Int" },
+    returnType: "Int",
   });
   const idToStorageName = `${datagridName}_dg_col_id_to_storage_name`;
-  app.addDecisionTable({
+  app.addRuleFunction({
     parameters: [{ name: "id", type: "SmallUint" }],
-    csv: `input.id,storage_name\n` + idsToStorageNames.join("\n"),
+    header: ["input.id", "storage_name"],
+    rules: idsToStorageNames,
     name: idToStorageName,
-    output: { name: "storage_name", type: "String" },
+    returnType: "String",
   });
   const idToSqlExprDt = `${datagridName}_dg_col_id_to_sql_expr`;
-  app.addDecisionTable({
+  app.addRuleFunction({
     parameters: [{ name: "id", type: "SmallUint", notNull: true }],
-    csv: `input.id,sql_expr\n` + sqlExprs.join("\n"),
+    header: ["input.id", "sql_expr"],
+    rules: sqlExprs,
     name: idToSqlExprDt,
-    output: { name: "sql_expr", type: "String" },
+    returnType: "String",
   });
   let idToFilterExpr;
   if (idsToFilterExpr.length > 0) {
     idToFilterExpr = `${datagridName}_dg_col_id_to_filter_expr`;
-    app.addDecisionTable({
+    app.addRuleFunction({
       parameters: [
         { name: "id", type: "SmallUint", notNull: true },
         {
@@ -502,9 +499,10 @@ export function addDatagridDts(
           notNull: false,
         },
       ],
-      csv: `input.id,sql_expr\n` + idsToFilterExpr.join("\n"),
+      header: ["input.id", "sql_expr"],
+      rules: idsToFilterExpr,
+      returnType: "String",
       name: idToFilterExpr,
-      output: { name: "sql_expr", type: "String" },
     });
   }
   return {
@@ -516,13 +514,13 @@ export function addDatagridDts(
   };
 }
 
-function insertViewColumnsAndFilters(dts: DatagridDts, viewId: string) {
+function insertViewColumnsAndFilters(dts: DatagridRfns, viewId: string) {
   return new ServiceStatements()
     .modify(
       `insert into db.datagrid_view_column
-          select ${viewId} as view, displaying, ordering, sort_asc, sort_index, dt.${dts.idToStorageName}(id) as name
+          select ${viewId} as view, displaying, ordering, sort_asc, sort_index, rfn.${dts.idToStorageName}(id) as name
           from ui.column
-          where dt.${dts.idToStorageName}(id) is not null`
+          where rfn.${dts.idToStorageName}(id) is not null`
     )
     .table("filter_mapping", [
       { name: "ui_id", type: { type: "BigUint" } },
@@ -537,7 +535,7 @@ function insertViewColumnsAndFilters(dts: DatagridDts, viewId: string) {
       (s) =>
         s
           .modify(
-            `insert into db.datagrid_view_filter_term select *, ${viewId} as view, dt.${dts.idToStorageName}(column_id) as column_name from ui.filter_term where id = filter_term_record.id`
+            `insert into db.datagrid_view_filter_term select *, ${viewId} as view, rfn.${dts.idToStorageName}(column_id) as column_name from ui.filter_term where id = filter_term_record.id`
           )
           .modify(
             `insert into filter_mapping (ui_id, db_id) values (filter_term_record.id, (select max(id) from db.datagrid_view_filter_term))`
@@ -551,7 +549,7 @@ function insertViewColumnsAndFilters(dts: DatagridDts, viewId: string) {
       s
         .modify(
           `insert into db.datagrid_view_filter_term
-              select *, db_id as group, ${viewId} as view, dt.${dts.idToStorageName}(column_id) as column_name
+              select *, db_id as group, ${viewId} as view, rfn.${dts.idToStorageName}(column_id) as column_name
                 from ui.filter_term
                   join filter_mapping on ui_id = group
                 where id = filter_term_record.id`
@@ -566,7 +564,7 @@ function insertViewColumnsAndFilters(dts: DatagridDts, viewId: string) {
       (s) =>
         s.modify(
           `insert into db.datagrid_view_filter_term
-              select *, db_id as group, ${viewId} as view, dt.${dts.idToStorageName}(column_id) as column_name
+              select *, db_id as group, ${viewId} as view, rfn.${dts.idToStorageName}(column_id) as column_name
                 from ui.filter_term
                   join filter_mapping on ui_id = group
                 where id = filter_term_record.id`
@@ -574,7 +572,7 @@ function insertViewColumnsAndFilters(dts: DatagridDts, viewId: string) {
     );
 }
 
-export function saveToExistingView(dts: DatagridDts, viewId: string) {
+export function saveToExistingView(dts: DatagridRfns, viewId: string) {
   return (
     new ServiceStatements()
       .startTransaction()
@@ -591,7 +589,7 @@ export function saveToExistingView(dts: DatagridDts, viewId: string) {
 
 export function saveAsNewView(
   datagridName: string,
-  dts: DatagridDts,
+  dts: DatagridRfns,
   name: string,
   isPersonal: string
 ) {
@@ -706,11 +704,11 @@ export function duplicateView(viewId: string) {
     .commitTransaction();
 }
 
-function filterExpr(dts: DatagridDts) {
+function filterExpr(dts: DatagridRfns) {
   function serializeFilter(filter: string) {
-    const encodeFilterOp = `dt.encode_dg_filter_op(
+    const encodeFilterOp = `rfn.encode_dg_filter_op(
       op => ${filter}.op,
-      col_name => dt.${dts.idToSqlName}(${filter}.column_id),
+      col_name => rfn.${dts.idToSqlName}(${filter}.column_id),
       value_1 => ${filter}.value_1,
       value_2 => ${filter}.value_2,
       value_3 => ${filter}.value_3
@@ -718,7 +716,7 @@ function filterExpr(dts: DatagridDts) {
     if (dts.idToFilterExpr) {
       return `case
         when ${filter}.op = 'custom' then
-          dt.${dts.idToFilterExpr}(${filter}.column_id, ${filter}.value_1, ${filter}.value_2, ${filter}.value_3)
+          rfn.${dts.idToFilterExpr}(${filter}.column_id, ${filter}.value_1, ${filter}.value_2, ${filter}.value_3)
         else ${encodeFilterOp}
       end`;
     } else {
@@ -756,7 +754,7 @@ function filterExpr(dts: DatagridDts) {
 }
 
 function fromAndWherePart(
-  dts: DatagridDts,
+  dts: DatagridRfns,
   source: string,
   matchConfig: string | undefined
 ) {
@@ -771,9 +769,9 @@ function fromAndWherePart(
     `'(select '`,
     `(select string_agg(
           case
-            when displaying or always_generate or sort_index is not null or id in (select column_id from ui.filter_term) then dt.${dts.idToSqlExpr}(id)
+            when displaying or always_generate or sort_index is not null or id in (select column_id from ui.filter_term) then rfn.${dts.idToSqlExpr}(id)
           end
-          || ' as ' || dt.${dts.idToSqlName}(id), ',')
+          || ' as ' || rfn.${dts.idToSqlName}(id), ',')
         from ui.column
       )`,
     `' from '`,
@@ -791,10 +789,10 @@ function fromAndWherePart(
   ].join(`||`);
 }
 
-function orderByPart(dts: DatagridDts) {
+function orderByPart(dts: DatagridRfns) {
   return `coalesce(
     ' order by ' || (select
-      string_agg(dt.${dts.idToSqlName}(id) || (case when sort_asc then ' nulls last' else ' desc nulls last' end), ',')
+      string_agg(rfn.${dts.idToSqlName}(id) || (case when sort_asc then ' nulls last' else ' desc nulls last' end), ',')
       from (select id, sort_asc from ui.column where sort_index is not null order by sort_index)),
     ''
   )`;
@@ -803,7 +801,7 @@ function orderByPart(dts: DatagridDts) {
 const shouldGenerateColumn = `displaying or always_generate or sort_index is not null`;
 
 export function makeDynamicQuery(
-  dts: DatagridDts,
+  dts: DatagridRfns,
   source: string,
   matchConfig: string | undefined
 ): string {
@@ -811,11 +809,11 @@ export function makeDynamicQuery(
     `'select ' `,
     `(select string_agg(
         case
-          when exists (select column_id from ui.filter_term) and (${shouldGenerateColumn}) then dt.${dts.idToSqlName}(id)
-          when ${shouldGenerateColumn} then dt.${dts.idToSqlExpr}(id)
+          when exists (select column_id from ui.filter_term) and (${shouldGenerateColumn}) then rfn.${dts.idToSqlName}(id)
+          when ${shouldGenerateColumn} then rfn.${dts.idToSqlExpr}(id)
           else 'null'
         end
-        || ' as ' || dt.${dts.idToSqlName}(id), ',')
+        || ' as ' || rfn.${dts.idToSqlName}(id), ',')
       from ui.column
     )`,
     fromAndWherePart(dts, source, matchConfig),
@@ -826,7 +824,7 @@ export function makeDynamicQuery(
 }
 
 export function makeDownloadQuery(
-  dts: DatagridDts,
+  dts: DatagridRfns,
   source: string,
   matchConfig: string | undefined
 ): string {
@@ -834,8 +832,8 @@ export function makeDownloadQuery(
     `'select ' `,
     `(select string_agg(
         case
-          when exists (select column_id from ui.filter_term) and (${shouldGenerateColumn}) then dt.${dts.idToSqlName}(id)
-          when ${shouldGenerateColumn} then dt.${dts.idToSqlExpr}(id) || ' as ' || dt.${dts.idToSqlName}(id)
+          when exists (select column_id from ui.filter_term) and (${shouldGenerateColumn}) then rfn.${dts.idToSqlName}(id)
+          when ${shouldGenerateColumn} then rfn.${dts.idToSqlExpr}(id) || ' as ' || rfn.${dts.idToSqlName}(id)
         end
       from ui.column
     )`,
@@ -846,7 +844,7 @@ export function makeDownloadQuery(
 }
 
 export function makeCountQuery(
-  dts: DatagridDts,
+  dts: DatagridRfns,
   source: string,
   matchConfig: string | undefined
 ): string {
@@ -857,7 +855,7 @@ export function makeCountQuery(
 }
 
 export function makeIdsQuery(
-  dts: DatagridDts,
+  dts: DatagridRfns,
   source: string,
   matchConfig: string | undefined
 ): string {
@@ -949,7 +947,7 @@ function addDgFilterOp() {
         "minute_duration_gte",
         "custom",
       ],
-      withBoolDts: [
+      withBoolRfns: [
         {
           name: "is_string_filter_op",
           trues: ["str_eq", "str_ne", "str_contains", "str_not_contains"],
@@ -1001,7 +999,7 @@ function addDgFilterOp() {
         },
       ],
     });
-    app.addDecisionTable({
+    app.addRuleFunction({
       name: "encode_date_dg_filter_param",
       parameters: [
         {
@@ -1015,32 +1013,30 @@ function addDgFilterOp() {
           notNull: false,
         },
       ],
-      csv: [
-        ["input.value_1", "input.value_2", "output"],
+      header: ["input.value_1", "input.value_2", "output"],
+      rules: [
         ["'today'", "any", "'today()'"],
         ["'tomorrow'", "any", "'tomorrow()'"],
         ["'yesterday'", "any", "'yesterday()'"],
-        ["'week ago'", "any", `"'date.add(week, -1, today())'"`],
-        ["'week from now'", "any", `"'date.add(week, 1, today())'"`],
-        ["'month ago'", "any", `"'date.add(month, -1, today())'"`],
-        ["'month from now'", "any", `"'date.add(month, 1, today())'"`],
+        ["'week ago'", "any", `'date.add(week, -1, today())'`],
+        ["'week from now'", "any", `'date.add(week, 1, today())'`],
+        ["'month ago'", "any", `'date.add(month, -1, today())'`],
+        ["'month from now'", "any", `'date.add(month, 1, today())'`],
         [
           "'number of days ago'",
           "exists",
-          `"literal.date(date.add(day, -try_cast(input.value_2 as int), today()))"`,
+          `literal.date(date.add(day, -try_cast(input.value_2 as int), today()))`,
         ],
         [
           "'number of days from now'",
           "exists",
-          `"literal.date(date.add(day, try_cast(input.value_2 as int), today()))"`,
+          `literal.date(date.add(day, try_cast(input.value_2 as int), today()))`,
         ],
         ["'exact date'", "exists", "literal.date(input.value_2)"],
-      ]
-        .map((v) => v.join(","))
-        .join("\n"),
-      output: { name: "output", type: { type: "String" } },
+      ],
+      returnType: "String",
     });
-    app.addDecisionTable({
+    app.addRuleFunction({
       name: "encode_dg_filter_op",
       parameters: [
         {
@@ -1069,134 +1065,132 @@ function addDgFilterOp() {
           notNull: false,
         },
       ],
-      csv: [
-        ["input.op", "sql"],
+      header: ["input.op", "sql"],
+      rules: [
         ["'empty'", "input.col_name || ' is null'"],
         ["'not_empty'", "input.col_name || ' is not null'"],
         // string
         [
           "'str_eq'",
-          `"coalesce(input.col_name || '=' || literal.string(input.value_1), 'true')"`,
+          `coalesce(input.col_name || '=' || literal.string(input.value_1), 'true')`,
         ],
         [
           "'str_ne'",
-          `"coalesce(input.col_name || '!=' || literal.string(input.value_1), 'true')"`,
+          `coalesce(input.col_name || '!=' || literal.string(input.value_1), 'true')`,
         ],
         [
           "'str_contains'",
-          `"coalesce(input.col_name || ' like ''%'' || ' || literal.string(input.value_1) || '|| ''%''', 'true')"`,
+          `coalesce(input.col_name || ' like ''%'' || ' || literal.string(input.value_1) || '|| ''%''', 'true')`,
         ],
         [
           "'str_not_contains'",
-          `"coalesce(input.col_name || ' not like ''%'' || ' || literal.string(input.value_1) || '|| ''%''', 'true')"`,
+          `coalesce(input.col_name || ' not like ''%'' || ' || literal.string(input.value_1) || '|| ''%''', 'true')`,
         ],
         // number
         [
           "input.op = 'num_eq' or input.op = 'minute_duration_eq'",
-          `"coalesce(input.col_name || '=' || literal.number(input.value_1), 'true')"`,
+          `coalesce(input.col_name || '=' || literal.number(input.value_1), 'true')`,
         ],
         [
           "input.op = 'num_ne' or input.op = 'minute_duration_ne'",
-          `"coalesce(input.col_name || '!=' || literal.number(input.value_1), 'true')"`,
+          `coalesce(input.col_name || '!=' || literal.number(input.value_1), 'true')`,
         ],
         [
           "input.op = 'num_lt' or input.op = 'minute_duration_lt'",
-          `"coalesce(input.col_name || '<' || literal.number(input.value_1), 'true')"`,
+          `coalesce(input.col_name || '<' || literal.number(input.value_1), 'true')`,
         ],
         [
           "input.op = 'num_lte' or input.op = 'minute_duration_lte'",
-          `"coalesce(input.col_name || '<=' || literal.number(input.value_1), 'true')"`,
+          `coalesce(input.col_name || '<=' || literal.number(input.value_1), 'true')`,
         ],
         [
           "input.op = 'num_gt' or input.op = 'minute_duration_gt'",
-          `"coalesce(input.col_name || '>' || literal.number(input.value_1), 'true')"`,
+          `coalesce(input.col_name || '>' || literal.number(input.value_1), 'true')`,
         ],
         [
           "input.op = 'num_gte' or input.op = 'minute_duration_gte'",
-          `"coalesce(input.col_name || '>=' || literal.number(input.value_1), 'true')"`,
+          `coalesce(input.col_name || '>=' || literal.number(input.value_1), 'true')`,
         ],
         // date
         [
           "'date_eq'",
-          `"coalesce(input.col_name || '=' || dt.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')"`,
+          `coalesce(input.col_name || '=' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         [
           "'date_ne'",
-          `"coalesce(input.col_name || '!=' || dt.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')"`,
+          `coalesce(input.col_name || '!=' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         [
           "'date_lt'",
-          `"coalesce(input.col_name || '<' || dt.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')"`,
+          `coalesce(input.col_name || '<' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         [
           "'date_lte'",
-          `"coalesce(input.col_name || '<=' || dt.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')"`,
+          `coalesce(input.col_name || '<=' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         [
           "'date_gt'",
-          `"coalesce(input.col_name || '>' || dt.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')"`,
+          `coalesce(input.col_name || '>' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         [
           "'date_gte'",
-          `"coalesce(input.col_name || '>=' || dt.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')"`,
+          `coalesce(input.col_name || '>=' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         // timestamp
         [
           "'timestamp_eq'",
-          `"coalesce('cast(' || input.col_name || ' as date) =' || dt.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')"`,
+          `coalesce('cast(' || input.col_name || ' as date) =' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         [
           "'timestamp_ne'",
-          `"coalesce('cast(' || input.col_name || ' as date) !=' || dt.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')"`,
+          `coalesce('cast(' || input.col_name || ' as date) !=' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         [
           "'timestamp_lt'",
-          `"coalesce('cast(' || input.col_name || ' as date) <' || dt.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')"`,
+          `coalesce('cast(' || input.col_name || ' as date) <' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         [
           "'timestamp_lte'",
-          `"coalesce('cast(' || input.col_name || ' as date) <=' || dt.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')"`,
+          `coalesce('cast(' || input.col_name || ' as date) <=' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         [
           "'timestamp_gt'",
-          `"coalesce('cast(' || input.col_name || ' as date) >' || dt.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')"`,
+          `coalesce('cast(' || input.col_name || ' as date) >' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         [
           "'timestamp_gte'",
-          `"coalesce('cast(' || input.col_name || ' as date) >=' || dt.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')"`,
+          `coalesce('cast(' || input.col_name || ' as date) >=' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         // enum
         [
           "'enum_eq'",
-          `"coalesce(input.col_name || '=' || literal.string(input.value_1), 'true')"`,
+          `coalesce(input.col_name || '=' || literal.string(input.value_1), 'true')`,
         ],
         [
           "'enum_ne'",
-          `"coalesce(input.col_name || '!=' || literal.string(input.value_1), 'true')"`,
+          `coalesce(input.col_name || '!=' || literal.string(input.value_1), 'true')`,
         ],
         // foreign keys
         [
           "'fk_eq'",
-          `"coalesce(input.col_name || '=' || literal.number(input.value_1), 'true')"`,
+          `coalesce(input.col_name || '=' || literal.number(input.value_1), 'true')`,
         ],
         [
           "'fk_ne'",
-          `"coalesce(input.col_name || '!=' || literal.number(input.value_1), 'true')"`,
+          `coalesce(input.col_name || '!=' || literal.number(input.value_1), 'true')`,
         ],
         // bool
         [
           "'bool_eq'",
-          `"case when input.value_1 = 'true' then input.col_name || '=true' else '(' || input.col_name || ' is null or ' || input.col_name || '=false)' end"`,
+          `case when input.value_1 = 'true' then input.col_name || '=true' else '(' || input.col_name || ' is null or ' || input.col_name || '=false)' end`,
         ],
         [
           "'enum_like_bool_eq'",
-          `"case when input.value_1 = 'true' then input.col_name || '=true' when input.value_1 = 'false' then input.col_name || '=false' else input.col_name || ' is null' end"`,
+          `case when input.value_1 = 'true' then input.col_name || '=true' when input.value_1 = 'false' then input.col_name || '=false' else input.col_name || ' is null' end`,
         ],
         ["any", "'true'"],
-      ]
-        .map((v) => v.join(","))
-        .join("\n"),
-      output: { name: "sql", type: "String" },
+      ],
+      returnType: "String",
     });
   }
 }

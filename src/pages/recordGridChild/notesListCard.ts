@@ -124,7 +124,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                 color: "primary",
                 size: "sm",
                 children: nodes.if({
-                  expr: `adding`,
+                  condition: `adding`,
                   then: materialIcon("Close"),
                   else: materialIcon("Add"),
                 }),
@@ -208,7 +208,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                 `select content, date, id from db.${notesTable} where ${foreignKeyField} = ${ctx.recordId} order by date desc, id desc`
               ),
             children: nodes.if({
-              expr: `exists (select id from note)`,
+              condition: `exists (select id from note)`,
               then: nodes.element("div", {
                 styles: styles.notes,
                 children: nodes.each({
@@ -224,7 +224,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                           .scalar(`editing`, `false`),
                       children: [
                         nodes.if({
-                          expr: `editing`,
+                          condition: `editing`,
                           then: nodes.state({
                             procedure: (s) =>
                               s

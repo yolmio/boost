@@ -254,7 +254,7 @@ function enumCell(opts: BaseFieldCellOpts, field: EnumField): CellNode {
       newUiValue: opts.stringified ? `cast(value as string)` : `value`,
     });
     return nodes.if({
-      expr: andNotImmutable(opts.immutable, cell.editing),
+      condition: andNotImmutable(opts.immutable, cell.editing),
       then: nodes.state({
         procedure: (s) =>
           s.scalar(
@@ -323,7 +323,7 @@ function dateCell(opts: BaseFieldCellOpts, field: DateField): CellNode {
       }),
     });
     return nodes.if({
-      expr: andNotImmutable(opts.immutable, cell.editing),
+      condition: andNotImmutable(opts.immutable, cell.editing),
       then: editor,
       else: display,
     });
@@ -373,7 +373,7 @@ function timestampCell(
       }),
     });
     return nodes.if({
-      expr: andNotImmutable(opts.immutable, cell.editing),
+      condition: andNotImmutable(opts.immutable, cell.editing),
       then: editor,
       else: display,
     });
@@ -452,7 +452,7 @@ function numericField(
       }),
     });
     return nodes.if({
-      expr: andNotImmutable(opts.immutable, cell.editing),
+      condition: andNotImmutable(opts.immutable, cell.editing),
       then: editor,
       else: display,
     });
@@ -490,7 +490,7 @@ function stringCell(opts: BaseFieldCellOpts, field: StringField): CellNode {
       }),
     });
     return nodes.if({
-      expr: andNotImmutable(opts.immutable, cell.editing),
+      condition: andNotImmutable(opts.immutable, cell.editing),
       then: editor,
       else: display,
     });
@@ -549,7 +549,7 @@ function uuidCell(opts: BaseFieldCellOpts, field: UuidField): CellNode {
       }),
     });
     return nodes.if({
-      expr: andNotImmutable(opts.immutable, cell.editing),
+      condition: andNotImmutable(opts.immutable, cell.editing),
       then: editor,
       else: display,
     });
@@ -583,7 +583,7 @@ function boolCell(opts: BaseFieldCellOpts, field: BoolField): CellNode {
           : `try_cast(ui.value as bool)`,
       });
       return nodes.if({
-        expr: andNotImmutable(opts.immutable, cell.editing),
+        condition: andNotImmutable(opts.immutable, cell.editing),
         then: nodes.state({
           procedure: (s) =>
             s.scalar(
@@ -719,7 +719,7 @@ function durationCell(
           : `sfn.parse_minutes_duration(input_value)`,
       });
       return nodes.if({
-        expr: andNotImmutable(opts.immutable, cell.editing),
+        condition: andNotImmutable(opts.immutable, cell.editing),
         then: nodes.state({
           procedure: (s) =>
             s
@@ -769,7 +769,7 @@ function imageCell(
     const { spawnUploadTasks, joinUploadTasks, updateImagesInDb } =
       getUploadStatements(opts.tableName, cell.recordId, group);
     return nodes.if({
-      expr: cell.value + " is null",
+      condition: cell.value + " is null",
       then: nodes.state({
         procedure: (s) => s.scalar(`uploading`, `false`),
         children: [

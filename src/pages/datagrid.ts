@@ -27,6 +27,7 @@ import {
 } from "../statements";
 import * as yom from "../yom";
 import { Node } from "../nodeTypes";
+import { FilterTermHelper } from "./datagridInternals/filterPopover";
 
 type FieldConfigs = Record<string, FieldConfig>;
 
@@ -46,13 +47,16 @@ function idColumn(
     .join(" ");
   const sqlName = tableModel.primaryKeyIdent;
   const sortConfig = {
+    displayName: idDisplayName,
     ascNode: "'1 → 9'",
     descNode: "'9 → 1'",
     ascText: "1 → 9",
     descText: "9 → 1",
   };
   return {
-    displayName: idDisplayName,
+    filterDisplayName: idDisplayName,
+    columnsDisplayName: idDisplayName,
+    filterOptGroup: "Field",
     filter: { type: "number", notNull: true },
     sort: sortConfig,
     displayInfo: {
@@ -243,17 +247,23 @@ export class DatagridPageBuilder {
 
   customFilterColumn(column: {
     storageName: string;
-    displayName: string;
+    displayName?: string;
     expr: (
       value1: yom.SqlExpression,
       value2: yom.SqlExpression,
       value3: yom.SqlExpression
     ) => yom.SqlExpression;
-    node: (state: DgStateHelpers) => Node;
+    node?: (helpers: FilterTermHelper, state: DgStateHelpers) => Node;
   }) {
     this.#extraColumns.push({
-      displayName: column.displayName,
       viewStorageName: column.storageName,
+      filterDisplayName:
+        column.displayName ??
+        column.storageName
+          .split("_")
+          .map((v, i) => (i === 0 ? upcaseFirst(v) : v))
+          .join(" "),
+      filterOptGroup: "Other",
       filterExpr: column.expr,
       filter: {
         type: "custom",

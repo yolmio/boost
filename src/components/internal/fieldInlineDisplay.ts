@@ -90,7 +90,7 @@ export function inlineFieldDisplay(field: Field, expr: string) {
       break;
     }
     case "Enum": {
-      expr = `dt.display_${field.enum}(${expr})`;
+      expr = `rfn.display_${field.enum}(${expr})`;
       break;
     }
     case "Bool": {

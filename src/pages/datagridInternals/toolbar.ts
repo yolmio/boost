@@ -17,7 +17,7 @@ import { ident, stringLiteral } from "../../utils/sqlHelpers";
 import { getUniqueUiId } from "../../components/utils";
 import { createStyles, flexGrowStyles } from "../../styleUtils";
 import { SuperGridColumn, SuperGridDts, ToolbarConfig } from "./styledDatagrid";
-import { DatagridDts, makeCountQuery, makeIdsQuery } from "./datagridBase";
+import { DatagridRfns, makeCountQuery, makeIdsQuery } from "./datagridBase";
 import { Table } from "../../app";
 import { select } from "../../components/select";
 import { Node } from "../../nodeTypes";
@@ -70,7 +70,7 @@ export function toolbar(
   state: DgStateHelpers,
   toolbar: ToolbarConfig,
   columns: SuperGridColumn[],
-  baseDts: DatagridDts,
+  baseDts: DatagridRfns,
   superDts: SuperGridDts,
   tableModel: Table,
   matchConfig: string | undefined
@@ -139,7 +139,7 @@ export function toolbar(
             ]
           : null,
         nodes.if({
-          expr: `(status = 'requested' or status = 'fallback_triggered') and dg_refresh_key = 0`,
+          condition: `(status = 'requested' or status = 'fallback_triggered') and dg_refresh_key = 0`,
           then: [
             nodes.element("div", {
               styles: styles.skeletonLeft,
@@ -231,7 +231,7 @@ export function toolbar(
                           toolbarPopover({
                             openScalar: `ui.filter_dialog_open`,
                             buttonId: filterButtonId,
-                            children: filterPopover(state, columns, superDts),
+                            children: filterPopover(columns, superDts),
                           }),
                         ]
                       : null,
@@ -308,7 +308,7 @@ export function toolbar(
                 startDecorator: circularProgress({ size: "sm" }),
                 level: "body2",
                 children: nodes.if({
-                  expr: `row_count = 100`,
+                  condition: `row_count = 100`,
                   then: `'Reloading...'`,
                   else: `'Loading more rows...'`,
                 }),
@@ -361,7 +361,7 @@ export function toolbar(
                         children: [
                           `'Are you sure you want to delete '`,
                           nodes.if({
-                            expr: `selected_all`,
+                            condition: `selected_all`,
                             then: nodes.state({
                               procedure: (s) =>
                                 s.dynamicQuery({

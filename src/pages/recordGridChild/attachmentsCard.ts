@@ -137,7 +137,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                   },
                 }),
                 nodes.if({
-                  expr: `uploading`,
+                  condition: `uploading`,
                   then: circularProgress({ size: "sm" }),
                   else: materialIcon({
                     name: "Upload",
@@ -163,7 +163,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                 )} where ${ctx.table.name} = ${ctx.recordId}`
               ),
             children: nodes.if({
-              expr: `exists (select 1 from attachment)`,
+              condition: `exists (select 1 from attachment)`,
               then: nodes.each({
                 table: "attachment",
                 recordName: "attachment_record",
@@ -174,7 +174,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                     styles: styles.attachment,
                     children: [
                       nodes.if({
-                        expr: `editing`,
+                        condition: `editing`,
                         then: nodes.state({
                           procedure: (s) =>
                             s

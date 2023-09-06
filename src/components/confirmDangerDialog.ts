@@ -81,7 +81,7 @@ export function confirmDangerDialog(opts: ConfirmDangerDialogOpts) {
               styles: styles.footer,
               children: [
                 nodes.if({
-                  expr: `dialog_error is not null`,
+                  condition: `dialog_error is not null`,
                   then: [
                     alert({
                       size: "sm",

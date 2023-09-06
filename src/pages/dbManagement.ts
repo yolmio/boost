@@ -514,7 +514,7 @@ function collapse(label: string, node: Node) {
           stringLiteral(label),
           nodes.element("div", { styles: flexGrowStyles }),
           nodes.if({
-            expr: "open",
+            condition: "open",
             then: materialIcon("KeyboardArrowDown"),
             else: materialIcon("KeyboardArrowRight"),
           }),

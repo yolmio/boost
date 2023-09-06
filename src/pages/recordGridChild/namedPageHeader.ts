@@ -119,7 +119,7 @@ function imagePart(
         .scalar(`failed_upload`, `false`),
     children: [
       nodes.if({
-        expr: `record.named_page_header_thumb is null`,
+        condition: `record.named_page_header_thumb is null`,
         then: nodes.element("label", {
           styles: styles.emptyLabel(),
           children: [
@@ -157,7 +157,7 @@ function imagePart(
               },
             }),
             nodes.if({
-              expr: `uploading`,
+              condition: `uploading`,
               then: circularProgress(),
               else: materialIcon("Person"),
             }),

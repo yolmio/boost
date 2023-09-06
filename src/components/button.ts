@@ -194,7 +194,7 @@ export function button(opts: ButtonOpts) {
           tag: "span",
           styles: styles.startDecorator,
           children: nodes.if({
-            expr: opts.loading,
+            condition: opts.loading,
             then: loadingIndicator!,
             else: opts.startDecorator,
           }),
@@ -228,7 +228,7 @@ export function button(opts: ButtonOpts) {
           tag: "span",
           styles: styles.endDecorator,
           children: nodes.if({
-            expr: opts.loading,
+            condition: opts.loading,
             then: loadingIndicator!,
             else: opts.endDecorator,
           }),

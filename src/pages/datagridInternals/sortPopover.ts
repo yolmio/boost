@@ -21,7 +21,7 @@ export function sortPopover(state: DgStateHelpers, columns: SuperGridColumn[]) {
   const options: Node[] = [];
   for (let i = 0; i < columns.length; i++) {
     const col = columns[i];
-    if (col.displayName && col.sort) {
+    if (col.sort) {
       if (!sorts.has(col.sort)) {
         sorts.set(col.sort, []);
       }
@@ -29,7 +29,7 @@ export function sortPopover(state: DgStateHelpers, columns: SuperGridColumn[]) {
       options.push(
         nodes.element("option", {
           props: { value: i.toString() },
-          children: stringLiteral(col.displayName!),
+          children: stringLiteral(col.sort.displayName),
         })
       );
     }
@@ -129,7 +129,8 @@ export function sortPopover(state: DgStateHelpers, columns: SuperGridColumn[]) {
     nodes.state({
       procedure: (s) => s.scalar("adding", "false"),
       children: nodes.if({
-        expr: "adding or not exists (select id from column where sort_index is not null)",
+        condition:
+          "adding or not exists (select id from column where sort_index is not null)",
         then: select({
           variant: "outlined",
           color: "primary",

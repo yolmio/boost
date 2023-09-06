@@ -656,7 +656,7 @@ export class SimpleReportsPageBuilder {
         )
         .join(",");
       node = nodes.if({
-        expr: requiredParams.map((p) => `${p.name} is null`).join(" or "),
+        condition: requiredParams.map((p) => `${p.name} is null`).join(" or "),
         then: alert({
           color: "info",
           variant: "outlined",

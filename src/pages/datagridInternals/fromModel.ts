@@ -278,23 +278,26 @@ export const dynamicBooleanCellKeydownHandler = (
       )
   );
 
-const stringSortConfig: SortConfig = {
+const stringSortConfig = (displayName: string): SortConfig => ({
+  displayName,
   ascNode: `'A → Z'`,
   descNode: `'Z → A'`,
   ascText: `A → Z`,
   descText: `Z → A`,
-};
-const numberSortConfig: SortConfig = {
+});
+const numberSortConfig = (displayName: string): SortConfig => ({
+  displayName,
   ascNode: `'1 → 9'`,
   descNode: `'9 → 1'`,
   ascText: `1 → 9`,
   descText: `9 → 1`,
-};
-const checkboxSortConfig = lazy((): SortConfig => {
-  const styles: Style = { ml: 1, display: "inline-flex" };
+});
+const checkboxStyles: Style = { ml: 1, display: "inline-flex" };
+const checkboxSortConfig = (displayName: string): SortConfig => {
   return {
+    displayName,
     ascNode: nodes.element("span", {
-      styles,
+      styles: checkboxStyles,
       children: [
         materialIcon("CheckBoxOutlined"),
         `' → '`,
@@ -302,7 +305,7 @@ const checkboxSortConfig = lazy((): SortConfig => {
       ],
     }),
     descNode: nodes.element("span", {
-      styles,
+      styles: checkboxStyles,
       children: [
         materialIcon("CheckBoxOutlineBlank"),
         `' → '`,
@@ -312,7 +315,7 @@ const checkboxSortConfig = lazy((): SortConfig => {
     ascText: `☐ → ✓`,
     descText: `✓ → ☐`,
   };
-});
+};
 
 export interface SuperColumnFieldOpts extends FieldEditProcConfig {
   table: string;
@@ -400,10 +403,10 @@ export function columnFromField({
       case "Real":
       case "Decimal":
       case "Timestamp":
-        sort = numberSortConfig;
+        sort = numberSortConfig(displayName);
         break;
       case "String":
-        sort = stringSortConfig;
+        sort = stringSortConfig(displayName);
         break;
       case "Bool":
         if (field.enumLike) {
@@ -412,19 +415,22 @@ export function columnFromField({
           const ascText = `${low} → ${high}`;
           const descText = `${high} → ${low}`;
           sort = {
+            displayName,
             ascText,
             descText,
             ascNode: stringLiteral(ascText),
             descNode: stringLiteral(descText),
           };
         } else {
-          sort = checkboxSortConfig();
+          sort = checkboxSortConfig(displayName);
         }
         break;
     }
   }
   return {
-    displayName,
+    columnsDisplayName: displayName,
+    filterDisplayName: !noFilter ? displayName : undefined,
+    filterOptGroup: "Field",
     keydownCellHandler: keydownHandler,
     filter: !noFilter ? filterTypeFromField(field) : undefined,
     sort,

@@ -13,7 +13,7 @@ import { divider } from "../../components/divider";
 import { circularProgress } from "../../components/circularProgress";
 import { getUniqueUiId } from "../../components/utils";
 import {
-  DatagridDts,
+  DatagridRfns,
   duplicateView,
   saveAsNewView,
   saveToExistingView,
@@ -99,7 +99,7 @@ const styles = createStyles({
 
 const viewIdBase = stringLiteral(getUniqueUiId());
 
-export function viewDrawer(datagridName: string, dts: DatagridDts) {
+export function viewDrawer(datagridName: string, dts: DatagridRfns) {
   const drawerContent = nodes.element("div", {
     styles: styles.root,
     children: [
@@ -116,7 +116,7 @@ export function viewDrawer(datagridName: string, dts: DatagridDts) {
             size: "sm",
             variant: "outlined",
             children: nodes.if({
-              expr: `adding`,
+              condition: `adding`,
               then: materialIcon("Close"),
               else: materialIcon("Add"),
             }),
@@ -256,7 +256,7 @@ export function viewDrawer(datagridName: string, dts: DatagridDts) {
                     },
                   ],
                   children: nodes.if({
-                    expr: `editing`,
+                    condition: `editing`,
                     then: nodes.state({
                       procedure: (s) =>
                         s.scalar(`view_name`, `view_record.name`),

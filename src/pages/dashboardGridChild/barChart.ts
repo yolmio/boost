@@ -126,7 +126,7 @@ export function content(opts: Opts) {
               : opts.state,
           statusScalar: `status`,
           children: nodes.if({
-            expr: `status = 'fallback_triggered'`,
+            condition: `status = 'fallback_triggered'`,
             then: circularProgress({ size: "md" }),
             else: nodes.element("div", {
               children: [

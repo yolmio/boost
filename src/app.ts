@@ -84,7 +84,8 @@ export class App {
   db: Db = new Db();
   ui: Ui = new Ui();
   enums: Record<string, Enum> = {};
-  decisionTables: Record<string, DecisionTable> = {};
+  recordRuleFunctions: Record<string, RecordRuleFn> = {};
+  ruleFunctions: Record<string, RuleFunction> = {};
   scalarFunctions: Record<string, ScalarFunction> = {};
   tableFunctions: Record<string, TableFunction> = {};
   test: yom.TestModel = {
@@ -103,8 +104,12 @@ export class App {
     this.scalarFunctions[f.name] = scalarFunctionFromHelper(f);
   }
 
-  addDecisionTable(dt: HelperDecisionTable) {
-    this.decisionTables[dt.name] = dtFromHelper(dt);
+  addRecordRuleFunction(rrfn: HelperRecordRuleFn) {
+    this.recordRuleFunctions[rrfn.name] = rrfnFromHelper(rrfn);
+  }
+
+  addRuleFunction(rfn: HelperRuleFunction) {
+    this.ruleFunctions[rfn.name] = ruleFunctionFromHelper(rfn);
   }
 
   addEnum(enum_: HelperEnum) {
@@ -118,18 +123,18 @@ export class App {
         ...v,
       };
     });
-    if (!enum_.disableDisplayDt) {
-      enum_.withSimpleDts = enum_.withSimpleDts ?? [];
-      enum_.withSimpleDts.push({
+    if (!enum_.disableDisplayRfn) {
+      enum_.withSimpleRfns = enum_.withSimpleRfns ?? [];
+      enum_.withSimpleRfns.push({
         name: "display_" + enum_.name,
         outputType: "String",
         fields: values.map((n) => [n.name, stringLiteral(n.displayName)]),
       });
     }
-    if (Array.isArray(enum_.withBoolDts)) {
-      enum_.withSimpleDts = enum_.withSimpleDts ?? [];
-      for (const e of enum_.withBoolDts) {
-        enum_.withSimpleDts.push({
+    if (Array.isArray(enum_.withBoolRfns)) {
+      enum_.withSimpleRfns = enum_.withSimpleRfns ?? [];
+      for (const e of enum_.withBoolRfns) {
+        enum_.withSimpleRfns.push({
           name: e.name,
           outputType: "Bool",
           fields:
@@ -140,23 +145,25 @@ export class App {
         });
       }
     }
-    if (Array.isArray(enum_.withSimpleDts)) {
-      for (const dt of enum_.withSimpleDts) {
-        this.addDecisionTable({
-          name: dt.name,
+    if (Array.isArray(enum_.withSimpleRfns)) {
+      for (const rfn of enum_.withSimpleRfns) {
+        this.addRuleFunction({
+          name: rfn.name,
           parameters: [
             {
               name: "value",
               type: { type: "Enum", enum: enum_.name },
             },
           ],
-          output: { name: "output", type: dt.outputType },
-          csv:
-            `input.value,output\n` +
-            dt.fields
-              .map(([field, value]) => `'${field}',${value}`)
-              .join("\n") +
-            (dt.default ? `\nany,` + dt.default : ``),
+          returnType: rfn.outputType,
+          header: ["input.value", "output"],
+          rules: [
+            ...rfn.fields.map(([field, value]) => [
+              stringLiteral(field),
+              value,
+            ]),
+            ...(rfn.default ? [["any", rfn.default]] : []),
+          ],
         });
       }
     }
@@ -172,8 +179,8 @@ export class App {
       values: valuesObject,
     };
     app.enums[enum_.name] = modelEnum;
-    if (!enum_.disableDisplayDt) {
-      modelEnum.getDisplayName = (v) => `dt.display_${enum_.name}(${v})`;
+    if (!enum_.disableDisplayRfn) {
+      modelEnum.getDisplayName = (v) => `rfn.display_${enum_.name}(${v})`;
     }
   }
 
@@ -306,7 +313,8 @@ export class Db {
   collation = "NoCase" as yom.Collation;
   autoTrim = "Both" as yom.AutoTrim;
   enableTransactionQueries = true;
-  decisionTables: Record<string, DecisionTable> = {};
+  recordRuleFunctions: Record<string, RecordRuleFn> = {};
+  ruleFunctions: Record<string, RuleFunction> = {};
   scalarFunctions: Record<string, ScalarFunction> = {};
   tables: Record<string, Table> = {};
   searchMatches: Record<string, yom.SearchMatchConfig> = {};
@@ -330,8 +338,12 @@ export class Db {
     this.scalarFunctions[f.name] = scalarFunctionFromHelper(f);
   }
 
-  addDecisionTable(dt: HelperDecisionTable) {
-    this.decisionTables[dt.name] = dtFromHelper(dt);
+  addRecordRuleFunction(rrfn: HelperRecordRuleFn) {
+    this.recordRuleFunctions[rrfn.name] = rrfnFromHelper(rrfn);
+  }
+
+  addRuleFunction(rfn: HelperRuleFunction) {
+    this.ruleFunctions[rfn.name] = ruleFunctionFromHelper(rfn);
   }
 }
 
@@ -1902,30 +1914,32 @@ class EnumFieldBuilder extends BaseFieldBuilder {
   }
 }
 
+export type HelperScalarType =
+  | yom.ScalarType
+  | yom.SimpleScalarTypes
+  | yom.ScalarIntegerTypes
+  | "String";
+
 export interface Parameter {
   name: string;
   notNull?: boolean;
   type: yom.FieldType;
 }
 
-export interface DecisionTableOutput {
+export interface RecordRuleFnOutput {
   name: string;
   collation?: yom.Collation;
   type: yom.ScalarType;
 }
 
-export interface DecisionTableVariable {
-  name: string;
-  expr: string;
-}
-
-export interface DecisionTable {
+export interface RecordRuleFn {
   name: string;
   description?: string;
-  csv: string;
+  header: string[];
+  rules: string[][];
   setup?: yom.BasicStatement[];
-  inputs: { [name: string]: Parameter };
-  outputs: { [name: string]: DecisionTableOutput };
+  parameters: { [name: string]: Parameter };
+  outputs: { [name: string]: RecordRuleFnOutput };
 }
 
 export interface ScalarFunction {
@@ -1986,7 +2000,7 @@ interface HelperScalarFunction {
   description?: string;
   parameters: HelperFunctionParam[];
   procedure: BasicStatementsOrFn;
-  returnType: yom.ScalarType | yom.SimpleScalarTypes | yom.ScalarIntegerTypes;
+  returnType: HelperScalarType;
 }
 
 function scalarFunctionFromHelper(f: HelperScalarFunction): ScalarFunction {
@@ -2027,18 +2041,14 @@ export interface SearchConfig {
   defaultTokenizer: yom.Tokenizer;
 }
 
-export interface SimpleDt {
+export interface SimpleRfn {
   name: string;
-  outputType:
-    | yom.ScalarType
-    | "String"
-    | yom.SimpleScalarTypes
-    | yom.ScalarIntegerTypes;
+  outputType: HelperScalarType;
   fields: [string, string][];
   default?: string;
 }
 
-export type BoolDt =
+export type BoolRfn =
   | {
       name: string;
       trues: string[];
@@ -2062,46 +2072,32 @@ export interface HelperEnum {
         description?: string;
       }
   )[];
-  withSimpleDts?: SimpleDt[];
-  withBoolDts?: BoolDt[];
-  disableDisplayDt?: boolean;
+  withSimpleRfns?: SimpleRfn[];
+  withBoolRfns?: BoolRfn[];
+  disableDisplayRfn?: boolean;
 }
 
-interface HelperDecisionTableOutput {
+interface HelperRecordRuleFnOutput {
   name: string;
   collation?: yom.Collation;
-  type:
-    | yom.ScalarType
-    | yom.SimpleScalarTypes
-    | yom.ScalarIntegerTypes
-    | "String";
+  type: HelperScalarType;
 }
 
-interface HelperDecisionTable {
+interface HelperRecordRuleFn {
   name: string;
   description?: string;
   setup?: BasicStatementsOrFn;
   parameters?: HelperFunctionParam[];
-  outputs?: HelperDecisionTableOutput[];
-  output?: HelperDecisionTableOutput;
-  csv: string;
+  outputs: HelperRecordRuleFnOutput[];
+  header: string[];
+  rules: string[][];
 }
 
-function dtFromHelper(dt: HelperDecisionTable): DecisionTable {
+function rrfnFromHelper(rrfn: HelperRecordRuleFn): RecordRuleFn {
   const inputs: { [name: string]: Parameter } = {};
-  const outputs: { [name: string]: DecisionTableOutput } = {};
-  if (dt.output) {
-    outputs[dt.output.name] = {
-      name: dt.output.name,
-      type:
-        typeof dt.output.type === "string"
-          ? { type: dt.output.type }
-          : dt.output.type,
-      collation: dt.output.collation,
-    };
-  }
-  if (dt.outputs) {
-    for (const output of dt.outputs) {
+  const outputs: { [name: string]: RecordRuleFnOutput } = {};
+  if (rrfn.outputs) {
+    for (const output of rrfn.outputs) {
       outputs[output.name] = {
         name: output.name,
         type:
@@ -2110,8 +2106,8 @@ function dtFromHelper(dt: HelperDecisionTable): DecisionTable {
       };
     }
   }
-  if (dt.parameters) {
-    for (const input of dt.parameters) {
+  if (rrfn.parameters) {
+    for (const input of rrfn.parameters) {
       inputs[input.name] = {
         name: input.name,
         type: fieldTypeFromHelper(input.type),
@@ -2120,12 +2116,54 @@ function dtFromHelper(dt: HelperDecisionTable): DecisionTable {
     }
   }
   return {
-    name: dt.name,
-    description: dt.description,
-    csv: dt.csv,
+    name: rrfn.name,
+    description: rrfn.description,
     outputs,
-    inputs,
-    setup: BasicStatements.normalizeToArray(dt.setup),
+    parameters: inputs,
+    setup: BasicStatements.normalizeToArray(rrfn.setup),
+    header: rrfn.header,
+    rules: rrfn.rules,
+  };
+}
+
+export interface RuleFunction {
+  name: string;
+  description?: string;
+  setup?: yom.BasicStatement[];
+  parameters: { [name: string]: Parameter };
+  header: string[];
+  rules: string[][];
+  returnType: yom.ScalarType;
+}
+
+interface HelperRuleFunction {
+  name: string;
+  description?: string;
+  parameters: HelperFunctionParam[];
+  setup?: BasicStatementsOrFn;
+  returnType: HelperScalarType;
+  header: string[];
+  rules: string[][];
+}
+
+function ruleFunctionFromHelper(f: HelperRuleFunction): RuleFunction {
+  const inputs: { [name: string]: Parameter } = {};
+  for (const input of f.parameters) {
+    inputs[input.name] = {
+      name: input.name,
+      type: typeof input.type === "string" ? { type: input.type } : input.type,
+      notNull: input.notNull,
+    };
+  }
+  return {
+    name: f.name,
+    description: f.description,
+    parameters: inputs,
+    setup: BasicStatements.normalizeToArray(f.setup),
+    header: f.header,
+    rules: f.rules,
+    returnType:
+      typeof f.returnType === "string" ? { type: f.returnType } : f.returnType,
   };
 }
 

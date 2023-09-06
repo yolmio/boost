@@ -1,4 +1,4 @@
-import { app, DecisionTable, ScalarFunction, Table } from "./app";
+import { app, RecordRuleFn, RuleFunction, ScalarFunction, Table } from "./app";
 import { StyleSerializer, transformNode } from "./nodeTransform";
 import { addRootStyles } from "./rootStyles";
 import type * as yom from "./yom";
@@ -6,21 +6,37 @@ import { default404Page } from "./pages/default404";
 import { Node, RouteNode, RoutesNode } from "./nodeTypes";
 import { escapeHtml } from "./utils/escapeHtml";
 
-function generateDecisionTable(dt: DecisionTable): yom.DecisionTable {
+function generateRecordRuleFn(rfn: RecordRuleFn): yom.RecordRuleFunction {
   return {
-    name: dt.name,
-    outputs: Object.values(dt.outputs).map((o) => ({
+    name: rfn.name,
+    outputs: Object.values(rfn.outputs).map((o) => ({
       name: o.name,
       type: o.type,
       collation: o.collation,
     })),
-    parameters: Object.values(dt.inputs).map((i) => ({
+    parameters: Object.values(rfn.parameters).map((i) => ({
       name: i.name,
       type: i.type,
       notNull: i.notNull,
     })),
-    setup: dt.setup,
-    csv: dt.csv,
+    setup: rfn.setup,
+    header: rfn.header,
+    rules: rfn.rules,
+  };
+}
+
+function generateRuleFn(rfn: RuleFunction): yom.RuleFunction {
+  return {
+    name: rfn.name,
+    parameters: Object.values(rfn.parameters).map((i) => ({
+      name: i.name,
+      type: i.type,
+      notNull: i.notNull,
+    })),
+    setup: rfn.setup,
+    header: rfn.header,
+    rules: rfn.rules,
+    returnType: rfn.returnType,
   };
 }
 
@@ -124,9 +140,10 @@ function generateDatabase(): yom.Database {
     collation: app.db.collation,
     autoTrim: app.db.autoTrim,
     enableTransactionQueries: app.db.enableTransactionQueries,
-    decisionTables: Object.values(app.db.decisionTables).map(
-      generateDecisionTable
+    recordRuleFunctions: Object.values(app.db.recordRuleFunctions).map(
+      generateRecordRuleFn
     ),
+    ruleFunctions: Object.values(app.db.ruleFunctions).map(generateRuleFn),
     scalarFunctions: Object.values(app.db.scalarFunctions).map(
       generateScalarFunction
     ),
@@ -199,6 +216,11 @@ function getTransformedUi(): [yom.Node, string] {
 }
 
 export function generateYom(): yom.Model {
+  if (!app.db.tables[app.db.userTableName]) {
+    app.db.addTable(app.db.userTableName, (t) => {
+      t.catalog.addRequiredUserFields();
+    });
+  }
   const [uiTree, css] = getTransformedUi();
   if (app.name === "please-rename") {
     console.log();
@@ -271,9 +293,10 @@ export function generateYom(): yom.Model {
       time: "%T",
     },
     db: generateDatabase(),
-    decisionTables: Object.values(app.decisionTables).map(
-      generateDecisionTable
+    recordRuleFunctions: Object.values(app.recordRuleFunctions).map(
+      generateRecordRuleFn
     ),
+    ruleFunctions: Object.values(app.ruleFunctions).map(generateRuleFn),
     scalarFunctions: Object.values(app.scalarFunctions).map(
       generateScalarFunction
     ),

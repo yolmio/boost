@@ -332,7 +332,7 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
       procedure: (s) =>
         s.scalar(`added`, `false`).statements(opts.afterInsertScreen?.state),
       children: nodes.if({
-        expr: `added`,
+        condition: `added`,
         then: opts.afterInsertScreen.node,
         else: content,
       }),

@@ -9,7 +9,7 @@ import { Node } from "../../nodeTypes";
 import { createStyles } from "../../styleUtils";
 import { ident, stringLiteral } from "../../utils/sqlHelpers";
 import {
-  addDatagridDts,
+  addDatagridRfns,
   BaseColumn,
   datagridBase,
   DefaultView,
@@ -20,6 +20,7 @@ import { viewDrawer } from "./viewDrawer";
 import { DomStatements, StateStatementsOrFn } from "../../statements";
 import { DgStateHelpers } from "./shared";
 import * as yom from "../../yom";
+import { FilterTermHelper } from "./filterPopover";
 
 export interface ToolbarConfig {
   views: boolean;
@@ -35,6 +36,7 @@ export interface ToolbarConfig {
 }
 
 export interface SortConfig {
+  displayName: string;
   ascNode: Node;
   descNode: Node;
   ascText: string;
@@ -43,7 +45,9 @@ export interface SortConfig {
 
 export interface SuperGridColumn extends BaseColumn {
   viewStorageName: string;
-  displayName?: string;
+  columnsDisplayName?: string;
+  filterDisplayName?: string;
+  filterOptGroup?: string;
   filter?: FilterType;
   sort?: SortConfig;
 }
@@ -71,7 +75,7 @@ export type FilterType =
   | { type: "minutes_duration"; notNull: boolean }
   | {
       type: "custom";
-      node: (state: DgStateHelpers) => Node;
+      node?: (helpers: FilterTermHelper, state: DgStateHelpers) => Node;
     };
 
 export function eqFilterType(l: FilterType, r: FilterType) {
@@ -378,7 +382,9 @@ export function columnPopover(
 }
 
 export interface SuperGridDts {
-  idToDisplayName: string;
+  idToColumnsDisplayName: string;
+  idToSortDisplayName: string;
+  idToFilterDisplayName: string;
   idToDefaultOp: string;
 }
 
@@ -389,35 +395,73 @@ function addSupergridDatagridDts(
   datagridName: string,
   columns: SuperGridColumn[]
 ): SuperGridDts {
-  const displayNames: string[] = [];
-  const defaultOps: string[] = [];
+  const columnsDisplayName: string[][] = [];
+  const sortDisplayName: string[][] = [];
+  const filterDisplayName: string[][] = [];
+  const defaultOps: string[][] = [];
   for (let i = 0; i < columns.length; i++) {
     const col = columns[i];
-    if (col.displayName) {
-      displayNames.push(`${i},${stringLiteral(col.displayName)}`);
+    if (col.columnsDisplayName) {
+      columnsDisplayName.push([
+        i.toString(),
+        stringLiteral(col.columnsDisplayName),
+      ]);
+    }
+    if (col.sort) {
+      sortDisplayName.push([i.toString(), stringLiteral(col.sort.displayName)]);
+    }
+    if (col.filterDisplayName) {
+      filterDisplayName.push([
+        i.toString(),
+        stringLiteral(col.filterDisplayName),
+      ]);
     }
     if (col.filter) {
       const op = defaultOpForFieldType(col.filter);
-      defaultOps.push(
-        [i, "cast(" + stringLiteral(op) + "as enums.dg_filter_op)"].join(",")
-      );
+      defaultOps.push([
+        i.toString(),
+        "cast(" + stringLiteral(op) + "as enums.dg_filter_op)",
+      ]);
     }
   }
-  const idToDisplayName = `${datagridName}_dg_col_id_to_display_name`;
-  app.addDecisionTable({
+  const idToColumnsDisplayName = `${datagridName}_dg_col_id_to_columns_display_name`;
+  app.addRuleFunction({
     parameters: [{ name: "id", type: "SmallUint" }],
-    csv: `input.id,display_name\n` + displayNames.join("\n"),
-    name: idToDisplayName,
-    output: { name: "display_name", type: "String" },
+    header: ["input.id", "display_name"],
+    rules: columnsDisplayName,
+    name: idToColumnsDisplayName,
+    returnType: "String",
   });
   const idToDefaultOp = `${datagridName}_dg_col_id_to_op`;
-  app.addDecisionTable({
+  app.addRuleFunction({
     parameters: [{ name: "id", type: "SmallUint" }],
-    csv: `input.id,op\n` + defaultOps.join("\n"),
+    header: ["input.id", "op"],
+    rules: defaultOps,
     name: idToDefaultOp,
-    output: { name: "op", type: { type: "Enum", enum: "dg_filter_op" } },
+    returnType: { type: "Enum", enum: "dg_filter_op" },
   });
-  return { idToDefaultOp, idToDisplayName };
+  const idToSortDisplayName = `${datagridName}_dg_col_id_to_sort_display_name`;
+  app.addRuleFunction({
+    parameters: [{ name: "id", type: "SmallUint" }],
+    header: ["input.id", "display_name"],
+    rules: sortDisplayName,
+    name: idToSortDisplayName,
+    returnType: "String",
+  });
+  const idToFilterDisplayName = `${datagridName}_dg_col_id_to_filter_display_name`;
+  app.addRuleFunction({
+    parameters: [{ name: "id", type: "SmallUint" }],
+    header: ["input.id", "display_name"],
+    rules: filterDisplayName,
+    name: idToFilterDisplayName,
+    returnType: "String",
+  });
+  return {
+    idToDefaultOp,
+    idToColumnsDisplayName,
+    idToFilterDisplayName,
+    idToSortDisplayName,
+  };
 }
 
 export interface StyledDatagridConfig {
@@ -433,7 +477,7 @@ export interface StyledDatagridConfig {
 
 export function styledDatagrid(config: StyledDatagridConfig) {
   const superDts = addSupergridDatagridDts(config.datagridName, config.columns);
-  const dts = addDatagridDts(config.datagridName, config.columns);
+  const dts = addDatagridRfns(config.datagridName, config.columns);
   return datagridBase({
     source: "db." + ident(config.tableModel.name),
     children: (dg, state) => [
@@ -481,7 +525,7 @@ export function styledDatagrid(config: StyledDatagridConfig) {
         children: [
           viewDrawer(config.datagridName, dts),
           nodes.if({
-            expr: `(status = 'requested' or status = 'fallback_triggered') and dg_refresh_key = 0`,
+            condition: `(status = 'requested' or status = 'fallback_triggered') and dg_refresh_key = 0`,
             then: nodes.element("div", {
               styles: sharedStyles.emptyGrid,
             }),

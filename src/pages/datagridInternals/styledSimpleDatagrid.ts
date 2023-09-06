@@ -15,7 +15,7 @@ import {
   SimpleBaseColumn,
   SimpleBaseColumnQueryGeneration,
   simpleDatagridBase,
-} from "./simpleDatgridBase";
+} from "./simpleDatagridBase";
 import { styles as sharedStyles } from "./styles";
 import { circularProgress } from "../../components/circularProgress";
 import { StateStatements } from "../../statements";
@@ -120,7 +120,7 @@ export function styledSimpleDatagrid(config: StyledSimpleGridConfig) {
     idFieldSource: ident(config.tableModel.primaryKeyFieldName),
     children: (dg) =>
       nodes.if({
-        expr: `status = 'failed'`,
+        condition: `status = 'failed'`,
         then: alert({
           color: "danger",
           children: `'Unable to load data.'`,
@@ -188,7 +188,7 @@ export function styledSimpleDatagrid(config: StyledSimpleGridConfig) {
                           children: [
                             `'Are you sure you want to delete '`,
                             nodes.if({
-                              expr: `selected_all`,
+                              condition: `selected_all`,
                               then: nodes.state({
                                 procedure: (s) =>
                                   s.scalar(
@@ -238,7 +238,7 @@ export function styledSimpleDatagrid(config: StyledSimpleGridConfig) {
             ],
           }),
           nodes.if({
-            expr: `(status = 'requested' or status = 'fallback_triggered') and dg_refresh_key = 0`,
+            condition: `(status = 'requested' or status = 'fallback_triggered') and dg_refresh_key = 0`,
             then: nodes.element("div", {
               styles: sharedStyles.emptyGrid,
             }),

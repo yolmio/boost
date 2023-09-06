@@ -20,9 +20,14 @@ import { createStyles, flexGrowStyles } from "../../styleUtils";
 import { styles as sharedStyles } from "./styles";
 import { getUniqueUiId } from "../../components/utils";
 import { SuperGridColumn, SuperGridDts } from "./styledDatagrid";
-import { DomStatements, DomStatementsOrFn } from "../../statements";
+import {
+  BasicStatements,
+  DomStatements,
+  DomStatementsOrFn,
+} from "../../statements";
 import { lazy } from "../../utils/memoize";
-import { DgStateHelpers } from "./shared";
+import { dgState, DgStateHelpers } from "./shared";
+import * as yom from "../../yom";
 
 const styles = createStyles({
   checkboxWrapper: {
@@ -254,7 +259,7 @@ const nullableOpts = [
   }),
 ];
 
-function typeSpecificOps(columns: SuperGridColumn[], filterTerm: string): Node {
+function typeSpecificOps(columns: SuperGridColumn[]): Node {
   interface TypeGenInfo {
     type: FilterType;
     notNull: boolean;
@@ -287,7 +292,7 @@ function typeSpecificOps(columns: SuperGridColumn[], filterTerm: string): Node {
     const caseExpr =
       i === genTypes.length - 1
         ? `true`
-        : `${filterTerm}.column_id in (${columns.join(",")})`;
+        : `${filterTermHelper.columnId} in (${columns.join(",")})`;
     const opts: Node[] = [];
     if (type.type !== "custom") {
       opts.push(opsByType[type.type]);
@@ -343,20 +348,20 @@ const dateOptions = [
   }),
 ];
 
-function columnFilter(
-  state: DgStateHelpers,
-  filterTerm: string,
-  columns: SuperGridColumn[],
-  dts: SuperGridDts
-) {
-  const columnOptions: Node[] = [];
+function columnFilter(columns: SuperGridColumn[], dts: SuperGridDts) {
+  const optGroups = new Map<string | undefined, Node[]>();
   for (let i = 0; i < columns.length; i++) {
     const col = columns[i];
-    if (col.displayName) {
-      columnOptions.push(
+    if (col.filterDisplayName) {
+      let opts = optGroups.get(col.filterOptGroup);
+      if (!opts) {
+        opts = [];
+        optGroups.set(col.filterOptGroup, opts);
+      }
+      opts.push(
         nodes.element("option", {
           props: { value: i.toString() },
-          children: stringLiteral(col.displayName!),
+          children: stringLiteral(col.filterDisplayName),
         })
       );
     }
@@ -364,138 +369,85 @@ function columnFilter(
   const switchCases: { condition: string; node: Node }[] = [];
   if (columns.some((col) => col.filter?.type === "string")) {
     switchCases.push({
-      condition: `dt.is_string_filter_op(${filterTerm}.op)`,
-      node: nodes.state({
-        procedure: (s) =>
-          s
-            .scalar(`debounce_handle`, { type: "BigUint" })
-            .scalar(`did_trigger_refresh`, `false`),
-        children: input({
+      condition: `rfn.is_string_filter_op(${filterTermHelper.op})`,
+      node: filterTermHelper.debounceState(
+        input({
           size: "sm",
           slots: {
             input: {
-              props: { value: `${filterTerm}.value_1` },
+              props: { value: filterTermHelper.value1 },
               on: {
                 input: (s) =>
-                  s
-                    .modify(
-                      `update ui.filter_term set value_1 = target_value where id = ${filterTerm}.id`
-                    )
-                    .setScalar(`did_trigger_refresh`, `false`)
-                    .if("debounce_handle is not null", (s) =>
-                      s.abortTask(`debounce_handle`)
-                    )
-                    .spawn({
-                      detached: true,
-                      handleScalar: "task_handle",
-                      procedure: (s) =>
-                        s
-                          .delay(`500`)
-                          .statements(state.triggerRefresh)
-                          .setScalar(`did_trigger_refresh`, `true`)
-                          .setScalar(`debounce_handle`, `null`)
-                          .commitUiChanges(),
-                    })
-                    .setScalar(`debounce_handle`, `task_handle`),
-                blur: (s) =>
-                  s
-                    .if(`did_trigger_refresh`, (s) => s.return())
-                    .if("debounce_handle is not null", (s) =>
-                      s
-                        .abortTask(`debounce_handle`)
-                        .setScalar(`debounce_handle`, `null`)
-                    )
-                    .statements(state.triggerRefresh),
+                  s.statements(
+                    filterTermHelper.setValue1(
+                      `case when target_value = '' then null else target_value end`
+                    ),
+                    filterTermHelper.debounceInputTriggerRefresh
+                  ),
+                blur: filterTermHelper.debounceBlurHandler,
               },
             },
           },
-        }),
-      }),
+        })
+      ),
     });
   }
   if (columns.some((col) => col.filter?.type === "number")) {
     switchCases.push({
-      condition: `dt.is_number_filter_op(${filterTerm}.op)`,
-      node: nodes.state({
-        procedure: (s) =>
-          s
-            .scalar(`debounce_handle`, { type: "BigUint" })
-            .scalar(`did_trigger_refresh`, `false`),
-        children: input({
+      condition: `rfn.is_number_filter_op(${filterTermHelper.op})`,
+      node: filterTermHelper.debounceState(
+        input({
           size: "sm",
           slots: {
             input: {
-              props: { value: `${filterTerm}.value_1` },
+              props: { value: filterTermHelper.value1 },
               on: {
                 input: (s) =>
                   s.if("literal.number(target_value) is not null", (s) =>
-                    s
-                      .modify(
-                        `update ui.filter_term set value_1 = target_value where id = ${filterTerm}.id`
-                      )
-                      .setScalar(`did_trigger_refresh`, `false`)
-                      .if("debounce_handle is not null", (s) =>
-                        s.abortTask(`debounce_handle`)
-                      )
-                      .spawn({
-                        detached: true,
-                        handleScalar: "task_handle",
-                        procedure: (s) =>
-                          s
-                            .delay(`500`)
-                            .statements(state.triggerRefresh)
-                            .setScalar(`did_trigger_refresh`, `true`)
-                            .setScalar(`debounce_handle`, `null`)
-                            .commitUiChanges(),
-                      })
-                      .setScalar(`debounce_handle`, `task_handle`)
-                  ),
-                blur: (s) =>
-                  s
-                    .if(`did_trigger_refresh`, (s) => s.return())
-                    .if("debounce_handle is not null", (s) =>
-                      s
-                        .abortTask(`debounce_handle`)
-                        .setScalar(`debounce_handle`, `null`)
+                    s.statements(
+                      filterTermHelper.setValue1(`target_value`),
+                      filterTermHelper.debounceInputTriggerRefresh
                     )
-                    .statements(state.triggerRefresh),
+                  ),
+                blur: filterTermHelper.debounceBlurHandler,
               },
             },
           },
-        }),
-      }),
+        })
+      ),
     });
   }
   if (columns.some((col) => col.filter?.type === "date")) {
     switchCases.push({
-      condition: `dt.is_date_filter_op(${filterTerm}.op)`,
+      condition: `rfn.is_date_filter_op(${filterTermHelper.op})`,
       node: [
         select({
           size: "sm",
           on: {
             input: (s) =>
               s.if(
-                `${filterTerm}.value_1 is null or ${filterTerm}.value_1 != target_value`,
+                `${filterTermHelper.value1} is null or ${filterTermHelper.value1} != target_value`,
                 (s) =>
                   s
                     .scalar(
                       `new_value_2`,
                       `case
-                          when ${filterTerm}.value_1 = 'exact date' or target_value = 'exact date' then null
-                          when (${filterTerm}.value_1 like 'number%') != (target_value like 'number%') then null
-                          else ${filterTerm}.value_2
+                          when ${filterTermHelper.value1} = 'exact date' or target_value = 'exact date' then null
+                          when (${filterTermHelper.value1} like 'number%') != (target_value like 'number%') then null
+                          else ${filterTermHelper.value2}
                         end`
                     )
-                    .modify(
-                      `update ui.filter_term set value_1 = target_value, value_2 = new_value_2 where id = ${filterTerm}.id`
+                    .statements(
+                      filterTermHelper.setValue1("target_value"),
+                      filterTermHelper.setValue2("new_value_2"),
+                      dgState.triggerRefresh
                     )
-                    .statements(state.triggerRefresh)
               ),
           },
           slots: {
             select: {
               props: {
-                value: `coalesce(${filterTerm}.value_1, 'exact date')`,
+                value: `coalesce(${filterTermHelper.value1}, 'exact date')`,
               },
             },
           },
@@ -503,40 +455,40 @@ function columnFilter(
         }),
         nodes.switch(
           {
-            condition: `${filterTerm}.value_1 in ('number of days ago', 'number of days from now')`,
+            condition: `${filterTermHelper.value1} in ('number of days ago', 'number of days from now')`,
             node: input({
               size: "sm",
               slots: {
                 input: {
-                  props: { value: `${filterTerm}.value_2` },
+                  props: { value: filterTermHelper.value2 },
                   on: {
                     input: (s) =>
-                      s.if("try_cast(target_value as int) is not null", (s) =>
-                        s.modify(
-                          `update ui.filter_term set value_2 = target_value where id = ${filterTerm}.id`
-                        )
+                      s.if(
+                        "try_cast(target_value as int) is not null",
+                        filterTermHelper.setValue2("target_value")
                       ),
-                    blur: state.triggerRefresh,
+                    blur: dgState.triggerRefresh,
                   },
                 },
               },
             }),
           },
           {
-            condition: `${filterTerm}.value_1 is null or ${filterTerm}.value_1 = 'exact date'`,
+            condition: `${filterTermHelper.value1} is null or ${filterTermHelper.value1} = 'exact date'`,
             node: input({
               size: "sm",
               slots: {
                 input: {
-                  props: { value: `${filterTerm}.value_2`, type: "'date'" },
+                  props: { value: filterTermHelper.value2, type: "'date'" },
                   on: {
                     input: (s) =>
                       s.if("literal.date(target_value) is not null", (s) =>
-                        s.modify(
-                          `update ui.filter_term set value_1 = 'exact date', value_2 = target_value where id = ${filterTerm}.id`
+                        s.statements(
+                          filterTermHelper.setValue1("'exact date'"),
+                          filterTermHelper.setValue2("target_value")
                         )
                       ),
-                    blur: state.triggerRefresh,
+                    blur: dgState.triggerRefresh,
                   },
                 },
               },
@@ -548,34 +500,35 @@ function columnFilter(
   }
   if (columns.some((col) => col.filter?.type === "timestamp")) {
     switchCases.push({
-      condition: `dt.is_timestamp_filter_op(${filterTerm}.op)`,
+      condition: `rfn.is_timestamp_filter_op(${filterTermHelper.op})`,
       node: [
         select({
           size: "sm",
           on: {
             input: (s) =>
               s.if(
-                `${filterTerm}.value_1 is null or ${filterTerm}.value_1 != target_value`,
+                `${filterTermHelper.value1} is null or ${filterTermHelper.value1} != target_value`,
                 (s) =>
                   s
                     .scalar(
                       `new_value_2`,
                       `case
-                          when ${filterTerm}.value_1 = 'exact date' or target_value = 'exact date' then null
-                          when (${filterTerm}.value_1 like 'number%') != (target_value like 'number%') then null
-                          else ${filterTerm}.value_2
+                          when ${filterTermHelper.value1} = 'exact date' or target_value = 'exact date' then null
+                          when (${filterTermHelper.value1} like 'number%') != (target_value like 'number%') then null
+                          else ${filterTermHelper.value2}
                         end`
                     )
-                    .modify(
-                      `update ui.filter_term set value_1 = target_value, value_2 = new_value_2 where id = ${filterTerm}.id`
+                    .statements(
+                      filterTermHelper.setValue1("target_value"),
+                      filterTermHelper.setValue2("new_value_2"),
+                      dgState.triggerRefresh
                     )
-                    .statements(state.triggerRefresh)
               ),
           },
           slots: {
             select: {
               props: {
-                value: `coalesce(${filterTerm}.value_1, 'exact date')`,
+                value: `coalesce(${filterTermHelper.value1}, 'exact date')`,
               },
             },
           },
@@ -583,40 +536,43 @@ function columnFilter(
         }),
         nodes.switch(
           {
-            condition: `${filterTerm}.value_1 in ('number of days ago', 'number of days from now')`,
+            condition: `${filterTermHelper.value1} in ('number of days ago', 'number of days from now')`,
             node: input({
               size: "sm",
               slots: {
                 input: {
-                  props: { value: `${filterTerm}.value_2` },
+                  props: { value: filterTermHelper.value2 },
                   on: {
                     input: (s) =>
-                      s.if("try_cast(target_value as int) is not null", (s) =>
-                        s.modify(
-                          `update ui.filter_term set value_2 = target_value where id = ${filterTerm}.id`
-                        )
+                      s.if(
+                        "try_cast(target_value as int) is not null",
+                        filterTermHelper.setValue2("target_value")
                       ),
-                    blur: state.triggerRefresh,
+                    blur: dgState.triggerRefresh,
                   },
                 },
               },
             }),
           },
           {
-            condition: `${filterTerm}.value_1 is null or ${filterTerm}.value_1 = 'exact date'`,
+            condition: `${filterTermHelper.value1} is null or ${filterTermHelper.value1} = 'exact date'`,
             node: input({
               size: "sm",
               slots: {
                 input: {
-                  props: { value: `${filterTerm}.value_2`, type: "'date'" },
+                  props: {
+                    value: `${filterTermHelper.value2}`,
+                    type: "'date'",
+                  },
                   on: {
                     input: (s) =>
                       s.if("literal.date(target_value) is not null", (s) =>
-                        s.modify(
-                          `update ui.filter_term set value_1 = 'exact date', value_2 = target_value where id = ${filterTerm}.id`
+                        s.statements(
+                          filterTermHelper.setValue1("'exact date'"),
+                          filterTermHelper.setValue2("target_value")
                         )
                       ),
-                    blur: state.triggerRefresh,
+                    blur: dgState.triggerRefresh,
                   },
                 },
               },
@@ -628,32 +584,31 @@ function columnFilter(
   }
   if (columns.some((col) => col.filter?.type === "enum")) {
     switchCases.push({
-      condition: `dt.is_enum_filter_op(${filterTerm}.op)`,
-      node: enumSelect(state, filterTerm, columns),
+      condition: `rfn.is_enum_filter_op(${filterTermHelper.op})`,
+      node: enumSelect(columns),
     });
   }
   if (columns.some((col) => col.filter?.type === "table")) {
     switchCases.push({
-      condition: `dt.is_fk_filter_op(${filterTerm}.op)`,
-      node: tableInput(state, filterTerm, columns),
+      condition: `rfn.is_fk_filter_op(${filterTermHelper.op})`,
+      node: tableInput(columns),
     });
   }
   if (columns.some((col) => col.filter?.type === "bool")) {
     switchCases.push({
-      condition: `${filterTerm}.op = 'bool_eq'`,
+      condition: `${filterTermHelper.op} = 'bool_eq'`,
       node: nodes.element("div", {
         styles: styles.checkboxWrapper,
         children: checkbox({
           variant: "outlined",
           styles: styles.checkbox,
-          checked: `${filterTerm}.value_1 = 'true'`,
+          checked: `${filterTermHelper.value1} = 'true'`,
           on: {
             checkboxChange: (s) =>
-              s
-                .modify(
-                  `update ui.filter_term set value_1 = cast(target_checked as string) where id = ${filterTerm}.id`
-                )
-                .statements(state.triggerRefresh),
+              s.statements(
+                filterTermHelper.setValue1("cast(target_checked as string)"),
+                dgState.triggerRefresh
+              ),
           },
         }),
       }),
@@ -661,19 +616,19 @@ function columnFilter(
   }
   if (columns.some((col) => col.filter?.type === "enum_like_bool")) {
     switchCases.push({
-      condition: `${filterTerm}.op = 'enum_like_bool_eq'`,
-      node: enumLikeBoolSelect(state, filterTerm, columns),
+      condition: `${filterTermHelper.op}.op = 'enum_like_bool_eq'`,
+      node: enumLikeBoolSelect(columns),
     });
   }
   if (columns.some((col) => col.filter?.type === "minutes_duration")) {
     switchCases.push({
-      condition: `dt.is_minute_duration_filter_op(${filterTerm}.op)`,
+      condition: `rfn.is_minute_duration_filter_op(${filterTermHelper.op})`,
       node: nodes.state({
-        watch: [`coalesce(try_cast(${filterTerm}.value_1 as bigint), 0)`],
+        watch: [`coalesce(try_cast(${filterTermHelper.value1} as bigint), 0)`],
         procedure: (s) =>
           s.scalar(
             `value`,
-            `coalesce(sfn.display_minutes_duration(try_cast(${filterTerm}.value_1 as bigint)), '')`
+            `coalesce(sfn.display_minutes_duration(try_cast(${filterTermHelper.value1} as bigint)), '')`
           ),
         children: durationInput({
           durationSize: "minutes",
@@ -682,21 +637,40 @@ function columnFilter(
           onChange: (value) => (s) =>
             s
               .setScalar(`value`, value)
-              .modify(
-                `update ui.filter_term set value_1 = sfn.parse_minutes_duration(${value}) where id = ${filterTerm}.id`
-              )
-              .statements(state.triggerRefresh),
+              .statements(
+                filterTermHelper.setValue1(
+                  `sfn.parse_minutes_duration(${value})`
+                ),
+                dgState.triggerRefresh
+              ),
         }),
       }),
     });
   }
   for (let i = 0; i < columns.length; i++) {
     const col = columns[i];
-    if (col.filter?.type === "custom") {
+    if (col.filter?.type === "custom" && col.filter.node) {
       switchCases.push({
-        condition: `${filterTerm}.column_id = ${i}`,
-        node: col.filter.node(state),
+        condition: `${filterTermHelper.columnId} = ${i}`,
+        node: col.filter.node(filterTermHelper, dgState),
       });
+    }
+  }
+  const columnOptions: Node[] = [];
+  if (optGroups.size === 1) {
+    columnOptions.push(optGroups.values().next().value);
+  } else {
+    for (const [optGroup, opts] of optGroups.entries()) {
+      if (optGroup) {
+        columnOptions.push(
+          nodes.element("optgroup", {
+            props: { label: stringLiteral(optGroup) },
+            children: opts,
+          })
+        );
+      } else {
+        columnOptions.push(...opts);
+      }
     }
   }
   return [
@@ -708,19 +682,19 @@ function columnFilter(
         input: (s) =>
           s
             .scalar("new_id", "cast(target_value as int)")
-            .if(`${filterTerm}.column_id != new_id`, (s) =>
+            .if(`${filterTermHelper.columnId} != new_id`, (s) =>
               s
                 .modify(
-                  `update ui.filter_term set column_id = new_id, op = dt.${dts.idToDefaultOp}(new_id), value_1 = null, value_2 = null, value_3 = null where id = ${filterTerm}.id`
+                  `update filter_term_record set column_id = new_id, op = rfn.${dts.idToDefaultOp}(new_id), value_1 = null, value_2 = null, value_3 = null`
                 )
-                .statements(state.triggerRefresh)
+                .statements(dgState.triggerRefresh)
             ),
       },
-      slots: { select: { props: { value: `${filterTerm}.column_id` } } },
+      slots: { select: { props: { value: filterTermHelper.columnId } } },
       children: columnOptions,
     }),
     nodes.if(
-      `${filterTerm}.op != 'custom'`,
+      `${filterTermHelper.op} != 'custom'`,
       select({
         variant: "outlined",
         color: "neutral",
@@ -729,16 +703,16 @@ function columnFilter(
           input: (s) =>
             s
               .scalar("new_op", "cast(target_value as enums.dg_filter_op)")
-              .if(`${filterTerm}.op != new_op`, (s) =>
+              .if(`${filterTermHelper.op} != new_op`, (s) =>
                 s
                   .modify(
-                    `update ui.filter_term set op = new_op where id = ${filterTerm}.id`
+                    `update ui.filter_term set op = new_op where id = ${filterTermHelper.id}`
                   )
-                  .statements(state.triggerRefresh)
+                  .statements(dgState.triggerRefresh)
               ),
         },
-        slots: { select: { props: { value: `${filterTerm}.op` } } },
-        children: typeSpecificOps(columns, filterTerm),
+        slots: { select: { props: { value: filterTermHelper.op } } },
+        children: typeSpecificOps(columns),
       })
     ),
     nodes.switch(...switchCases),
@@ -751,17 +725,13 @@ function columnFilter(
         click: (s) =>
           s
             .modify(`delete from filter_term_record`)
-            .statements(state.triggerRefresh),
+            .statements(dgState.triggerRefresh),
       },
     }),
   ];
 }
 
-function enumLikeBoolSelect(
-  state: DgStateHelpers,
-  filterTerm: string,
-  columns: SuperGridColumn[]
-) {
+function enumLikeBoolSelect(columns: SuperGridColumn[]) {
   const cols = [];
   for (let i = 0; i < columns.length; i++) {
     if (columns[i].filter?.type === "enum_like_bool") {
@@ -775,16 +745,15 @@ function enumLikeBoolSelect(
     on: {
       input: (s) =>
         s.if(
-          `${filterTerm}.value_1 is null or ${filterTerm}.value_1 != target_value`,
+          `${filterTermHelper.value1} is null or ${filterTermHelper.value1} != target_value`,
           (s) =>
-            s
-              .modify(
-                `update ui.filter_term set value_1 = target_value where id = ${filterTerm}.id`
-              )
-              .statements(state.triggerRefresh)
+            s.statements(
+              filterTermHelper.setValue1("target_value"),
+              dgState.triggerRefresh
+            )
         ),
     },
-    slots: { select: { props: { value: `${filterTerm}.value_1` } } },
+    slots: { select: { props: { value: filterTermHelper.value1 } } },
     children: nodes.switch(
       ...cols.map((i) => {
         const col = columns[i];
@@ -792,7 +761,7 @@ function enumLikeBoolSelect(
           throw new Error("impossible");
         }
         return {
-          condition: `${filterTerm}.column_id = ${i}`,
+          condition: `${filterTermHelper.columnId} = ${i}`,
           node: [
             nodes.element("option", {
               props: { value: `'true'` },
@@ -815,11 +784,7 @@ function enumLikeBoolSelect(
   });
 }
 
-function enumSelect(
-  state: DgStateHelpers,
-  filterTerm: string,
-  columns: SuperGridColumn[]
-) {
+function enumSelect(columns: SuperGridColumn[]) {
   const columnsByEnum: Record<string, number[]> = {};
   for (let i = 0; i < columns.length; i++) {
     const column = columns[i];
@@ -838,16 +803,15 @@ function enumSelect(
     on: {
       input: (s) =>
         s.if(
-          `${filterTerm}.value_1 is null or ${filterTerm}.value_1 != target_value`,
+          `${filterTermHelper.value1} is null or ${filterTermHelper.value1} != target_value`,
           (s) =>
-            s
-              .modify(
-                `update ui.filter_term set value_1 = target_value where id = ${filterTerm}.id`
-              )
-              .statements(state.triggerRefresh)
+            s.statements(
+              filterTermHelper.setValue1("target_value"),
+              dgState.triggerRefresh
+            )
         ),
     },
-    slots: { select: { props: { value: `${filterTerm}.value_1` } } },
+    slots: { select: { props: { value: filterTermHelper.value1 } } },
     children: nodes.switch(
       ...Object.entries(columnsByEnum).map(([enumName, columns]) => {
         const opts = Object.values(app.enums[enumName].values).map((v) =>
@@ -857,7 +821,7 @@ function enumSelect(
           })
         );
         return {
-          condition: `${filterTerm}.column_id in (${columns.join(",")})`,
+          condition: `${filterTermHelper.columnId} in (${columns.join(",")})`,
           node: opts,
         };
       })
@@ -867,11 +831,7 @@ function enumSelect(
 
 const filterIdPrefix = stringLiteral(getUniqueUiId());
 
-function tableInput(
-  state: DgStateHelpers,
-  filterTerm: string,
-  columns: SuperGridColumn[]
-) {
+function tableInput(columns: SuperGridColumn[]) {
   const columnsByTable: Record<string, number[]> = {};
   for (let i = 0; i < columns.length; i++) {
     const column = columns[i];
@@ -886,34 +846,33 @@ function tableInput(
   return nodes.switch(
     ...Object.entries(columnsByTable).map(([tableName, columns]) => {
       return {
-        condition: `${filterTerm}.column_id in (${columns.join(",")})`,
+        condition: `${filterTermHelper.columnId} in (${columns.join(",")})`,
         node: getTableRecordSelect(tableName, {
           variant: "outlined",
           color: "neutral",
           size: "sm",
-          id: `${filterIdPrefix} || '-' || ${filterTerm}.id`,
+          id: `${filterIdPrefix} || '-' || ${filterTermHelper.id}`,
           onComboboxSelectValue: (id, label) => (s) =>
             s.if(
-              `${filterTerm}.value_1 is null or ${filterTerm}.value_1 != cast(${id} as string) or ${id} is null`,
+              `${filterTermHelper.value1} is null or ${filterTermHelper.value1} != cast(${id} as string) or ${id} is null`,
               (s) =>
-                s
-                  .modify(
-                    `update ui.filter_term set value_1 = cast(${id} as string), value_2 = ${label} where id = ${filterTerm}.id`
-                  )
-                  .statements(state.triggerRefresh)
+                s.statements(
+                  filterTermHelper.setValue1(`cast(${id} as string)`),
+                  filterTermHelper.setValue2(label),
+                  dgState.triggerRefresh
+                )
             ),
           onSelectValue: (value) => (s) =>
             s.if(
-              `${filterTerm}.value_1 is null or ${filterTerm}.value_1 != cast(${value} as string)`,
+              `${filterTermHelper.value1} is null or ${filterTermHelper.value1} != cast(${value} as string)`,
               (s) =>
-                s
-                  .modify(
-                    `update ui.filter_term set value_1 = cast(${value} as string) where id = ${filterTerm}.id`
-                  )
-                  .statements(state.triggerRefresh)
+                s.statements(
+                  filterTermHelper.setValue1(`cast(${value} as string)`),
+                  dgState.triggerRefresh
+                )
             ),
-          value: `cast(${filterTerm}.value_1 as bigint)`,
-          initialInputText: `coalesce(${filterTerm}.value_2, '')`,
+          value: `cast(${filterTermHelper.value1} as bigint)`,
+          initialInputText: `coalesce(${filterTermHelper.value2}, '')`,
         }),
       };
     })
@@ -984,14 +943,10 @@ const isAnySelector = lazy(() => {
   });
 });
 
-export function filterPopover(
-  state: DgStateHelpers,
-  columns: SuperGridColumn[],
-  dts: SuperGridDts
-) {
+export function filterPopover(columns: SuperGridColumn[], dts: SuperGridDts) {
   return [
     nodes.if({
-      expr: `exists (select 1 from ui.filter_term)`,
+      condition: `exists (select 1 from ui.filter_term)`,
       then: nodes.recursive({
         table: "filter_term",
         where: "group is null",
@@ -1003,8 +958,8 @@ export function filterPopover(
           children: [
             isAnySelector(),
             nodes.if({
-              expr: `filter_term_record.is_any is null`,
-              then: columnFilter(state, `filter_term_record`, columns, dts),
+              condition: `filter_term_record.is_any is null`,
+              then: columnFilter(columns, dts),
               else: nodes.element("div", {
                 styles: styles.filterGroup,
                 dynamicClasses: [
@@ -1023,7 +978,7 @@ export function filterPopover(
                       }),
                       nodes.element("div", { styles: flexGrowStyles }),
                       nodes.if({
-                        expr: `filter_term_record.recursion_depth = 0`,
+                        condition: `filter_term_record.recursion_depth = 0`,
                         then: popoverMenu({
                           menuListOpts: {
                             styles: styles.popoverMenu,
@@ -1085,7 +1040,7 @@ export function filterPopover(
                               .modify(
                                 `delete from filter_term where id in (select id from all_filters) or group in (select id from all_filters)`
                               )
-                              .statements(state.triggerRefresh),
+                              .statements(dgState.triggerRefresh),
                         },
                       }),
                     ],
@@ -1188,3 +1143,83 @@ function insertFilterGroup(columns: SuperGridColumn[], parentGroup?: string) {
     )
     .setScalar(`ui.next_filter_id`, `ui.next_filter_id + 2`);
 }
+
+export class FilterTermHelper {
+  id = "filter_term_record.id";
+  columnId = "filter_term_record.column_id";
+  op = "filter_term_record.op";
+  value1 = "filter_term_record.value_1";
+  value2 = "filter_term_record.value_2";
+  value3 = "filter_term_record.value_3";
+
+  setOp(value: yom.SqlExpression) {
+    return new BasicStatements().modify(
+      `update filter_term_record set op = ${value}`
+    );
+  }
+
+  setColumnId(value: yom.SqlExpression) {
+    return new BasicStatements().modify(
+      `update filter_term_record set column_id = ${value}`
+    );
+  }
+
+  setValue1(value: yom.SqlExpression) {
+    return new BasicStatements().modify(
+      `update filter_term_record set value_1 = ${value}`
+    );
+  }
+
+  setValue2(value: yom.SqlExpression) {
+    return new BasicStatements().modify(
+      `update filter_term_record set value_2 = ${value}`
+    );
+  }
+
+  setValue3(value: yom.SqlExpression) {
+    return new BasicStatements().modify(
+      `update filter_term_record set value_3 = ${value}`
+    );
+  }
+
+  debounceState(children: Node) {
+    return nodes.state({
+      procedure: (s) =>
+        s
+          .scalar(`debounce_handle`, { type: "BigUint" })
+          .scalar(`did_trigger_refresh`, `false`),
+      children,
+    });
+  }
+
+  get debounceInputTriggerRefresh() {
+    return new DomStatements()
+      .setScalar(`did_trigger_refresh`, `false`)
+      .if("debounce_handle is not null", (s) => s.abortTask(`debounce_handle`))
+      .spawn({
+        detached: true,
+        handleScalar: "task_handle",
+        procedure: (s) =>
+          s
+            .delay(`500`)
+            .statements(dgState.triggerRefresh)
+            .setScalar(`did_trigger_refresh`, `true`)
+            .setScalar(`debounce_handle`, `null`)
+            .commitUiChanges(),
+      })
+      .setScalar(`debounce_handle`, `task_handle`);
+  }
+
+  get debounceBlurHandler() {
+    return new DomStatements()
+      .if(`did_trigger_refresh`, (s) => s.return())
+      .if("debounce_handle is not null", (s) =>
+        s
+          .abortTask(`debounce_handle`)
+          .setScalar(`debounce_handle`, `null`)
+          .statements(dgState.triggerRefresh)
+      );
+  }
+}
+
+export const filterTermHelper = new FilterTermHelper();

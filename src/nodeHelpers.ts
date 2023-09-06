@@ -32,9 +32,14 @@ function if_(expr: string, then: ui.Node): ui.IfNode;
 function if_(opts: Omit<ui.IfNode, "t">): ui.IfNode;
 function if_(expr: string | Omit<ui.IfNode, "t">, then?: ui.Node): ui.IfNode {
   if (typeof expr === "string") {
-    return { t: "If", expr, then };
+    return { t: "If", condition: expr, then };
   }
-  return { t: "If", expr: expr.expr, then: expr.then, else: expr.else };
+  return {
+    t: "If",
+    condition: expr.condition,
+    then: expr.then,
+    else: expr.else,
+  };
 }
 
 function switch_(

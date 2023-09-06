@@ -62,7 +62,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
               variant: "plain",
               size: "sm",
               children: nodes.if({
-                expr: `editing`,
+                condition: `editing`,
                 then: materialIcon("Close"),
                 else: materialIcon("Edit"),
               }),
@@ -81,7 +81,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
               })`
             ),
           children: nodes.if({
-            expr: `editing`,
+            condition: `editing`,
             then: nodes.state({
               procedure: (s) =>
                 s
@@ -154,7 +154,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
               ],
             }),
             else: nodes.if({
-              expr: `note is null or note = ''`,
+              condition: `note is null or note = ''`,
               then: nodes.element("p", {
                 styles: styles.emptyNote,
                 children: "'No notes here!'",

@@ -669,7 +669,7 @@ export function transformNode(
     case "If":
       transformed = {
         t: "If",
-        expr: node.expr,
+        condition: node.condition,
         then: node.then ? transformNode(node.then, styleToClass) : undefined,
         else: node.else ? transformNode(node.else, styleToClass) : undefined,
       };

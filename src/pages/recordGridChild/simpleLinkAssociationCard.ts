@@ -171,7 +171,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
               color: "primary",
               size: "sm",
               children: nodes.if({
-                expr: `adding`,
+                condition: `adding`,
                 then: materialIcon("Close"),
                 else: materialIcon("Add"),
               }),

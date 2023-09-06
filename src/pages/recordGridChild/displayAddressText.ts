@@ -18,7 +18,7 @@ export function displayAddressText(
   recordName: string
 ) {
   return nodes.if({
-    expr: Object.values(group.fields)
+    condition: Object.values(group.fields)
       .filter(Boolean)
       .map((field) => `${recordName}.${ident(field)} is null`)
       .join(" and "),
