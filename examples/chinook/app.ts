@@ -30,23 +30,11 @@ db.addTable("album", (table) => {
   table.string("title", 160).notNull();
   table.fk("artist").notNull();
   table.linkable();
-  table.virtualField({
-    expr: (id) => `(select count(*) from db.track where album = ${id})`,
-    fields: ["id"],
-    name: "track_count",
-    type: { type: "BigInt" },
-  });
 });
 
 db.addTable("artist", (table) => {
   table.string("name", 120).notNull();
   table.linkable();
-  table.virtualField({
-    expr: (id) => `(select count(*) from db.album where artist = ${id})`,
-    fields: ["id"],
-    name: "album_count",
-    type: { type: "BigInt" },
-  });
 });
 
 db.addTable("customer", (table) => {
@@ -59,18 +47,6 @@ db.addTable("customer", (table) => {
   table.email("email").maxLength(60).notNull();
   table.fk("support_rep", "employee");
   table.linkable();
-  table.virtualField({
-    expr: (id) => `(select count(*) from db.invoice where customer = ${id})`,
-    fields: ["id"],
-    name: "invoice_count",
-    type: { type: "BigInt" },
-  });
-  table.virtualField({
-    expr: (id) => `(select sum(total) from db.invoice where customer = ${id})`,
-    fields: ["id"],
-    name: "total_purchased",
-    type: { type: "BigInt" },
-  });
 });
 
 db.addTable("employee", (table) => {
@@ -89,12 +65,6 @@ db.addTable("employee", (table) => {
 
 db.addTable("genre", (table) => {
   table.string("name", 120).notNull();
-  table.virtualField({
-    expr: (id) => `(select count(*) from db.track where genre = ${id})`,
-    fields: ["id"],
-    name: "track_count",
-    type: { type: "BigInt" },
-  });
 });
 
 db.addTable("invoice", (table) => {
@@ -129,13 +99,6 @@ app.addEnum({
 db.addTable("playlist", (table) => {
   table.string("name", 120).notNull();
   table.linkable();
-  table.virtualField({
-    expr: (id) =>
-      `(select count(*) from db.playlist_track where playlist = ${id})`,
-    fields: ["id"],
-    name: "track_count",
-    type: { type: "BigInt" },
-  });
 });
 
 db.addTable("playlist_track", (table) => {
@@ -153,12 +116,6 @@ db.addTable("track", (table) => {
   table.uint("bytes");
   table.money("unit_price").notNull();
   table.linkable();
-  table.virtualField({
-    expr: (id) => `(select count(*) from db.invoice_line where track = ${id})`,
-    fields: ["id"],
-    name: "purchase_count",
-    type: { type: "BigInt" },
-  });
 });
 
 //
@@ -392,7 +349,19 @@ ui.addDatagridPage("customer", (page) => {
           })
         ),
     })
-    .toolbar((toolbar) => toolbar.insertDialog().delete());
+    .toolbar((toolbar) => toolbar.insertDialog().delete())
+    .virtualColumn({
+      storageName: "invoice_count",
+      expr: `(select count(*) from db.invoice where customer = record.id)`,
+      filter: { type: "number", notNull: true },
+      sort: { type: "numeric" },
+    })
+    .virtualColumn({
+      storageName: "total_purchased",
+      expr: `(select sum(total) from db.invoice where customer = record.id)`,
+      filter: { type: "number", notNull: true },
+      sort: { type: "numeric" },
+    });
 });
 
 ui.addRecordGridPage("customer", (page) => {
@@ -425,7 +394,12 @@ ui.addSimpleDatagridPage("album", (page) => {
   page
     .viewButton()
     .selectable()
-    .toolbar((toolbar) => toolbar.insertDialog().delete());
+    .toolbar((toolbar) => toolbar.insertDialog().delete())
+    .virtual({
+      name: "track_count",
+      expr: `(select count(*) from db.track where album = record.id)`,
+      type: "BigInt",
+    });
 });
 
 ui.addRecordGridPage("album", (page) => {
@@ -447,7 +421,12 @@ ui.addSimpleDatagridPage("artist", (page) => {
   page
     .viewButton()
     .selectable()
-    .toolbar((toolbar) => toolbar.insertDialog().delete());
+    .toolbar((toolbar) => toolbar.insertDialog().delete())
+    .virtual({
+      name: "album_count",
+      expr: `(select count(*) from db.album where artist = record.id)`,
+      type: "BigInt",
+    });
 });
 
 ui.addRecordGridPage("artist", (page) => {
@@ -472,14 +451,26 @@ ui.addRecordGridPage("artist", (page) => {
 });
 
 ui.addSimpleDatagridPage("genre", (page) => {
-  page.selectable().toolbar((toolbar) => toolbar.insertDialog().delete());
+  page
+    .selectable()
+    .toolbar((toolbar) => toolbar.insertDialog().delete())
+    .virtual({
+      expr: `(select count(*) from db.track where genre = record.id)`,
+      name: "track_count",
+      type: "BigInt",
+    });
 });
 
 ui.addSimpleDatagridPage("playlist", (page) => {
   page
     .selectable()
     .viewButton()
-    .toolbar((toolbar) => toolbar.insertDialog().delete());
+    .toolbar((toolbar) => toolbar.insertDialog().delete())
+    .virtual({
+      expr: `(select count(*) from db.playlist_track where playlist = record.id)`,
+      name: "track_count",
+      type: "BigInt",
+    });
 });
 
 ui.addRecordGridPage("playlist", (page) => {
@@ -501,7 +492,13 @@ ui.addDatagridPage("track", (page) => {
   page
     .viewButton()
     .selectable()
-    .toolbar((toolbar) => toolbar.insertDialog().delete());
+    .toolbar((toolbar) => toolbar.insertDialog().delete())
+    .virtualColumn({
+      storageName: "purchase_count",
+      expr: `(select count(*) from db.invoice_line where track = record.id)`,
+      filter: { type: "number", notNull: true },
+      sort: { type: "numeric" },
+    });
 });
 
 ui.addRecordGridPage("track", (page) => {

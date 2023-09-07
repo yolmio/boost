@@ -21,6 +21,7 @@ import { DomStatements, StateStatementsOrFn } from "../../statements";
 import { DgStateHelpers } from "./shared";
 import * as yom from "../../yom";
 import { FilterTermHelper } from "./filterPopover";
+import { lazy } from "../../utils/memoize";
 
 export interface ToolbarConfig {
   views: boolean;
@@ -29,18 +30,110 @@ export interface ToolbarConfig {
   sort: boolean;
   delete: boolean;
   export: boolean;
-  search?: { matchConfig: string };
+  quickSearch?: (quickSearch: yom.SqlExpression) => yom.SqlExpression;
   add?:
     | { type: "dialog"; opts?: Partial<InsertDialogOpts> }
     | { type: "href"; href: string };
 }
 
-export interface SortConfig {
-  displayName: string;
-  ascNode: Node;
-  descNode: Node;
-  ascText: string;
-  descText: string;
+export type SortConfig =
+  | { type: "string" | "numeric" | "checkbox"; displayName: string }
+  | {
+      type: "custom";
+      displayName: string;
+      ascNode: Node;
+      descNode: Node;
+      ascText: string;
+      descText: string;
+    };
+
+const stringSortAscNode = `'A → Z'`;
+const stringSortDescNode = `'Z → A'`;
+const stringSortAscText = stringSortAscNode;
+const stringSortDescText = stringSortDescNode;
+
+const numericSortAscNode = `'1 → 9'`;
+const numericSortDescNode = `'9 → 1'`;
+const numericSortAscText = stringSortAscNode;
+const numericSortDescText = stringSortDescNode;
+
+const checkboxStyles = {
+  ml: 1,
+  display: "inline-flex",
+};
+const checkboxSortAscNode = lazy(() =>
+  nodes.element("span", {
+    styles: checkboxStyles,
+    children: [
+      materialIcon("CheckBoxOutlined"),
+      `' → '`,
+      materialIcon("CheckBoxOutlineBlank"),
+    ],
+  })
+);
+const checkboxSortDescNode = lazy(() =>
+  nodes.element("span", {
+    styles: checkboxStyles,
+    children: [
+      materialIcon("CheckBoxOutlineBlank"),
+      `' → '`,
+      materialIcon("CheckBoxOutlined"),
+    ],
+  })
+);
+const checkboxSortAscText = `'☐ → ✓'`;
+const checkboxSortDescText = `'✓ → ☐'`;
+
+function getSortAscNode(sort: SortConfig) {
+  switch (sort.type) {
+    case "string":
+      return stringSortAscNode;
+    case "checkbox":
+      return checkboxSortAscNode();
+    case "numeric":
+      return numericSortAscNode;
+    case "custom":
+      return sort.ascNode;
+  }
+}
+
+function getSortDescNode(sort: SortConfig) {
+  switch (sort.type) {
+    case "string":
+      return stringSortDescNode;
+    case "checkbox":
+      return checkboxSortDescNode();
+    case "numeric":
+      return numericSortDescNode;
+    case "custom":
+      return sort.descNode;
+  }
+}
+
+export function getSortAscText(sort: SortConfig) {
+  switch (sort.type) {
+    case "string":
+      return stringSortAscText;
+    case "checkbox":
+      return checkboxSortAscText;
+    case "numeric":
+      return numericSortAscText;
+    case "custom":
+      return sort.ascText;
+  }
+}
+
+export function getSortDescText(sort: SortConfig) {
+  switch (sort.type) {
+    case "string":
+      return stringSortDescText;
+    case "checkbox":
+      return checkboxSortDescText;
+    case "numeric":
+      return numericSortDescText;
+    case "custom":
+      return sort.descText;
+  }
 }
 
 export interface SuperGridColumn extends BaseColumn {
@@ -263,7 +356,7 @@ export function columnPopover(
                     children: listItemButton({
                       variant: "plain",
                       color: "neutral",
-                      children: ["'Sort '", sort.ascNode],
+                      children: ["'Sort '", getSortAscNode(sort)],
                     }),
                   }),
                   listItem({
@@ -277,7 +370,7 @@ export function columnPopover(
                     children: listItemButton({
                       variant: "plain",
                       color: "neutral",
-                      children: ["'Sort '", sort.descNode],
+                      children: ["'Sort '", getSortDescNode(sort)],
                     }),
                   }),
                 ]
@@ -489,8 +582,7 @@ export function styledDatagrid(config: StyledDatagridConfig) {
           config.columns,
           dts,
           superDts,
-          config.tableModel,
-          config.toolbar.search?.matchConfig
+          config.tableModel
         )
       ),
       nodes.state({
@@ -548,8 +640,13 @@ export function styledDatagrid(config: StyledDatagridConfig) {
     },
     enableFiltering: config.toolbar.filter,
     pageSize: config.pageSize,
-    quickSearchMatchConfig: config.toolbar.search?.matchConfig,
-    extraState: config.extraState,
+    additionalWhere: config.toolbar.quickSearch?.(`ui.quick_search_query`),
+    extraState: (s) => {
+      s.statements(config.extraState);
+      if (config.toolbar.quickSearch) {
+        s.scalar("ui.quick_search_query", "''");
+      }
+    },
     defaultView: config.defaultView,
   });
 }

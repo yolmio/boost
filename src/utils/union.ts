@@ -1,6 +1,6 @@
-import { Field, VirtualType, app } from "../app";
+import { Field, app } from "../app";
 import { SequentialIDGenerator } from "../utils/SequentialIdGenerator";
-import { FieldIntegerTypes, SqlExpression } from "../yom";
+import * as yom from "../yom";
 import { tableFieldSql } from "./sqlHelpers";
 
 export interface TableUnionSource {
@@ -12,10 +12,16 @@ export interface TableUnionSource {
   exprs?: UnionExpr[];
 }
 
+export type UnionExprType =
+  | yom.SimpleScalarTypes
+  | yom.ScalarIntegerTypes
+  | { type: yom.SimpleScalarTypes | yom.ScalarIntegerTypes }
+  | { type: "Enum"; enum: string };
+
 export interface UnionExpr {
   name: string;
-  expr: SqlExpression;
-  type: VirtualType;
+  expr: yom.SqlExpression;
+  type: UnionExprType;
 }
 
 export interface QueryUnionSource {
@@ -50,7 +56,7 @@ export interface UnionOpts {
    */
   orderByFields: string[];
   sources: UnionSource[];
-  limit?: SqlExpression;
+  limit?: yom.SqlExpression;
 }
 
 export interface Union {
@@ -58,7 +64,7 @@ export interface Union {
   getField: (source: number, recordName: string, field: string) => string;
 }
 
-function normalizeIntTypes(ty: FieldIntegerTypes): string {
+function normalizeIntTypes(ty: yom.FieldIntegerTypes): string {
   switch (ty) {
     case "TinyInt":
     case "TinyUint":
@@ -97,15 +103,12 @@ function getTypeKey(field: Field): string {
   return field.type;
 }
 
-function getVirtualTypeKey(ty: VirtualType): string {
-  switch (ty.type) {
-    case "String":
-      return "String";
-
-    case "Enum":
-      return "enum_" + ty.enum;
-    case "ForeignKey":
-      return "BigInt";
+function getExprTypeKey(ty: UnionExprType): string {
+  if (typeof ty === "string") {
+    return ty;
+  }
+  if (ty.type === "Enum") {
+    return "enum_" + ty.enum;
   }
   return ty.type;
 }
@@ -159,13 +162,13 @@ export function createUnionQuery(opts: UnionOpts): Union {
       }
       if (source.exprs) {
         for (const e of source.exprs) {
-          const typeKey = getVirtualTypeKey(e.type);
+          const typeKey = getExprTypeKey(e.type);
           mergeField(typeKey, { idx: i, expr: e.expr, exprName: e.name });
         }
       }
     } else {
       for (const e of source.selectColumns) {
-        const typeKey = getVirtualTypeKey(e.type);
+        const typeKey = getExprTypeKey(e.type);
         mergeField(typeKey, { idx: i, expr: e.expr, exprName: e.name });
       }
     }

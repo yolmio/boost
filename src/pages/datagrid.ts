@@ -8,6 +8,8 @@ import { stringLiteral } from "../utils/sqlHelpers";
 import { columnFromField } from "./datagridInternals/fromModel";
 import {
   columnPopover,
+  FilterType,
+  SortConfig,
   styledDatagrid,
   SuperGridColumn,
   ToolbarConfig,
@@ -16,6 +18,7 @@ import { styles as sharedStyles } from "./datagridInternals/styles";
 import { checkbox } from "../components/checkbox";
 import { DefaultView } from "./datagridInternals/datagridBase";
 import {
+  CellNode,
   DgStateHelpers,
   FieldEditProcConfig,
   resizeableSeperator,
@@ -47,12 +50,9 @@ function idColumn(
     .join(" ");
   const sqlName = tableModel.primaryKeyIdent;
   const sortConfig = {
+    type: "numeric",
     displayName: idDisplayName,
-    ascNode: "'1 → 9'",
-    descNode: "'9 → 1'",
-    ascText: "1 → 9",
-    descText: "9 → 1",
-  };
+  } as SortConfig;
   return {
     filterDisplayName: idDisplayName,
     columnsDisplayName: idDisplayName,
@@ -81,7 +81,6 @@ function idColumn(
     },
     queryGeneration: {
       expr: sqlName,
-      sqlName: tableModel.primaryKeyFieldName,
       alwaysGenerate: true,
     },
     viewStorageName: sqlName,
@@ -160,6 +159,11 @@ export class DatagridToolbarBuilder {
   }
 }
 
+export interface ExtraColumnOpts {
+  startFixedColumns: number;
+  currentColumnId: number;
+}
+
 export class DatagridPageBuilder {
   #table: Table;
   #path?: string;
@@ -170,7 +174,7 @@ export class DatagridPageBuilder {
   #immutable?: boolean | yom.SqlExpression;
   #ignoreFields?: string[];
   #extraState?: StateStatementsOrFn;
-  #extraColumns: SuperGridColumn[] = [];
+  #extraColumns: ((opts: ExtraColumnOpts) => SuperGridColumn)[] = [];
   #fields: FieldConfigs = {};
   #toolbarConfig?: ToolbarConfig;
   #pageSize = 100;
@@ -241,7 +245,7 @@ export class DatagridPageBuilder {
   }
 
   column(column: SuperGridColumn) {
-    this.#extraColumns.push(column);
+    this.#extraColumns.push(() => column);
     return this;
   }
 
@@ -255,7 +259,7 @@ export class DatagridPageBuilder {
     ) => yom.SqlExpression;
     node?: (helpers: FilterTermHelper, state: DgStateHelpers) => Node;
   }) {
-    this.#extraColumns.push({
+    this.#extraColumns.push(() => ({
       viewStorageName: column.storageName,
       filterDisplayName:
         column.displayName ??
@@ -269,7 +273,88 @@ export class DatagridPageBuilder {
         type: "custom",
         node: column.node,
       },
-    });
+    }));
+    return this;
+  }
+
+  customSortColumn(column: {
+    storageName: string;
+    expr: (record: string) => yom.SqlExpression;
+    sort: Omit<SortConfig, "displayName"> & { displayName?: string };
+  }) {
+    this.#extraColumns.push(() => ({
+      viewStorageName: column.storageName,
+      queryGeneration: {
+        expr: column.expr("record"),
+        alwaysGenerate: false,
+      },
+      sort: {
+        ...column.sort,
+        displayName:
+          column.sort.displayName ??
+          column.storageName
+            .split("_")
+            .map((v, i) => (i === 0 ? upcaseFirst(v) : v))
+            .join(" "),
+      } as any,
+    }));
+    return this;
+  }
+
+  /**
+   * A column that is basically like a field, but is actually backed by some sql expression
+   */
+  virtualColumn(column: {
+    storageName: string;
+    displayName?: string;
+    columnsDisplayName?: string;
+    expr: yom.SqlExpression;
+    filterDisplayName?: string;
+    filterOptGroup?: string;
+    filter?: FilterType;
+    sort?: Omit<SortConfig, "displayName"> & { displayName?: string };
+    cell?: CellNode;
+    initialWidth?: number;
+    initiallyDisplaying?: boolean;
+  }) {
+    const displayName =
+      column.displayName ??
+      column.storageName
+        .split("_")
+        .map((v, i) => (i === 0 ? upcaseFirst(v) : v))
+        .join(" ");
+    const sort = { ...column.sort, displayName } as SortConfig;
+    this.#extraColumns.push(({ currentColumnId, startFixedColumns }) => ({
+      viewStorageName: column.storageName,
+      queryGeneration: {
+        expr: column.expr,
+        alwaysGenerate: false,
+      },
+      displayInfo: {
+        cell: column.cell ?? ((cell) => cell.value),
+        header: (state) => [
+          nodes.element("span", {
+            styles: sharedStyles.headerText,
+            children: stringLiteral(column.columnsDisplayName ?? displayName),
+          }),
+          columnPopover(state, currentColumnId, startFixedColumns, sort),
+          resizeableSeperator({
+            minWidth: 50,
+            setWidth: (width) =>
+              new BasicStatements().modify(
+                `update ui.column set width = ${width} where id = ${currentColumnId}`
+              ),
+            width: `(select width from ui.column where id = ${currentColumnId})`,
+          }),
+        ],
+        initiallyDisplaying: column.initiallyDisplaying ?? false,
+        initialWidth: column.initialWidth ?? 150,
+      },
+      filterDisplayName: column.filterDisplayName,
+      filterOptGroup: column.filterOptGroup,
+      filter: column.filter,
+      sort,
+    }));
     return this;
   }
 
@@ -387,18 +472,10 @@ export class DatagridPageBuilder {
         dynamicFieldCount += 1;
       }
     }
-    // for (const virtual of Object.values(this.#table.virtualFields)) {
-    //   columns.push(
-    //     columnFromVirtual(
-    //       this.#table.name,
-    //       virtual,
-    //       columns.length,
-    //       startFixedColumns
-    //     )
-    //   );
-    // }
     if (this.#extraColumns) {
-      columns.push(...this.#extraColumns);
+      for (const f of this.#extraColumns) {
+        columns.push(f({ currentColumnId: columns.length, startFixedColumns }));
+      }
     }
     return columns;
   }

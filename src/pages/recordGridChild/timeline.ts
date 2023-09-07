@@ -1,9 +1,8 @@
-import { VirtualType } from "../../app";
 import { nodes } from "../../nodeHelpers";
 import { app } from "../../app";
 import { Style } from "../../styleTypes";
 import { ident, stringLiteral } from "../../utils/sqlHelpers";
-import { UnionExpr, createUnionQuery } from "../../utils/union";
+import { UnionExpr, createUnionQuery, UnionExprType } from "../../utils/union";
 import { materialIcon } from "../../components/materialIcon";
 import { popoverMenu } from "../../components/menu";
 import { typography } from "../../components/typography";
@@ -24,13 +23,13 @@ export type TableDisplayValue =
   | {
       expr: yom.SqlExpression;
       label: string;
-      type: VirtualType;
+      type: UnionExprType;
       display: (e: yom.SqlExpression) => Node;
     };
 
 interface ValueExpr {
   expr: yom.SqlExpression;
-  type: VirtualType;
+  type: UnionExprType;
 }
 
 type TableValue = string | ValueExpr;

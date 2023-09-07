@@ -34,7 +34,7 @@ export interface DatagridBaseOpts {
   children: (dgNode: Node, state: DgStateHelpers) => Node;
   dts: DatagridRfns;
   datagridName: string;
-  quickSearchMatchConfig?: string;
+  additionalWhere?: yom.SqlExpression;
   columns: BaseColumn[];
   enableFiltering?: boolean;
   enableViews: boolean;
@@ -83,7 +83,7 @@ export function datagridBase(opts: DatagridBaseOpts) {
   const getResultsProc = new StateStatements();
   getResultsProc.dynamicQuery({
     resultTable: "dg_table",
-    query: makeDynamicQuery(dts, opts.source, opts.quickSearchMatchConfig),
+    query: makeDynamicQuery(dts, opts.source, opts.additionalWhere),
     columnCount: columns.filter((v) => Boolean(v.queryGeneration)).length,
   });
   getResultsProc.statements(opts.extraQueryState);
@@ -226,9 +226,6 @@ export function datagridBase(opts: DatagridBaseOpts) {
         { name: "value_3", type: { type: "String", maxLength: 2000 } },
       ])
       .scalar(`next_filter_id`, { type: "BigUint" }, `0`);
-  }
-  if (opts.quickSearchMatchConfig) {
-    mainStateProc.scalar(`quick_search_query`, `''`);
   }
   if (opts.enableViews) {
     const loadFilter = new StateStatements();
@@ -382,7 +379,6 @@ export function datagridBase(opts: DatagridBaseOpts) {
 
 export interface BaseColumnQueryGeneration {
   expr: yom.SqlExpression;
-  sqlName: string;
   alwaysGenerate: boolean;
 }
 
@@ -402,21 +398,21 @@ export interface BaseColumn extends ColumnEventHandlers {
   ) => yom.SqlExpression;
   displayInfo?: BaseColumnDisplayInfo;
   viewStorageName?: string;
+  downloadName?: string;
 }
 
 export interface DatagridRfns {
   idToFilterExpr?: string;
   idToSqlExpr: string;
-  idToSqlName: string;
   idToStorageName: string;
   storageNameToId: string;
+  idToDownloadName?: string;
 }
 
 export function addDatagridRfns(
   datagridName: string,
   columns: BaseColumn[]
 ): DatagridRfns {
-  const sqlNames: string[][] = [];
   const sqlExprs: string[][] = [];
   const storageNamesToIds: string[][] = [];
   const idsToStorageNames: string[][] = [];
@@ -424,8 +420,6 @@ export function addDatagridRfns(
   for (let i = 0; i < columns.length; i++) {
     const col = columns[i];
     if (col.queryGeneration) {
-      const sqlName = stringLiteral(ident(col.queryGeneration.sqlName));
-      sqlNames.push([i.toString(), sqlName]);
       sqlExprs.push([i.toString(), stringLiteral(col.queryGeneration.expr)]);
     }
     if (col.viewStorageName) {
@@ -440,14 +434,6 @@ export function addDatagridRfns(
       ]);
     }
   }
-  const idToSqlNameDt = `${datagridName}_dg_col_id_to_sql_name`;
-  app.addRuleFunction({
-    parameters: [{ name: "id", type: "SmallUint" }],
-    header: ["input.id", "sql_name"],
-    rules: sqlNames,
-    name: idToSqlNameDt,
-    returnType: "String",
-  });
   const storageNameToIdDt = `${datagridName}_dg_col_storage_name_to_id`;
   app.addRuleFunction({
     parameters: [
@@ -507,7 +493,6 @@ export function addDatagridRfns(
   }
   return {
     idToSqlExpr: idToSqlExprDt,
-    idToSqlName: idToSqlNameDt,
     storageNameToId: storageNameToIdDt,
     idToStorageName,
     idToFilterExpr,
@@ -708,7 +693,7 @@ function filterExpr(dts: DatagridRfns) {
   function serializeFilter(filter: string) {
     const encodeFilterOp = `rfn.encode_dg_filter_op(
       op => ${filter}.op,
-      col_name => rfn.${dts.idToSqlName}(${filter}.column_id),
+      col_name => 'col_' || ${filter}.column_id,
       value_1 => ${filter}.value_1,
       value_2 => ${filter}.value_2,
       value_3 => ${filter}.value_3
@@ -756,14 +741,10 @@ function filterExpr(dts: DatagridRfns) {
 function fromAndWherePart(
   dts: DatagridRfns,
   source: string,
-  matchConfig: string | undefined
+  additionalWhere: yom.SqlExpression | undefined
 ) {
-  const matchWhereClause = matchConfig
-    ? `' ||
-      case when trim(ui.quick_search_query) != ''
-        then ' where match(${matchConfig}, query => ' || literal.string(ui.quick_search_query) || ', record_id => id)'
-        else ''
-      end ||'`
+  const matchWhereClause = additionalWhere
+    ? `' || coalesce(' where ' || ${additionalWhere}, '') ||'`
     : ``;
   const hasFilterBranch = [
     `'(select '`,
@@ -771,7 +752,7 @@ function fromAndWherePart(
           case
             when displaying or always_generate or sort_index is not null or id in (select column_id from ui.filter_term) then rfn.${dts.idToSqlExpr}(id)
           end
-          || ' as ' || rfn.${dts.idToSqlName}(id), ',')
+          || ' as col_' || id, ',')
         from ui.column
       )`,
     `' from '`,
@@ -789,35 +770,32 @@ function fromAndWherePart(
   ].join(`||`);
 }
 
-function orderByPart(dts: DatagridRfns) {
-  return `coalesce(
-    ' order by ' || (select
-      string_agg(rfn.${dts.idToSqlName}(id) || (case when sort_asc then ' nulls last' else ' desc nulls last' end), ',')
-      from (select id, sort_asc from ui.column where sort_index is not null order by sort_index)),
-    ''
-  )`;
-}
+const orderByPart = `coalesce(
+  ' order by ' || (select
+    string_agg('col_' || id || (case when sort_asc then ' nulls last' else ' desc nulls last' end), ',')
+    from (select id, sort_asc from ui.column where sort_index is not null order by sort_index)),
+  ''
+)`;
 
 const shouldGenerateColumn = `displaying or always_generate or sort_index is not null`;
 
 export function makeDynamicQuery(
   dts: DatagridRfns,
   source: string,
-  matchConfig: string | undefined
+  additionalWhere: yom.SqlExpression | undefined
 ): string {
   return [
     `'select ' `,
     `(select string_agg(
         case
-          when exists (select column_id from ui.filter_term) and (${shouldGenerateColumn}) then rfn.${dts.idToSqlName}(id)
+          when exists (select column_id from ui.filter_term) and (${shouldGenerateColumn}) then 'col_' || id
           when ${shouldGenerateColumn} then rfn.${dts.idToSqlExpr}(id)
           else 'null'
-        end
-        || ' as ' || rfn.${dts.idToSqlName}(id), ',')
+        end, ',')
       from ui.column
     )`,
-    fromAndWherePart(dts, source, matchConfig),
-    orderByPart(dts),
+    fromAndWherePart(dts, source, additionalWhere),
+    orderByPart,
     `' limit '`,
     `ui.row_count`,
   ].join("||");
@@ -826,19 +804,22 @@ export function makeDynamicQuery(
 export function makeDownloadQuery(
   dts: DatagridRfns,
   source: string,
-  matchConfig: string | undefined
+  quickSearch: yom.SqlExpression | undefined
 ): string {
+  if (!dts.idToDownloadName) {
+    throw new Error("idToDownloadName is required for download queries");
+  }
   return [
     `'select ' `,
     `(select string_agg(
         case
-          when exists (select column_id from ui.filter_term) and (${shouldGenerateColumn}) then rfn.${dts.idToSqlName}(id)
-          when ${shouldGenerateColumn} then rfn.${dts.idToSqlExpr}(id) || ' as ' || rfn.${dts.idToSqlName}(id)
-        end
+          when exists (select column_id from ui.filter_term) and (${shouldGenerateColumn}) then 'col_' || id
+          when ${shouldGenerateColumn} then rfn.${dts.idToSqlExpr}(id)
+        end || ' as ' || rfn.${dts.idToDownloadName}(id)
       from ui.column
     )`,
-    fromAndWherePart(dts, source, matchConfig),
-    orderByPart(dts),
+    fromAndWherePart(dts, source, quickSearch),
+    orderByPart,
     `' limit ' || ui.row_count`,
   ].join("||");
 }
@@ -846,20 +827,20 @@ export function makeDownloadQuery(
 export function makeCountQuery(
   dts: DatagridRfns,
   source: string,
-  matchConfig: string | undefined
+  quickSearch: yom.SqlExpression | undefined
 ): string {
   return [
     `'select count(*) '`,
-    fromAndWherePart(dts, source, matchConfig),
+    fromAndWherePart(dts, source, quickSearch),
   ].join("||");
 }
 
 export function makeIdsQuery(
   dts: DatagridRfns,
   source: string,
-  matchConfig: string | undefined
+  quickSearch: yom.SqlExpression | undefined
 ): string {
-  return [`'select '`, fromAndWherePart(dts, source, matchConfig)].join("||");
+  return [`'select '`, fromAndWherePart(dts, source, quickSearch)].join("||");
 }
 
 function addViewTables() {

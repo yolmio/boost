@@ -1,4 +1,4 @@
-import { Field, VirtualField, VirtualType } from "../../app";
+import { Field } from "../../app";
 import { nodes } from "../../nodeHelpers";
 import { app } from "../../app";
 import { ident, stringLiteral } from "../../utils/sqlHelpers";
@@ -136,36 +136,6 @@ function getFieldProcFieldType(field: Field): yom.FieldType {
   }
 }
 
-function getVirtualProcFieldType(virtual: VirtualField): yom.FieldType {
-  switch (virtual.type.type) {
-    case "SmallInt":
-    case "Int":
-    case "BigInt":
-    case "Bool":
-    case "Date":
-    case "Double":
-    case "Real":
-    case "Time":
-    case "Timestamp":
-    case "Ordering":
-    case "Uuid":
-      return { type: virtual.type.type };
-    case "ForeignKey":
-      return { type: "BigUint" };
-    case "Enum":
-      return { type: "Enum", enum: virtual.type.enum };
-    case "String":
-      return { type: "String", maxLength: 65_000 };
-    case "Decimal":
-      return {
-        type: "Decimal",
-        precision: virtual.type.precision,
-        scale: virtual.type.scale,
-        signed: true,
-      };
-  }
-}
-
 function getFieldCellWidth(
   field: Field,
   table: string,
@@ -278,45 +248,6 @@ export const dynamicBooleanCellKeydownHandler = (
       )
   );
 
-const stringSortConfig = (displayName: string): SortConfig => ({
-  displayName,
-  ascNode: `'A → Z'`,
-  descNode: `'Z → A'`,
-  ascText: `A → Z`,
-  descText: `Z → A`,
-});
-const numberSortConfig = (displayName: string): SortConfig => ({
-  displayName,
-  ascNode: `'1 → 9'`,
-  descNode: `'9 → 1'`,
-  ascText: `1 → 9`,
-  descText: `9 → 1`,
-});
-const checkboxStyles: Style = { ml: 1, display: "inline-flex" };
-const checkboxSortConfig = (displayName: string): SortConfig => {
-  return {
-    displayName,
-    ascNode: nodes.element("span", {
-      styles: checkboxStyles,
-      children: [
-        materialIcon("CheckBoxOutlined"),
-        `' → '`,
-        materialIcon("CheckBoxOutlineBlank"),
-      ],
-    }),
-    descNode: nodes.element("span", {
-      styles: checkboxStyles,
-      children: [
-        materialIcon("CheckBoxOutlineBlank"),
-        `' → '`,
-        materialIcon("CheckBoxOutlined"),
-      ],
-    }),
-    ascText: `☐ → ✓`,
-    descText: `✓ → ☐`,
-  };
-};
-
 export interface SuperColumnFieldOpts extends FieldEditProcConfig {
   table: string;
   field: Field;
@@ -403,10 +334,10 @@ export function columnFromField({
       case "Real":
       case "Decimal":
       case "Timestamp":
-        sort = numberSortConfig(displayName);
+        sort = { type: "numeric", displayName };
         break;
       case "String":
-        sort = stringSortConfig(displayName);
+        sort = { type: "string", displayName };
         break;
       case "Bool":
         if (field.enumLike) {
@@ -415,6 +346,7 @@ export function columnFromField({
           const ascText = `${low} → ${high}`;
           const descText = `${high} → ${low}`;
           sort = {
+            type: "custom",
             displayName,
             ascText,
             descText,
@@ -422,7 +354,7 @@ export function columnFromField({
             descNode: stringLiteral(descText),
           };
         } else {
-          sort = checkboxSortConfig(displayName);
+          sort = { type: "checkbox", displayName };
         }
         break;
     }
@@ -462,79 +394,11 @@ export function columnFromField({
     },
     queryGeneration: {
       expr: `record.${ident(field.name)}`,
-      sqlName: field.name,
       alwaysGenerate: true,
     },
     viewStorageName: field.name,
   };
 }
-
-// export function columnFromVirtual(
-//   table: string,
-//   virtual: VirtualField,
-//   columnIndex: number,
-//   startFixedColumns: number
-// ): SuperGridColumn {
-//   let sort: SortConfig | undefined;
-//   let cell: CellNode | undefined;
-//   switch (virtual.type.type) {
-//     case "BigInt":
-//     case "Int":
-//     case "SmallInt":
-//       if (virtual.type.usage && virtual.type.usage.type === "Duration") {
-//         cell = ({ value }) =>
-//           `sfn.display_minutes_duration(try_cast(${value} as bigint))`;
-//       }
-//       sort = numberSortConfig;
-//       break;
-//     case "Date":
-//     case "Double":
-//     case "Real":
-//     case "Decimal":
-//       sort = numberSortConfig;
-//       break;
-//     case "String":
-//       sort = stringSortConfig;
-//       break;
-//     case "Bool":
-//       sort = checkboxSortConfig();
-//       break;
-//   }
-//   return {
-//     displayName: virtual.displayName,
-//     filter: {
-//       type: filterTypeFromVirtual(virtual.type),
-//       notNull: false,
-//     },
-//     sort,
-//     displayInfo: {
-//       cell: cell ?? ((cell) => cell.value),
-//       initiallyDisplaying: true,
-//       initialWidth: 250,
-//       header: (state) => [
-//         nodes.element("span", {
-//           styles: sharedStyles.headerText,
-//           children: stringLiteral(virtual.displayName),
-//         }),
-//         columnPopover(state, columnIndex, startFixedColumns, sort),
-//         resizeableSeperator({
-//           minWidth: 50,
-//           setWidth: (width) =>
-//             new BasicStatements().modify(
-//               `update ui.column set width = ${width} where id = ${columnIndex}`
-//             ),
-//           width: `(select width from ui.column where id = ${columnIndex})`,
-//         }),
-//       ],
-//     },
-//     queryGeneration: {
-//       expr: virtual.expr(...virtual.fields.map((f) => `record.${ident(f)}`)),
-//       sqlName: virtual.name,
-//       alwaysGenerate: false,
-//     },
-//     viewStorageName: virtual.name,
-//   };
-// }
 
 export const simpleBooleanCellKeydownHandler = (
   fieldName: string,
@@ -577,7 +441,7 @@ export interface SimpleColumnFieldOpts extends FieldEditProcConfig {
   immutable?: boolean | yom.SqlExpression;
 }
 
-function simpleToggleColumnSort(columnIndex: number) {
+export function simpleToggleColumnSort(columnIndex: number) {
   return new DomStatements().if({
     condition: `sort_info.col = ${columnIndex}`,
     then: (s) =>
@@ -696,52 +560,3 @@ export function simpleColumnFromField({
     },
   };
 }
-
-// export function simpleColumnFromVirtual(
-//   table: string,
-//   virtual: VirtualField,
-//   columnIndex: number,
-//   startFixedColumns: number
-// ): SimpleColumn {
-//   const toggleColumnSort = simpleToggleColumnSort(columnIndex);
-//   return {
-//     cell: ({ value }) => value,
-//     width: 250,
-//     header: [
-//       nodes.element("span", {
-//         styles: sharedStyles.headerText,
-//         children: stringLiteral(virtual.displayName),
-//       }),
-//       nodes.switch(
-//         {
-//           condition: `sort_info.col = ${columnIndex} and sort_info.ascending`,
-//           node: materialIcon("ArrowUpward"),
-//         },
-//         {
-//           condition: `sort_info.col = ${columnIndex} and not sort_info.ascending`,
-//           node: materialIcon("ArrowDownward"),
-//         }
-//       ),
-//       resizeableSeperator({
-//         minWidth: 50,
-//         setWidth: (width) =>
-//           new BasicStatements().modify(
-//             `update ui.column_width set width = ${width} where col = ${columnIndex}`
-//           ),
-//         width: `(select width from ui.column_width where col = ${columnIndex})`,
-//       }),
-//     ],
-//     keydownHeaderHandler: (s) =>
-//       s.if(`event.key = 'Enter'`, (s) =>
-//         s.statements(toggleColumnSort, dgState.triggerRefresh)
-//       ),
-//     headerClickHandler: (s) =>
-//       s.statements(toggleColumnSort, dgState.triggerRefresh),
-//     queryGeneration: {
-//       expr: virtual.expr(...virtual.fields.map((f) => `record.${ident(f)}`)),
-//       sqlName: virtual.name,
-//       alwaysGenerate: false,
-//       procFieldType: getVirtualProcFieldType(virtual),
-//     },
-//   };
-// }

@@ -23,6 +23,7 @@ import { select } from "../../components/select";
 import { Node } from "../../nodeTypes";
 import { insertDialog } from "../../components/insertDialog";
 import { DgStateHelpers } from "./shared";
+import * as yom from "../../yom";
 
 const columnsButtonId = stringLiteral(getUniqueUiId());
 const sortButtonId = stringLiteral(getUniqueUiId());
@@ -73,7 +74,7 @@ export function toolbar(
   baseDts: DatagridRfns,
   superDts: SuperGridDts,
   tableModel: Table,
-  matchConfig: string | undefined
+  additionalWhere?: yom.SqlExpression
 ) {
   let addButton: Node | undefined;
   if (toolbar.add?.type === "href") {
@@ -368,7 +369,7 @@ export function toolbar(
                                   query: makeCountQuery(
                                     baseDts,
                                     `db.` + ident(tableModel.name),
-                                    matchConfig
+                                    additionalWhere
                                   ),
                                   columnCount: 1,
                                   resultTable: `dyn_count`,
@@ -393,7 +394,7 @@ export function toolbar(
                                       query: makeIdsQuery(
                                         baseDts,
                                         `db.` + ident(tableModel.name),
-                                        matchConfig
+                                        additionalWhere
                                       ),
                                       columnCount: 1,
                                       resultTable: `ids`,
@@ -436,7 +437,7 @@ export function toolbar(
             //     },
             //   })
             //   : null,
-            toolbar.search &&
+            toolbar.quickSearch &&
               input({
                 variant: "outlined",
                 color: "neutral",

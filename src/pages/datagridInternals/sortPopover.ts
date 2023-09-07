@@ -5,7 +5,12 @@ import { iconButton } from "../../components/iconButton";
 import { materialIcon } from "../../components/materialIcon";
 import { select } from "../../components/select";
 import { createStyles } from "../../styleUtils";
-import { SortConfig, SuperGridColumn } from "./styledDatagrid";
+import {
+  SortConfig,
+  SuperGridColumn,
+  getSortAscText,
+  getSortDescText,
+} from "./styledDatagrid";
 import { Node, SwitchNodeCase } from "../../nodeTypes";
 import { DgStateHelpers } from "./shared";
 
@@ -39,11 +44,11 @@ export function sortPopover(state: DgStateHelpers, columns: SuperGridColumn[]) {
   for (const [sort, indices] of sorts.entries()) {
     ascNodeCases.push({
       condition: `column_record.id in (${indices.join(", ")})`,
-      node: stringLiteral(sort.ascText),
+      node: getSortAscText(sort),
     });
     descNodeCases.push({
       condition: `column_record.id in (${indices.join(", ")})`,
-      node: stringLiteral(sort.descText),
+      node: getSortDescText(sort),
     });
   }
   return [

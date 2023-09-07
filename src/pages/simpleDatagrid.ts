@@ -1,9 +1,12 @@
 import { InsertDialogOpts } from "../components/insertDialog";
-import { Table, app } from "../app";
-import { pluralize } from "../utils/inflectors";
+import { HelperFieldType, Table, app, fieldTypeFromHelper } from "../app";
+import { pluralize, upcaseFirst } from "../utils/inflectors";
 import { stringLiteral } from "../utils/sqlHelpers";
 import * as yom from "../yom";
-import { simpleColumnFromField } from "./datagridInternals/fromModel";
+import {
+  simpleColumnFromField,
+  simpleToggleColumnSort,
+} from "./datagridInternals/fromModel";
 import {
   SimpleColumn,
   styledSimpleDatagrid,
@@ -12,17 +15,23 @@ import {
 import { checkbox } from "../components/checkbox";
 import { button } from "../components/button";
 import {
+  BasicStatements,
   DomStatements,
   StateStatements,
   StateStatementsOrFn,
 } from "../statements";
 import {
+  CellNode,
   DgStateHelpers,
   FieldEditProcConfig,
   RowHeight,
+  dgState,
+  resizeableSeperator,
 } from "./datagridInternals/shared";
 import { Node } from "../nodeTypes";
 import { nodes } from "../nodeHelpers";
+import { materialIcon } from "../components";
+import { styles as sharedStyles } from "./datagridInternals/styles";
 
 type FieldConfigs = Record<string, FieldConfig>;
 
@@ -83,6 +92,10 @@ export class DatagridToolbarBuilder {
   }
 }
 
+export interface ExtraColumnOpts {
+  columnIndex: number;
+}
+
 export class SimpleDatagridPageBuilder {
   #table: Table;
   #path?: string;
@@ -93,7 +106,7 @@ export class SimpleDatagridPageBuilder {
   #ignoreFields?: string[];
   #fieldOrder?: string[];
   #extraState?: StateStatementsOrFn;
-  #extraColumns: SimpleColumn[] = [];
+  #extraColumns: ((opts: ExtraColumnOpts) => SimpleColumn)[] = [];
   #fields: FieldConfigs = {};
   #toolbarConfig?: ToolbarConfig;
   #pageSize?: number;
@@ -170,7 +183,69 @@ export class SimpleDatagridPageBuilder {
   }
 
   column(column: SimpleColumn) {
-    this.#extraColumns.push(column);
+    this.#extraColumns.push(() => column);
+    return this;
+  }
+
+  virtual(column: {
+    name: string;
+    headerText?: string;
+    type: yom.FieldType | HelperFieldType;
+    expr: yom.SqlExpression;
+    width?: number;
+    cell?: CellNode;
+  }) {
+    const header = stringLiteral(
+      column.headerText ??
+        column.name
+          .split("_")
+          .map((v, i) => (i === 0 ? upcaseFirst(v) : v))
+          .join(" ")
+    );
+    this.#extraColumns.push(({ columnIndex }) => {
+      const toggleColumnSort = simpleToggleColumnSort(columnIndex);
+      return {
+        cell: column.cell ?? ((cell) => cell.value),
+        header: [
+          nodes.element("span", {
+            styles: sharedStyles.headerText,
+            children: header,
+          }),
+          nodes.switch(
+            {
+              condition: `sort_info.col = ${columnIndex} and sort_info.ascending`,
+              node: materialIcon("ArrowUpward"),
+            },
+            {
+              condition: `sort_info.col = ${columnIndex} and not sort_info.ascending`,
+              node: materialIcon("ArrowDownward"),
+            }
+          ),
+          resizeableSeperator({
+            minWidth: 50,
+            setWidth: (width) =>
+              new BasicStatements().modify(
+                `update ui.column_width set width = ${width} where col = ${columnIndex}`
+              ),
+            width: `(select width from ui.column_width where col = ${columnIndex})`,
+          }),
+        ],
+        keydownHeaderHandler: (s) =>
+          s.if(`event.key = 'Enter'`, (s) =>
+            s.statements(toggleColumnSort, dgState.triggerRefresh)
+          ),
+        headerClickHandler: (s) =>
+          s.statements(toggleColumnSort, dgState.triggerRefresh),
+        queryGeneration: {
+          alwaysGenerate: false,
+          sqlName: column.name,
+          expr: column.expr,
+          procFieldType: fieldTypeFromHelper(column.type),
+        },
+        width: column.width ?? 200,
+        columnIndex,
+      };
+    });
     return this;
   }
 
@@ -243,7 +318,6 @@ export class SimpleDatagridPageBuilder {
       });
     }
     const idField = this.#table.primaryKeyIdent;
-    const startFixedColumns = columns.length;
     const fields = this.#fieldOrder ?? [];
     for (const fieldName of Object.keys(this.#table.fields)) {
       if (
@@ -272,16 +346,9 @@ export class SimpleDatagridPageBuilder {
         columns.push(column);
       }
     }
-    // for (const virtual of Object.values(this.#table.virtualFields)) {
-    //   columns.push(
-    //     simpleColumnFromVirtual(
-    //       this.#table.name,
-    //       virtual,
-    //       columns.length,
-    //       startFixedColumns
-    //     )
-    //   );
-    // }
+    for (const extraColumn of this.#extraColumns) {
+      columns.push(extraColumn({ columnIndex: columns.length }));
+    }
     return columns;
   }
 

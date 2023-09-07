@@ -58,7 +58,6 @@ export class App {
     default: defaultGetDisplayName,
     table: defaultGetDisplayName,
     field: defaultGetDisplayName,
-    virtual: defaultGetDisplayName,
     enum: defaultGetDisplayName,
     enumValue: defaultGetDisplayName,
   };
@@ -492,7 +491,6 @@ export type FieldGroup = AddressFieldGroup | ImageSetFieldGroup;
 export class Table {
   renameFrom?: string;
   fields: Record<string, Field> = {};
-  virtualFields: Record<string, VirtualField> = {};
   fieldGroups: Record<string, FieldGroup> = {};
   uniqueConstraints: yom.UniqueConstraint[] = [];
   checks: Check[] = [];
@@ -548,22 +546,6 @@ export class Table {
     ) as ForeignKeyField | undefined;
   }
 }
-
-export interface VirtualField {
-  name: string;
-  displayName: string;
-  fields: string[];
-  expr: (...fields: string[]) => string;
-  type: VirtualType;
-}
-
-export type VirtualType =
-  | { type: yom.SimpleScalarTypes }
-  | { type: yom.ScalarIntegerTypes; usage?: IntegerUsage }
-  | { type: "Decimal"; precision: number; scale: number }
-  | { type: "ForeignKey"; table: string }
-  | { type: "Enum"; enum: string }
-  | { type: "String" };
 
 /** This indicates how to get a display name of any record of the table */
 export interface RecordDisplayName {
@@ -831,7 +813,6 @@ const RECORD_DISPLAY_NAME_FIELDS = ["name", "title"];
 export class TableBuilder {
   #fields: BaseFieldBuilder[] = [];
   #fieldGroups: Record<string, FieldGroup> = {};
-  #virtualFields: Record<string, VirtualField> = {};
   #uniques: yom.UniqueConstraint[] = [];
   #checks: Check[] = [];
   #description?: string;
@@ -1111,20 +1092,6 @@ export class TableBuilder {
     return this;
   }
 
-  virtualField(virtual: VirtualFieldHelper): TableBuilder {
-    this.#virtualFields[virtual.name] = {
-      name: virtual.name,
-      displayName: app.displayNameConfig.virtual(virtual.name),
-      fields: virtual.fields,
-      expr: virtual.expr,
-      type:
-        typeof virtual.type === "string"
-          ? { type: virtual.type }
-          : virtual.type,
-    };
-    return this;
-  }
-
   createDefaultNameMatch(): TableBuilder {
     this.#createDefaultNameMatch = true;
     return this;
@@ -1294,7 +1261,6 @@ export class TableBuilder {
     table.renameFrom = this.#renameFrom;
     table.checks = this.#checks;
     table.fields = fields;
-    table.virtualFields = this.#virtualFields;
     table.fieldGroups = this.#fieldGroups;
     table.uniqueConstraints = this.#uniques;
     table.recordDisplayName = recordDisplayName;
@@ -1534,14 +1500,6 @@ function addMinuteDurationFns() {
     ':' ||
     lpad(abs(round(input.value % 60)), 2, 0)`),
   });
-}
-
-export interface VirtualFieldHelper {
-  name: string;
-  displayName?: string;
-  fields: string[];
-  expr: (...fields: string[]) => string;
-  type: VirtualType | yom.SimpleScalarTypes;
 }
 
 abstract class BaseFieldBuilder {
@@ -1990,7 +1948,7 @@ interface HelperFunctionParam {
   type: HelperFieldType;
 }
 
-type HelperFieldType =
+export type HelperFieldType =
   | yom.FieldType
   | yom.FieldIntegerTypes
   | yom.SimpleScalarTypes;
@@ -2022,7 +1980,7 @@ function scalarFunctionFromHelper(f: HelperScalarFunction): ScalarFunction {
   };
 }
 
-function fieldTypeFromHelper(ty: HelperFieldType): yom.FieldType {
+export function fieldTypeFromHelper(ty: HelperFieldType): yom.FieldType {
   return typeof ty == "string" ? { type: ty } : ty;
 }
 
@@ -2031,7 +1989,6 @@ export interface DisplayNameConfig {
   default: (sqlName: string) => string;
   table: (sqlName: string) => string;
   field: (sqlName: string) => string;
-  virtual: (sqlName: string) => string;
   enum: (sqlName: string) => string;
   enumValue: (sqlName: string) => string;
 }

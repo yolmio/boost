@@ -45,7 +45,7 @@ export interface SimpleBaseColumn extends ColumnEventHandlers {
 }
 
 export interface SimpleBaseColumnQueryGeneration {
-  expr: string;
+  expr: yom.SqlExpression;
   sqlName: string;
   alwaysGenerate: boolean;
   procFieldType: yom.FieldType;
