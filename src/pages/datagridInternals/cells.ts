@@ -112,9 +112,10 @@ function foreignKeyCell(
   const nameExpr = toTable.recordDisplayName!.expr(
     ...toTable.recordDisplayName!.fields.map((f) => `r.${f}`)
   );
-  return (cell) => {
+  return (cell, state) => {
     function wrapInState(children: Node) {
       return nodes.state({
+        watch: [state.refreshKey],
         procedure: (s) =>
           s.scalar(
             `text`,
@@ -148,6 +149,7 @@ function foreignKeyCell(
       children: `case when ${shouldUseEditedText} then edited_text else text end`,
     });
     return nodes.state({
+      watch: [state.refreshKey],
       procedure: (s) =>
         s
           .scalar(`edited_text`, { type: "String", maxLength: 1000 })
@@ -196,6 +198,7 @@ function foreignKeyCell(
                   s
                     .setScalar(`edited_id`, id)
                     .setScalar(`edited_text`, label)
+                    .setScalar(`did_edit`, `true`)
                     .statements(
                       cell.stopEditingAndFocus,
                       cell.updateFieldValueInDb({

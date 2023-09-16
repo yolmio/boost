@@ -294,7 +294,7 @@ function typeSpecificOps(columns: SuperGridColumn[]): Node {
     if (type.type !== "custom") {
       opts.push(opsByType[type.type]);
     }
-    if (notNull && type.type !== "enum_like_bool") {
+    if (!notNull && type.type !== "enum_like_bool") {
       opts.push(nullableOpts);
     }
     switchCases.push({ condition: caseExpr, node: opts });

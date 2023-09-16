@@ -7,10 +7,6 @@ app.displayName = "Tutorial";
 
 // db
 
-db.addTable("user", (table) => {
-  table.catalog.addRequiredUserFields();
-});
-
 db.addTable("contact", (table) => {
   table.string("first_name", 50).notNull();
   table.string("last_name", 50).notNull();
@@ -31,9 +27,8 @@ ui.pages.push({
   content: "'hello world!'",
 });
 
-ui.addDatagridPage({
-  table: "contact",
-  toolbar: { add: { type: "dialog" } },
+ui.addDatagridPage("contact", (page) => {
+  page.toolbar((toolbar) => toolbar.insertDialog());
 });
 
 ui.addDbManagementPage();

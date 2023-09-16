@@ -1,16 +1,6 @@
 import { app, components } from "@yolm/boost";
 const { db, ui } = app;
 
-/*
-
-Boost/platform todos
-
-immutable datagrid based off current user
-filter/virtual fields
-Different pages/views for different users
-
-*/
-
 app.name = "chinook";
 app.title = "Chinook";
 app.displayName = "Chinook";

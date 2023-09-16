@@ -1,18 +1,15 @@
 {
-  "name": "hello_world",
+  "name": "tutorial",
   "version": "0.1",
   "type": "module",
   "license": "MIT",
   "dependencies": {
     "@yolm/boost": "0.2.x"
   },
-  "devDependencies": {
-    "tsx": "^3.12.0"
-  },
   "scripts": {
-    "start": "node node_modules/@yolm/boost/scripts/startEntry.js",
-    "save": "node node_modules/@yolm/boost/scripts/saveEntry.js",
-    "save-script": "node node_modules/@yolm/boost/scripts/saveScriptEntry.js",
-    "script": "node node_modules/@yolm/boost/scripts/scriptEntry.js"
+    "start": "bun node_modules/@yolm/boost/scripts/start.js",
+    "save": "bun node_modules/@yolm/boost/scripts/save.js",
+    "save-script": "bun node_modules/@yolm/boost/scripts/saveScript.js",
+    "script": "bun node_modules/@yolm/boost/scripts/script.js"
   }
 }

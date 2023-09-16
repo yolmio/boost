@@ -329,6 +329,7 @@ export class DatagridPageBuilder {
     const sort = { ...column.sort, displayName } as SortConfig;
     this.#extraColumns.push(({ currentColumnId, startFixedColumns }) => ({
       viewStorageName: column.storageName,
+      columnsDisplayName: column.columnsDisplayName ?? displayName,
       queryGeneration: {
         expr: column.expr,
         alwaysGenerate: false,
@@ -353,8 +354,11 @@ export class DatagridPageBuilder {
         initiallyDisplaying: column.initiallyDisplaying ?? false,
         initialWidth: column.initialWidth ?? 150,
       },
-      filterDisplayName: column.filterDisplayName,
-      filterOptGroup: column.filterOptGroup,
+      filterDisplayName:
+        column.filterDisplayName ??
+        (column.filter ? column.filterDisplayName ?? displayName : undefined),
+      filterOptGroup:
+        column.filterOptGroup ?? (column.filter ? "Field" : undefined),
       filter: column.filter,
       sort,
     }));

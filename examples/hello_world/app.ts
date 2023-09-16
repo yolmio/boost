@@ -1,18 +1,10 @@
 import { app } from "@yolm/boost";
-const { db, ui } = app;
+const { ui } = app;
 
 app.name = "hello_world";
 app.title = "Hello World App";
 app.displayName = "Hello World";
 app.dbRunMode = "BrowserSync";
-
-// db
-
-db.addTable("user", (table) => {
-  table.uuid(`global_id`).notNull().unique();
-  table.bool("disabled").notNull();
-  table.string("email", 70);
-});
 
 // ui
 

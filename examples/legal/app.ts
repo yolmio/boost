@@ -112,13 +112,6 @@ db.addTable("contact", (table) => {
   table.bool("mailing_list").notNull().default("false");
 
   table.linkable();
-
-  table.virtualField({
-    name: "remaining_minutes",
-    fields: ["id"],
-    expr: (id) => `sfn.remaining_minutes(${id})`,
-    type: { type: "Int", usage: { type: "Duration", size: "minutes" } },
-  });
 });
 
 db.catalog.addNotesTable("contact");
@@ -419,15 +412,19 @@ ui.addUpdateFormPage({
   afterTransactionCommit: (_, s) => s.navigate(`'/contacts/' || ui.record_id`),
 });
 
-ui.addDatagridPage({
-  table: "contact",
-  selectable: true,
-  toolbar: {
-    add: { type: "href", href: "/contacts/add" },
-    export: true,
-    delete: true,
-  },
-  viewButton: true,
+ui.addDatagridPage("contact", (page) => {
+  page
+    .selectable()
+    .viewButton()
+    .toolbar((t) => t.insertPage().export().delete())
+    .virtualColumn({
+      storageName: "remaining_minutes",
+      expr: `sfn.remaining_minutes(id)`,
+      filter: { type: "minutes_duration", notNull: true },
+      cell: (cell) =>
+        `sfn.display_minutes_duration(try_cast(${cell.value} as bigint))`,
+      sort: { type: "numeric" },
+    });
 });
 
 const remainingHoursStyles = {
@@ -572,12 +569,10 @@ ui.addRecordGridPage("contact", (page) =>
     })
 );
 
-ui.addSimpleDatagridPage({
-  table: "employee",
-  toolbar: {
-    add: {
-      type: "dialog",
-      opts: {
+ui.addSimpleDatagridPage("employee", (page) => {
+  page
+    .toolbar((t) =>
+      t.insertDialog({
         beforeTransactionCommit: (state, s) =>
           s
             .addUsers(
@@ -591,11 +586,9 @@ ui.addSimpleDatagridPage({
                 state.field("email").value
               }, last_record_id(db.employee))`
             ),
-      },
-    },
-  },
-  fields: {
-    email: {
+      })
+    )
+    .fieldConfig("email", {
       beforeEdit: (newValue, recordId) => (s) =>
         s
           .scalar(
@@ -614,16 +607,13 @@ ui.addSimpleDatagridPage({
                 `update db.user set global_id = (select global_id from added_user) where id = user_id`
               )
           ),
-    },
-  },
+    });
 });
 
-ui.addSimpleDatagridPage({
-  table: "user",
-  toolbar: {
-    add: {
-      type: "dialog",
-      opts: {
+ui.addSimpleDatagridPage("user", (page) => {
+  page
+    .toolbar((t) =>
+      t.insertDialog({
         withValues: { global_id: "new_global_id", disabled: "false" },
         beforeTransactionStart: (state, s) =>
           s
@@ -633,11 +623,9 @@ ui.addSimpleDatagridPage({
               } as email`
             )
             .scalar(`new_global_id`, `(select global_id from added_user)`),
-      },
-    },
-  },
-  fields: {
-    disabled: {
+      })
+    )
+    .fieldConfig("disabled", {
       beforeEdit: (newValue, recordId) => (s) =>
         s.if({
           condition: newValue,
@@ -655,8 +643,8 @@ ui.addSimpleDatagridPage({
                 `update db.user set global_id = (select global_id from added_user) where id = ${recordId}`
               ),
         }),
-    },
-    email: {
+    })
+    .fieldConfig("email", {
       beforeEdit: (newValue, recordId) => (s) =>
         s
           .scalar(
@@ -674,8 +662,7 @@ ui.addSimpleDatagridPage({
           .modify(
             `update db.user set global_id = (select global_id from added_user) where id = ${recordId}`
           ),
-    },
-  },
+    });
 });
 
 ui.addRecordGridPage("matter", (page) =>
@@ -732,28 +719,22 @@ ui.addRecordGridPage("matter", (page) =>
     })
 );
 
-ui.addDatagridPage({
-  table: "matter",
-  selectable: true,
-  toolbar: {
-    add: {
-      type: "dialog",
-      opts: { withValues: { close_date: "null", date: "current_date()" } },
-    },
-    export: true,
-    delete: true,
-  },
-  viewButton: true,
+ui.addDatagridPage("matter", (page) => {
+  page
+    .selectable()
+    .viewButton()
+    .toolbar((t) =>
+      t
+        .insertDialog({
+          withValues: { close_date: "null", date: "current_date()" },
+        })
+        .export()
+        .delete()
+    );
 });
 
-ui.addDatagridPage({
-  table: "time_entry",
-  selectable: true,
-  toolbar: {
-    add: { type: "href", href: "/time-entries/add" },
-    export: true,
-    delete: true,
-  },
+ui.addDatagridPage("time_entry", (page) => {
+  page.selectable().toolbar((t) => t.insertPage().export().delete());
 });
 
 ui.addMultiCardInsert({

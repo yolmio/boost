@@ -420,34 +420,34 @@ ui.addDashboardGridPage((page) =>
     })
 );
 
-ui.addSimpleDatagridPage({
-  table: "employee",
-  selectable: true,
-  toolbar: {
-    export: true,
-    delete: true,
-    add: {
-      type: "dialog",
-      opts: {
-        withValues: { image_thumb: "null", image_full: "null" },
-        beforeTransactionCommit: (state, s) =>
-          s
-            .addUsers(
-              `select ${
-                state.field("email").value
-              } as email, next_record_id(db.user) as db_id, 'none' as notification_type`,
-              "added_user"
-            )
-            .modify(
-              `insert into db.user (global_id, is_sys_admin, is_admin, disabled, email, employee) values ((select global_id from added_user), false, false, false, ${
-                state.field("email").value
-              }, last_record_id(db.employee))`
-            ),
-      },
-    },
-  },
-  fields: {
-    email: {
+ui.addSimpleDatagridPage("employee", (page) => {
+  page
+    .selectable()
+    .viewButton()
+    .rowHeight("tall")
+    .fieldOrder("image_thumb", "first_name", "last_name", "title")
+    .toolbar((t) =>
+      t
+        .export()
+        .delete()
+        .insertDialog({
+          withValues: { image_thumb: "null", image_full: "null" },
+          beforeTransactionCommit: (state, s) =>
+            s
+              .addUsers(
+                `select ${
+                  state.field("email").value
+                } as email, next_record_id(db.user) as db_id, 'none' as notification_type`,
+                "added_user"
+              )
+              .modify(
+                `insert into db.user (global_id, is_sys_admin, is_admin, disabled, email, employee) values ((select global_id from added_user), false, false, false, ${
+                  state.field("email").value
+                }, last_record_id(db.employee))`
+              ),
+        })
+    )
+    .fieldConfig("email", {
       beforeEdit: (newValue, recordId) => (s) =>
         s
           .scalar(
@@ -466,11 +466,7 @@ ui.addSimpleDatagridPage({
                 `update db.user set global_id = (select global_id from added_user) where id = user_id`
               )
           ),
-    },
-  },
-  viewButton: true,
-  rowHeight: "tall",
-  fieldOrder: ["image_thumb", "first_name", "last_name", "title"],
+    });
 });
 
 ui.addRecordGridPage("employee", (page) => {
@@ -499,12 +495,10 @@ ui.addRecordGridPage("employee", (page) => {
     });
 });
 
-ui.addSimpleDatagridPage({
-  table: "user",
-  toolbar: {
-    add: {
-      type: "dialog",
-      opts: {
+ui.addSimpleDatagridPage("user", (page) => {
+  page
+    .toolbar((toolbar) =>
+      toolbar.insertDialog({
         withValues: { global_id: "new_global_id", disabled: "false" },
         beforeTransactionStart: (state, s) =>
           s
@@ -514,11 +508,9 @@ ui.addSimpleDatagridPage({
               } as email`
             )
             .scalar(`new_global_id`, `(select global_id from added_user)`),
-      },
-    },
-  },
-  fields: {
-    disabled: {
+      })
+    )
+    .fieldConfig("disabled", {
       beforeEdit: (newValue, recordId) => (s) =>
         s.if({
           condition: newValue,
@@ -536,8 +528,8 @@ ui.addSimpleDatagridPage({
                 `update db.user set global_id = (select global_id from added_user) where id = ${recordId}`
               ),
         }),
-    },
-    email: {
+    })
+    .fieldConfig("email", {
       beforeEdit: (newValue, recordId) => (s) =>
         s
           .scalar(
@@ -555,19 +547,14 @@ ui.addSimpleDatagridPage({
           .modify(
             `update db.user set global_id = (select global_id from added_user) where id = ${recordId}`
           ),
-    },
-  },
+    });
 });
 
-ui.addDatagridPage({
-  table: "order",
-  selectable: true,
-  toolbar: {
-    export: true,
-    delete: true,
-    add: { type: "href", href: `/orders/add` },
-  },
-  viewButton: true,
+ui.addDatagridPage("order", (page) => {
+  page
+    .selectable()
+    .viewButton()
+    .toolbar((toolbar) => toolbar.delete().export().insertPage());
 });
 
 const orderFormPartStyles = { gridColumnSpan: 12, lg: { gridColumnSpan: 3 } };
@@ -820,15 +807,11 @@ ui.addRecordGridPage("order", (page) => {
     });
 });
 
-ui.addDatagridPage({
-  table: "customer",
-  selectable: true,
-  toolbar: {
-    export: true,
-    delete: true,
-    add: { type: "dialog" },
-  },
-  viewButton: true,
+ui.addDatagridPage("customer", (page) => {
+  page
+    .selectable()
+    .viewButton()
+    .toolbar((t) => t.insertDialog().export().delete());
 });
 
 ui.addRecordGridPage("customer", (page) => {
@@ -856,18 +839,12 @@ ui.addRecordGridPage("customer", (page) => {
     });
 });
 
-ui.addSimpleDatagridPage({
-  table: "shipper",
-  toolbar: {
-    add: { type: "dialog" },
-  },
+ui.addSimpleDatagridPage("shipper", (page) => {
+  page.toolbar((t) => t.insertDialog());
 });
 
-ui.addSimpleDatagridPage({
-  table: "supplier",
-  toolbar: {
-    add: { type: "dialog" },
-  },
+ui.addSimpleDatagridPage("supplier", (page) => {
+  page.toolbar((t) => t.insertDialog());
 });
 
 ui.addRecordGridPage("supplier", (page) => {
@@ -886,12 +863,10 @@ ui.addRecordGridPage("supplier", (page) => {
     });
 });
 
-ui.addSimpleDatagridPage({
-  table: "product",
-  toolbar: {
-    add: { type: "dialog" },
-  },
-  fields: { discontinued: { immutable: true } },
+ui.addSimpleDatagridPage("product", (page) => {
+  page
+    .toolbar((t) => t.insertDialog())
+    .fieldConfig("discontinued", { immutable: true });
 });
 
 ui.addRecordGridPage("product", (page) => {
@@ -909,9 +884,8 @@ ui.addRecordGridPage("product", (page) => {
   });
 });
 
-ui.addSimpleDatagridPage({
-  table: "category",
-  toolbar: { add: { type: "dialog" } },
+ui.addSimpleDatagridPage("category", (page) => {
+  page.toolbar((t) => t.insertDialog());
 });
 
 ui.addSimpleReportsPage((page) => {

@@ -1,7 +1,6 @@
 import "./app";
-import { modify, saveDb } from "@yolm/boost/procHelpers";
-import { addScript } from "@yolm/boost/modelHelpers";
-import { stringLiteral } from "../../dist/utils/sqlHelpers";
+import { app, sqlUtils } from "@yolm/boost";
+const { stringLiteral } = sqlUtils;
 import { faker } from "@faker-js/faker";
 
 faker.seed(123);
@@ -183,13 +182,12 @@ for (let matterId = 0; matterId < matters.length; matterId++) {
   }
 }
 
-addScript({
-  name: "init-dev-db",
-  procedure: [
-    modify(
+app.addScript("init-dev-db", (s) =>
+  s
+    .modify(
       `insert into db.user (global_id, is_sys_admin, is_admin, email) values (random.uuid(), true, true, 'coolguy@coolemail.com')`
-    ),
-    modify(
+    )
+    .modify(
       `insert into db.employee (first_name, last_name, email) values ${employees
         .map((r) => {
           const values = [
@@ -200,8 +198,8 @@ addScript({
           return `(${values.join(",")})`;
         })
         .join(",")}`
-    ),
-    modify(
+    )
+    .modify(
       `insert into db.contact (type, first_name, last_name, email, phone_number, date_of_birth, street, city, state, zip, country, mailing_list) values ${contacts.map(
         (r) => {
           const values = [
@@ -221,8 +219,8 @@ addScript({
           return `(${values.join(",")})`;
         }
       )}`
-    ),
-    modify(
+    )
+    .modify(
       `insert into db.matter (type, name, contact, employee, client_position, date, close_date, notes) values ${matters.map(
         (r) => {
           const values = [
@@ -238,8 +236,8 @@ addScript({
           return `(${values.join(",")})`;
         }
       )}`
-    ),
-    modify(
+    )
+    .modify(
       `insert into db.payment (contact, cost, minutes, date, invoice_id) values ${payments.map(
         (r) => {
           const values = [
@@ -252,8 +250,8 @@ addScript({
           return `(${values.join(",")})`;
         }
       )}`
-    ),
-    modify(
+    )
+    .modify(
       `insert into db.time_entry (matter, employee, date, minutes, billable) values ${entries.map(
         (r) => {
           const values = [
@@ -266,7 +264,6 @@ addScript({
           return `(${values.join(",")})`;
         }
       )}`
-    ),
-    saveDb(`data/dev`),
-  ],
-});
+    )
+    .saveDb(`data/dev`)
+);

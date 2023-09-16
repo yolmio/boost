@@ -132,12 +132,23 @@ export class DgStateHelpers {
 
   updateFieldValueInDb(opts: UpdateCellFieldOpts) {
     return this.doEditTransaction({
+      beforeTransaction: opts.beforeEditTransaction?.(
+        opts.dbValue,
+        opts.recordId
+      ),
+      afterTransaction: opts.afterEditTransaction?.(
+        opts.dbValue,
+        opts.recordId
+      ),
       transactionBody: (s) =>
-        s.modify(
-          `update db.${ident(opts.tableName)} set ${ident(opts.fieldName)} = ${
-            opts.dbValue
-          } where id = ${opts.recordId}`
-        ),
+        s
+          .statements(opts.beforeEdit?.(opts.dbValue, opts.recordId))
+          .modify(
+            `update db.${ident(opts.tableName)} set ${ident(
+              opts.fieldName
+            )} = ${opts.dbValue} where id = ${opts.recordId}`
+          )
+          .statements(opts.afterEdit?.(opts.dbValue, opts.recordId)),
       onError: () => (s) =>
         s.statements(
           opts.resetValue,
