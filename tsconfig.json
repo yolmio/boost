@@ -8,6 +8,7 @@
     "skipLibCheck": true,
     "declaration": true,
     "emitDeclarationOnly": true,
+    "declarationMap": true,
     "forceConsistentCasingInFileNames": true,
     "moduleResolution": "node",
     "noUnusedLocals": false,

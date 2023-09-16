@@ -804,7 +804,9 @@ function imageCell(
                               )
                             ),
                         catch:
-                          state.displayEditErrorAndRemoveAfter(`Upload failed`),
+                          state.displayEditErrorAndRemoveAfter(
+                            `'Upload failed'`
+                          ),
                       })
                       .setScalar(`uploading`, `false`),
                 },

@@ -115,6 +115,7 @@ export function toolbar(
       ],
     });
   }
+  const hiddenColumnCount = `(select count(*) from column where not displaying and rfn.${superDts.idToColumnsDisplayName}(id) is not null)`;
   return nodes.element("div", {
     styles: styles.toolbarWrapper,
     children: nodes.element("div", {
@@ -172,9 +173,9 @@ export function toolbar(
                             size: "sm",
                             props: { id: columnsButtonId },
                             children: `case 
-                when (select count(*) from column where not displaying) = 0 then 'Columns' 
-                when (select count(*) from column where not displaying) = 1 then '1 hidden column'
-                else (select count(*) from column where not displaying) || ' hidden columns'
+                when ${hiddenColumnCount} = 0 then 'Columns' 
+                when ${hiddenColumnCount} = 1 then '1 hidden column'
+                else ${hiddenColumnCount} || ' hidden columns'
                 end`,
                             startDecorator: materialIcon(
                               "VisibilityOffOutlined"

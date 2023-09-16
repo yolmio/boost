@@ -13,19 +13,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      # Setup Node.js environment
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      # Setup Bun environment
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
         with:
-          registry-url: https://registry.npmjs.org/
-          node-version: "18"
+          bun-version: latest
       # Install dependencies
-      - run: npm ci
+      - run: bun install
 
       # Run Esbuild
-      - run: npm run build
+      - run: bun run build
 
-      - run: npm run create-ts
+      - run: bun run create-ts
 
       # Configure Git
       - name: Git configuration

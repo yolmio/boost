@@ -13,15 +13,8 @@ import {
 import { styles as sharedStyles } from "./styles";
 import { SimpleColumn } from "./styledSimpleDatagrid";
 import { normalizeCase, upcaseFirst } from "../../utils/inflectors";
-import { lazy } from "../../utils/memoize";
 import { materialIcon } from "../../components/materialIcon";
-import { Style } from "../../styleTypes";
-import {
-  CellNode,
-  FieldEditProcConfig,
-  resizeableSeperator,
-  dgState,
-} from "./shared";
+import { FieldEditProcConfig, resizeableSeperator, dgState } from "./shared";
 import { BasicStatements, DomStatements } from "../../statements";
 
 function filterTypeFromField(field: Field): FilterType {
@@ -71,34 +64,6 @@ function filterTypeFromField(field: Field): FilterType {
       throw new Error("Filter not supported for type: " + field.type);
   }
 }
-
-// function filterTypeFromVirtual(type: VirtualType): FilterType {
-//   switch (type.type) {
-//     case "BigInt":
-//     case "Int":
-//     case "SmallInt":
-//     case "Double":
-//     case "Real":
-//     case "Decimal":
-//       return { type: "number" };
-//     case "String":
-//     case "Uuid":
-//       return { type: "string" };
-//     case "Enum":
-//       return { type: "enum", enum: type.enum };
-//     case "ForeignKey":
-//       return { type: "table", table: type.table };
-//     case "Timestamp":
-//       return { type: "timestamp" };
-//     case "Date":
-//       return { type: "date" };
-//     case "Bool":
-//       return { type: "bool" };
-//     case "Time":
-//     case "Ordering":
-//       throw new Error("Ordering fields should not be used in filters");
-//   }
-// }
 
 function getFieldProcFieldType(field: Field): yom.FieldType {
   switch (field.type) {
@@ -343,15 +308,15 @@ export function columnFromField({
         if (field.enumLike) {
           const high = field.enumLike.true;
           const low = field.enumLike.false;
-          const ascText = `${low} → ${high}`;
-          const descText = `${high} → ${low}`;
+          const ascText = stringLiteral(`${low} → ${high}`);
+          const descText = stringLiteral(`${high} → ${low}`);
           sort = {
             type: "custom",
             displayName,
             ascText,
             descText,
-            ascNode: stringLiteral(ascText),
-            descNode: stringLiteral(descText),
+            ascNode: ascText,
+            descNode: descText,
           };
         } else {
           sort = { type: "checkbox", displayName };

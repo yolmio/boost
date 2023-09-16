@@ -189,7 +189,9 @@ export function datagridBase(opts: DatagridBaseOpts) {
         .filter((v) => Boolean(v.displayInfo)).length;
       const initialWidth = col.displayInfo?.initialWidth ?? 0;
       const initiallyDisplaying = col.displayInfo?.initiallyDisplaying ?? false;
-      return `(${i}, ${initialWidth}, ${initiallyDisplaying}, ordering.n_after(${prevDisplayCount}), ${generate})`;
+      return `(${i}, ${initialWidth}, ${initiallyDisplaying}, ordering.n_after(${prevDisplayCount}), ${generate}, ${Boolean(
+        col.queryGeneration
+      )})`;
     })
     .join(",");
   mainStateProc
@@ -201,9 +203,10 @@ export function datagridBase(opts: DatagridBaseOpts) {
       { name: "sort_asc", type: { type: "Bool" } },
       { name: "ordering", notNull: true, type: { type: "Ordering" } },
       { name: "always_generate", notNull: true, type: { type: "Bool" } },
+      { name: "has_query_generation", notNull: true, type: { type: "Bool" } },
     ])
     .modify(
-      `insert into column (id, width, displaying, ordering, always_generate) values ${initialColumnInsertValues}`
+      `insert into column (id, width, displaying, ordering, always_generate, has_query_generation) values ${initialColumnInsertValues}`
     )
     .scalar(
       `row_height`,
@@ -788,8 +791,9 @@ export function makeDynamicQuery(
     `'select ' `,
     `(select string_agg(
         case
+          when not has_query_generation then null
           when exists (select column_id from ui.filter_term) and (${shouldGenerateColumn}) then 'col_' || id
-          when ${shouldGenerateColumn} then rfn.${dts.idToSqlExpr}(id)
+          when ${shouldGenerateColumn} then rfn.${dts.idToSqlExpr}(id) || ' as col_' || id
           else 'null'
         end, ',')
       from ui.column

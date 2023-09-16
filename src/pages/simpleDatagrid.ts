@@ -54,7 +54,7 @@ export class DatagridToolbarBuilder {
   #export = false;
   #add?:
     | { type: "dialog"; opts?: Partial<InsertDialogOpts> }
-    | { type: "href"; href: string };
+    | { type: "href"; href?: string };
 
   constructor(private table: Table) {}
 
@@ -68,7 +68,7 @@ export class DatagridToolbarBuilder {
     return this;
   }
 
-  insertPage(href: string) {
+  insertPage(href?: string) {
     this.#add = { type: "href", href };
     return this;
   }
@@ -82,12 +82,15 @@ export class DatagridToolbarBuilder {
     return this;
   }
 
-  _finish(): ToolbarConfig {
+  _finish(addHref: string): ToolbarConfig {
     return {
       delete: this.#delete,
       export: this.#export,
       header: this.#header ?? stringLiteral(pluralize(this.table.displayName)),
-      add: this.#add,
+      add:
+        this.#add?.type === "href"
+          ? { type: "href", href: this.#add.href ?? addHref }
+          : { type: "dialog", opts: this.#add?.opts },
     };
   }
 }
@@ -108,7 +111,7 @@ export class SimpleDatagridPageBuilder {
   #extraState?: StateStatementsOrFn;
   #extraColumns: ((opts: ExtraColumnOpts) => SimpleColumn)[] = [];
   #fields: FieldConfigs = {};
-  #toolbarConfig?: ToolbarConfig;
+  #toolbarBuilder: DatagridToolbarBuilder;
   #pageSize?: number;
   #rowHeight?: RowHeight;
 
@@ -117,6 +120,7 @@ export class SimpleDatagridPageBuilder {
     if (!this.#table) {
       throw new Error(`No table ${table} found`);
     }
+    this.#toolbarBuilder = new DatagridToolbarBuilder(this.#table);
   }
 
   rowHeight(rowHeight: RowHeight) {
@@ -254,8 +258,8 @@ export class SimpleDatagridPageBuilder {
     return this;
   }
 
-  toolbar(f: (t: DatagridToolbarBuilder) => DatagridToolbarBuilder) {
-    this.#toolbarConfig = f(new DatagridToolbarBuilder(this.#table))._finish();
+  toolbar(f: (t: DatagridToolbarBuilder) => unknown) {
+    f(this.#toolbarBuilder);
     return this;
   }
 
@@ -363,6 +367,8 @@ export class SimpleDatagridPageBuilder {
     if (typeof this.#immutable === "string") {
     }
     extraState.statements(this.#extraState);
+    const path = this.#path ?? this.#table.baseUrl;
+    const addHref = path.endsWith("/") ? path + "add" : path + "/add";
     const content = nodes.sourceMap(
       `simpleDatagridPage(${this.#table.name})`,
       styledSimpleDatagrid({
@@ -371,15 +377,13 @@ export class SimpleDatagridPageBuilder {
         idField: this.#table.primaryKeyFieldName,
         pageSize: this.#pageSize,
         tableModel: this.#table,
-        toolbar:
-          this.#toolbarConfig ??
-          new DatagridToolbarBuilder(this.#table)._finish(),
+        toolbar: this.#toolbarBuilder._finish(addHref),
         extraState,
         rowHeight: this.#rowHeight,
       })
     );
     app.ui.pages.push({
-      path: this.#path ?? this.#table.baseUrl,
+      path,
       content,
     });
   }

@@ -271,10 +271,7 @@ function typeSpecificOps(columns: SuperGridColumn[]): Node {
     if (!column.filter || column.filter.type === "custom") {
       continue;
     }
-    const { notNull } = column.filter;
-    const prevInfo = genTypes.find(
-      (t) => t.notNull === notNull && eqFilterType(t.type, column.filter!)
-    );
+    const prevInfo = genTypes.find((t) => eqFilterType(t.type, column.filter!));
     if (prevInfo) {
       prevInfo.columns.push(i);
       continue;
@@ -616,7 +613,7 @@ function columnFilter(columns: SuperGridColumn[], dts: SuperGridDts) {
   }
   if (columns.some((col) => col.filter?.type === "enum_like_bool")) {
     switchCases.push({
-      condition: `${filterTermHelper.op}.op = 'enum_like_bool_eq'`,
+      condition: `${filterTermHelper.op} = 'enum_like_bool_eq'`,
       node: enumLikeBoolSelect(columns),
     });
   }

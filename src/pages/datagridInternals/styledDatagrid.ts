@@ -147,7 +147,13 @@ export interface SuperGridColumn extends BaseColumn {
 
 export type FilterType =
   | {
-      type: "string" | "number" | "date" | "bool" | "timestamp";
+      type:
+        | "string"
+        | "number"
+        | "date"
+        | "bool"
+        | "timestamp"
+        | "minutes_duration";
       notNull: boolean;
     }
   | {
@@ -165,26 +171,32 @@ export type FilterType =
       config: BoolEnumLikeConfig;
       notNull: boolean;
     }
-  | { type: "minutes_duration"; notNull: boolean }
   | {
       type: "custom";
       node?: (helpers: FilterTermHelper, state: DgStateHelpers) => Node;
     };
 
 export function eqFilterType(l: FilterType, r: FilterType) {
-  if (typeof l === "string") {
-    return l === r;
-  }
-  if (typeof r === "string") {
+  if (l.type !== r.type) {
     return false;
   }
-  if (l.type === "table") {
-    return r.type === "table" && r.table === l.table;
+  switch (l.type) {
+    case "string":
+    case "number":
+    case "date":
+    case "bool":
+    case "timestamp":
+    case "minutes_duration":
+      return l.notNull === (r as any).notNull;
+    case "table":
+      return (r as any).table === l.table && l.notNull === (r as any).notNull;
+    case "enum":
+      return (r as any).enum === l.enum && l.notNull === (r as any).notNull;
+    case "enum_like_bool":
+      return (r as any).config === l.config && l.notNull === (r as any).notNull;
+    case "custom":
+      return (r as any).node === l.node;
   }
-  if (l.type === "enum") {
-    return r.type === "enum" && r.enum === l.enum;
-  }
-  return false;
 }
 
 export function defaultOpForFieldType(type: FilterType) {

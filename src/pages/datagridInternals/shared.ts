@@ -206,7 +206,7 @@ export class CellHelpers {
   }
 
   get column(): yom.SqlExpression {
-    return this.column.toString();
+    return this.opts.column.toString();
   }
 
   updateFieldValueInDb(

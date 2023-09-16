@@ -9,8 +9,8 @@
     "scripts/**"
   ],
   "scripts": {
-    "build": "esbuild src/index.ts --bundle --outdir=dist --format=esm --platform=node --minify --sourcemap",
-    "build:watch": "esbuild src/index.ts --bundle --outdir=dist --format=esm --platform=node --watch",
+    "build": "bun build src/index.ts --outdir dist --target node --minify",
+    "build:watch": "bun build src/index.ts --outdir dist --target node --watch",
     "create-ts": "tsc --project tsconfig.json",
     "create-ts:watch": "tsc --project tsconfig.json --watch",
     "lint": "TIMING=1 eslint src --fix",
@@ -23,13 +23,11 @@
     "@types/node": "=20.3.1",
     "@types/which": "^3.0.0",
     "csstype": "=3.1.2",
-    "node-fetch": "=3.3.1",
     "toposort": "=2.0.2",
     "which": "^3.0.1"
   },
   "devDependencies": {
     "@types/toposort": "=2.0.3",
-    "esbuild": "^0.18.18",
     "eslint": "=8.42.0",
     "fast-glob": "=3.2.12",
     "fs-extra": "=11.1.1",

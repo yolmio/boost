@@ -104,15 +104,15 @@ export class DatagridToolbarBuilder {
   #export = false;
   #add?:
     | { type: "dialog"; opts?: Partial<InsertDialogOpts> }
-    | { type: "href"; href: string };
+    | { type: "href"; href?: string };
 
   insertDialog(opts?: Partial<InsertDialogOpts>) {
     this.#add = { type: "dialog", opts };
     return this;
   }
 
-  insertPage(href: string) {
-    this.#add = { type: "href", href };
+  insertPage(href?: string) {
+    this.#add = { type: "href", href: href };
     return this;
   }
 
@@ -146,7 +146,7 @@ export class DatagridToolbarBuilder {
     return this;
   }
 
-  _finish(): ToolbarConfig {
+  _finish(addHref: string): ToolbarConfig {
     return {
       views: this.#views,
       hideColumns: this.#hideColumns,
@@ -154,7 +154,10 @@ export class DatagridToolbarBuilder {
       sort: this.#sort,
       delete: this.#delete,
       export: this.#export,
-      add: this.#add,
+      add:
+        this.#add?.type === "href"
+          ? { type: "href", href: this.#add.href ?? addHref }
+          : { type: "dialog", opts: this.#add?.opts },
     };
   }
 }
@@ -176,7 +179,7 @@ export class DatagridPageBuilder {
   #extraState?: StateStatementsOrFn;
   #extraColumns: ((opts: ExtraColumnOpts) => SuperGridColumn)[] = [];
   #fields: FieldConfigs = {};
-  #toolbarConfig?: ToolbarConfig;
+  #toolbarBuilder = new DatagridToolbarBuilder();
   #pageSize = 100;
 
   constructor(table: string) {
@@ -363,8 +366,8 @@ export class DatagridPageBuilder {
     return this;
   }
 
-  toolbar(f: (t: DatagridToolbarBuilder) => DatagridToolbarBuilder) {
-    this.#toolbarConfig = f(new DatagridToolbarBuilder())._finish();
+  toolbar(f: (t: DatagridToolbarBuilder) => unknown) {
+    f(this.#toolbarBuilder);
     return this;
   }
 
@@ -513,6 +516,8 @@ export class DatagridPageBuilder {
         }
       }
     }
+    const path = this.#path ?? this.#table.baseUrl;
+    const addHref = path.endsWith("/") ? path + "add" : path + "/add";
     const content = nodes.sourceMap(
       `datagridPage(${this.#table.name})`,
       styledDatagrid({
@@ -521,13 +526,13 @@ export class DatagridPageBuilder {
         idField: `field_0`,
         pageSize: this.#pageSize,
         tableModel: this.#table,
-        toolbar: this.#toolbarConfig ?? new DatagridToolbarBuilder()._finish(),
+        toolbar: this.#toolbarBuilder._finish(addHref),
         extraState,
         defaultView: this.#defaultView,
       })
     );
     app.ui.pages.push({
-      path: this.#path ?? this.#table.baseUrl,
+      path,
       content,
     });
   }
