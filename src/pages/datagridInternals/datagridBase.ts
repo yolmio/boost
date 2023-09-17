@@ -696,7 +696,7 @@ function filterExpr(dts: DatagridRfns) {
   function serializeFilter(filter: string) {
     const encodeFilterOp = `rfn.encode_dg_filter_op(
       op => ${filter}.op,
-      col_name => 'col_' || ${filter}.column_id,
+      expr => rfn.${dts.idToSqlExpr}(${filter}.column_id),
       value_1 => ${filter}.value_1,
       value_2 => ${filter}.value_2,
       value_3 => ${filter}.value_3
@@ -746,31 +746,17 @@ function fromAndWherePart(
   source: string,
   additionalWhere: yom.SqlExpression | undefined
 ) {
-  const matchWhereClause = additionalWhere
-    ? `' || coalesce(' where ' || ${additionalWhere}, '') ||'`
-    : ``;
-  const hasFilterBranch = [
-    `'(select '`,
-    `(select string_agg(
-          case
-            when displaying or always_generate or sort_index is not null or id in (select column_id from ui.filter_term) then rfn.${dts.idToSqlExpr}(id)
-          end
-          || ' as col_' || id, ',')
-        from ui.column
-      )`,
-    `' from '`,
-    stringLiteral(source),
-    `' as record'`,
-    `'${matchWhereClause}) as record where '`,
-    filterExpr(dts),
-  ].join(`||`);
-  const noFilterBranch = `${stringLiteral(
-    source
-  )} || ' as record${matchWhereClause}'`;
   return [
     `' from '`,
-    `case when exists (select column_id from ui.filter_term) then (${hasFilterBranch}) else (${noFilterBranch}) end`,
-  ].join(`||`);
+    stringLiteral(source),
+    `' as record where '`,
+    `coalesce(${filterExpr(dts)}, 'true')`,
+    additionalWhere
+      ? `coalesce(' and (' || ${additionalWhere} || ')', '')`
+      : false,
+  ]
+    .filter(Boolean)
+    .join(`||`);
 }
 
 const orderByPart = `coalesce(
@@ -792,7 +778,6 @@ export function makeDynamicQuery(
     `(select string_agg(
         case
           when not has_query_generation then null
-          when exists (select column_id from ui.filter_term) and (${shouldGenerateColumn}) then 'col_' || id
           when ${shouldGenerateColumn} then rfn.${dts.idToSqlExpr}(id) || ' as col_' || id
           else 'null'
         end, ',')
@@ -817,9 +802,8 @@ export function makeDownloadQuery(
     `'select ' `,
     `(select string_agg(
         case
-          when exists (select column_id from ui.filter_term) and (${shouldGenerateColumn}) then 'col_' || id
-          when ${shouldGenerateColumn} then rfn.${dts.idToSqlExpr}(id)
-        end || ' as ' || rfn.${dts.idToDownloadName}(id)
+          when ${shouldGenerateColumn} then rfn.${dts.idToSqlExpr}(id) || ' as ' || rfn.${dts.idToDownloadName}(id)
+        end
       from ui.column
     )`,
     fromAndWherePart(dts, source, quickSearch),
@@ -842,9 +826,13 @@ export function makeCountQuery(
 export function makeIdsQuery(
   dts: DatagridRfns,
   source: string,
+  primaryKeyIdent: yom.SqlExpression,
   quickSearch: yom.SqlExpression | undefined
 ): string {
-  return [`'select '`, fromAndWherePart(dts, source, quickSearch)].join("||");
+  return [
+    `'select ${primaryKeyIdent} '`,
+    fromAndWherePart(dts, source, quickSearch),
+  ].join("||");
 }
 
 function addViewTables() {
@@ -1030,7 +1018,7 @@ function addDgFilterOp() {
           notNull: true,
         },
         {
-          name: "col_name",
+          name: "expr",
           type: { type: "String", maxLength: 200 },
           notNull: true,
         },
@@ -1052,126 +1040,126 @@ function addDgFilterOp() {
       ],
       header: ["input.op", "sql"],
       rules: [
-        ["'empty'", "input.col_name || ' is null'"],
-        ["'not_empty'", "input.col_name || ' is not null'"],
+        ["'empty'", "input.expr || ' is null'"],
+        ["'not_empty'", "input.expr || ' is not null'"],
         // string
         [
           "'str_eq'",
-          `coalesce(input.col_name || '=' || literal.string(input.value_1), 'true')`,
+          `coalesce(input.expr || '=' || literal.string(input.value_1), 'true')`,
         ],
         [
           "'str_ne'",
-          `coalesce(input.col_name || '!=' || literal.string(input.value_1), 'true')`,
+          `coalesce(input.expr || '!=' || literal.string(input.value_1), 'true')`,
         ],
         [
           "'str_contains'",
-          `coalesce(input.col_name || ' like ''%'' || ' || literal.string(input.value_1) || '|| ''%''', 'true')`,
+          `coalesce(input.expr || ' like ''%'' || ' || literal.string(input.value_1) || '|| ''%''', 'true')`,
         ],
         [
           "'str_not_contains'",
-          `coalesce(input.col_name || ' not like ''%'' || ' || literal.string(input.value_1) || '|| ''%''', 'true')`,
+          `coalesce(input.expr || ' not like ''%'' || ' || literal.string(input.value_1) || '|| ''%''', 'true')`,
         ],
         // number
         [
           "input.op = 'num_eq' or input.op = 'minute_duration_eq'",
-          `coalesce(input.col_name || '=' || literal.number(input.value_1), 'true')`,
+          `coalesce(input.expr || '=' || literal.number(input.value_1), 'true')`,
         ],
         [
           "input.op = 'num_ne' or input.op = 'minute_duration_ne'",
-          `coalesce(input.col_name || '!=' || literal.number(input.value_1), 'true')`,
+          `coalesce(input.expr || '!=' || literal.number(input.value_1), 'true')`,
         ],
         [
           "input.op = 'num_lt' or input.op = 'minute_duration_lt'",
-          `coalesce(input.col_name || '<' || literal.number(input.value_1), 'true')`,
+          `coalesce(input.expr || '<' || literal.number(input.value_1), 'true')`,
         ],
         [
           "input.op = 'num_lte' or input.op = 'minute_duration_lte'",
-          `coalesce(input.col_name || '<=' || literal.number(input.value_1), 'true')`,
+          `coalesce(input.expr || '<=' || literal.number(input.value_1), 'true')`,
         ],
         [
           "input.op = 'num_gt' or input.op = 'minute_duration_gt'",
-          `coalesce(input.col_name || '>' || literal.number(input.value_1), 'true')`,
+          `coalesce(input.expr || '>' || literal.number(input.value_1), 'true')`,
         ],
         [
           "input.op = 'num_gte' or input.op = 'minute_duration_gte'",
-          `coalesce(input.col_name || '>=' || literal.number(input.value_1), 'true')`,
+          `coalesce(input.expr || '>=' || literal.number(input.value_1), 'true')`,
         ],
         // date
         [
           "'date_eq'",
-          `coalesce(input.col_name || '=' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
+          `coalesce(input.expr || '=' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         [
           "'date_ne'",
-          `coalesce(input.col_name || '!=' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
+          `coalesce(input.expr || '!=' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         [
           "'date_lt'",
-          `coalesce(input.col_name || '<' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
+          `coalesce(input.expr || '<' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         [
           "'date_lte'",
-          `coalesce(input.col_name || '<=' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
+          `coalesce(input.expr || '<=' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         [
           "'date_gt'",
-          `coalesce(input.col_name || '>' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
+          `coalesce(input.expr || '>' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         [
           "'date_gte'",
-          `coalesce(input.col_name || '>=' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
+          `coalesce(input.expr || '>=' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         // timestamp
         [
           "'timestamp_eq'",
-          `coalesce('cast(' || input.col_name || ' as date) =' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
+          `coalesce('cast(' || input.expr || ' as date) =' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         [
           "'timestamp_ne'",
-          `coalesce('cast(' || input.col_name || ' as date) !=' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
+          `coalesce('cast(' || input.expr || ' as date) !=' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         [
           "'timestamp_lt'",
-          `coalesce('cast(' || input.col_name || ' as date) <' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
+          `coalesce('cast(' || input.expr || ' as date) <' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         [
           "'timestamp_lte'",
-          `coalesce('cast(' || input.col_name || ' as date) <=' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
+          `coalesce('cast(' || input.expr || ' as date) <=' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         [
           "'timestamp_gt'",
-          `coalesce('cast(' || input.col_name || ' as date) >' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
+          `coalesce('cast(' || input.expr || ' as date) >' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         [
           "'timestamp_gte'",
-          `coalesce('cast(' || input.col_name || ' as date) >=' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
+          `coalesce('cast(' || input.expr || ' as date) >=' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         // enum
         [
           "'enum_eq'",
-          `coalesce(input.col_name || '=' || literal.string(input.value_1), 'true')`,
+          `coalesce(input.expr || '=' || literal.string(input.value_1), 'true')`,
         ],
         [
           "'enum_ne'",
-          `coalesce(input.col_name || '!=' || literal.string(input.value_1), 'true')`,
+          `coalesce(input.expr || '!=' || literal.string(input.value_1), 'true')`,
         ],
         // foreign keys
         [
           "'fk_eq'",
-          `coalesce(input.col_name || '=' || literal.number(input.value_1), 'true')`,
+          `coalesce(input.expr || '=' || literal.number(input.value_1), 'true')`,
         ],
         [
           "'fk_ne'",
-          `coalesce(input.col_name || '!=' || literal.number(input.value_1), 'true')`,
+          `coalesce(input.expr || '!=' || literal.number(input.value_1), 'true')`,
         ],
         // bool
         [
           "'bool_eq'",
-          `case when input.value_1 = 'true' then input.col_name || '=true' else '(' || input.col_name || ' is null or ' || input.col_name || '=false)' end`,
+          `case when input.value_1 = 'true' then input.expr || '=true' else '(' || input.expr || ' is null or ' || input.expr || '=false)' end`,
         ],
         [
           "'enum_like_bool_eq'",
-          `case when input.value_1 = 'true' then input.col_name || '=true' when input.value_1 = 'false' then input.col_name || '=false' else input.col_name || ' is null' end`,
+          `case when input.value_1 = 'true' then input.expr || '=true' when input.value_1 = 'false' then input.expr || '=false' else input.expr || ' is null' end`,
         ],
         ["any", "'true'"],
       ],

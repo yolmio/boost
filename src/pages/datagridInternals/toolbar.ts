@@ -395,6 +395,7 @@ export function toolbar(
                                       query: makeIdsQuery(
                                         baseDts,
                                         `db.` + ident(tableModel.name),
+                                        tableModel.primaryKeyIdent,
                                         additionalWhere
                                       ),
                                       columnCount: 1,
