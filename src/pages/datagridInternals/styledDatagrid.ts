@@ -54,8 +54,8 @@ const stringSortDescText = stringSortDescNode;
 
 const numericSortAscNode = `'1 → 9'`;
 const numericSortDescNode = `'9 → 1'`;
-const numericSortAscText = stringSortAscNode;
-const numericSortDescText = stringSortDescNode;
+const numericSortAscText = numericSortAscNode;
+const numericSortDescText = numericSortDescNode;
 
 const checkboxStyles = {
   ml: 1,

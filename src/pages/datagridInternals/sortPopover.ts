@@ -21,16 +21,35 @@ const styles = createStyles({
   },
 });
 
+type SortAggregated =
+  | {
+      type: "string" | "numeric" | "checkbox";
+      cols: number[];
+    }
+  | {
+      type: "custom";
+      col: number;
+      config: SortConfig;
+    };
+
 export function sortPopover(state: DgStateHelpers, columns: SuperGridColumn[]) {
-  const sorts = new Map<SortConfig, number[]>();
+  const aggregatedSorts: SortAggregated[] = [];
   const options: Node[] = [];
   for (let i = 0; i < columns.length; i++) {
     const col = columns[i];
     if (col.sort) {
-      if (!sorts.has(col.sort)) {
-        sorts.set(col.sort, []);
+      if (col.sort.type === "custom") {
+        aggregatedSorts.push({ type: "custom", col: i, config: col.sort });
+      } else {
+        const existingSort = aggregatedSorts.find(
+          (s) => s.type === col.sort!.type
+        );
+        if (existingSort) {
+          (existingSort as any).cols.push(i);
+        } else {
+          aggregatedSorts.push({ type: col.sort!.type, cols: [i] });
+        }
       }
-      sorts.get(col.sort)!.push(i);
       options.push(
         nodes.element("option", {
           props: { value: i.toString() },
@@ -41,15 +60,26 @@ export function sortPopover(state: DgStateHelpers, columns: SuperGridColumn[]) {
   }
   const ascNodeCases: SwitchNodeCase[] = [];
   const descNodeCases: SwitchNodeCase[] = [];
-  for (const [sort, indices] of sorts.entries()) {
-    ascNodeCases.push({
-      condition: `column_record.id in (${indices.join(", ")})`,
-      node: getSortAscText(sort),
-    });
-    descNodeCases.push({
-      condition: `column_record.id in (${indices.join(", ")})`,
-      node: getSortDescText(sort),
-    });
+  for (const agg of aggregatedSorts) {
+    if (agg.type === "custom") {
+      ascNodeCases.push({
+        condition: `column_record.id = ${agg.col}`,
+        node: getSortAscText(agg.config),
+      });
+      descNodeCases.push({
+        condition: `column_record.id = ${agg.col}`,
+        node: getSortDescText(agg.config),
+      });
+    } else {
+      ascNodeCases.push({
+        condition: `column_record.id in (${agg.cols.join(", ")})`,
+        node: getSortAscText({ type: agg.type, displayName: "" }),
+      });
+      descNodeCases.push({
+        condition: `column_record.id in (${agg.cols.join(", ")})`,
+        node: getSortDescText({ type: agg.type, displayName: "" }),
+      });
+    }
   }
   return [
     nodes.each({

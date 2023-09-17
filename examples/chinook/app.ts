@@ -302,10 +302,6 @@ ui.addDatagridPage("customer", (page) => {
     .viewButton()
     .selectable()
     .customFilterColumn({
-      storageName: "has_order",
-      expr: () => `'record.first_name like ''%a%'' '`,
-    })
-    .customFilterColumn({
       storageName: "purchased_track",
       expr: (value1) => `coalesce(
         'exists (select 1 from db.track
@@ -338,6 +334,12 @@ ui.addDatagridPage("customer", (page) => {
             },
           })
         ),
+    })
+    .customSortColumn({
+      storageName: "purchased_in_last_30_days",
+      expr: (record) =>
+        `(select sum(total) from db.invoice where customer = ${record}.id and invoice_date > date.add(day, -30, ${today}))`,
+      sort: { type: "numeric" },
     })
     .toolbar((toolbar) => toolbar.insertDialog().delete())
     .virtualColumn({
