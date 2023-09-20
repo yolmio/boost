@@ -20,15 +20,12 @@ jobs:
           registry-url: https://registry.npmjs.org/
           node-version: "18"
 
-      # Probably stupid idea :)
-      - run: curl -fsSL https://bun.sh/install | bash
-
       # Install dependencies
-      - run: bun install
+      - run: npm install
 
-      - run: bun run build
+      - run: npm run build
 
-      - run: bun run create-ts
+      - run: npm run create-ts
 
       # Configure Git
       - name: Git configuration
