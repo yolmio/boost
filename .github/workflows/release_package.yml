@@ -13,15 +13,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      # Setup Bun environment
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+      # Once https://github.com/oven-sh/setup-bun/pull/16 is merged we should use it instead
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          bun-version: latest
+          registry-url: https://registry.npmjs.org/
+          node-version: "18"
+
+      # Probably stupid idea :)
+      - run: curl -fsSL https://bun.sh/install | bash
+
       # Install dependencies
       - run: bun install
 
-      # Run Esbuild
       - run: bun run build
 
       - run: bun run create-ts
