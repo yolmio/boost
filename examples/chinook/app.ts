@@ -4,6 +4,7 @@ const { db, ui } = app;
 app.name = "chinook";
 app.title = "Chinook";
 app.displayName = "Chinook";
+app.dbExecutionConfig = { hasServer: false, offlineWriting: true };
 
 //
 // DATABASE

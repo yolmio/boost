@@ -283,7 +283,7 @@ export function generateYom(): yom.Model {
     locale: "en_us",
     name: app.name,
     displayName: app.displayName,
-    dbExecutionMode: app.dbRunMode,
+    dbExecutionConfig: app.dbExecutionConfig,
     appDomain: app.appDomain,
     collation: app.collation,
     autoTrim: app.autoTrim,

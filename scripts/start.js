@@ -10,11 +10,8 @@ import {
   yolmPath,
   createProfiles,
 } from "./utils.js";
-import * as dns from "dns";
 import * as fs from "fs";
 import { hasBun } from "./transpileUtils.js";
-
-dns.setDefaultResultOrder("ipv4first");
 
 const hasProfilesFile = fs.existsSync(path.join(process.cwd(), "profiles.ts"));
 let profiles = createProfiles({});
@@ -87,7 +84,7 @@ await sleep(1000);
 let found = false;
 for (let i = 0; i < 10; i++) {
   try {
-    const request = new Request("http://localhost:3000/health");
+    const request = new Request("http://127.0.0.1:3000/health");
     const result = await fetchWithTimeout(request, 100);
     if (result.status === 200) {
       const json = await result.json();

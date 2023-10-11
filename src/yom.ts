@@ -6,7 +6,7 @@ export interface Model {
   name: string;
   displayName: string;
   /** Where and how queries and transactions run against the database */
-  dbExecutionMode: DbExecutionMode;
+  dbExecutionConfig: DbExecutionConfig;
   appDomain?: string;
   collation: Collation;
   autoTrim: AutoTrim;
@@ -51,12 +51,50 @@ export interface Enum {
   values: EnumValue[];
 }
 
-export type DbExecutionMode =
-  | "BrowserSync"
-  | "BrowserSyncWithOfflineWrite"
-  | "BrowserServer"
-  | "Server"
-  | "Hybrid";
+export interface DbExecutionConfig {
+  /**
+   * Whether we have a dedicated server that has the database on it.
+   *
+   * If not enabled, we run the database in a worker or shared worker and on the server we just check
+   * if the transaction count is valid and accept the transaction.
+   *
+   * Having a dedicated server will cost extra, check yolm.io for pricing.
+   */
+  hasServer: boolean;
+  /**
+   * By default can the database be downloaded to the client.
+   *
+   * Only relevant if `hasServer` is true.
+   *
+   * Can be overridden by the user, by having a `can_download_db` field in the user table.
+   */
+  canDownload?: boolean;
+  /**
+   * Should we by default download the database to the client.
+   *
+   * Only relevant if `hasServer` is true.
+   *
+   * This is just a default preference, it can be overridden for each user by specifying a `prefer_download_db` field in the user table.
+   *
+   * It can also be overridden on each device by updating the `prefer_download_db` system table in the ui.
+   */
+  preferDownload?: boolean;
+  /**
+   * When writing to the database in the worker, should we store transactions offline and optimistically return success,
+   * instead of waiting on the server to see if the transaction is valid.
+   *
+   * In this first version of Yolm, we have only an extremely simple conflict resolution strategy:
+   *
+   * If there is a new transaction on the server while we have offline transactions, we will throw
+   * away all offline transactions.
+   *
+   * This is clearly not adequate for more complicated scenarios, but for applications that are
+   * for personal use, it is fine.
+   *
+   * We don't support offline writing with a server right now, but we might in the future.
+   */
+  offlineWriting?: boolean;
+}
 
 ///
 /// PROCEDURE

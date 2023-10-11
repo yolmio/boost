@@ -79,7 +79,7 @@ export class App {
   appDomain?: string;
   collation = "NoCase" as yom.Collation;
   autoTrim = "None" as yom.AutoTrim;
-  dbRunMode = "BrowserSync" as yom.DbExecutionMode;
+  dbExecutionConfig: yom.DbExecutionConfig = { hasServer: true };
   db: Db = new Db();
   ui: Ui = new Ui();
   enums: Record<string, Enum> = {};
