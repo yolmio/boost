@@ -597,8 +597,10 @@ export function saveAsNewView(
             ui.row_height
           )`
     )
+    .statements(
+      insertViewColumnsAndFilters(dts, `last_record_id(db.datagrid_view)`)
+    )
     .scalar(`view_id`, `last_record_id(db.datagrid_view)`)
-    .statements(insertViewColumnsAndFilters(dts, `view_id`))
     .commitTransaction();
 }
 

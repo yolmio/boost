@@ -26,7 +26,9 @@ export function deleteRecordDialog(opts: DeleteRecordDialog) {
         .commitUiChanges()
         .serviceProc((s) =>
           s
+            .startTransaction()
             .modify(`delete from db.${opts.table} where id = ${opts.recordId}`)
+            .commitTransaction()
             .statements(opts.afterDeleteService)
         )
         .setScalar(`dialog_waiting`, `false`)

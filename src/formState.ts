@@ -1345,6 +1345,16 @@ export class UpdateFormState extends FormState {
           this.#formStateExtensions?.afterTransactionCommit?.(this, s);
         }),
       errorName: "err",
+      catch: (s) =>
+        s
+          .debugExpr(`err.type`)
+          .debugExpr(`err.message`)
+          .debugExpr(`err.description`)
+          .statements(
+            this.setFormError("'Unable to submit form'"),
+            this.setSubmitting(`false`)
+          )
+          .return(),
     });
     domProc.statements(this.setSubmitting(`false`));
     this.#formStateExtensions?.afterSubmitClient?.(this, domProc);

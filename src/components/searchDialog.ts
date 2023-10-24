@@ -394,9 +394,11 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
       .modify(
         `delete from device.recent_${opts.table}_search where recent_search_id = result_id`
       )
+      .debugExpr("'before insert'")
       .modify(
         `insert into device.recent_${opts.table}_search select id as recent_search_id, label as recent_search_label, current_timestamp() as recent_search_timestamp ${extraValuesToDeviceSelect} from ui.result where active`
       )
+      .debugExpr("'after insert'")
       .if(
         `(select count(*) from device.recent_${opts.table}_search) >= 20`,
         (s) =>

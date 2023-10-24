@@ -801,10 +801,11 @@ function imageCell(
                           s
                             .statements(joinUploadTasks)
                             .serviceProc((s) =>
-                              s.statements(
-                                updateImagesInDb,
-                                state.triggerRefresh
-                              )
+                              s
+                                .startTransaction()
+                                .statements(updateImagesInDb)
+                                .commitTransaction()
+                                .statements(state.triggerRefresh)
                             ),
                         catch:
                           state.displayEditErrorAndRemoveAfter(

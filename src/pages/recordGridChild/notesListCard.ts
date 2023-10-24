@@ -181,9 +181,11 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                                   s
                                     .serviceProc((s) =>
                                       s
+                                        .startTransaction()
                                         .modify(
                                           `insert into db.${notesTable} (content, date, ${foreignKeyField}) values (ui.content, current_date(), ${ctx.recordId})`
                                         )
+                                        .commitTransaction()
                                         .statements(ctx.triggerRefresh)
                                     )
                                     .setScalar(`ui.adding`, `false`),
@@ -309,9 +311,11 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                                                 s
                                                   .serviceProc((s) =>
                                                     s
+                                                      .startTransaction()
                                                       .modify(
                                                         `update db.${notesTable} set content = ui.content, date = ui.date where id = note_record.id`
                                                       )
+                                                      .commitTransaction()
                                                       .statements(
                                                         ctx.triggerRefresh
                                                       )

@@ -152,7 +152,9 @@ export function imageDialog(opts: ImageDialogOptions) {
                                     .statements(joinUploadTasks)
                                     .serviceProc((s) =>
                                       s
+                                        .startTransaction()
                                         .statements(updateImagesInDb)
+                                        .commitTransaction()
                                         .setScalar(
                                           `full_img`,
                                           `uuid_` + fullImageIndex
@@ -185,6 +187,7 @@ export function imageDialog(opts: ImageDialogOptions) {
                             body: (s) =>
                               s.serviceProc((s) =>
                                 s
+                                  .startTransaction()
                                   .modify(
                                     `update db.${ident(
                                       table.name
@@ -192,6 +195,7 @@ export function imageDialog(opts: ImageDialogOptions) {
                                       opts.recordId
                                     }`
                                   )
+                                  .commitTransaction()
                                   .statements(opts.afterRemove)
                               ),
                             ...opts.onClose,

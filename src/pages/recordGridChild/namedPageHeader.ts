@@ -141,7 +141,11 @@ function imagePart(
                         s
                           .statements(joinUploadTasks)
                           .serviceProc((s) =>
-                            s.statements(updateImagesInDb, ctx.triggerRefresh)
+                            s
+                              .startTransaction()
+                              .statements(updateImagesInDb)
+                              .commitTransaction()
+                              .statements(ctx.triggerRefresh)
                           ),
                       catch: (s) =>
                         s.setScalar(`failed_upload`, `true`).spawn({
@@ -291,107 +295,110 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
     }
     selectFields += `, ${variant} as named_page_header_thumb`;
   }
-  return nodes.state({
-    watch: [refreshKey],
-    procedure: (s) =>
-      s.record(
-        `record`,
-        `select ${nameExpr} as name${selectFields} from db.${tableModel.identName} as record where id = ${recordId}`
-      ),
-    children: nodes.element("div", {
-      styles: styles.root,
-      children: [
-        imageFieldGroup ? imagePart(imageFieldGroup, opts, ctx) : undefined,
-        nodes.element("div", {
-          styles: { display: "flex", gap: 0.5, flexDirection: "column" },
-          children: [
-            nodes.element("div", {
-              styles: { display: "flex", alignItems: "baseline", gap: 0.5 },
-              children: [
-                typography({
-                  level: "h4",
-                  children: [
-                    opts.prefix ? `record.${opts.prefix} || ' '` : `''`,
-                    `record.name`,
-                  ],
-                }),
-              ],
-            }),
-            opts.subHeader
-              ? nodes.element("h6", {
-                  styles: styles.subHeader,
-                  children: `record.named_page_sub_header`,
-                })
-              : undefined,
-            opts.chips
-              ? nodes.element("div", {
-                  styles: styles.chips,
-                  children: opts.chips.map((c, i) => {
-                    if (typeof c === "string") {
-                      const field = tableModel.fields[c];
-                      return nodes.if(
-                        `record.${c}`,
-                        chip({
-                          variant: "soft",
-                          color: "neutral",
-                          size: "sm",
-                          children: stringLiteral(field.displayName),
-                        })
-                      );
-                    } else if ("field" in c) {
-                      const field = tableModel.fields[c.field];
-                      return nodes.if(
-                        `record.${c.field}`,
-                        chip({
-                          variant: c.variant ?? "soft",
-                          color: c.color ?? "neutral",
-                          size: c.size ?? "sm",
-                          children: stringLiteral(field.displayName),
-                        })
-                      );
-                    } else {
-                      return nodes.if(
-                        `record.chip_${i}`,
-                        chip({
-                          variant: c.variant ?? "soft",
-                          color: c.color ?? "neutral",
-                          size: c.size ?? "sm",
-                          children: stringLiteral(c.displayName),
-                        })
-                      );
-                    }
+  return nodes.sourceMap(
+    "namedPageHeader",
+    nodes.state({
+      watch: [refreshKey],
+      procedure: (s) =>
+        s.record(
+          `record`,
+          `select ${nameExpr} as name${selectFields} from db.${tableModel.identName} as record where id = ${recordId}`
+        ),
+      children: nodes.element("div", {
+        styles: styles.root,
+        children: [
+          imageFieldGroup ? imagePart(imageFieldGroup, opts, ctx) : undefined,
+          nodes.element("div", {
+            styles: { display: "flex", gap: 0.5, flexDirection: "column" },
+            children: [
+              nodes.element("div", {
+                styles: { display: "flex", alignItems: "baseline", gap: 0.5 },
+                children: [
+                  typography({
+                    level: "h4",
+                    children: [
+                      opts.prefix ? `record.${opts.prefix} || ' '` : `''`,
+                      `record.name`,
+                    ],
                   }),
-                })
-              : undefined,
-          ],
-        }),
-        nodes.element("div", {
-          styles: styles.grow,
-        }),
-        nodes.element("div", {
-          styles: { display: "flex", gap: 1 },
-          children: [
-            button({
-              color: "primary",
-              size: "sm",
-              variant: "soft",
-              startDecorator: materialIcon("Edit"),
-              children: `'Edit'`,
-              href: `${stringLiteral(
-                ctx.pathBase
-              )} || '/' || ui.record_id || '/edit'`,
-            }),
-            recordDeleteButton({
-              table: tableModel.name,
-              recordId: `ui.record_id`,
-              dialogConfirmDescription: `'Are you sure you want to delete ' || record.name || '?'`,
-              size: "sm",
-              afterDeleteService: (s) =>
-                s.navigate(stringLiteral(ctx.pathBase)),
-            }),
-          ],
-        }),
-      ],
-    }),
-  });
+                ],
+              }),
+              opts.subHeader
+                ? nodes.element("h6", {
+                    styles: styles.subHeader,
+                    children: `record.named_page_sub_header`,
+                  })
+                : undefined,
+              opts.chips
+                ? nodes.element("div", {
+                    styles: styles.chips,
+                    children: opts.chips.map((c, i) => {
+                      if (typeof c === "string") {
+                        const field = tableModel.fields[c];
+                        return nodes.if(
+                          `record.${c}`,
+                          chip({
+                            variant: "soft",
+                            color: "neutral",
+                            size: "sm",
+                            children: stringLiteral(field.displayName),
+                          })
+                        );
+                      } else if ("field" in c) {
+                        const field = tableModel.fields[c.field];
+                        return nodes.if(
+                          `record.${c.field}`,
+                          chip({
+                            variant: c.variant ?? "soft",
+                            color: c.color ?? "neutral",
+                            size: c.size ?? "sm",
+                            children: stringLiteral(field.displayName),
+                          })
+                        );
+                      } else {
+                        return nodes.if(
+                          `record.chip_${i}`,
+                          chip({
+                            variant: c.variant ?? "soft",
+                            color: c.color ?? "neutral",
+                            size: c.size ?? "sm",
+                            children: stringLiteral(c.displayName),
+                          })
+                        );
+                      }
+                    }),
+                  })
+                : undefined,
+            ],
+          }),
+          nodes.element("div", {
+            styles: styles.grow,
+          }),
+          nodes.element("div", {
+            styles: { display: "flex", gap: 1 },
+            children: [
+              button({
+                color: "primary",
+                size: "sm",
+                variant: "soft",
+                startDecorator: materialIcon("Edit"),
+                children: `'Edit'`,
+                href: `${stringLiteral(
+                  ctx.pathBase
+                )} || '/' || ui.record_id || '/edit'`,
+              }),
+              recordDeleteButton({
+                table: tableModel.name,
+                recordId: `ui.record_id`,
+                dialogConfirmDescription: `'Are you sure you want to delete ' || record.name || '?'`,
+                size: "sm",
+                afterDeleteService: (s) =>
+                  s.navigate(stringLiteral(ctx.pathBase)),
+              }),
+            ],
+          }),
+        ],
+      }),
+    })
+  );
 }

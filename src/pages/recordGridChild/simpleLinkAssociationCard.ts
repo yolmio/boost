@@ -150,230 +150,238 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
     assocTable.primaryKeyFieldName
   )} desc
   limit row_count`;
-  return nodes.state({
-    procedure: (s) => s.scalar(`adding`, `false`).scalar(`row_count`, `20`),
-    children: card({
-      variant: "outlined",
-      styles: opts.styles,
-      children: [
-        nodes.element("div", {
-          styles: styles.header,
-          children: [
-            typography({
-              level: "h6",
-              startDecorator: opts.headerStartDecorator,
-              children:
-                opts.header ?? stringLiteral(pluralize(otherTable.displayName)),
-            }),
-            nodes.element("div", { styles: flexGrowStyles }),
-            iconButton({
-              variant: "soft",
-              color: "primary",
-              size: "sm",
-              children: nodes.if({
-                condition: `adding`,
-                then: materialIcon("Close"),
-                else: materialIcon("Add"),
+  return nodes.sourceMap(
+    "simpleLinkAssociationCard",
+    nodes.state({
+      procedure: (s) => s.scalar(`adding`, `false`).scalar(`row_count`, `20`),
+      children: card({
+        variant: "outlined",
+        styles: opts.styles,
+        children: [
+          nodes.element("div", {
+            styles: styles.header,
+            children: [
+              typography({
+                level: "h6",
+                startDecorator: opts.headerStartDecorator,
+                children:
+                  opts.header ??
+                  stringLiteral(pluralize(otherTable.displayName)),
               }),
-              on: { click: (s) => s.setScalar(`adding`, `not adding`) },
-            }),
-          ],
-        }),
-        nodes.if(
-          `adding`,
-          withInsertFormState({
-            table: assocTable.name,
-            withValues: { [toCurrentField.name]: ctx.recordId },
-            afterTransactionCommit: (_, s) =>
-              s.statements(ctx.triggerRefresh).setScalar(`adding`, `false`),
-            fields: [{ field: toOtherField.name }],
-            children: (formState) => {
-              const otherFieldHelper = formState.field(toOtherField.name);
-              return [
-                nodes.element("div", {
-                  styles: {
-                    mb: 2,
-                    display: "flex",
-                    alignItems: "flex-end",
-                    gap: 2,
-                  },
-                  children: [
-                    formControl({
-                      styles: { flexGrow: 1 },
-                      error: otherFieldHelper.hasError,
-                      children: [
-                        formLabel({
-                          children: stringLiteral(toOtherField.displayName),
-                          required: toOtherField.notNull,
-                        }),
-                        getTableRecordSelect(otherTable.name, {
-                          value: otherFieldHelper.value,
-                          onSelectValue: (v) => otherFieldHelper.setValue(v),
-                          error: otherFieldHelper.hasError,
-                        }),
-                        nodes.if(
-                          otherFieldHelper.hasError,
-                          formHelperText({
-                            children: otherFieldHelper.error,
-                          })
-                        ),
-                      ],
-                    }),
-                    button({
-                      children: `'Add ' || ${stringLiteral(
-                        otherTable.displayName
-                      )}`,
-                      loading: formState.submitting,
-                      on: {
-                        click: formState.onSubmit,
-                      },
-                    }),
-                  ],
+              nodes.element("div", { styles: flexGrowStyles }),
+              iconButton({
+                variant: "soft",
+                color: "primary",
+                size: "sm",
+                children: nodes.if({
+                  condition: `adding`,
+                  then: materialIcon("Close"),
+                  else: materialIcon("Add"),
                 }),
-                nodes.if(
-                  formState.hasFormError,
-                  alert({
-                    styles: { mt: 1 },
-                    color: "danger",
-                    children: formState.formError,
-                  })
-                ),
-              ];
-            },
-          })
-        ),
-        divider(),
-        cardOverflow({
-          children: nodes.state({
-            watch: [ctx.refreshKey, `row_count`],
-            procedure: (s) =>
-              s
-                .record("related", relatedQuery)
-                .scalar(`service_row_count`, `row_count`),
-            children: nodes.element("ul", {
-              styles: styles.list,
-              props: {
-                id: listScrollId,
-              },
-              on: {
-                scroll: (s) =>
-                  s
-                    .if(
-                      `status != 'received' or (service_row_count is not null and (select count(*) from related) < service_row_count)`,
-                      (s) => s.return()
-                    )
-                    .getElProperty(
-                      "scrollHeight",
-                      "el_scroll_height",
-                      listScrollId
-                    )
-                    .getBoundingClientRect(listScrollId, "el_rect")
-                    .getElProperty("scrollTop", "el_scroll_top", listScrollId)
-                    .if(
-                      `el_scroll_height - el_scroll_top - el_rect.height < 300`,
-                      (s) => s.setScalar(`row_count`, `row_count + 20`)
-                    ),
-              },
-              children: nodes.each({
-                table: "related",
-                recordName: "record",
-                key: "record.assoc_id",
-                children: nodes.element("li", {
-                  styles: styles.listItem,
-                  children: [
-                    recordDisplayName
-                      ? nodes.element("a", {
-                          props: {
-                            href: otherTable.getHrefToRecord("record.other_id"),
-                          },
-                          styles: styles.link,
-                          children: `record.display_name`,
-                        })
-                      : button({
-                          variant: "soft",
-                          children: `'View'`,
-                          href: otherTable.getHrefToRecord("record.other_id"),
-                          size: "sm",
-                        }),
-                    nodes.element("div", { styles: flexGrowStyles }),
-                    displayValues.map((displayValue, i) => {
-                      if (typeof displayValue === "string") {
-                        const field = otherTable.fields[displayValue];
-                        if (!field) {
-                          throw new Error(
-                            `Field ${displayValue} does not exist in table ${otherTable.name}`
-                          );
-                        }
-                        const value = `record.${ident(displayValue)}`;
-                        if (field.type === "Bool") {
-                          return nodes.if(
-                            value,
-                            chip({
-                              variant: "soft",
-                              color: "neutral",
-                              size: "sm",
-                              children: stringLiteral(field.displayName),
+                on: { click: (s) => s.setScalar(`adding`, `not adding`) },
+              }),
+            ],
+          }),
+          nodes.if(
+            `adding`,
+            withInsertFormState({
+              table: assocTable.name,
+              withValues: { [toCurrentField.name]: ctx.recordId },
+              afterTransactionCommit: (_, s) =>
+                s.statements(ctx.triggerRefresh).setScalar(`adding`, `false`),
+              fields: [{ field: toOtherField.name }],
+              children: (formState) => {
+                const otherFieldHelper = formState.field(toOtherField.name);
+                return [
+                  nodes.element("div", {
+                    styles: {
+                      mb: 2,
+                      display: "flex",
+                      alignItems: "flex-end",
+                      gap: 2,
+                    },
+                    children: [
+                      formControl({
+                        styles: { flexGrow: 1 },
+                        error: otherFieldHelper.hasError,
+                        children: [
+                          formLabel({
+                            children: stringLiteral(toOtherField.displayName),
+                            required: toOtherField.notNull,
+                          }),
+                          getTableRecordSelect(otherTable.name, {
+                            value: otherFieldHelper.value,
+                            onSelectValue: (v) => otherFieldHelper.setValue(v),
+                            error: otherFieldHelper.hasError,
+                          }),
+                          nodes.if(
+                            otherFieldHelper.hasError,
+                            formHelperText({
+                              children: otherFieldHelper.error,
                             })
-                          );
+                          ),
+                        ],
+                      }),
+                      button({
+                        children: `'Add ' || ${stringLiteral(
+                          otherTable.displayName
+                        )}`,
+                        loading: formState.submitting,
+                        on: {
+                          click: formState.onSubmit,
+                        },
+                      }),
+                    ],
+                  }),
+                  nodes.if(
+                    formState.hasFormError,
+                    alert({
+                      styles: { mt: 1 },
+                      color: "danger",
+                      children: formState.formError,
+                    })
+                  ),
+                ];
+              },
+            })
+          ),
+          divider(),
+          cardOverflow({
+            children: nodes.state({
+              watch: [ctx.refreshKey, `row_count`],
+              procedure: (s) =>
+                s
+                  .record("related", relatedQuery)
+                  .scalar(`service_row_count`, `row_count`),
+              children: nodes.element("ul", {
+                styles: styles.list,
+                props: {
+                  id: listScrollId,
+                },
+                on: {
+                  scroll: (s) =>
+                    s
+                      .if(
+                        `status != 'received' or (service_row_count is not null and (select count(*) from related) < service_row_count)`,
+                        (s) => s.return()
+                      )
+                      .getElProperty(
+                        "scrollHeight",
+                        "el_scroll_height",
+                        listScrollId
+                      )
+                      .getBoundingClientRect(listScrollId, "el_rect")
+                      .getElProperty("scrollTop", "el_scroll_top", listScrollId)
+                      .if(
+                        `el_scroll_height - el_scroll_top - el_rect.height < 300`,
+                        (s) => s.setScalar(`row_count`, `row_count + 20`)
+                      ),
+                },
+                children: nodes.each({
+                  table: "related",
+                  recordName: "record",
+                  key: "record.assoc_id",
+                  children: nodes.element("li", {
+                    styles: styles.listItem,
+                    children: [
+                      recordDisplayName
+                        ? nodes.element("a", {
+                            props: {
+                              href: otherTable.getHrefToRecord(
+                                "record.other_id"
+                              ),
+                            },
+                            styles: styles.link,
+                            children: `record.display_name`,
+                          })
+                        : button({
+                            variant: "soft",
+                            children: `'View'`,
+                            href: otherTable.getHrefToRecord("record.other_id"),
+                            size: "sm",
+                          }),
+                      nodes.element("div", { styles: flexGrowStyles }),
+                      displayValues.map((displayValue, i) => {
+                        if (typeof displayValue === "string") {
+                          const field = otherTable.fields[displayValue];
+                          if (!field) {
+                            throw new Error(
+                              `Field ${displayValue} does not exist in table ${otherTable.name}`
+                            );
+                          }
+                          const value = `record.${ident(displayValue)}`;
+                          if (field.type === "Bool") {
+                            return nodes.if(
+                              value,
+                              chip({
+                                variant: "soft",
+                                color: "neutral",
+                                size: "sm",
+                                children: stringLiteral(field.displayName),
+                              })
+                            );
+                          }
+                          const content = nodes.element("div", {
+                            styles: styles.itemValueWrapper,
+                            children: [
+                              nodes.element("p", {
+                                styles: styles.itemValue,
+                                children: `${stringLiteral(
+                                  field.displayName
+                                )} || ':'`,
+                              }),
+                              inlineFieldDisplay(field, value),
+                            ],
+                          });
+                          if (field.notNull) {
+                            return content;
+                          }
+                          return nodes.if(value + ` is not null`, content);
+                        } else {
+                          return nodes.element("div", {
+                            styles: styles.itemValueWrapper,
+                            children: [
+                              nodes.element("p", {
+                                styles: styles.itemValue,
+                                children: `${stringLiteral(
+                                  displayValue.label
+                                )} || ':'`,
+                              }),
+                              displayValue.display(`record.expr_${i}`),
+                            ],
+                          });
                         }
-                        const content = nodes.element("div", {
-                          styles: styles.itemValueWrapper,
-                          children: [
-                            nodes.element("p", {
-                              styles: styles.itemValue,
-                              children: `${stringLiteral(
-                                field.displayName
-                              )} || ':'`,
-                            }),
-                            inlineFieldDisplay(field, value),
-                          ],
-                        });
-                        if (field.notNull) {
-                          return content;
-                        }
-                        return nodes.if(value + ` is not null`, content);
-                      } else {
-                        return nodes.element("div", {
-                          styles: styles.itemValueWrapper,
-                          children: [
-                            nodes.element("p", {
-                              styles: styles.itemValue,
-                              children: `${stringLiteral(
-                                displayValue.label
-                              )} || ':'`,
-                            }),
-                            displayValue.display(`record.expr_${i}`),
-                          ],
-                        });
-                      }
-                    }),
-                    nodes.state({
-                      procedure: (s) => s.scalar(`deleting`, `false`),
-                      children: [
-                        iconButton({
-                          variant: "plain",
-                          color: "neutral",
-                          size: "sm",
-                          children: materialIcon("DeleteOutlined"),
-                          on: { click: (s) => s.setScalar(`deleting`, `true`) },
-                        }),
-                        deleteRecordDialog({
-                          open: `deleting`,
-                          onClose: (s) => s.setScalar(`deleting`, `false`),
-                          recordId: `related.assoc_id`,
-                          table: assocTable.name,
-                          afterDeleteService: ctx.triggerRefresh,
-                        }),
-                      ],
-                    }),
-                  ],
+                      }),
+                      nodes.state({
+                        procedure: (s) => s.scalar(`deleting`, `false`),
+                        children: [
+                          iconButton({
+                            variant: "plain",
+                            color: "neutral",
+                            size: "sm",
+                            children: materialIcon("DeleteOutlined"),
+                            on: {
+                              click: (s) => s.setScalar(`deleting`, `true`),
+                            },
+                          }),
+                          deleteRecordDialog({
+                            open: `deleting`,
+                            onClose: (s) => s.setScalar(`deleting`, `false`),
+                            recordId: `related.assoc_id`,
+                            table: assocTable.name,
+                            afterDeleteService: ctx.triggerRefresh,
+                          }),
+                        ],
+                      }),
+                    ],
+                  }),
                 }),
               }),
             }),
           }),
-        }),
-        ,
-      ],
-    }),
-  });
+          ,
+        ],
+      }),
+    })
+  );
 }

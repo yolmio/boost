@@ -285,9 +285,11 @@ export function viewDrawer(datagridName: string, dts: DatagridRfns) {
                                     body: (s) =>
                                       s.serviceProc((s) =>
                                         s
+                                          .startTransaction()
                                           .modify(
                                             `update db.datagrid_view set name = view_name where id = view_record.id`
                                           )
+                                          .commitTransaction()
                                           .setScalar(
                                             `drawer_refresh_key`,
                                             `drawer_refresh_key + 1`
@@ -318,9 +320,11 @@ export function viewDrawer(datagridName: string, dts: DatagridRfns) {
                                       body: (s) =>
                                         s.serviceProc((s) =>
                                           s
+                                            .startTransaction()
                                             .modify(
                                               `update db.datagrid_view set name = view_name where id = view_record.id`
                                             )
+                                            .commitTransaction()
                                             .setScalar(
                                               `drawer_refresh_key`,
                                               `drawer_refresh_key + 1`
