@@ -71,52 +71,55 @@ export function updateFormPage(opts: UpdateFormPage) {
   });
   app.ui.pages.push({
     path,
-    content: nodes.state({
-      procedure: (s) =>
-        s.record(
-          `record`,
-          `select * from db.${opts.table} where id = record_id`
+    content: nodes.sourceMap(
+      `updateForm(table: ${opts.table})`,
+      nodes.state({
+        procedure: (s) =>
+          s.record(
+            `record`,
+            `select * from db.${opts.table} where id = record_id`
+          ),
+        statusScalar: `status`,
+        children: nodes.switch(
+          {
+            condition: `status = 'received' and record.id is not null`,
+            node: content,
+          },
+          {
+            condition: `status = 'received' and record.id is null`,
+            node: nodes.element("div", {
+              styles: styles.notContentWrapper,
+              children: alert({
+                color: "danger",
+                startDecorator: materialIcon("Report"),
+                size: "lg",
+                children: `'No ' || ${stringLiteral(
+                  table.displayName.toLowerCase()
+                )} || ' with id'`,
+              }),
+            }),
+          },
+          {
+            condition: `status = 'requested' or status = 'fallback_triggered'`,
+            node: nodes.element("div", {
+              styles: styles.notContentWrapper,
+              children: circularProgress({ size: "lg" }),
+            }),
+          },
+          {
+            condition: `status = 'failed'`,
+            node: nodes.element("div", {
+              styles: styles.notContentWrapper,
+              children: alert({
+                color: "danger",
+                startDecorator: materialIcon("Report"),
+                size: "lg",
+                children: `'Unable to load page'`,
+              }),
+            }),
+          }
         ),
-      statusScalar: `status`,
-      children: nodes.switch(
-        {
-          condition: `status = 'received' and record.id is not null`,
-          node: content,
-        },
-        {
-          condition: `status = 'received' and record.id is null`,
-          node: nodes.element("div", {
-            styles: styles.notContentWrapper,
-            children: alert({
-              color: "danger",
-              startDecorator: materialIcon("Report"),
-              size: "lg",
-              children: `'No ' || ${stringLiteral(
-                table.displayName.toLowerCase()
-              )} || ' with id'`,
-            }),
-          }),
-        },
-        {
-          condition: `status = 'requested' or status = 'fallback_triggered'`,
-          node: nodes.element("div", {
-            styles: styles.notContentWrapper,
-            children: circularProgress({ size: "lg" }),
-          }),
-        },
-        {
-          condition: `status = 'failed'`,
-          node: nodes.element("div", {
-            styles: styles.notContentWrapper,
-            children: alert({
-              color: "danger",
-              startDecorator: materialIcon("Report"),
-              size: "lg",
-              children: `'Unable to load page'`,
-            }),
-          }),
-        }
-      ),
-    }),
+      })
+    ),
   });
 }

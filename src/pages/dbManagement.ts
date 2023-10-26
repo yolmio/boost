@@ -498,7 +498,7 @@ function displayField({ name, notNull, type }: FieldDisplayOpts) {
   });
 }
 
-function collapse(label: string, node: Node) {
+function collapse(label: Node, node: Node) {
   return nodes.state({
     procedure: (s) => s.scalar(`open`, `false`),
     children: [
@@ -511,7 +511,7 @@ function collapse(label: string, node: Node) {
           },
         ],
         children: [
-          stringLiteral(label),
+          label,
           nodes.element("div", { styles: flexGrowStyles }),
           nodes.if({
             condition: "open",
@@ -534,7 +534,7 @@ function transactionQueryReference(): Node[] {
     typography({ level: "h5", children: "'Transaction Queries'" }),
     divider(),
     collapse(
-      "tx",
+      "'tx'",
       nodes.element("div", {
         styles: styles.tableFields,
         children: [
@@ -553,7 +553,7 @@ function transactionQueryReference(): Node[] {
       })
     ),
     collapse(
-      "tx_op",
+      "'tx_op'",
       nodes.element("div", {
         styles: styles.tableFields,
         children: [
@@ -597,7 +597,7 @@ function transactionQueryReference(): Node[] {
       })
     ),
     collapse(
-      "{table}_as_of",
+      "'{table}_as_of'",
       nodes.element("div", {
         styles: styles.tableFields,
         children: [
@@ -617,7 +617,7 @@ function transactionQueryReference(): Node[] {
       })
     ),
     collapse(
-      "{table}_insert_op",
+      "'{table}_insert_op'",
       nodes.element("div", {
         styles: styles.tableFields,
         children: [
@@ -653,7 +653,7 @@ function transactionQueryReference(): Node[] {
       })
     ),
     collapse(
-      "{table}_update_op",
+      "'{table}_update_op'",
       nodes.element("div", {
         styles: styles.tableFields,
         children: [
@@ -689,7 +689,7 @@ function transactionQueryReference(): Node[] {
       })
     ),
     collapse(
-      "sys_op_kind",
+      "'sys_op_kind'",
       nodes.element("div", {
         styles: styles.enumValues,
         children: [
@@ -717,7 +717,7 @@ function transactionQueryReference(): Node[] {
       })
     ),
     collapse(
-      "sys_db_table",
+      "'sys_db_table'",
       nodes.element("div", {
         styles: styles.enumValues,
         children: Object.keys(app.db.tables).map((name) =>
@@ -777,7 +777,22 @@ function schemaReference() {
             })
           );
           return collapse(
-            table.name,
+            nodes.state({
+              procedure: (s) =>
+                s.scalar(
+                  `count`,
+                  `(select count(*) from db.${table.identName})`
+                ),
+              statusScalar: `status`,
+              children: nodes.if({
+                condition: `status = 'fallback_triggered'`,
+                then: `'loading...'`,
+                else: [
+                  stringLiteral(table.name),
+                  `' (' || count || ' records)'`,
+                ],
+              }),
+            }),
             nodes.element("div", {
               styles: styles.tableFields,
               children: fields,
@@ -797,7 +812,7 @@ function schemaReference() {
               )
               .map((enum_) => {
                 return collapse(
-                  enum_.name,
+                  stringLiteral(enum_.name),
                   nodes.element("div", {
                     styles: styles.enumValues,
                     children: Object.values(enum_.values).map((v) =>
