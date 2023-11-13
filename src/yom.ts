@@ -9,9 +9,6 @@ export interface Model {
   dbExecutionConfig: DbExecutionConfig;
   appDomain?: string;
   collation: Collation;
-  autoTrim: AutoTrim;
-  /** Specifies how to format different types when using the cast function, e.g. cast(foo as string) */
-  textCast: TextCastInfo;
   db: Database;
   ui: UiModel;
   enums?: Enum[];
@@ -23,8 +20,6 @@ export interface Model {
   scriptDbs?: ScriptDb[];
   test?: TestModel;
   api?: AppApi;
-  /** @private */
-  internalLogicTests?: LogicTest[];
 }
 
 export type Locale = "en_us";
@@ -1264,8 +1259,12 @@ export interface DelayStatement {
   ms: SqlExpression;
 }
 
-export interface CommitUiChangesStatement {
-  t: "CommitUiChanges";
+export interface CommitUiTreeChangesStatement {
+  t: "CommitUiTreeChanges";
+}
+
+export interface RunTreeChangeEffectsStatement {
+  t: "RunTreeChangeEffects";
 }
 
 /**
@@ -1398,6 +1397,20 @@ export interface AddImageStatement {
   resize?: ImageResize;
 }
 
+export type ViewTransitionTiming =
+  | "immediate"
+  | "fallback"
+  | "final"
+  | "next"
+  | "next_not_immediate"
+  | "all";
+
+export interface TriggerViewTransition {
+  t: "TriggerViewTransition";
+  on: ViewTransitionTiming;
+  type?: string;
+}
+
 export type DomProcStatement =
   | IfStatement<DomProcStatement>
   | WhileStatement<DomProcStatement>
@@ -1414,7 +1427,7 @@ export type DomProcStatement =
   | SetQueryParam
   | DoServiceProcStatement
   | DelayStatement
-  | CommitUiChangesStatement
+  | CommitUiTreeChangesStatement
   | SpawnStatement
   | WaitOnTaskStatement
   | JoinTasksStatement
@@ -1428,7 +1441,9 @@ export type DomProcStatement =
   | GetWindowPropertyStatement
   | GetBoundingClientRectStatement
   | GetElPropertyStatement
-  | LogOutStatment;
+  | LogOutStatment
+  | TriggerViewTransition
+  | RunTreeChangeEffectsStatement;
 
 export interface LogOutStatment {
   t: "LogOut";
@@ -1595,6 +1610,7 @@ export type StateStatement =
   | TryStatement<StateStatement>
   | BaseStatement
   | DynamicQueryStatement
+  | DynamicQueryToCsv
   | DynamicModifyStatement
   | FileRefTableStatement
   | GetWindowPropertyStatement
@@ -2438,235 +2454,4 @@ export interface ApiTest {
 export interface TestModel {
   data: TestData[];
   api?: ApiTest[];
-
-  /** @private */
-  uiSnapshotDir?: string;
-  /** @private */
-  ui?: UiTest[];
 }
-
-///
-/// INTERNAL
-///
-
-/** @private */
-export interface TestAssertQueryStatement {
-  t: "AssertQuery";
-  query: SqlQuery;
-  csv: string;
-}
-
-/** @private */
-export interface TestSnapshotQueryStatement {
-  t: "SnapshotQuery";
-  query: SqlQuery;
-}
-
-/** @private */
-export interface TestSnapshotUiStatement {
-  t: "SnapshotUi";
-}
-
-/** @private */
-export interface TestNavigateStatement {
-  t: "Navigate";
-  to: string;
-}
-
-/** @private */
-export interface TestSimulateClickStatement {
-  t: "SimulateClick";
-  nodeId: string;
-}
-
-/** @private */
-export interface TestSimulateSubmitStatement {
-  t: "SimulateSubmit";
-  nodeId: string;
-}
-
-/** @private */
-export interface TestSimulateInputStatement {
-  t: "SimulateInput";
-  nodeId: string;
-  inputValue: string;
-}
-
-/** @private */
-export interface TestSimulateFileChangeStatement {
-  t: "SimulateFileChange";
-  nodeId: string;
-  files: TestFileChangeStatement[];
-}
-
-/** @private */
-export interface TestFileChangeStatement {
-  uuid: string;
-  type: string;
-  lastModified: string;
-  size: number;
-}
-
-/** @private */
-export interface TestSetTestTimeStatement {
-  t: "SetTestTime";
-  to: string;
-}
-
-/** @private */
-export interface TestAdvanceMsStatement {
-  t: "AdvanceMs";
-  ms: number;
-}
-
-/** @private */
-export interface TestSetServiceRenderDelayStatement {
-  t: "SetServiceRenderDelay";
-  ms: number;
-}
-
-/** @private */
-export interface TestSetServiceLongRunningRenderDelayStatement {
-  t: "SetServiceLongRunningRenderDelay";
-  ms: number;
-}
-
-/** @private */
-export interface TestSetServiceProcDelayStatement {
-  t: "SetServiceProcDelay";
-  ms: number;
-}
-
-/** @private */
-export interface TestSetRequestResponseStatement {
-  t: "SetRequestResponse";
-  uri: string;
-  method: string;
-  status: number;
-  headers: TestRequestHeader[];
-  body?: TestRequestBody;
-  assertRequestBody?: TestRequestBody;
-  assertRequestHeaders?: TestRequestHeader[];
-}
-
-/** @private */
-export type TestRequestBody =
-  | { t: "Text"; value: string }
-  | { t: "Json"; value: any };
-
-/** @private */
-export interface TestRequestHeader {
-  name: string;
-  value: string;
-}
-
-/** @private */
-export type UiTestStatment =
-  | IfStatement<UiTestStatment>
-  | WhileStatement<UiTestStatment>
-  | BlockStatement<UiTestStatment>
-  | ForEachCursorStatement<UiTestStatment>
-  | ForEachQueryStatement<UiTestStatment>
-  | ForEachTableStatement<UiTestStatment>
-  | TryStatement<UiTestStatment>
-  | TestSetTestTimeStatement
-  | TestAssertQueryStatement
-  | TestSnapshotQueryStatement
-  | TestSnapshotUiStatement
-  | BaseStatement
-  | TestSimulateClickStatement
-  | TestSimulateSubmitStatement
-  | TestSimulateInputStatement
-  | TestSimulateFileChangeStatement
-  | TestSetRequestResponseStatement
-  | TestAdvanceMsStatement
-  | TestSetServiceRenderDelayStatement
-  | TestSetServiceLongRunningRenderDelayStatement
-  | TestSetServiceProcDelayStatement
-  | TestNavigateStatement;
-
-/** @private */
-export interface UiTest {
-  time: string;
-  skip?: boolean;
-  only?: boolean;
-  seed?: number;
-  name: string;
-  data: string;
-  initialPage: string;
-  procedure: UiTestStatment[];
-}
-
-/** @private */
-export interface LogicTest {
-  name: string;
-  time: string;
-  seed: number;
-  body: LogicTestStatement[];
-  debugQuery?: string;
-}
-
-/** @private */
-export interface LogicTestQueryStatement {
-  type: "Query";
-  label?: string;
-  sortMode: "NoSort" | "RowSort" | "ValueSort";
-  query: string;
-  result: LogicTestQueryResult;
-}
-
-/** @private */
-export interface LogicTestModifyStatement {
-  type: "Modify";
-  ok: boolean;
-  sql: string;
-}
-
-/** @private */
-export interface LogicTestRestoreStatement {
-  type: "Restore";
-  ok: boolean;
-  table: string;
-  ids: string[];
-}
-
-/** @private */
-export interface LogicTestUndoTxStatement {
-  type: "UndoTx";
-  ok: boolean;
-  tx: string;
-}
-
-/** @private */
-export interface LogicTestCommitDbStatement {
-  type: "CommitDb";
-}
-
-/** @private */
-export interface LogicTestManualFlushStatement {
-  type: "ManualFlush";
-}
-
-/** @private */
-export interface LogicTestSearchStatement {
-  type: "Search";
-  config: RankedSearchConfig;
-  query: string;
-  limit: number;
-  result: { record: number; table: string }[];
-}
-
-/** @private */
-export type LogicTestStatement =
-  | LogicTestQueryStatement
-  | LogicTestModifyStatement
-  | LogicTestRestoreStatement
-  | LogicTestUndoTxStatement
-  | LogicTestCommitDbStatement
-  | LogicTestSearchStatement
-  | LogicTestManualFlushStatement;
-
-/** @private */
-export type LogicTestQueryResult =
-  | { type: "Values"; values: string[] }
-  | { type: "Hash"; valueCount: number; hash: string };

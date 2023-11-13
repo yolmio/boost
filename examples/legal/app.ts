@@ -9,7 +9,7 @@ app.displayName = "Legal";
 // generated the woff files with:
 // https://gwfh.mranftl.com/fonts
 for (const weight of ["regular", "500", "600", "700"]) {
-  ui.globalStyles.push({
+  ui.addGlobalStyle({
     "@font-face": {
       fontDisplay: "swap",
       fontFamily: "'Arimo'",
@@ -47,7 +47,7 @@ const primaryDarkPalette = {
   900: "#05112E",
 };
 
-app.setTheme({
+ui.setTheme({
   fontFamily: {
     body: "Arimo, sans-serif",
   },
@@ -152,7 +152,7 @@ db.catalog.addAttachmentsTable("matter");
 db.addTable("time_entry", (table) => {
   table.fk("matter").notNull().onDelete("Restrict");
   table.fk("employee").notNull().onDelete("Restrict");
-  table.date("date").notNull();
+  table.date("date").notNull().indexed();
   table.minutesDuration("minutes", "SmallUint").notNull();
   table.bool("billable").notNull().default("true");
   table.string("note", 500).multiline();
@@ -330,20 +330,17 @@ ui.addDashboardGridPage((page) =>
       cardStyles: { minHeight: "200px", lg: { minHeight: "350px" } },
       header: "Hours in the last 30 days",
       state: (s) =>
-        s
-          .scalar(
-            `billable`,
-            `(select sum(minutes) from db.time_entry where billable and date > date.add(day, -30, today()))`
-          )
-          .scalar(
-            `non_billable`,
-            `(select sum(minutes) from db.time_entry where not billable and date > date.add(day, -30, today()))`
-          ),
+        s.record(
+          `last_30_days`,
+          `select
+            sum(case when billable then minutes end) as billable,
+            sum(case when not billable then minutes end) as non_billable
+          from db.time_entry where date > date.add(day, -30, today())`
+        ),
       pieChartOpts: {
         labels:
           "select value from (values('Billable'), ('Non-Billable')) as t(value)",
-        series:
-          "select value from (values(billable), (non_billable)) as t(value)",
+        series: "select billable, non_billable from last_30_days",
         donut: "true",
         donutWidth: "15",
       },
@@ -412,7 +409,7 @@ ui.addUpdateFormPage({
   afterTransactionCommit: (_, s) => s.navigate(`'/contacts/' || ui.record_id`),
 });
 
-ui.addDatagridPage("contact", (page) => {
+const contactDatagridPage = ui.createDatagridPageNode("contact", (page) => {
   page
     .selectable()
     .viewButton()
@@ -426,6 +423,9 @@ ui.addDatagridPage("contact", (page) => {
       sort: { type: "numeric" },
     });
 });
+
+ui.pages.push({ path: "/contacts", content: contactDatagridPage });
+ui.pages.push({ path: "/contactsssss", content: contactDatagridPage });
 
 const remainingHoursStyles = {
   color: "text-secondary",
@@ -785,7 +785,7 @@ ui.addMultiCardInsert({
           children: [
             components.materialIcon({
               name: "ThumbUp",
-              fontSize: "xl7",
+              fontSize: "xl4",
             }),
             nodes.element("p", {
               styles: { ml: 4, fontSize: "xl2" },
@@ -839,7 +839,7 @@ ui.addSimpleReportsPage((page) => {
     }
   );
 
-  const employeeHoursQuery = `
+  const timeEntryStats = `
 select 
   first_name || ' ' || last_name as employee,
   billable_minutes,
@@ -864,7 +864,7 @@ order by total_minutes desc`;
   page.table({
     name: "Time Entry Stats",
     parameters: lastMonthParams,
-    query: employeeHoursQuery,
+    query: timeEntryStats,
     columns: [
       { header: "Employee", cell: (r) => `${r}.employee` },
       {
@@ -927,15 +927,38 @@ order by current_matters_open desc`;
   page.section("Clients");
 
   const highestPayingClients = `
+with minutes_by_matter as (
+  select
+    matter,
+    sum(minutes) as minutes
+  from db.time_entry
+  group by matter
+),
+minutes_by_client as (
+  select
+    contact,
+    sum(minutes) as minutes
+  from minutes_by_matter
+    join db.matter
+      on matter.id = minutes_by_matter.matter
+  group by contact
+),
+payments_by_client as (
+  select
+    contact,
+    sum(cost) as cost
+  from db.payment
+  group by contact
+)
 select
   id,
   first_name || ' ' || last_name as client_name,
-  (select sum(cost) from db.payment where contact = contact.id) as total_paid,
+  (select cost from payments_by_client where contact = contact.id) as total_paid,
   (select count(*) from db.matter where contact = contact.id) as matter_count,
-  (select sum(minutes) from db.time_entry where matter in (select matter.id from db.matter where contact = contact.id)) as total_minutes
+  (select minutes from minutes_by_client where contact = contact.id) as total_minutes
 from db.contact
 where type = 'client'
-order by total_paid desc nulls last
+order by total_paid desc nulls last 
 limit 10`;
 
   page.table({

@@ -162,7 +162,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
             styles: styles.header,
             children: [
               typography({
-                level: "h6",
+                level: "body-lg",
                 startDecorator: opts.headerStartDecorator,
                 children:
                   opts.header ??

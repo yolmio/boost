@@ -20,6 +20,7 @@ import {
 } from "./datagridBase";
 import { alert } from "../../components/alert";
 import { checkbox } from "../../components/checkbox";
+import { app } from "../../app";
 
 function withViewDrawerState(datagridName: string, children: Node) {
   return nodes.state({
@@ -45,15 +46,46 @@ function withViewDrawerState(datagridName: string, children: Node) {
 }
 
 const styles = createStyles({
-  root: {
-    width: 300,
-    height: "100%",
-    p: 1,
-    display: "flex",
-    flexDirection: "column",
-    gap: 1,
-    borderTop: "1px solid",
-    borderColor: "divider",
+  root: () => {
+    const enterAnimation = app.ui.registerKeyframes({
+      from: {
+        transform: "translate(-100%, 0)",
+      },
+      to: {
+        transform: "translate(0%, 0)",
+      },
+    });
+    const exitAnimation = app.ui.registerKeyframes({
+      from: {
+        transform: "translate(0%, 0)",
+      },
+      to: {
+        transform: "translate(-100%, 0)",
+      },
+    });
+    app.ui.addGlobalStyle({
+      "::view-transition-group(view-drawer)": {
+        animationDuration: app.ui.theme.transitionDurations.drawer,
+        animationTimingFunction: app.ui.theme.transitionEasing.drawer,
+      },
+      "::view-transition-new(view-drawer):only-child": {
+        animationName: enterAnimation,
+      },
+      "::view-transition-old(view-drawer):only-child": {
+        animationName: exitAnimation,
+      },
+    });
+    return {
+      width: 300,
+      height: "100%",
+      p: 1,
+      display: "flex",
+      flexDirection: "column",
+      gap: 1,
+      borderTop: "1px solid",
+      borderColor: "divider",
+      viewTransitionName: "view-drawer",
+    };
   },
   header: {
     display: "flex",
@@ -101,13 +133,13 @@ const viewIdBase = stringLiteral(getUniqueUiId());
 
 export function viewDrawer(datagridName: string, dts: DatagridRfns) {
   const drawerContent = nodes.element("div", {
-    styles: styles.root,
+    styles: styles.root(),
     children: [
       nodes.element("div", {
         styles: styles.header,
         children: [
           typography({
-            level: "h6",
+            level: "body-lg",
             children: `'Views'`,
           }),
           nodes.if(`proc_in_progress`, circularProgress({ size: "sm" })),
@@ -178,7 +210,7 @@ export function viewDrawer(datagridName: string, dts: DatagridRfns) {
                       s
                         .setScalar(`waiting`, `true`)
                         .setScalar(`error`, `null`)
-                        .commitUiChanges()
+                        .commitUiTreeChanges()
                         .try({
                           body: (s) =>
                             s.serviceProc((s) =>
@@ -280,7 +312,7 @@ export function viewDrawer(datagridName: string, dts: DatagridRfns) {
                                   )
                                   .setScalar(`proc_in_progress`, `true`)
                                   .setScalar(`proc_error`, `null`)
-                                  .commitUiChanges()
+                                  .commitUiTreeChanges()
                                   .try({
                                     body: (s) =>
                                       s.serviceProc((s) =>
@@ -315,7 +347,7 @@ export function viewDrawer(datagridName: string, dts: DatagridRfns) {
                                     )
                                     .setScalar(`proc_in_progress`, `true`)
                                     .setScalar(`proc_error`, `null`)
-                                    .commitUiChanges()
+                                    .commitUiTreeChanges()
                                     .try({
                                       body: (s) =>
                                         s.serviceProc((s) =>
@@ -387,7 +419,7 @@ export function viewDrawer(datagridName: string, dts: DatagridRfns) {
                                 .stopPropagation()
                                 .setScalar(`proc_in_progress`, `true`)
                                 .setScalar(`proc_error`, `null`)
-                                .commitUiChanges()
+                                .commitUiTreeChanges()
                                 .try({
                                   body: (s) =>
                                     s.serviceProc((s) =>
@@ -416,7 +448,7 @@ export function viewDrawer(datagridName: string, dts: DatagridRfns) {
                               s
                                 .setScalar(`proc_in_progress`, `true`)
                                 .setScalar(`proc_error`, `null`)
-                                .commitUiChanges()
+                                .commitUiTreeChanges()
                                 .try({
                                   body: (s) =>
                                     s.serviceProc((s) =>
@@ -482,7 +514,7 @@ export function viewDrawer(datagridName: string, dts: DatagridRfns) {
           condition: `true`,
           node: typography({
             children: `'No views'`,
-            level: "body2",
+            level: "body-sm",
             styles: styles.emptyText,
           }),
         }

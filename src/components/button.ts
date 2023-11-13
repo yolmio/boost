@@ -49,13 +49,10 @@ export const styles = createStyles({
       justifyContent: "center",
       position: "relative",
       textDecoration: "none", // prevent user agent underline when used as anchor
-      // TODO: discuss the transition approach in a separate PR. This value is copied from mui-material Button.
-      transition:
-        "background-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, border-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms",
       fontFamily: cssVar(`font-family-body`),
       fontWeight: cssVar(`font-weight-md`),
       lineHeight: 1,
-      "&:focus-visible": app.theme.focus.default,
+      "&:focus-visible": app.ui.theme.focus.default,
       "&:hover": getVariantStyle(variant, color, "hover"),
       "&:active": getVariantStyle(variant, color, "active"),
       ...getVariantStyle(variant, color),

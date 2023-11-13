@@ -101,7 +101,7 @@ export class DgStateHelpers {
         s
           .delay(delay)
           .statements(this.setErrorMessage(`null`))
-          .commitUiChanges(),
+          .commitUiTreeChanges(),
     });
   }
 
@@ -113,7 +113,7 @@ export class DgStateHelpers {
   }) {
     return new DomStatements()
       .statements(this.setSavingEdit(`true`), this.setErrorMessage(`null`))
-      .commitUiChanges()
+      .commitUiTreeChanges()
       .try({
         body: (s) =>
           s.serviceProc((s) =>
@@ -422,7 +422,7 @@ export function resizeableSeperator({
                         .delay(`16`)
                         .statements(setWidth(`pending_width`))
                         .setScalar(`waiting`, `false`)
-                        .commitUiChanges(),
+                        .commitUiTreeChanges(),
                   })
                 ),
               mouseUp: (s) => s.setScalar(`start_width`, `null`),

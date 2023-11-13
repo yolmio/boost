@@ -119,10 +119,7 @@ const styles = createStyles({
       bottom: 0,
       right: 0,
       zIndex: 1, // The action element usually cover the area of nearest positioned parent
-      // TODO: discuss the transition approach in a separate PR. This value is copied from mui-material Button.
-      transition:
-        "background-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms",
-      "&:has(:focus-visible)": app.theme.focus.default,
+      "&:has(:focus-visible)": app.ui.theme.focus.default,
     };
     if (disableIcon) {
       Object.assign(styles, {
@@ -168,9 +165,6 @@ const styles = createStyles({
       justifyContent: "center",
       alignItems: "center",
       flexShrink: 0,
-      // TODO: discuss the transition approach in a separate PR. This value is copied from mui-material Button.
-      transition:
-        "background-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms",
     };
     function variation(variant: Variant, color: Color): StyleObject {
       const variationStyles: StyleObject = {

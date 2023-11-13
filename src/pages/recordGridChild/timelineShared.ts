@@ -200,7 +200,7 @@ export function recordDefaultItemContent(
           onConfirm: (closeModal) => (s) =>
             s
               .setScalar(`dialog_waiting`, `true`)
-              .commitUiChanges()
+              .commitUiTreeChanges()
               .try({
                 body: (s) =>
                   s.serviceProc((s) =>
@@ -240,7 +240,7 @@ export function recordDefaultItemContent(
         styles: styles.itemLeft,
         children: [
           typography({
-            level: "h6",
+            level: "body-lg",
             children: header,
           }),
           displayValues

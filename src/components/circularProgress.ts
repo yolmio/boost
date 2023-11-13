@@ -3,8 +3,8 @@ import { StyleObject } from "../styleTypes";
 import { Variant } from "../theme";
 import { createStyles, cssVar, getVariantStyle } from "../styleUtils";
 import { Color, ComponentOpts, Size } from "./types";
-import { registerKeyframes } from "../nodeTransform";
 import { createSlotsFn, SlottedComponentWithSlotNames } from "./utils";
+import { app } from "../app";
 
 export interface CircularProgressOpts
   extends ComponentOpts,
@@ -140,7 +140,7 @@ const styles = createStyles({
       styles.transition =
         "stroke-dashoffset 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms";
     } else {
-      const circulate = registerKeyframes({
+      const circulate = app.ui.registerKeyframes({
         "0%": {
           // let the progress start at the top of the ring
           transform: "rotate(-90deg)",

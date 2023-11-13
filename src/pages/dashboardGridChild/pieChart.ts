@@ -58,7 +58,7 @@ const styles = createStyles({
       stroke: cssVar("palette-primary-400"),
     },
     ".ct-series-b &": {
-      stroke: cssVar("palette-info-400"),
+      stroke: cssVar("palette-neutral-400"),
     },
     ".ct-series-c &": {
       stroke: cssVar("palette-danger-400"),
@@ -70,7 +70,7 @@ const styles = createStyles({
       stroke: cssVar("palette-primary-300"),
     },
     ".ct-series-f &": {
-      stroke: cssVar("palette-info-300"),
+      stroke: cssVar("palette-neutral-300"),
     },
     ".ct-series-g &": {
       stroke: cssVar("palette-danger-300"),
@@ -82,7 +82,7 @@ const styles = createStyles({
       stroke: cssVar("palette-primary-200"),
     },
     ".ct-series-j &": {
-      stroke: cssVar("palette-info-200"),
+      stroke: cssVar("palette-neutral-200"),
     },
     ".ct-series-k &": {
       stroke: cssVar("palette-danger-200"),

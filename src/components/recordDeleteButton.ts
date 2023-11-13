@@ -22,7 +22,12 @@ export function recordDeleteButton(opts: RecordDeleteButtonOpts) {
         children: `'Delete'`,
         size: opts.size,
         startDecorator: materialIcon(`Delete`),
-        on: { click: (s) => s.setScalar(`ui.deleting`, `true`) },
+        on: {
+          click: (s) =>
+            s
+              .setScalar(`ui.deleting`, `true`)
+              .triggerViewTransition("immediate", "'open-dialog'"),
+        },
       }),
       deleteRecordDialog({
         open: `deleting`,

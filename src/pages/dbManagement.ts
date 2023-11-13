@@ -15,6 +15,7 @@ import { createStyles, flexGrowStyles } from "../styleUtils";
 import { chip } from "../components/chip";
 import { divider } from "../components/divider";
 import { isDeploy } from "../utils/env";
+import { getUniqueUiId } from "../components/utils";
 
 const styles = createStyles({
   root: {
@@ -499,11 +500,15 @@ function displayField({ name, notNull, type }: FieldDisplayOpts) {
 }
 
 function collapse(label: Node, node: Node) {
+  const id = getUniqueUiId();
   return nodes.state({
     procedure: (s) => s.scalar(`open`, `false`),
     children: [
       nodes.element("div", {
-        styles: styles.expandable,
+        styles: {
+          ...styles.expandable,
+          viewTransitionName: id,
+        },
         dynamicClasses: [
           {
             condition: `open`,
@@ -520,7 +525,8 @@ function collapse(label: Node, node: Node) {
           }),
         ],
         on: {
-          click: (s) => s.setScalar(`open`, `not open`),
+          click: (s) =>
+            s.setScalar(`open`, `not open`).triggerViewTransition("immediate"),
         },
       }),
       nodes.if(`open`, node),
@@ -531,7 +537,7 @@ function collapse(label: Node, node: Node) {
 function transactionQueryReference(): Node[] {
   const userFk = app.db.userTableName;
   return [
-    typography({ level: "h5", children: "'Transaction Queries'" }),
+    typography({ level: "h4", children: "'Transaction Queries'" }),
     divider(),
     collapse(
       "'tx'",
@@ -737,7 +743,7 @@ function schemaReference() {
     children: nodes.element("div", {
       styles: styles.schema,
       children: [
-        typography({ level: "h5", children: "'Tables'" }),
+        typography({ level: "h4", children: "'Tables'" }),
         divider(),
         Object.values(app.db.tables).map((table) => {
           const fields = Object.values(table.fields).map((field) => {
@@ -789,7 +795,7 @@ function schemaReference() {
                 then: `'loading...'`,
                 else: [
                   stringLiteral(table.name),
-                  `' (' || count || ' records)'`,
+                  `' (' || format.decimal(count) || ' records)'`,
                 ],
               }),
             }),
@@ -799,7 +805,7 @@ function schemaReference() {
             })
           );
         }),
-        typography({ level: "h5", children: "'Enums'" }),
+        typography({ level: "h4", children: "'Enums'" }),
         divider(),
         Object.values(app.enums).length !== 0
           ? Object.values(app.enums)

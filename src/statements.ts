@@ -452,8 +452,13 @@ export class DomStatements extends StatementsBase<yom.DomProcStatement> {
     return this;
   }
 
-  commitUiChanges() {
-    this.pushToBacking({ t: "CommitUiChanges" });
+  commitUiTreeChanges() {
+    this.pushToBacking({ t: "CommitUiTreeChanges" });
+    return this;
+  }
+
+  runTreeChangeEffects() {
+    this.pushToBacking({ t: "RunTreeChangeEffects" });
     return this;
   }
 
@@ -562,6 +567,11 @@ export class DomStatements extends StatementsBase<yom.DomProcStatement> {
 
   logout() {
     this.pushToBacking({ t: "LogOut" });
+    return this;
+  }
+
+  triggerViewTransition(on: yom.ViewTransitionTiming, type?: string) {
+    this.pushToBacking({ t: "TriggerViewTransition", on, type });
     return this;
   }
 }

@@ -633,7 +633,7 @@ ui.addInsertFormPage({
                       `not ` + state.field("ship_country").touched,
                       state.field("ship_country").setValue("customer.country")
                     )
-                    .commitUiChanges(),
+                    .commitUiTreeChanges(),
               }),
           },
           {
@@ -700,7 +700,7 @@ ui.addInsertFormPage({
                                     "cast(product_unit_price as string)"
                                   )
                               )
-                              .commitUiChanges()
+                              .commitUiTreeChanges()
                         )
                     ),
                 }),
@@ -797,7 +797,7 @@ ui.addRecordGridPage("order", (page) => {
                                 .field("unit_price")
                                 .setValue("cast(product_unit_price as string)")
                             )
-                            .commitUiChanges()
+                            .commitUiTreeChanges()
                       )
                   ),
               }),

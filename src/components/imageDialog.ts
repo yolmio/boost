@@ -63,7 +63,7 @@ const styles = createStyles({
     display: "none",
     lg: { display: "block" },
   },
-  replaceButton: () => ({ "&:focus-within": app.theme.focus.default }),
+  replaceButton: () => ({ "&:focus-within": app.ui.theme.focus.default }),
 });
 
 export function imageDialog(opts: ImageDialogOptions) {
@@ -144,7 +144,7 @@ export function imageDialog(opts: ImageDialogOptions) {
                             s
                               .if(`uploading`, (s) => s.return())
                               .setScalar(`uploading`, `true`)
-                              .commitUiChanges()
+                              .commitUiTreeChanges()
                               .statements(spawnUploadTasks)
                               .try({
                                 body: (s) =>
@@ -182,7 +182,7 @@ export function imageDialog(opts: ImageDialogOptions) {
                       click: (s) =>
                         s
                           .setScalar(`deleting`, `true`)
-                          .commitUiChanges()
+                          .commitUiTreeChanges()
                           .try({
                             body: (s) =>
                               s.serviceProc((s) =>

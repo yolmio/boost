@@ -10,11 +10,10 @@ import {
   ScriptStatementsOrFn,
 } from "./statements";
 import { ident, stringLiteral } from "./utils/sqlHelpers";
-import { Style } from "./styleTypes";
+import { Style, StyleObject } from "./styleTypes";
 import { WebAppManifest } from "./pwaManifest";
 import { navbarShell, NavbarProps } from "./shells/navbar";
-import { Node } from "./nodeTypes";
-import { generateYom } from "./generate";
+import { Node, RouteNode, RoutesNode } from "./nodeTypes";
 import { dashboardGridPage, DashboardGridBuilder } from "./pages/dashboardGrid";
 import { recordGridPage, RecordGridBuilder } from "./pages/recordGrid";
 import { dbManagementPage, DbManagmentPageOpts } from "./pages/dbManagement";
@@ -24,7 +23,11 @@ import {
   simpleDatagridPage,
   SimpleDatagridPageBuilder,
 } from "./pages/simpleDatagrid";
-import { datagridPage, DatagridPageBuilder } from "./pages/datagrid";
+import {
+  createDatagridPageNode,
+  datagridPage,
+  DatagridPageBuilder,
+} from "./pages/datagrid";
 import { updateFormPage, UpdateFormPage } from "./pages/updateForm";
 import {
   multiCardInsertPage,
@@ -32,6 +35,11 @@ import {
 } from "./pages/multiCardInsert";
 import { ComponentOpts } from "./components/types";
 import { addMigrationScript, MigrationScriptOpts } from "./migrate";
+import { KeyFrames, StyleSerializer, transformNode } from "./nodeTransform";
+import { SequentialIDGenerator } from "./utils/SequentialIdGenerator";
+import { escapeHtml } from "./utils/escapeHtml";
+import { default404Page } from "./pages/default404";
+import { rootStyles } from "./rootStyles";
 
 /**
  * The app singleton.
@@ -53,7 +61,6 @@ export class App {
    * Used in displaying the name of this app to the user (not in the url)
    */
   displayName = "Please Rename";
-  theme: Theme = createTheme();
   displayNameConfig: DisplayNameConfig = {
     default: defaultGetDisplayName,
     table: defaultGetDisplayName,
@@ -90,14 +97,9 @@ export class App {
   test: yom.TestModel = {
     data: [],
     api: [],
-    ui: [],
   };
   scripts: yom.Script[] = [];
   scriptDbs: ScriptDb[] = [];
-
-  setTheme(themeOptions: ThemeOpts) {
-    this.theme = createTheme(themeOptions);
-  }
 
   addScalarFunction(f: HelperScalarFunction) {
     this.scalarFunctions[f.name] = scalarFunctionFromHelper(f);
@@ -207,7 +209,69 @@ export class App {
   }
 
   generateYom() {
-    return generateYom();
+    if (!app.db.tables[app.db.userTableName]) {
+      app.db.addTable(app.db.userTableName, (t) => {
+        t.catalog.addRequiredUserFields();
+      });
+    }
+    const ui = this.ui.generateYom();
+    if (app.name === "please-rename") {
+      console.log();
+      console.warn(
+        "You should rename your app from 'please-rename' to something else using `setAppName()`."
+      );
+      console.warn(
+        "Unless you really want to use the name 'please-rename' for your app."
+      );
+      console.log();
+    }
+    return {
+      // todo make this part of the model
+      locale: "en_us",
+      name: this.name,
+      displayName: this.displayName,
+      dbExecutionConfig: this.dbExecutionConfig,
+      appDomain: this.appDomain,
+      collation: this.collation,
+      db: this.db.generateYom(),
+      recordRuleFunctions: Object.values(this.recordRuleFunctions).map(
+        generateRecordRuleFn
+      ),
+      ruleFunctions: Object.values(this.ruleFunctions).map(generateRuleFn),
+      scalarFunctions: Object.values(this.scalarFunctions).map(
+        generateScalarFunction
+      ),
+      enums: Object.values(this.enums).map((e) => ({
+        name: e.name,
+        renameFrom: e.renameFrom,
+        description: e.description,
+        values: Object.values(e.values).map((v) => ({
+          name: v.name,
+          renameFrom: v.renameFrom,
+          description: v.description,
+        })),
+      })),
+      ui,
+      scripts: this.scripts,
+      scriptDbs: this.scriptDbs.map((db) => {
+        if (db.definition.type === "MappingFile") {
+          return { name: db.name, definition: db.definition };
+        } else {
+          return {
+            name: db.name,
+            definition: {
+              type: "Model",
+              db: {
+                enableTransactionQueries: false,
+                tables: Object.values(db.definition.db.tables).map((t) =>
+                  t.generateYom()
+                ),
+              },
+            },
+          };
+        }
+      }),
+    };
   }
 }
 
@@ -223,13 +287,33 @@ export class Ui {
     manifest: {},
   };
   deviceDb = new DeviceDb();
-  globalStyles: Style[] = [];
+  #globalStyles: StyleObject[] = [];
+  #keyframeIdGen = new SequentialIDGenerator();
+  #keyFrames: Map<KeyFrames, string> = new Map();
+  theme: Theme = createTheme();
   shell?: (pages: Node) => Node;
   pages: Page[] = [];
 
   //
   // Helper methods
   //
+
+  setTheme(themeOptions: ThemeOpts) {
+    this.theme = createTheme(themeOptions);
+  }
+
+  addGlobalStyle(style: StyleObject) {
+    this.#globalStyles.push(style);
+  }
+
+  registerKeyframes(keyframes: KeyFrames) {
+    if (this.#keyFrames.has(keyframes)) {
+      return this.#keyFrames.get(keyframes)!;
+    }
+    const id = this.#keyframeIdGen.next();
+    this.#keyFrames.set(keyframes, id);
+    return id;
+  }
 
   useNavbarShell(opts: NavbarProps) {
     this.shell = navbarShell(opts);
@@ -277,6 +361,132 @@ export class Ui {
 
   addDatagridPage(table: string, f: (f: DatagridPageBuilder) => unknown) {
     datagridPage(table, f);
+  }
+
+  createDatagridPageNode(
+    table: string,
+    f: (f: DatagridPageBuilder) => unknown
+  ) {
+    return createDatagridPageNode(table, f);
+  }
+
+  generateYom(): yom.UiModel {
+    if (!this.pages.some((p) => p.path === "/*" || p.path === "*")) {
+      this.pages.push({
+        path: "*",
+        content: default404Page(),
+      });
+    }
+    const pagesWithShell = app.ui.pages
+      .filter((p) => !p.ignoreShell)
+      .map(
+        (p) =>
+          ({
+            t: "Route",
+            path: p.path,
+            children: p.content,
+          } as RouteNode)
+      );
+    const pagesWithoutShell = app.ui.pages
+      .filter((p) => p.ignoreShell)
+      .map(
+        (p) =>
+          ({
+            t: "Route",
+            path: p.path,
+            children: p.content,
+          } as RouteNode)
+      );
+    let rootNode: Node;
+    if (app.ui.shell) {
+      const shell = app.ui.shell({
+        t: "Routes",
+        children: pagesWithShell,
+      });
+      rootNode =
+        pagesWithoutShell.length === 0
+          ? shell
+          : ({
+              t: "Routes",
+              children: [
+                ...pagesWithoutShell,
+                { t: "Route", path: "*", children: shell },
+              ],
+            } as RoutesNode);
+    } else {
+      rootNode = {
+        t: "Routes",
+        children: [...pagesWithShell, ...pagesWithoutShell],
+      };
+    }
+    const serializer = new StyleSerializer(
+      rootStyles(this.theme),
+      this.#keyFrames,
+      this.#globalStyles
+    );
+    const tree = transformNode(rootNode, (styles, dynamicStyle) => {
+      if (!styles) {
+        return;
+      }
+      return serializer.addStyle(styles, !dynamicStyle);
+    });
+    let htmlHead = this.webAppConfig.htmlHead;
+    if (app.title) {
+      htmlHead += `<title>${escapeHtml(app.title)}</title>`;
+    }
+    if (this.webAppConfig.viewport) {
+      htmlHead += `<meta name="viewport" content="${escapeHtml(
+        this.webAppConfig.viewport
+      )}">`;
+    }
+    switch (this.webAppConfig.logoGeneration.type) {
+      case "Default":
+        htmlHead += `
+  <link rel="apple-touch-icon" sizes="180x180" href="/global_assets/logo/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/global_assets/logo/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/global_assets/logo/favicon-16x16.png">
+  <link rel="mask-icon" href="/global_assets/logo/safari-pinned-tab.svg" color="#5a35a3">
+  <link rel="shortcut icon" href="/global_assets/logo/favicon.ico">
+  <meta name="msapplication-TileColor" content="#00aba9">
+  <meta name="theme-color" content="#ffffff">`;
+        break;
+      case "App":
+        htmlHead += `
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/logo/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/logo/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/logo/favicon-16x16.png">
+  <link rel="mask-icon" href="/assets/logo/safari-pinned-tab.svg" color="${this.webAppConfig.logoGeneration.safariPinnedTabColor}">
+  <link rel="shortcut icon" href="/assets/logo/favicon.ico">
+  <meta name="msapplication-TileColor" content="${this.webAppConfig.logoGeneration.msTileColor}">
+  <meta name="theme-color" content="${this.webAppConfig.logoGeneration.themeColor}">`;
+        break;
+      case "Account":
+        htmlHead += `
+  <link rel="apple-touch-icon" sizes="180x180" href="/account_assets/logo/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/account_assets/logo/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/account_assets/logo/favicon-16x16.png">
+  <link rel="mask-icon" href="/account_assets/logo/safari-pinned-tab.svg" color="${this.webAppConfig.logoGeneration.safariPinnedTabColor}">
+  <link rel="shortcut icon" href="/account_assets/logo/favicon.ico">
+  <meta name="msapplication-TileColor" content="${this.webAppConfig.logoGeneration.msTileColor}">
+  <meta name="theme-color" content="${this.webAppConfig.logoGeneration.themeColor}">`;
+        break;
+      case "Custom":
+        break;
+    }
+    if (!this.webAppConfig.manifest.name) {
+      this.webAppConfig.manifest.name = app.displayName;
+    }
+    return {
+      pwaManifest: this.webAppConfig.manifest,
+      htmlHead: htmlHead,
+      tree,
+      css: serializer.getCss(),
+      deviceDb: {
+        tables: Object.values(app.ui.deviceDb.tables).map((t) =>
+          t.generateYom()
+        ),
+      },
+    };
   }
 }
 
@@ -343,6 +553,24 @@ export class Db {
 
   addRuleFunction(rfn: HelperRuleFunction) {
     this.ruleFunctions[rfn.name] = ruleFunctionFromHelper(rfn);
+  }
+
+  generateYom(): yom.Database {
+    return {
+      userTableName: app.db.userTableName,
+      collation: app.db.collation,
+      autoTrim: app.db.autoTrim,
+      enableTransactionQueries: app.db.enableTransactionQueries,
+      recordRuleFunctions: Object.values(app.db.recordRuleFunctions).map(
+        generateRecordRuleFn
+      ),
+      ruleFunctions: Object.values(app.db.ruleFunctions).map(generateRuleFn),
+      scalarFunctions: Object.values(app.db.scalarFunctions).map(
+        generateScalarFunction
+      ),
+      tables: Object.values(app.db.tables).map((t) => t.generateYom()),
+      searchMatches: Object.values(app.db.searchMatches),
+    };
   }
 }
 
@@ -544,6 +772,87 @@ export class Table {
     return Object.values(this.fields).find(
       (f) => f.type === "ForeignKey" && f.table === table
     ) as ForeignKeyField | undefined;
+  }
+
+  generateYom(): yom.Table {
+    const checks = this.checks.map((c) => c.check(c.fields));
+    const fields = Object.values(this.fields).map((f): yom.TableField => {
+      for (const check of f.checks) {
+        checks.push(check.check(f.name));
+      }
+      const base = {
+        name: f.name,
+        renameFrom: f.renameFrom,
+        description: f.description,
+        notNull: f.notNull,
+        default: f.default,
+        indexed: f.indexed,
+      };
+      switch (f.type) {
+        case "String":
+          return {
+            type: {
+              type: "String",
+              maxLength: f.maxLength,
+              maxBytesPerChar: f.maxBytesPerChar,
+            },
+            ...base,
+          };
+        case "TinyInt":
+        case "SmallInt":
+        case "Int":
+        case "BigInt":
+        case "TinyUint":
+        case "SmallUint":
+        case "Uint":
+        case "BigUint":
+        case "Real":
+        case "Double":
+        case "Bool":
+        case "Uuid":
+        case "Date":
+        case "Ordering":
+        case "Time":
+        case "Timestamp":
+        case "Tx":
+          return { type: { type: f.type }, ...base };
+        case "Decimal":
+          return {
+            type: {
+              type: "Decimal",
+              precision: f.precision,
+              scale: f.scale,
+              signed: f.signed,
+            },
+            ...base,
+          };
+        case "ForeignKey":
+          return {
+            type: {
+              type: "ForeignKey",
+              table: f.table,
+              onDelete: f.onDelete,
+            },
+            ...base,
+          };
+        case "Enum":
+          return {
+            type: {
+              type: "Enum",
+              enum: f.enum,
+            },
+            ...base,
+          };
+      }
+    });
+    return {
+      primaryKeyFieldName: this.primaryKeyFieldName,
+      name: this.name,
+      renameFrom: this.renameFrom,
+      uniqueConstraints: this.uniqueConstraints,
+      checks,
+      fields,
+    };
   }
 }
 
@@ -2121,6 +2430,53 @@ function ruleFunctionFromHelper(f: HelperRuleFunction): RuleFunction {
     rules: f.rules,
     returnType:
       typeof f.returnType === "string" ? { type: f.returnType } : f.returnType,
+  };
+}
+
+function generateRecordRuleFn(rfn: RecordRuleFn): yom.RecordRuleFunction {
+  return {
+    name: rfn.name,
+    outputs: Object.values(rfn.outputs).map((o) => ({
+      name: o.name,
+      type: o.type,
+      collation: o.collation,
+    })),
+    parameters: Object.values(rfn.parameters).map((i) => ({
+      name: i.name,
+      type: i.type,
+      notNull: i.notNull,
+    })),
+    setup: rfn.setup,
+    header: rfn.header,
+    rules: rfn.rules,
+  };
+}
+
+function generateRuleFn(rfn: RuleFunction): yom.RuleFunction {
+  return {
+    name: rfn.name,
+    parameters: Object.values(rfn.parameters).map((i) => ({
+      name: i.name,
+      type: i.type,
+      notNull: i.notNull,
+    })),
+    setup: rfn.setup,
+    header: rfn.header,
+    rules: rfn.rules,
+    returnType: rfn.returnType,
+  };
+}
+
+function generateScalarFunction(f: ScalarFunction): yom.ScalarFunction {
+  return {
+    name: f.name,
+    parameters: Object.values(f.inputs).map((i) => ({
+      name: i.name,
+      type: i.type,
+      notNull: i.notNull,
+    })),
+    procedure: f.procedure,
+    returnType: f.returnType,
   };
 }
 

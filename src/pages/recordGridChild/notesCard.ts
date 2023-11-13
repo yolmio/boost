@@ -57,7 +57,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
             styles: styles.header,
             children: [
               typography({
-                level: "h6",
+                level: "body-lg",
                 children: `'Notes'`,
               }),
               iconButton({
@@ -128,7 +128,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                               .if(`in_progress`, (s) => s.return())
                               .setScalar(`in_progress`, `true`)
                               .setScalar(`failed`, `false`)
-                              .commitUiChanges()
+                              .commitUiTreeChanges()
                               .try({
                                 body: (s) =>
                                   s

@@ -71,7 +71,7 @@ const styles = createStyles({
     display: "flex",
   },
   uploadButton: () => {
-    return { mx: "auto", "&:focus-within": app.theme.focus.default };
+    return { mx: "auto", "&:focus-within": app.ui.theme.focus.default };
   },
   checkbox: {
     mx: "auto",
@@ -794,7 +794,7 @@ function imageCell(
                     s
                       .if(`uploading`, (s) => s.return())
                       .setScalar(`uploading`, `true`)
-                      .commitUiChanges()
+                      .commitUiTreeChanges()
                       .statements(spawnUploadTasks)
                       .try({
                         body: (s) =>

@@ -137,7 +137,7 @@ export function styledSimpleDatagrid(config: StyledSimpleGridConfig) {
                 `status = 'fallback_triggered' and dg_refresh_key != 0`,
                 typography({
                   startDecorator: circularProgress({ size: "sm" }),
-                  level: "body2",
+                  level: "body-sm",
                   children: `'Reloading...'`,
                 })
               ),
@@ -145,7 +145,7 @@ export function styledSimpleDatagrid(config: StyledSimpleGridConfig) {
                 `saving_edit`,
                 typography({
                   startDecorator: circularProgress({ size: "sm" }),
-                  level: "body2",
+                  level: "body-sm",
                   children: `'Saving change...'`,
                 })
               ),
@@ -249,7 +249,7 @@ export function styledSimpleDatagrid(config: StyledSimpleGridConfig) {
     columns: baseColumns,
     idField: config.idField,
     datagridStyles: {
-      root: sharedStyles.root,
+      root: sharedStyles.root(),
       row: sharedStyles.row,
       cell: sharedStyles.cell(),
       headerCell: sharedStyles.headerCell(),

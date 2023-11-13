@@ -161,7 +161,7 @@ export const styles = createStyles({
         marginRight: inRow ? "var(--list-gap)" : undefined,
         marginTop: inRow ? undefined : "var(--list-gap)",
       },
-      "&:focus-visible": app.theme.focus.default,
+      "&:focus-visible": app.ui.theme.focus.default,
     };
   },
   listItemButton: (
@@ -171,7 +171,7 @@ export const styles = createStyles({
   ): StyleObject => {
     return {
       ...styles.baseListItemButton(inRow),
-      '[aria-selected="true"]': app.theme.focus.default,
+      '[aria-selected="true"]': app.ui.theme.focus.default,
       "&:hover": getVariantStyle(variant, color, "hover"),
       "&:active": getVariantStyle(variant, color, "active"),
       ...getVariantStyle(variant, color),

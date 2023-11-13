@@ -43,7 +43,7 @@ const styles = createStyles({
     }
     if (hasChildren) {
       Object.assign(styles, {
-        "--divider-gap": app.theme.spacing(1),
+        "--divider-gap": app.ui.theme.spacing(1),
         "--divider-child-position": "50%",
         display: "flex",
         flexDirection: orientation === "vertical" ? "column" : "row",

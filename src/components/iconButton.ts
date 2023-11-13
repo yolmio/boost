@@ -38,7 +38,7 @@ export const styles = createStyles({
       position: "relative",
       transition:
         "background-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, border-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms",
-      "&:focus-visible": app.theme.focus.default,
+      "&:focus-visible": app.ui.theme.focus.default,
     };
     switch (size) {
       case "sm":

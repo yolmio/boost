@@ -1,9 +1,15 @@
-import type { StyleSerializer } from "./nodeTransform";
 import type { ColorScheme, Theme } from "./theme";
-import { cssVar, darkSchemeSelector, lightSchemeSelector } from "./styleUtils";
+import {
+  cssVar,
+  darkSchemeSelector,
+  fadeIn,
+  fadeOut,
+  lightSchemeSelector,
+} from "./styleUtils";
+import { StyleObject } from "./styleTypes";
 
-export function addRootStyles(serializer: StyleSerializer, theme: Theme) {
-  serializer.addGlobalStyle({
+export function rootStyles(theme: Theme): StyleObject {
+  return {
     ":root": getRootVariables(theme),
     [lightSchemeSelector]: {
       ...getColorSchemeVariables(theme.lightColorScheme),
@@ -36,12 +42,8 @@ export function addRootStyles(serializer: StyleSerializer, theme: Theme) {
       width: "100%",
       color: cssVar("palette-text-primary"),
       fontFamily: cssVar("font-family-body"),
-      ...theme.typography.body1,
+      typography: theme.typography["body-md"],
       backgroundColor: cssVar("palette-background-body"),
-      "@media print": {
-        // Save printer ink.
-        backgroundColor: cssVar("palette-common-white"),
-      },
       // Add support for document.body.requestFullScreen().
       // Other elements, if background transparent, are not supported.
       "&::backdrop": {
@@ -54,7 +56,19 @@ export function addRootStyles(serializer: StyleSerializer, theme: Theme) {
       display: "flex",
       flexDirection: "column",
     },
-  } as any);
+    "html::view-transition-group(root)": {
+      animationDuration: theme.transitionDurations.navigation,
+      animationTimingFunction: theme.transitionEasing.navigation,
+    },
+    'html[data-yolm-transition-type*="navigate"]::view-transition-new(root)': {
+      animationName: fadeIn(),
+      mixBlendMode: "plus-lighter",
+    },
+    'html[data-yolm-transition-type*="navigate"]::view-transition-old(root)': {
+      animationName: fadeOut(),
+      mixBlendMode: "plus-lighter",
+    },
+  };
 }
 
 function getRootVariables(theme: Theme) {
@@ -67,7 +81,9 @@ function getRootVariables(theme: Theme) {
   addSimpleVars(styles, "--font-size-", theme.fontSize);
   addSimpleVars(styles, "--font-weight-", theme.fontWeight);
   addSimpleVars(styles, "--line-height-", theme.lineHeight);
-  addSimpleVars(styles, "--letter-spacing-", theme.letterSpacing);
+  addSimpleVars(styles, "--transition-duration-", theme.transitionDurations);
+  addSimpleVars(styles, "--transition-easing-", theme.transitionEasing);
+  addSimpleVars(styles, "--z-index-", theme.zIndex);
   return styles;
 }
 
@@ -81,7 +97,6 @@ function getColorSchemeVariables(scheme: ColorScheme) {
   addSimpleVars(styles, "--palette-primary-", scheme.palette.primary);
   addSimpleVars(styles, "--palette-neutral-", scheme.palette.neutral);
   addSimpleVars(styles, "--palette-danger-", scheme.palette.danger);
-  addSimpleVars(styles, "--palette-info-", scheme.palette.info);
   addSimpleVars(styles, "--palette-success-", scheme.palette.success);
   addSimpleVars(styles, "--palette-warning-", scheme.palette.warning);
   addSimpleVars(styles, "--palette-common-", scheme.palette.common);

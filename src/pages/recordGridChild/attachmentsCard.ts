@@ -84,7 +84,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
           styles: styles.header,
           children: [
             typography({
-              level: "h6",
+              level: "body-lg",
               startDecorator: materialIcon("Attachment"),
               children: opts.header ?? `'Attachments'`,
             }),
@@ -102,7 +102,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                       s
                         .if(`uploading`, (s) => s.return())
                         .setScalar(`uploading`, `true`)
-                        .commitUiChanges()
+                        .commitUiTreeChanges()
                         .try({
                           body: (s) =>
                             s
@@ -112,6 +112,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                               })
                               .serviceProc((s) =>
                                 s
+                                  .startTransaction()
                                   .modify(
                                     `insert into db.${ident(
                                       attachmentTable.name
@@ -121,6 +122,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                                       ctx.recordId
                                     })`
                                   )
+                                  .commitTransaction()
                                   .statements(ctx.triggerRefresh)
                               ),
                           catch: (s) =>
@@ -130,7 +132,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                                 s
                                   .delay("4000")
                                   .setScalar(`failed_upload`, `false`)
-                                  .commitUiChanges(),
+                                  .commitUiTreeChanges(),
                             }),
                         })
                         .setScalar(`uploading`, `false`),
@@ -200,16 +202,18 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                                           (s) => s.return()
                                         )
                                         .setScalar(`submitting`, `true`)
-                                        .commitUiChanges()
+                                        .commitUiTreeChanges()
                                         .try({
                                           body: (s) =>
                                             s.serviceProc((s) =>
                                               s
+                                                .startTransaction()
                                                 .modify(
                                                   `update db.${ident(
                                                     attachmentTable.name
                                                   )} set name = new_name where id = attachment_record.id`
                                                 )
+                                                .commitTransaction()
                                                 .statements(ctx.triggerRefresh)
                                             ),
                                           catch: (s) =>
@@ -224,7 +228,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                                                       `failed_edit`,
                                                       `false`
                                                     )
-                                                    .commitUiChanges(),
+                                                    .commitUiTreeChanges(),
                                               }),
                                         })
                                         .setScalar(`editing`, `false`),
@@ -233,16 +237,18 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                                         .if(`event.key = 'Enter'`, (s) =>
                                           s
                                             .setScalar(`submitting`, `true`)
-                                            .commitUiChanges()
+                                            .commitUiTreeChanges()
                                             .try({
                                               body: (s) =>
                                                 s.serviceProc((s) =>
                                                   s
+                                                    .startTransaction()
                                                     .modify(
                                                       `update db.${ident(
                                                         attachmentTable.name
                                                       )} set name = new_name where id = attachment_record.id`
                                                     )
+                                                    .commitTransaction()
                                                     .statements(
                                                       ctx.triggerRefresh
                                                     )
@@ -262,7 +268,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                                                           `failed_edit`,
                                                           `false`
                                                         )
-                                                        .commitUiChanges(),
+                                                        .commitUiTreeChanges(),
                                                   }),
                                             })
                                             .setScalar(`editing`, `false`)
@@ -338,7 +344,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                 }),
               }),
               else: typography({
-                level: "body2",
+                level: "body-sm",
                 styles: { fontSize: "md" },
                 children: "'No attachments'",
               }),

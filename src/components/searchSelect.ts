@@ -216,6 +216,9 @@ export function queryCombobox(opts: QueryComboboxOpts) {
                     .setScalar(`ui.active_descendant`, `null`),
                 focus: (s) =>
                   s
+                    .if(`ui.showing_list`, (s) =>
+                      s.triggerViewTransition("next_not_immediate")
+                    )
                     .setScalar("ui.showing_list", "true")
                     .statements(updateComboboxWidth),
                 blur: (s) =>

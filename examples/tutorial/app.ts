@@ -5,21 +5,25 @@ app.name = "tutorial";
 app.title = "Tutorial";
 app.displayName = "Tutorial";
 
-// db
-
 db.addTable("contact", (table) => {
   table.string("first_name", 50).notNull();
   table.string("last_name", 50).notNull();
   table.email("email").notNull();
   table.catalog.addAddressFields();
+  table.linkable();
 });
 
-// ui
+db.catalog.addNotesTable("contact");
+db.catalog.addAttachmentsTable("contact");
 
 ui.useNavbarShell({
   color: "primary",
   variant: "solid",
-  links: ["/contacts", "/reports", { label: "DB", url: "/db-management" }],
+  links: ["/contacts", { label: "DB", url: "/db-management" }],
+  searchDialog: {
+    table: "contact",
+    displayValues: ["email", "country"],
+  },
 });
 
 ui.pages.push({
@@ -28,7 +32,14 @@ ui.pages.push({
 });
 
 ui.addDatagridPage("contact", (page) => {
-  page.toolbar((toolbar) => toolbar.insertDialog());
+  page
+    .viewButton()
+    .selectable()
+    .toolbar((toolbar) => toolbar.insertDialog().delete());
+});
+
+ui.addRecordGridPage("contact", (page) => {
+  page.namedPageHeader().addressCard({}).attachmentsCard({}).notesListCard({});
 });
 
 ui.addDbManagementPage();

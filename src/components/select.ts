@@ -51,9 +51,6 @@ const styles = createStyles({
       borderRadius: "var(--select-radius)",
       fontFamily: cssVar(`font-family-body`),
       fontSize: cssVar(`font-size-md`),
-      // TODO: discuss the transition approach in a separate PR.
-      transition:
-        "background-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms",
       "&:before": {
         boxSizing: "border-box",
         content: '""',

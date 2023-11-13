@@ -50,9 +50,6 @@ const styles = createStyles({
       boxShadow: cssVar(`shadow-sm`),
       backgroundColor: cssVar(`palette-background-surface`),
       fontFamily: cssVar(`font-family-body`),
-      // TODO: discuss the theme transition.
-      // This value is copied from mui-material Sheet.
-      transition: "box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms",
       position: "relative",
       display: "flex",
       flexDirection: orientation === "horizontal" ? "row" : "column",

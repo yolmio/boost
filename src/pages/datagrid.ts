@@ -487,7 +487,7 @@ export class DatagridPageBuilder {
     return columns;
   }
 
-  _finish() {
+  private _createNode() {
     const extraState = new StateStatements();
     if (this.#selectable) {
       extraState.scalar(`selected_all`, `false`);
@@ -522,7 +522,7 @@ export class DatagridPageBuilder {
     }
     const path = this.#path ?? this.#table.baseUrl;
     const addHref = path.endsWith("/") ? path + "add" : path + "/add";
-    const content = nodes.sourceMap(
+    return nodes.sourceMap(
       `datagridPage(${this.#table.name})`,
       styledDatagrid({
         columns: this.#getColumns(),
@@ -535,6 +535,11 @@ export class DatagridPageBuilder {
         defaultView: this.#defaultView,
       })
     );
+  }
+
+  private _finish() {
+    const path = this.#path ?? this.#table.baseUrl;
+    const content = this._createNode();
     app.ui.pages.push({
       path,
       content,
@@ -548,5 +553,14 @@ export function datagridPage(
 ) {
   const builder = new DatagridPageBuilder(table);
   f(builder);
-  builder._finish();
+  (builder as any)._finish();
+}
+
+export function createDatagridPageNode(
+  table: string,
+  f: (t: DatagridPageBuilder) => unknown
+): Node {
+  const builder = new DatagridPageBuilder(table);
+  f(builder);
+  return (builder as any)._createNode();
 }

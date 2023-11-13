@@ -80,7 +80,8 @@ export async function getScriptModel() {
 export function writeAppModelToDisk(model) {
   fs.writeFileSync(
     path.join(process.cwd(), "app.json"),
-    JSON.stringify(model, undefined, 2)
+    // JSON.stringify(model, undefined, 2)
+    JSON.stringify(model)
   );
 }
 

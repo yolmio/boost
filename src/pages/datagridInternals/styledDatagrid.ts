@@ -22,6 +22,7 @@ import { DgStateHelpers } from "./shared";
 import * as yom from "../../yom";
 import { FilterTermHelper } from "./filterPopover";
 import { lazy } from "../../utils/memoize";
+import { createBounceViewTransition } from "./toolbarPopover";
 
 export interface ToolbarConfig {
   views: boolean;
@@ -258,17 +259,21 @@ const styles = createStyles({
       },
     },
   },
-  columnDialog: {
-    backgroundColor: "background-popup",
-    borderRadius: "md",
-    boxShadow: "md",
-    display: "flex",
-    flexDirection: "column",
-    zIndex: 100,
-    minWidth: 192,
-    width: 192,
-    border: "1px solid",
-    borderColor: "divider",
+  columnDialog: (name: string) => {
+    createBounceViewTransition(name, "top right");
+    return {
+      backgroundColor: "background-popup",
+      borderRadius: "md",
+      boxShadow: "md",
+      display: "flex",
+      flexDirection: "column",
+      zIndex: 100,
+      minWidth: 192,
+      width: 192,
+      border: "1px solid",
+      borderColor: "divider",
+      viewTransitionName: name,
+    };
   },
   drawerGridWrapper: {
     width: "100%",
@@ -317,173 +322,177 @@ export function columnPopover(
           ),
     });
   }
-  return nodes.state({
-    procedure: (s) => s.scalar("dialog_open", "false"),
-    children: [
-      iconButton({
-        variant: "plain",
-        color: "neutral",
-        size: "sm",
-        props: { id: `${popoverId} || '-${i}'`, tabIndex: "-1" },
-        on: {
-          click: (s) => s.setScalar(`ui.dialog_open`, `true`),
-        },
-        children: materialIcon({
-          fontSize: "md",
-          name: "MoreVert",
-        }),
+  return [
+    iconButton({
+      variant: "plain",
+      color: "neutral",
+      size: "sm",
+      props: { id: `${popoverId} || '-${i}'`, tabIndex: "-1" },
+      on: {
+        click: (s) =>
+          s
+            .setScalar(
+              `ui.open_column_dialog`,
+              `case when ui.open_column_dialog = ${i} then null else ${i} end`
+            )
+            .stopPropagation()
+            .triggerViewTransition("immediate"),
+      },
+      children: materialIcon({
+        fontSize: "md",
+        name: "MoreVert",
       }),
-      nodes.if(
-        "dialog_open",
-        list({
-          styles: styles.columnDialog,
-          floating: {
-            anchorEl: `${popoverId} || '-${i}'`,
-            placement: `'bottom-end'`,
-            strategy: `'absolute'`,
-            shift: {
-              mainAxis: "true",
-              crossAxis: "true",
-            },
-            offset: {
-              mainAxis: `4`,
-              crossAxis: `0`,
-            },
-            flip: {
-              crossAxis: `false`,
-              mainAxis: `false`,
-            },
+    }),
+    nodes.if(
+      `ui.open_column_dialog = ${i}`,
+      list({
+        styles: styles.columnDialog(`col-pop-${i}`),
+        floating: {
+          anchorEl: `${popoverId} || '-${i}'`,
+          placement: `'bottom-end'`,
+          strategy: `'absolute'`,
+          shift: {
+            mainAxis: "true",
+            crossAxis: "true",
           },
-          on: {
-            clickAway: (s) => s.setScalar(`ui.dialog_open`, `false`),
+          offset: {
+            mainAxis: `4`,
+            crossAxis: `0`,
           },
-          children: [
-            sort
-              ? [
-                  listItem({
-                    on: {
-                      click: (s) =>
-                        s.statements(setColumnSort(true), state.triggerRefresh),
-                    },
-                    children: listItemButton({
-                      variant: "plain",
-                      color: "neutral",
-                      children: ["'Sort '", getSortAscNode(sort)],
-                    }),
+          flip: {
+            crossAxis: `false`,
+            mainAxis: `false`,
+          },
+        },
+        on: {
+          clickAway: (s) =>
+            s
+              .setScalar(`ui.open_column_dialog`, `null`)
+              .triggerViewTransition("immediate"),
+        },
+        children: [
+          sort
+            ? [
+                listItem({
+                  on: {
+                    click: (s) =>
+                      s.statements(setColumnSort(true), state.triggerRefresh),
+                  },
+                  children: listItemButton({
+                    variant: "plain",
+                    color: "neutral",
+                    children: ["'Sort '", getSortAscNode(sort)],
                   }),
-                  listItem({
-                    on: {
-                      click: (s) =>
-                        s.statements(
-                          setColumnSort(false),
-                          state.triggerRefresh
-                        ),
-                    },
-                    children: listItemButton({
-                      variant: "plain",
-                      color: "neutral",
-                      children: ["'Sort '", getSortDescNode(sort)],
-                    }),
+                }),
+                listItem({
+                  on: {
+                    click: (s) =>
+                      s.statements(setColumnSort(false), state.triggerRefresh),
+                  },
+                  children: listItemButton({
+                    variant: "plain",
+                    color: "neutral",
+                    children: ["'Sort '", getSortDescNode(sort)],
                   }),
-                ]
-              : undefined,
-            listItem({
-              on: {
-                click: (s) =>
-                  s.modify(
-                    `update ui.column set displaying = false where id = ${i}`
-                  ),
-              },
-              children: listItemButton({
-                variant: "plain",
-                color: "neutral",
-                children: "'Hide Field'",
-              }),
+                }),
+              ]
+            : undefined,
+          listItem({
+            on: {
+              click: (s) =>
+                s.modify(
+                  `update ui.column set displaying = false where id = ${i}`
+                ),
+            },
+            children: listItemButton({
+              variant: "plain",
+              color: "neutral",
+              children: "'Hide Field'",
             }),
-            listItem({
-              on: {
-                click: (s) =>
-                  s
-                    .scalar(
+          }),
+          listItem({
+            on: {
+              click: (s) =>
+                s
+                  .scalar(
+                    `next_col`,
+                    `(select min(ordering) from ui.column where ordering > (select ordering from ui.column where id = ${i}))`
+                  )
+                  .if(`next_col is null`, (s) => s.return())
+                  .statements(
+                    updateBetweenColumns(
                       `next_col`,
-                      `(select min(ordering) from ui.column where ordering > (select ordering from ui.column where id = ${i}))`
+                      `(select min(ordering) from ui.column where ordering > next_col)`
                     )
-                    .if(`next_col is null`, (s) => s.return())
-                    .statements(
-                      updateBetweenColumns(
-                        `next_col`,
-                        `(select min(ordering) from ui.column where ordering > next_col)`
-                      )
-                    ),
-              },
-              children: listItemButton({
-                variant: "plain",
-                color: "neutral",
-                children: "'Move right'",
-              }),
+                  ),
+            },
+            children: listItemButton({
+              variant: "plain",
+              color: "neutral",
+              children: "'Move right'",
             }),
-            listItem({
-              on: {
-                click: (s) =>
-                  s
-                    .scalar(
-                      `current_col`,
-                      `(select ordering from ui.column where id = ${i})`
+          }),
+          listItem({
+            on: {
+              click: (s) =>
+                s
+                  .scalar(
+                    `current_col`,
+                    `(select ordering from ui.column where id = ${i})`
+                  )
+                  .scalar(
+                    `prev_col`,
+                    `(select max(ordering) from ui.column where ordering < current_col)`
+                  )
+                  .if(
+                    `prev_col is null or (select count(*) from column where ordering < current_col) <= ${
+                      startFixedColumns + 1
+                    }`,
+                    (s) => s.return()
+                  )
+                  .statements(
+                    updateBetweenColumns(
+                      `(select max(ordering) from ui.column where ordering < prev_col)`,
+                      `prev_col`
                     )
-                    .scalar(
-                      `prev_col`,
-                      `(select max(ordering) from ui.column where ordering < current_col)`
-                    )
-                    .if(
-                      `prev_col is null or (select count(*) from column where ordering < current_col) <= ${
-                        startFixedColumns + 1
-                      }`,
-                      (s) => s.return()
-                    )
-                    .statements(
-                      updateBetweenColumns(
-                        `(select max(ordering) from ui.column where ordering < prev_col)`,
-                        `prev_col`
-                      )
-                    ),
-              },
-              children: listItemButton({
-                variant: "plain",
-                color: "neutral",
-                children: "'Move left'",
-              }),
+                  ),
+            },
+            children: listItemButton({
+              variant: "plain",
+              color: "neutral",
+              children: "'Move left'",
             }),
-            listItem({
-              on: {
-                click: updateBetweenColumns(
-                  `(select max(ordering) from ui.column)`,
-                  `null`
-                ),
-              },
-              children: listItemButton({
-                variant: "plain",
-                color: "neutral",
-                children: "'Move to end'",
-              }),
+          }),
+          listItem({
+            on: {
+              click: updateBetweenColumns(
+                `(select max(ordering) from ui.column)`,
+                `null`
+              ),
+            },
+            children: listItemButton({
+              variant: "plain",
+              color: "neutral",
+              children: "'Move to end'",
             }),
-            listItem({
-              on: {
-                click: updateBetweenColumns(
-                  getColumnN(startFixedColumns),
-                  getColumnN(startFixedColumns + 1)
-                ),
-              },
-              children: listItemButton({
-                variant: "plain",
-                color: "neutral",
-                children: "'Move to start'",
-              }),
+          }),
+          listItem({
+            on: {
+              click: updateBetweenColumns(
+                getColumnN(startFixedColumns),
+                getColumnN(startFixedColumns + 1)
+              ),
+            },
+            children: listItemButton({
+              variant: "plain",
+              color: "neutral",
+              children: "'Move to start'",
             }),
-          ],
-        })
-      ),
-    ],
-  });
+          }),
+        ],
+      })
+    ),
+  ];
 }
 
 export interface SuperGridDts {
@@ -644,7 +653,7 @@ export function styledDatagrid(config: StyledDatagridConfig) {
     enableViews: config.toolbar.views,
     idField: config.idField,
     datagridStyles: {
-      root: sharedStyles.root,
+      root: sharedStyles.root(),
       row: sharedStyles.row,
       cell: sharedStyles.cell(),
       headerCell: sharedStyles.headerCell(),
@@ -654,7 +663,9 @@ export function styledDatagrid(config: StyledDatagridConfig) {
     pageSize: config.pageSize,
     additionalWhere: config.toolbar.quickSearch?.(`ui.quick_search_query`),
     extraState: (s) => {
-      s.statements(config.extraState);
+      s.scalar("open_column_dialog", { type: "Int" }).statements(
+        config.extraState
+      );
       if (config.toolbar.quickSearch) {
         s.scalar("ui.quick_search_query", "''");
       }

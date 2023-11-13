@@ -646,7 +646,7 @@ export class MultiInsertFormState extends FormState {
     this.#formStateExtensions?.beforeSubmitClient?.(this, domProc);
     domProc.if(this.hasAnyError, (s) => s.return());
     domProc.statements(this.setSubmitting(`true`));
-    domProc.commitUiChanges();
+    domProc.commitUiTreeChanges();
     domProc.try({
       body: (s) =>
         s.serviceProc((s) => {
@@ -861,7 +861,7 @@ export class InsertFormState extends FormState {
     this.#formStateExtensions?.beforeSubmitClient?.(this, domProc);
     domProc.if(this.hasAnyError, (s) => s.return());
     domProc.statements(this.setSubmitting(`true`));
-    domProc.commitUiChanges();
+    domProc.commitUiTreeChanges();
     domProc.try({
       body: (s) =>
         s.serviceProc((s) => {
@@ -1309,7 +1309,7 @@ export class UpdateFormState extends FormState {
     this.#formStateExtensions?.beforeSubmitClient?.(this, domProc);
     domProc.if(this.hasAnyError, (s) => s.return());
     domProc.statements(this.setSubmitting(`true`));
-    domProc.commitUiChanges();
+    domProc.commitUiTreeChanges();
     domProc.try({
       body: (s) =>
         s.serviceProc((s) => {

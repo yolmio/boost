@@ -256,7 +256,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
             nodes.element("div", {
               styles: styles.header,
               children: [
-                typography({ level: "h5", children: opts.timelineHeader }),
+                typography({ level: "h4", children: opts.timelineHeader }),
                 nodes.state({
                   procedure: (s) => s.scalar(`adding`, `false`),
                   children: [

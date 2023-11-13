@@ -175,7 +175,7 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
           opts.sharedSection
             ? [
                 typography({
-                  level: "h5",
+                  level: "h4",
                   children: opts.sharedSection.header,
                 }),
                 nodes.element("div", {
@@ -212,7 +212,7 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
               ]
             : null,
           typography({
-            level: "h5",
+            level: "h4",
             children: `'Add your ${downcaseFirst(
               pluralize(table.displayName)
             )}'`,

@@ -1,14 +1,12 @@
-import * as yom from "../yom";
 import { nodes } from "../nodeHelpers";
 import type { Node } from "../nodeTypes";
-import { registerKeyframes } from "../nodeTransform";
 import { StyleObject } from "../styleTypes";
 import { createStyles, cssVar } from "../styleUtils";
 import { SlottedComponentWithSlotNames } from "./utils";
 import { createSlotsFn } from "./utils";
 import { styles as modalStyles } from "./modal";
-import { withExitTransition } from "./withExitTransition";
 import { DomStatementsOrFn, DomStatements } from "../statements";
+import { app } from "../app";
 
 type Direction = "left" | "right";
 
@@ -23,7 +21,7 @@ export interface DrawerOpts
 
 const styles = createStyles({
   drawerStyles: (direction: Direction) => {
-    const enterAnimation = registerKeyframes({
+    const enterAnimation = app.ui.registerKeyframes({
       from: {
         transform: getDrawerOutOfViewTransform(direction),
       },
@@ -32,12 +30,23 @@ const styles = createStyles({
       },
     });
     const transform = getDrawerOutOfViewTransform(direction);
-    const exitAnimation = registerKeyframes({
+    const exitAnimation = app.ui.registerKeyframes({
       from: {
         transform: "translate(0%, 0)",
       },
       to: {
         transform,
+      },
+    });
+    app.ui.addGlobalStyle({
+      [`::view-transition-new(drawer-${direction}):only-child`]: {
+        animation: `300ms cubic-bezier(0, 0, 0.2, 1) both ${enterAnimation}`,
+      },
+      [`::view-transition-old(drawer-${direction}):only-child`]: {
+        animation: `300ms cubic-bezier(0, 0, 0.2, 1) both ${exitAnimation}`,
+      },
+      [`::view-transition-group(drawer-${direction})`]: {
+        zIndex: 5,
       },
     });
     const styles: StyleObject = {
@@ -52,15 +61,8 @@ const styles = createStyles({
       minWidth: 300,
       transform: "translate(0%, 0)",
       zIndex: 9999,
-      animationName: enterAnimation,
-      animationTimingFunction: "ease-out",
-      animationDuration: "200ms",
+      viewTransitionName: "drawer-" + direction,
       opacity: 1,
-      "&.in_exit_transition": {
-        animationName: exitAnimation,
-        animationTimingFunction: "ease-in",
-        transform,
-      },
     };
     if (direction === "right") {
       styles.right = 0;
@@ -84,41 +86,33 @@ function getDrawerOutOfViewTransform(direction: Direction) {
 
 export function drawer(opts: DrawerOpts) {
   const slot = createSlotsFn(opts);
-  return withExitTransition(
-    200,
-    ({ dynamicClasses, transitionIfNode, startCloseTransition }) => {
-      const onClose = new DomStatements()
-        .statements(opts.onClose)
-        .statements(startCloseTransition);
-      return transitionIfNode(opts.open, [
-        nodes.portal(
-          slot("root", {
+  const onClose = new DomStatements()
+    .statements(opts.onClose)
+    .triggerViewTransition("immediate");
+  return nodes.if(opts.open, [
+    nodes.portal(
+      slot("root", {
+        tag: "div",
+        styles: modalStyles.root,
+        on: {
+          keydown: (s) => s.if("event.key = 'Escape'", onClose),
+        },
+        children: [
+          slot("backdrop", {
             tag: "div",
-            styles: modalStyles.root(),
-            dynamicClasses,
+            styles: modalStyles.backdrop(),
+            props: { "aria-hidden": "true" },
+          }),
+          slot("drawer", {
+            tag: "div",
             on: {
-              keydown: (s) => s.if("event.key = 'Escape'", onClose),
+              clickAway: onClose,
             },
-            children: [
-              slot("backdrop", {
-                tag: "div",
-                styles: modalStyles.backdrop,
-                dynamicClasses,
-                props: { "aria-hidden": "true" },
-              }),
-              slot("drawer", {
-                tag: "div",
-                on: {
-                  clickAway: onClose,
-                },
-                styles: styles.drawerStyles(opts.direction),
-                dynamicClasses,
-                children: opts.children(onClose),
-              }),
-            ],
-          })
-        ),
-      ]);
-    }
-  );
+            styles: styles.drawerStyles(opts.direction),
+            children: opts.children(onClose),
+          }),
+        ],
+      })
+    ),
+  ]);
 }

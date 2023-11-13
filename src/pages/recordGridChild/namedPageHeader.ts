@@ -65,7 +65,7 @@ const styles = createStyles({
     justifyContent: "center",
     alignItems: "center",
     cursor: "pointer",
-    "&:focus-within": app.theme.focus.default,
+    "&:focus-within": app.ui.theme.focus.default,
   }),
   imgWrapper: {
     width: 128,
@@ -77,7 +77,7 @@ const styles = createStyles({
     height: 128,
     borderRadius: "xl",
     cursor: "pointer",
-    "&:focus": app.theme.focus.default,
+    "&:focus": app.ui.theme.focus.default,
   }),
   subHeader: {
     fontSize: "lg",
@@ -134,7 +134,7 @@ function imagePart(
                   s
                     .if(`uploading`, (s) => s.return())
                     .setScalar(`uploading`, `true`)
-                    .commitUiChanges()
+                    .commitUiTreeChanges()
                     .statements(spawnUploadTasks)
                     .try({
                       body: (s) =>
@@ -154,7 +154,7 @@ function imagePart(
                             s
                               .delay("5000")
                               .setScalar(`failed_upload`, `false`)
-                              .commitUiChanges(),
+                              .commitUiTreeChanges(),
                         }),
                     })
                     .setScalar(`uploading`, `false`),

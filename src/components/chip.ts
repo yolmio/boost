@@ -174,7 +174,7 @@ const styles = createStyles({
       backgroundColor: "initial",
       textDecoration: "none",
       borderRadius: "inherit",
-      "&:focus": app.theme.focus.default,
+      "&:focus": app.ui.theme.focus.default,
       ...getVariantStyle(variant, color),
       "&:hover": getVariantStyle(variant, color, "hover"),
       "&:active": getVariantStyle(variant, color, "active"),
@@ -242,7 +242,7 @@ const styles = createStyles({
       border: "none", // reset user agent stylesheet
       background: "none", // reset user agent stylesheet
       padding: "0px", // reset user agent stylesheet
-      "&:focus-visible": app.theme.focus.default,
+      "&:focus-visible": app.ui.theme.focus.default,
       ...getVariantStyle(variant, color),
       "&:hover": getVariantStyle(variant, color, "hover"),
       "&:active": getVariantStyle(variant, color, "active"),

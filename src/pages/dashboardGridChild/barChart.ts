@@ -56,7 +56,7 @@ const styles = createStyles({
       stroke: cssVar("palette-primary-400"),
     },
     ".ct-series-b &": {
-      stroke: cssVar("palette-info-400"),
+      stroke: cssVar("palette-neutral-400"),
     },
   },
   label: {

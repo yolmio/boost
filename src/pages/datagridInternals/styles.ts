@@ -2,23 +2,56 @@ import { app } from "../../app";
 import { createStyles } from "../../styleUtils";
 
 export const styles = createStyles({
-  root: {
-    position: "relative",
-    flexGrow: 1,
-    height: "100%",
-    backgroundColor: "common-white",
-    dark: {
-      backgroundColor: "common-black",
-    },
-    border: "1px solid",
-    borderColor: "divider",
+  root: () => {
+    app.ui.addGlobalStyle({
+      "::view-transition-group(dg-body)": {
+        animationDuration: app.ui.theme.transitionDurations.drawer,
+        animationTimingFunction: app.ui.theme.transitionEasing.drawer,
+      },
+      'html[data-yolm-transition-type="open-view-drawer"]::view-transition-old(dg-body)':
+        {
+          position: "absolute",
+          width: "100vw",
+          overflow: "hidden",
+          height: "100%",
+          animationName: "none",
+        },
+      'html[data-yolm-transition-type~="open-view-drawer"]::view-transition-new(dg-body)':
+        {
+          display: "none",
+        },
+      'html[data-yolm-transition-type="close-view-drawer"]::view-transition-new(dg-body)':
+        {
+          position: "absolute",
+          width: "100vw",
+          overflow: "hidden",
+          height: "100%",
+          animationName: "none",
+        },
+      'html[data-yolm-transition-type~="close-view-drawer"]::view-transition-old(dg-body)':
+        {
+          display: "none",
+        },
+    });
+    return {
+      position: "relative",
+      flexGrow: 1,
+      height: "100%",
+      backgroundColor: "common-white",
+      dark: {
+        backgroundColor: "common-black",
+      },
+      border: "1px solid",
+      borderColor: "divider",
+      viewTransitionName: "dg-body",
+    };
   },
   row: { display: "flex" },
   cell: () => {
     return {
       "&:focus-within": {
         "--focus-outline-offset": -1,
-        ...app.theme.focus.default,
+        ...app.ui.theme.focus.default,
       },
       display: "flex",
       alignItems: "center",
@@ -34,7 +67,7 @@ export const styles = createStyles({
     return {
       "&:focus-within": {
         "--focus-outline-offset": -1,
-        ...app.theme.focus.default,
+        ...app.ui.theme.focus.default,
       },
       display: "flex",
       alignItems: "center",

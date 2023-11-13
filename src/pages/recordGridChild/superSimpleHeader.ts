@@ -27,7 +27,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
     styles: styles.root,
     children: [
       typography({
-        level: "h5",
+        level: "h4",
         children: stringLiteral(opts.header),
       }),
       nodes.element("div", {

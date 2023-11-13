@@ -191,7 +191,7 @@ export const dynamicBooleanCellKeydownHandler = (
         `row_id`,
         `(select field_0 from ui.dg_table limit 1 offset cell.row - 1)`
       )
-      .commitUiChanges()
+      .commitUiTreeChanges()
       .scalar(
         `prev_value`,
         `(select field_${col} from ui.dg_table where field_0 = row_id)`
@@ -376,7 +376,7 @@ export const simpleBooleanCellKeydownHandler = (
         `row_id`,
         `(select ${idField} from ui.dg_table limit 1 offset cell.row - 1)`
       )
-      .commitUiChanges()
+      .commitUiTreeChanges()
       .scalar(
         `prev_value`,
         `(select ${fieldName} from ui.dg_table where ${idField} = row_id)`

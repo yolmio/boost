@@ -23,7 +23,7 @@ export function deleteRecordDialog(opts: DeleteRecordDialog) {
     onConfirm: (closeModal) => (s) =>
       s
         .setScalar(`dialog_waiting`, `true`)
-        .commitUiChanges()
+        .commitUiTreeChanges()
         .serviceProc((s) =>
           s
             .startTransaction()

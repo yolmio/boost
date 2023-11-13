@@ -44,7 +44,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
         styles: styles.header,
         children: [
           typography({
-            level: "h6",
+            level: "body-lg",
             startDecorator: materialIcon("Business"),
             children: opts.header ?? `'Address'`,
           }),

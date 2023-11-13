@@ -4,11 +4,12 @@ import type {
   FontFamily,
   FontSize,
   FontWeight,
-  LetterSpacing,
   LineHeight,
   Radius,
   Shadow,
   Theme,
+  TransitionDurations,
+  TransitionEasings,
   TypographyKeys,
 } from "./theme";
 import { cssVar, darkSchemeSelector, lightSchemeSelector } from "./styleUtils";
@@ -54,12 +55,6 @@ mappers.fontSize = (v, theme) => {
 mappers.fontWeight = (v, theme) => {
   if (v in theme.fontWeight) {
     return theme.fontWeight[v as keyof FontWeight];
-  }
-  return v;
-};
-mappers.letterSpacing = (v, theme) => {
-  if (v in theme.letterSpacing) {
-    return theme.letterSpacing[v as keyof LetterSpacing];
   }
   return v;
 };
@@ -285,6 +280,20 @@ mappers.gridRowSpan = (v) => ({
   gridRow: v === "full" ? "1 / -1" : `span ${v} / span ${v}`,
 });
 
+mappers.transitionTimingFunction = (v, theme) => {
+  if (v in theme.transitionEasing) {
+    return theme.transitionEasing[v as keyof TransitionEasings];
+  }
+  return v;
+};
+
+mappers.transitionDuration = (v, theme) => {
+  if (v in theme.transitionDurations) {
+    return theme.transitionDurations[v as keyof TransitionDurations];
+  }
+  return v;
+};
+
 /**
  * Quick lookup for unit-less numbers.
  */
@@ -422,9 +431,6 @@ function createRulesFromStyle(
       continue;
     }
     if (key.charCodeAt(0) === 64 /* @ */ && key.includes("media")) {
-      if (!selector) {
-        throw new Error("Must have parent selector for media query");
-      }
       createRulesFromStyle(value, cssRules, selector, key);
     } else {
       createRulesFromStyle(
@@ -537,38 +543,34 @@ export interface KeyFrames {
   ]: Style | undefined;
 }
 
-const keyframeIdGen = new SequentialIDGenerator();
-const registeredKeyframes = new Map<KeyFrames, string>();
-
-export function registerKeyframes(keyframes: KeyFrames) {
-  if (registeredKeyframes.has(keyframes)) {
-    return registeredKeyframes.get(keyframes)!;
-  }
-  const id = keyframeIdGen.next();
-  registeredKeyframes.set(keyframes, id);
-  return id;
-}
-
 export class StyleSerializer {
   #cssRules: string[] = [];
 
-  constructor() {
-    for (const [frames, id] of registeredKeyframes.entries()) {
+  constructor(
+    rootStyles: StyleObject,
+    keyframes: Map<KeyFrames, string>,
+    globalStyles: StyleObject[]
+  ) {
+    createRulesFromStyle(prepStyle(rootStyles, app.ui.theme), this.#cssRules);
+    for (const [frames, id] of keyframes) {
       const selectors = [];
       for (const [key, v] of Object.entries(frames)) {
         if (v) {
           const properties = serializeSimpleCssProperties(
-            prepStyle(v, app.theme)
+            prepStyle(v, app.ui.theme)
           ).join(";");
           selectors.push(`${key} {${properties}}`);
         }
       }
       this.#cssRules.push(`@keyframes ${id}{${selectors.join("")}}`);
     }
+    for (const style of globalStyles) {
+      createRulesFromStyle(prepStyle(style, app.ui.theme), this.#cssRules);
+    }
   }
 
   addGlobalStyle(style: Style) {
-    createRulesFromStyle(prepStyle(style, app.theme), this.#cssRules);
+    createRulesFromStyle(prepStyle(style, app.ui.theme), this.#cssRules);
   }
 
   addStyle(style: Style, useCached = true): string {
@@ -580,7 +582,7 @@ export class StyleSerializer {
     }
     const className = "boost-" + classNameGenerator.next();
     createRulesFromStyle(
-      prepStyle(style, app.theme),
+      prepStyle(style, app.ui.theme),
       this.#cssRules,
       "." + className
     );

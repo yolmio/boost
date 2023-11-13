@@ -32,7 +32,7 @@ const styles = createStyles({
       ),
       '&[aria-selected="true"]': {
         ...getVariantStyle(selectedVariant, selectedColor),
-        boxShadow: app.theme.shadow.sm,
+        boxShadow: app.ui.theme.shadow.sm,
         fontWeight: "initial",
         ...((selectedVariant === "plain" || selectedVariant === "outlined") && {
           backgroundColor: cssVar(`palette-background-surface`),

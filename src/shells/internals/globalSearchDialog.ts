@@ -36,9 +36,10 @@ export function globalSearchDialog(
     nodes.eventHandlers({
       document: {
         keydown: (s) =>
-          s.if(
-            `event.key = 'k' and (event.ctrl_key or event.meta_key)`,
-            toggleOpen
+          s.if(`event.key = 'k' and (event.ctrl_key or event.meta_key)`, (s) =>
+            s
+              .statements(toggleOpen)
+              .triggerViewTransition("all", "'open-dialog'")
           ),
       },
     }),

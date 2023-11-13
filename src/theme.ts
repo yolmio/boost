@@ -22,8 +22,6 @@ export interface Shadow {
 }
 
 export interface FontSize {
-  xs3: string;
-  xs2: string;
   xs: string;
   sm: string;
   md: string;
@@ -32,9 +30,6 @@ export interface FontSize {
   xl2: string;
   xl3: string;
   xl4: string;
-  xl5: string;
-  xl6: string;
-  xl7: string;
 }
 
 export interface FontFamily {
@@ -50,36 +45,28 @@ export interface FontWeight {
   md: string;
   lg: string;
   xl: string;
-  xl2: string;
-  xl3: string;
 }
 
 export interface LineHeight {
+  xs: string;
   sm: string;
   md: string;
   lg: string;
-}
-
-export interface LetterSpacing {
-  sm: string;
-  md: string;
-  lg: string;
+  xl: string;
 }
 
 export type TypographyKeys =
-  | "display1"
-  | "display2"
   | "h1"
   | "h2"
   | "h3"
   | "h4"
-  | "h5"
-  | "h6"
-  | "body1"
-  | "body2"
-  | "body3"
-  | "body4"
-  | "body5";
+  | "title-lg"
+  | "title-md"
+  | "title-sm"
+  | "body-lg"
+  | "body-md"
+  | "body-sm"
+  | "body-xs";
 
 export interface TypographySystem extends Record<TypographyKeys, CSSObject> {}
 
@@ -165,7 +152,9 @@ export interface PaletteText {
   primary: string;
   secondary: string;
   tertiary: string;
+  icon: string;
 }
+
 export interface PaletteBackground {
   body: string;
   surface: string;
@@ -181,7 +170,6 @@ export type ColorPaletteProp =
   | "primary"
   | "neutral"
   | "danger"
-  | "info"
   | "success"
   | "warning";
 
@@ -189,7 +177,6 @@ export interface Palette {
   primary: PaletteRange;
   neutral: PaletteRange;
   danger: PaletteRange;
-  info: PaletteRange;
   success: PaletteRange;
   warning: PaletteRange;
   common: PaletteCommon;
@@ -212,10 +199,10 @@ type Kebab<
 export type PaletteCssVars =
   | `shadow-ring`
   | `shadow-channel`
+  | `shadow-opacity`
   | `palette-primary-${Kebab<keyof Palette["primary"]>}`
   | `palette-neutral-${Kebab<keyof Palette["neutral"]>}`
   | `palette-danger-${Kebab<keyof Palette["danger"]>}`
-  | `palette-info-${Kebab<keyof Palette["info"]>}`
   | `palette-success-${Kebab<keyof Palette["success"]>}`
   | `palette-warning-${Kebab<keyof Palette["warning"]>}`
   | `palette-common-${Kebab<keyof Palette["common"]>}`
@@ -228,6 +215,7 @@ export interface ColorScheme {
   palette: Palette;
   shadowRing: string;
   shadowChannel: string;
+  shadowOpacity: string;
 }
 
 export type SpacingTransform = (value: number) => number;
@@ -245,6 +233,27 @@ export interface Breakpoints {
   up: (key: Breakpoint | number) => string;
 }
 
+export interface ZIndex {
+  popover: number;
+  modal: number;
+  snackbar: number;
+  tooltip: number;
+}
+
+export interface TransitionEasings {
+  navigation: string;
+  popover: string;
+  dialog: string;
+  drawer: string;
+}
+
+export interface TransitionDurations {
+  navigation: string;
+  drawer: string;
+  popover: string;
+  dialog: string;
+}
+
 /** These are the variables declared at :root and don't change for the lifetime of the app */
 export type ConstantCssVars =
   | `radius-${keyof Radius}`
@@ -254,7 +263,8 @@ export type ConstantCssVars =
   | `font-size-${keyof FontSize}`
   | `font-weight-${keyof FontWeight}`
   | `line-height-${keyof LineHeight}`
-  | `letter-spacing-${keyof LetterSpacing}`;
+  | `transition-easing-${Kebab<keyof TransitionEasings>}`
+  | `transition-duration-${Kebab<keyof TransitionDurations>}`;
 
 export type CssVar = ConstantCssVars | PaletteCssVars;
 
@@ -270,8 +280,10 @@ export interface Theme {
   fontSize: FontSize;
   fontWeight: FontWeight;
   lineHeight: LineHeight;
-  letterSpacing: LetterSpacing;
 
   spacing: SpacingTransform;
   breakpoints: Breakpoints;
+  zIndex: ZIndex;
+  transitionEasing: TransitionEasings;
+  transitionDurations: TransitionDurations;
 }

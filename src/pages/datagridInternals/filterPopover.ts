@@ -1202,7 +1202,7 @@ export class FilterTermHelper {
             .statements(dgState.triggerRefresh)
             .setScalar(`did_trigger_refresh`, `true`)
             .setScalar(`debounce_handle`, `null`)
-            .commitUiChanges(),
+            .commitUiTreeChanges(),
       })
       .setScalar(`debounce_handle`, `task_handle`);
   }

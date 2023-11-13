@@ -15,3 +15,5 @@ app.json
 # You should add any databases that you don't want checked into version control here
 # the dev database is ignored because we recreate it when needed
 data/dev
+# we ignore the csv because I don't want to commit giant test databases into git
+data/csv

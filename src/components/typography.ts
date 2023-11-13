@@ -54,7 +54,7 @@ export const styles = createStyles({
           }),
         }),
       }),
-      ...(level && level !== "inherit" && app.theme.typography[level]),
+      ...(level && level !== "inherit" && app.ui.theme.typography[level]),
       ...(noWrap && {
         overflow: "hidden",
         textOverflow: "ellipsis",
@@ -85,7 +85,7 @@ export const styles = createStyles({
   },
   endDecorator: {
     display: "inline-flex",
-    marginLeft: "clamp(4px, var(--Typography-gap, 0.375em), 0.75rem)",
+    marginLeft: "clamp(4px, var(--typography-gap, 0.375em), 0.75rem)",
   },
 });
 
@@ -94,21 +94,19 @@ const tagMapping: Record<Level, AllHtmlTags> = {
   h2: "h2",
   h3: "h3",
   h4: "h4",
-  h5: "h5",
-  h6: "h6",
-  display1: "h1",
-  display2: "h2",
-  body1: "p",
-  body2: "p",
-  body3: "span",
-  body4: "span",
-  body5: "span",
+  "title-lg": "p",
+  "title-md": "p",
+  "title-sm": "p",
+  "body-lg": "p",
+  "body-md": "p",
+  "body-sm": "p",
+  "body-xs": "span",
   inherit: "p",
 };
 
 export function typography(opts: TypographyOpts) {
   const slot = createSlotsFn(opts);
-  const level = opts.level ?? "body1";
+  const level = opts.level ?? "body-md";
   const tag = opts.inline ? "span" : tagMapping[level];
   let children = opts.children;
   if (opts.startDecorator) {

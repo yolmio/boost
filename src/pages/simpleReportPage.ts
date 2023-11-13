@@ -658,7 +658,7 @@ export class SimpleReportsPageBuilder {
       node = nodes.if({
         condition: requiredParams.map((p) => `${p.name} is null`).join(" or "),
         then: alert({
-          color: "info",
+          color: "neutral",
           variant: "outlined",
           startDecorator: materialIcon("Info"),
           children: `(select string_agg(v, ',') from (values${missingFields}) as t(v)) || ' must be specified to view this report.'`,
@@ -698,7 +698,7 @@ export class SimpleReportsPageBuilder {
         nodes.element("div", {
           children: [
             typography({
-              level: "h6",
+              level: "body-lg",
               styles: styles.sectionHeader,
               children: stringLiteral(section.header),
             }),
@@ -755,7 +755,7 @@ export class SimpleReportsPageBuilder {
                 children: nodes.element("div", {
                   styles: styles.notFoundPage,
                   children: typography({
-                    level: "h5",
+                    level: "h4",
                     children: `'Click on any report to see it here!'`,
                   }),
                 }),

@@ -4,7 +4,6 @@ const { ui } = app;
 app.name = "hello_world";
 app.title = "Hello World App";
 app.displayName = "Hello World";
-app.dbRunMode = "BrowserSync";
 
 // ui
 

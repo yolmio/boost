@@ -5,7 +5,8 @@
   "license": "MIT",
   "dependencies": {
     "@faker-js/faker": "^8.0.2",
-    "@yolm/boost": "0.2.x"
+    "@yolm/boost": "0.2.x",
+    "csv-writer": "^1.6.0"
   },
   "scripts": {
     "start": "bun node_modules/@yolm/boost/scripts/start.js",

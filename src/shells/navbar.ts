@@ -33,18 +33,26 @@ export interface NavbarProps extends GlobalSearchOpts {
 }
 
 const styles = createStyles({
-  root: (variant: "soft" | "solid", color: ColorPaletteProp) => ({
-    ...getVariantStyle(variant, color),
-    ...createHarmonizeVars(variant, color),
-    display: "flex",
-    position: "relative",
-    alignItems: "center",
-    justifyContent: "center",
-    px: 1,
-    py: 2,
-    sm: { px: 2 },
-    lg: { px: 3 },
-  }),
+  root: (variant: "soft" | "solid", color: ColorPaletteProp) => {
+    app.ui.addGlobalStyle({
+      "::view-transition-new(navbar)": {
+        animation: "none",
+      },
+    });
+    return {
+      ...getVariantStyle(variant, color),
+      ...createHarmonizeVars(variant, color),
+      display: "flex",
+      position: "relative",
+      alignItems: "center",
+      justifyContent: "center",
+      px: 1,
+      py: 2,
+      sm: { px: 2 },
+      lg: { px: 3 },
+      viewTransitionName: "navbar",
+    };
+  },
   menuIcon: {
     display: "block",
     flexGrow: 1,
@@ -71,13 +79,10 @@ const styles = createStyles({
       alignItems: "center",
       justifyContent: "center",
       position: "relative",
-      // TODO: discuss the transition approach in a separate PR. This value is copied from mui-material Button.
-      transition:
-        "background-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, border-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms",
       fontFamily: cssVar(`font-family-body`),
       fontWeight: cssVar(`font-weight-md`),
       lineHeight: 1,
-      "&:focus-visible": app.theme.focus.default,
+      "&:focus-visible": app.ui.theme.focus.default,
       "&:hover": getVariantStyle("soft", "harmonize", "hover"),
       "&:active": getVariantStyle("soft", "harmonize", "active"),
       ...getVariantStyle("soft", "harmonize"),
@@ -112,12 +117,37 @@ const styles = createStyles({
   linksDrawer: {
     maxWidth: 360,
   },
+  linkWrapper: {
+    position: "relative",
+  },
+  linkActive: () => {
+    app.ui.addGlobalStyle({
+      'html[data-yolm-transition-type*="navigate"]::view-transition-group(navbar-link-active)':
+        {
+          animationDuration: app.ui.theme.transitionDurations.navigation,
+          animationTimingFunction: app.ui.theme.transitionEasing.navigation,
+        },
+      'html[data-yolm-transition-type*="navigate"]::view-transition-new(navbar-link-active)':
+        {
+          height: "100%",
+        },
+      'html[data-yolm-transition-type*="navigate"]::view-transition-old(navbar-link-active)':
+        {
+          height: "100%",
+        },
+    });
+    return {
+      position: "absolute",
+      inset: 0,
+      borderRadius: "sm",
+      ...getVariantStyle("soft", "harmonize"),
+      pointerEvents: "none",
+      viewTransitionName: "navbar-link-active",
+    };
+  },
   link: () => ({
     ...buttonStyles.button("plain", "harmonize", "sm", false),
     fontWeight: "lg",
-    "&.active": {
-      ...getVariantStyle("soft", "harmonize"),
-    },
   }),
 });
 
@@ -163,36 +193,53 @@ export function navbarShell(opts: NavbarProps): (n: Node) => Node {
               title: "'Menu'",
               name: "Menu",
             }),
-            on: { click: (s) => s.setScalar(`ui.showing_mobile_menu`, `true`) },
+            on: {
+              click: (s) =>
+                s
+                  .setScalar(`ui.showing_mobile_menu`, `true`)
+                  .triggerViewTransition("all"),
+            },
           }),
         }),
         nodes.element("div", {
           styles: styles.links,
           children: [
-            iconButton({
-              color: "harmonize",
-              variant: "plain",
-              size: "sm",
-              children: materialIcon({
-                title: "'Home'",
-                name: "Home",
-              }),
-              href: "'/'",
+            nodes.element("div", {
+              styles: styles.linkWrapper,
+              children: [
+                iconButton({
+                  color: "harmonize",
+                  variant: "plain",
+                  size: "sm",
+                  children: materialIcon({
+                    title: "'Home'",
+                    name: "Home",
+                  }),
+                  href: "'/'",
+                }),
+                nodes.if(
+                  `location.pathname = '/'`,
+                  nodes.element("div", { styles: styles.linkActive() })
+                ),
+              ],
             }),
             normalizedLabels.map((link) =>
               makeConditionalLink(
-                nodes.element("a", {
-                  props: { href: stringLiteral(link.url) },
-                  styles: styles.link(),
-                  dynamicClasses: [
-                    {
-                      condition: `uri.is_match(location.pathname, ${stringLiteral(
+                nodes.element("div", {
+                  styles: styles.linkWrapper,
+                  children: [
+                    nodes.element("a", {
+                      props: { href: stringLiteral(link.url) },
+                      styles: styles.link(),
+                      children: stringLiteral(link.label),
+                    }),
+                    nodes.if(
+                      `uri.is_match(location.pathname, ${stringLiteral(
                         link.url
                       )})`,
-                      classes: "active",
-                    },
+                      nodes.element("div", { styles: styles.linkActive() })
+                    ),
                   ],
-                  children: stringLiteral(link.label),
                 }),
                 link.showIf
               )
@@ -220,7 +267,12 @@ export function navbarShell(opts: NavbarProps): (n: Node) => Node {
                         : `'Search…'`,
                     }),
                   ],
-                  on: { click: (s) => s.setScalar(`ui.searching`, `true`) },
+                  on: {
+                    click: (s) =>
+                      s
+                        .setScalar(`ui.searching`, `true`)
+                        .triggerViewTransition("all", "'open-dialog'"),
+                  },
                 })
               : undefined,
             iconButton({
@@ -231,7 +283,12 @@ export function navbarShell(opts: NavbarProps): (n: Node) => Node {
                 title: "'Settings'",
                 name: "Settings",
               }),
-              on: { click: (s) => s.setScalar(`ui.showing_settings`, `true`) },
+              on: {
+                click: (s) =>
+                  s
+                    .setScalar(`ui.showing_settings`, `true`)
+                    .triggerViewTransition("all"),
+              },
             }),
           ],
         }),
@@ -245,7 +302,7 @@ export function navbarShell(opts: NavbarProps): (n: Node) => Node {
               styles: styles.linksHeader,
               children: [
                 typography({
-                  level: "h5",
+                  level: "h4",
                   children: "'Links'",
                 }),
                 iconButton({

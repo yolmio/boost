@@ -50,13 +50,10 @@ const styles = createStyles({
       alignItems: "center",
       justifyContent: "center",
       position: "relative",
-      // TODO: discuss the transition approach in a separate PR. This value is copied from mui-material Button.
-      transition:
-        "background-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, border-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms",
       fontFamily: cssVar(`font-family-body`),
       fontWeight: "md",
       lineHeight: 1,
-      "&:focus-visible": app.theme.focus.default,
+      "&:focus-visible": app.ui.theme.focus.default,
       "--icon-font-size": "1.25rem",
       minHeight: "2rem",
       fontSize: cssVar("font-size-md"),
@@ -103,7 +100,7 @@ export function settingsDrawer(opts: SettingsDrawerOpts) {
         styles: styles.settingsHeader,
         children: [
           typography({
-            level: "h5",
+            level: "h4",
             children: "'Settings'",
           }),
           iconButton({
@@ -206,7 +203,7 @@ export function settingsDrawer(opts: SettingsDrawerOpts) {
           {
             condition: `status = 'received'`,
             node: typography({
-              level: "body1",
+              level: "body-md",
               children: [
                 `'Logged in as: '`,
                 nodes.element("strong", {

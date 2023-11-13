@@ -458,16 +458,16 @@ export const containerStyles = lazy(() => {
     mx: "auto",
     px: 2,
     sm: {
-      maxWidth: app.theme.breakpoints.values.sm,
+      maxWidth: app.ui.theme.breakpoints.values.sm,
     },
     md: {
-      maxWidth: app.theme.breakpoints.values.md,
+      maxWidth: app.ui.theme.breakpoints.values.md,
     },
     lg: {
-      maxWidth: app.theme.breakpoints.values.lg,
+      maxWidth: app.ui.theme.breakpoints.values.lg,
     },
     xl: {
-      maxWidth: app.theme.breakpoints.values.xl,
+      maxWidth: app.ui.theme.breakpoints.values.xl,
     },
   };
 });
@@ -506,3 +506,25 @@ export function createStyles<T extends Styles>(styles: T): T {
   }
   return output as T;
 }
+
+export const fadeIn = lazy(() =>
+  app.ui.registerKeyframes({
+    from: {
+      opacity: 0,
+    },
+    to: {
+      opacity: 1,
+    },
+  })
+);
+
+export const fadeOut = lazy(() =>
+  app.ui.registerKeyframes({
+    from: {
+      opacity: 1,
+    },
+    to: {
+      opacity: 0,
+    },
+  })
+);

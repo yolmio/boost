@@ -15,7 +15,7 @@ import { iconButton } from "./iconButton";
 import { inlineFieldDisplay } from "./internal/fieldInlineDisplay";
 import { materialIcon } from "./materialIcon";
 import { IconName } from "./materialIconNames";
-import { modal } from "./modal";
+import { addDialogViewTransitionStyles, modal } from "./modal";
 import { typography } from "./typography";
 import { getUniqueUiId } from "./utils";
 
@@ -45,6 +45,7 @@ export interface TableSearchDialogOpts {
 
 const styles = createStyles({
   dialog: () => {
+    addDialogViewTransitionStyles("fullscreenOnMobile");
     return {
       boxSizing: "border-box",
       boxShadow: "md",
@@ -63,6 +64,7 @@ const styles = createStyles({
       borderRadius: 0,
 
       zIndex: 1000,
+      viewTransitionName: "dialog-fullscreenOnMobile",
       md: {
         top: "10vh",
         left: "50%",
@@ -394,11 +396,9 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
       .modify(
         `delete from device.recent_${opts.table}_search where recent_search_id = result_id`
       )
-      .debugExpr("'before insert'")
       .modify(
         `insert into device.recent_${opts.table}_search select id as recent_search_id, label as recent_search_label, current_timestamp() as recent_search_timestamp ${extraValuesToDeviceSelect} from ui.result where active`
       )
-      .debugExpr("'after insert'")
       .if(
         `(select count(*) from device.recent_${opts.table}_search) >= 20`,
         (s) =>
@@ -550,6 +550,10 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
                                             "result_id"
                                           )
                                         )
+                                        .triggerViewTransition(
+                                          "all",
+                                          "'navigate close-modal'"
+                                        )
                                         .statements(closeModal)
                                     )
                                     .return()
@@ -641,6 +645,7 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
                           s
                             .statements(updateRecentSearch)
                             .navigate(tableModel.getHrefToRecord!(`record.id`))
+                            .triggerViewTransition("all")
                             .statements(closeModal),
                       },
                       children: [
@@ -912,7 +917,7 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
         },
         children: [
           typography({
-            level: "body2",
+            level: "body-sm",
             children: `'Filter results:'`,
           }),
           ...opts.tables.map((t) => {

@@ -4,7 +4,10 @@ import type {
   FontWeight,
   PaletteCssVars,
   Shadow,
+  TransitionDurations,
+  TransitionEasings,
   TypographyKeys,
+  ZIndex,
 } from "./theme";
 
 type SkipPalette<T extends string> = T extends `palette-${infer R}` ? R : T;
@@ -346,7 +349,29 @@ export interface OverwriteCSSProperties {
    *
    * @see https://developer.mozilla.org/docs/Web/CSS/z-index
    */
-  zIndex?: CSS.Property.ZIndex | string;
+  zIndex?: CSS.Property.ZIndex | keyof ZIndex;
+  /**
+   * The **`transition-duration`** CSS property sets the length of time a transition animation should take to complete. By default, the value is `0s`, meaning that no animation will occur.
+   *
+   * **Initial value**: `0s`
+   * | Chrome | Firefox | Safari |  Edge  |  IE   |
+   * | :----: | :-----: | :----: | :----: | :---: |
+   * | **26** | **16**  | **9**  | **12** | **10**|
+   */
+  transitionDuration?:
+    | CSS.Property.TransitionDuration
+    | keyof TransitionDurations;
+  /**
+   * The **`transition-timing-function`** CSS property sets how intermediate values are calculated for CSS properties being affected by a transition effect.
+   *
+   * **Initial value**: `ease`
+   * | Chrome | Firefox | Safari |  Edge  |  IE   |
+   * | :----: | :-----: | :----: | :----: | :---: |
+   * | **26** | **16**  | **9**  | **12** | **10**|
+   */
+  transitionTimingFunction?:
+    | CSS.Property.TransitionTimingFunction
+    | keyof TransitionEasings;
 }
 
 /**

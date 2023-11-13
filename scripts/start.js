@@ -110,7 +110,7 @@ const sendModelPath = path.join(
 );
 
 if (hasBun()) {
-  spawn("bun", ["--watch", sendModelPath], {
+  spawn("bun", ["--hot", sendModelPath], {
     stdio: "inherit",
     shell: true,
   });

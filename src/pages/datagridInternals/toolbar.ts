@@ -131,10 +131,24 @@ export function toolbar(
                 startDecorator: materialIcon("Menu"),
                 on: {
                   click: (s) =>
-                    s.setScalar(
-                      "ui.view_drawer_open",
-                      "not ui.view_drawer_open"
-                    ),
+                    s
+                      .setScalar(
+                        "ui.view_drawer_open",
+                        "not ui.view_drawer_open"
+                      )
+                      .if({
+                        condition: `ui.view_drawer_open`,
+                        then: (s) =>
+                          s.triggerViewTransition(
+                            "final",
+                            "'open-view-drawer'"
+                          ),
+                        else: (s) =>
+                          s.triggerViewTransition(
+                            "immediate",
+                            "'close-view-drawer'"
+                          ),
+                      }),
                 },
               }),
               divider({ orientation: "vertical" }),
@@ -191,7 +205,9 @@ export function toolbar(
                                 s.setScalar(
                                   `columns_dialog_open`,
                                   `not columns_dialog_open`
-                                ).stopPropagation();
+                                )
+                                  .stopPropagation()
+                                  .triggerViewTransition("immediate");
                               },
                             },
                           }),
@@ -199,6 +215,7 @@ export function toolbar(
                             openScalar: "ui.columns_dialog_open",
                             buttonId: columnsButtonId,
                             children: columnsPopover(state, superDts),
+                            name: "columns-popover",
                           }),
                         ]
                       : null,
@@ -226,7 +243,9 @@ export function toolbar(
                                 s.setScalar(
                                   `filter_dialog_open`,
                                   `not filter_dialog_open`
-                                ).stopPropagation();
+                                )
+                                  .stopPropagation()
+                                  .triggerViewTransition("immediate");
                               },
                             },
                           }),
@@ -234,6 +253,7 @@ export function toolbar(
                             openScalar: `ui.filter_dialog_open`,
                             buttonId: filterButtonId,
                             children: filterPopover(columns, superDts),
+                            name: "filter-popover",
                           }),
                         ]
                       : null,
@@ -261,7 +281,9 @@ export function toolbar(
                                 s.setScalar(
                                   `sort_dialog_open`,
                                   `not sort_dialog_open`
-                                ).stopPropagation();
+                                )
+                                  .stopPropagation()
+                                  .triggerViewTransition("immediate");
                               },
                             },
                           }),
@@ -269,6 +291,7 @@ export function toolbar(
                             openScalar: `ui.sort_dialog_open`,
                             buttonId: sortButtonId,
                             children: sortPopover(state, columns),
+                            name: "sort-popover",
                           }),
                         ]
                       : null,
@@ -308,7 +331,7 @@ export function toolbar(
               `status = 'fallback_triggered' and dg_refresh_key != 0`,
               typography({
                 startDecorator: circularProgress({ size: "sm" }),
-                level: "body2",
+                level: "body-sm",
                 children: nodes.if({
                   condition: `row_count = 100`,
                   then: `'Reloading...'`,
@@ -320,7 +343,7 @@ export function toolbar(
               `saving_edit`,
               typography({
                 startDecorator: circularProgress({ size: "sm" }),
-                level: "body2",
+                level: "body-sm",
                 children: `'Saving change...'`,
               })
             ),
