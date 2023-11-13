@@ -505,10 +505,7 @@ function collapse(label: Node, node: Node) {
     procedure: (s) => s.scalar(`open`, `false`),
     children: [
       nodes.element("div", {
-        styles: {
-          ...styles.expandable,
-          viewTransitionName: id,
-        },
+        styles: styles.expandable,
         dynamicClasses: [
           {
             condition: `open`,

@@ -50,7 +50,7 @@ export function pieChart(opts: PieChartOpts): PieChartNode {
           fill: cssVar(`palette-primary-200`),
         },
         ".ct-series-b &": {
-          fill: cssVar(`palette-info-200`),
+          fill: cssVar(`palette-neutral-200`),
         },
         ".ct-series-c &": {
           fill: cssVar(`palette-success-200`),
@@ -68,7 +68,7 @@ export function pieChart(opts: PieChartOpts): PieChartNode {
           stroke: cssVar(`palette-primary-200`),
         },
         ".ct-series-b &": {
-          stroke: cssVar(`palette-info-200`),
+          stroke: cssVar(`palette-neutral-200`),
         },
         ".ct-series-c &": {
           stroke: cssVar(`palette-success-200`),

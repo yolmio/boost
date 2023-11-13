@@ -19,3 +19,5 @@ export { deleteRecordDialog, DeleteRecordDialog } from "./deleteRecordDialog";
 export { textarea, TextareaOpts } from "./textarea";
 export { svgIcon, SvgIconOpts } from "./svgIcon";
 export { input, InputOpts } from "./input";
+export { snackbar, SnackbarOpts } from "./snackbar";
+export { skeleton, SkeletonOpts } from "./skeleton";

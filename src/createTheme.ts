@@ -349,7 +349,7 @@ const defaultEasing: TransitionEasings = {
   navigation: "cubic-bezier(0.34, 1.20, 0.64, 1)",
   drawer: "cubic-bezier(0.34, 1, 0.64, 1)",
   dialog: "cubic-bezier(0.34, 1.14, 0.64, 1)",
-  popover: "cubic-bezier(0.25, 0.85, 0.35, 1.55)",
+  popover: "cubic-bezier(0.34, 1.14, 0.64, 1)",
 };
 
 const defaultDuration: TransitionDurations = {
