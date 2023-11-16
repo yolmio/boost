@@ -22,6 +22,49 @@ export interface Model {
   api?: AppApi;
 }
 
+export interface SyncServiceConfig {
+  type: "SyncService";
+  /**
+   * When writing to the database in the worker, should we store transactions offline and optimistically return success,
+   * instead of waiting on the server to see if the transaction is valid.
+   *
+   * In this first version of Yolm, we have only an extremely simple conflict resolution strategy:
+   *
+   * If there is a new transaction on the server while we have offline transactions, we will attempt to merge in a
+   * simplistic algorithm and if we can't throw away all offline transactions.
+   *
+   * This is clearly not adequate for more complicated scenarios, but for applications that are
+   * for personal use, it is fine.
+   *
+   * We don't support offline writing with a server right now, but we might in the future.
+   */
+  offlineWriting?: boolean;
+}
+
+export interface ServerConfig {
+  type: "Server";
+  /**
+   * By default can the database be downloaded to the client.
+   *
+   * Only relevant if `hasServer` is true.
+   *
+   * Can be overridden by the user, by having a `can_download_db` field in the user table.
+   */
+  canDownload?: boolean;
+  /**
+   * Should we by default download the database to the client.
+   *
+   * Only relevant if `hasServer` is true.
+   *
+   * This is just a default preference, it can be overridden for each user by specifying a `prefer_download_db` field in the user table.
+   *
+   * It can also be overridden on each device by updating the `prefer_download_db` system table in the ui.
+   */
+  preferDownload?: boolean;
+}
+
+export type DbExecutionConfig = SyncServiceConfig | ServerConfig;
+
 export type Locale = "en_us";
 
 /** This indicates the string is to be treated as a SQL expression */
@@ -44,51 +87,6 @@ export interface Enum {
   name: string;
   renameFrom?: string;
   values: EnumValue[];
-}
-
-export interface DbExecutionConfig {
-  /**
-   * Whether we have a dedicated server that has the database on it.
-   *
-   * If not enabled, we run the database in a worker or shared worker and on the server we just check
-   * if the transaction count is valid and accept the transaction.
-   *
-   * Having a dedicated server will cost extra, check yolm.io for pricing.
-   */
-  hasServer: boolean;
-  /**
-   * By default can the database be downloaded to the client.
-   *
-   * Only relevant if `hasServer` is true.
-   *
-   * Can be overridden by the user, by having a `can_download_db` field in the user table.
-   */
-  canDownload?: boolean;
-  /**
-   * Should we by default download the database to the client.
-   *
-   * Only relevant if `hasServer` is true.
-   *
-   * This is just a default preference, it can be overridden for each user by specifying a `prefer_download_db` field in the user table.
-   *
-   * It can also be overridden on each device by updating the `prefer_download_db` system table in the ui.
-   */
-  preferDownload?: boolean;
-  /**
-   * When writing to the database in the worker, should we store transactions offline and optimistically return success,
-   * instead of waiting on the server to see if the transaction is valid.
-   *
-   * In this first version of Yolm, we have only an extremely simple conflict resolution strategy:
-   *
-   * If there is a new transaction on the server while we have offline transactions, we will throw
-   * away all offline transactions.
-   *
-   * This is clearly not adequate for more complicated scenarios, but for applications that are
-   * for personal use, it is fine.
-   *
-   * We don't support offline writing with a server right now, but we might in the future.
-   */
-  offlineWriting?: boolean;
 }
 
 ///
@@ -2106,7 +2104,7 @@ export interface EventHandlersNode {
 // Hierarchy
 //
 
-export type SqlToHierarchy =
+export type ToJSON =
   | ToHierarchyScalar
   | ToHierarchyObject
   | ToHierarchyEach
@@ -2120,33 +2118,35 @@ export interface ToHierarchyScalar {
 
 export interface ToHierarchyObject {
   type: "Object";
-  fields: {
-    name: string;
-    value: SqlToHierarchy;
-  }[];
+  fields: ToHierarchyField[];
+}
+
+export interface ToHierarchyField {
+  name: string;
+  value: ToJSON;
 }
 
 export interface ToHierarchyEach {
   type: "Each";
   table: string;
   recordName: string;
-  children: SqlToHierarchy;
+  children: ToJSON;
 }
 
 export interface ToHierarchyState {
   type: "State";
   procedure: BasicStatement[];
-  children: SqlToHierarchy;
+  children: ToJSON;
 }
 
 export interface ToHierarchyConditional {
-  type: "Conditional";
-  expr: SqlExpression;
-  onTrue: SqlToHierarchy;
-  onFalse?: SqlToHierarchy;
+  type: "If";
+  condition: SqlExpression;
+  then: ToJSON;
+  else?: ToJSON;
 }
 
-export interface HierarchyToSqlTable {
+export interface JSONToTable {
   path?: string[];
   parent?: string;
   scalarField?: string;
@@ -2195,11 +2195,11 @@ export interface RequestStatement {
 
 export type SendBody =
   | { type: "Text"; expr: SqlExpression }
-  | { type: "Json"; hierarchy: SqlToHierarchy };
+  | { type: "Json"; hierarchy: ToJSON };
 
 export type ReceiveBody =
   | { type: "Text"; scalarName: string }
-  | { type: "Json"; tables: HierarchyToSqlTable[] };
+  | { type: "Json"; tables: JSONToTable[] };
 
 //
 // API
@@ -2215,7 +2215,7 @@ export interface ApiEndpoint {
     default?: SqlExpression;
     type: FieldType;
   }[];
-  body?: HierarchyToSqlTable[];
+  body?: JSONToTable[];
   procedure?: ApiEndpointStatement[];
 }
 
@@ -2224,9 +2224,9 @@ export interface SetHttpStatusStatement {
   status: SqlExpression;
 }
 
-export interface ReturnHierarchyStatement {
-  t: "ReturnHierarchy";
-  hierarchy: SqlToHierarchy;
+export interface ReturnJSONStatement {
+  t: "ReturnJSON";
+  json: ToJSON;
 }
 
 export type ApiEndpointStatement =
@@ -2239,9 +2239,17 @@ export type ApiEndpointStatement =
   | TryStatement<StateStatement>
   | BaseStatement
   | SetHttpStatusStatement
-  | ReturnHierarchyStatement
+  | ReturnJSONStatement
   | DynamicModifyStatement
   | DynamicQueryStatement
+  | DynamicQueryToCsv
+  | StartTransactionStatement
+  | CommitTransactionStatement
+  | RequestStatement
+  | UndoTx
+  | RemoveUsersStatement
+  | AddUsersStatement
+  | RemoveFilesStatement
   | SearchStatement;
 
 export interface AppApi {
@@ -2431,6 +2439,12 @@ export interface AssertApi {
   body?: any;
 }
 
+export interface AssertQuery {
+  t: "AssertQuery";
+  query: SqlQuery;
+  csv: string;
+}
+
 export type ApiTestStatment =
   | IfStatement<ApiTestStatment>
   | WhileStatement<ApiTestStatment>
@@ -2440,12 +2454,14 @@ export type ApiTestStatment =
   | ForEachTableStatement<ApiTestStatment>
   | TryStatement<ApiTestStatment>
   | BaseStatement
-  | AssertApi;
+  | AssertApi
+  | AssertQuery;
 
 export interface ApiTest {
   time: string;
   skip?: boolean;
   only?: boolean;
+  seed?: number;
   name: string;
   data: string;
   procedure: ApiTestStatment[];

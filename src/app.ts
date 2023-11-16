@@ -1,11 +1,20 @@
 import * as yom from "./yom";
 import { Theme } from "./theme";
 import { createTheme, ThemeOpts } from "./createTheme";
-import { normalizeCase, pluralize, upcaseFirst } from "./utils/inflectors";
 import {
+  camelize,
+  normalizeCase,
+  pluralize,
+  upcaseFirst,
+} from "./utils/inflectors";
+import {
+  ApiTestStatements,
+  ApiTestStatementsOrFn,
   BasicStatements,
   BasicStatementsOrFn,
   DomStatementsOrFn,
+  EndpointStatements,
+  EndpointStatementsOrFn,
   ScriptStatements,
   ScriptStatementsOrFn,
 } from "./statements";
@@ -86,18 +95,16 @@ export class App {
   appDomain?: string;
   collation = "NoCase" as yom.Collation;
   autoTrim = "None" as yom.AutoTrim;
-  dbExecutionConfig: yom.DbExecutionConfig = { hasServer: true };
+  dbExecutionConfig: yom.DbExecutionConfig = { type: "SyncService" };
   db: Db = new Db();
   ui: Ui = new Ui();
+  api: Api = new Api();
   enums: Record<string, Enum> = {};
   recordRuleFunctions: Record<string, RecordRuleFn> = {};
   ruleFunctions: Record<string, RuleFunction> = {};
   scalarFunctions: Record<string, ScalarFunction> = {};
   tableFunctions: Record<string, TableFunction> = {};
-  test: yom.TestModel = {
-    data: [],
-    api: [],
-  };
+  test = new Test();
   scripts: yom.Script[] = [];
   scriptDbs: ScriptDb[] = [];
 
@@ -208,7 +215,7 @@ export class App {
     addMigrationScript(opts);
   }
 
-  generateYom() {
+  generateYom(): yom.Model {
     if (!app.db.tables[app.db.userTableName]) {
       app.db.addTable(app.db.userTableName, (t) => {
         t.catalog.addRequiredUserFields();
@@ -253,6 +260,8 @@ export class App {
       })),
       ui,
       scripts: this.scripts,
+      api: this.api.generateYom(),
+      test: this.test.generateYom(),
       scriptDbs: this.scriptDbs.map((db) => {
         if (db.definition.type === "MappingFile") {
           return { name: db.name, definition: db.definition };
@@ -616,6 +625,315 @@ export class DbCatalog {
   }
 }
 
+export class Api {
+  #endpoints: yom.ApiEndpoint[] = [];
+
+  get(path: string, helper: GetEndpointHelper) {
+    this.#endpoints.push({
+      method: "GET",
+      path,
+      procedure: EndpointStatements.normalizeToArray(helper.procedure),
+      query: helper.query,
+    });
+  }
+
+  #addEndpoint(
+    method: yom.EndpointMethod,
+    path: string,
+    helper: EndpointHelper
+  ) {
+    this.#endpoints.push({
+      method,
+      path,
+      body: createFromJSONTables(helper.bodyToTables),
+      procedure: EndpointStatements.normalizeToArray(helper.procedure),
+      query: helper.query,
+    });
+  }
+
+  post(path: string, helper: EndpointHelper) {
+    this.#addEndpoint("POST", path, helper);
+  }
+
+  put(path: string, helper: EndpointHelper) {
+    this.#addEndpoint("PUT", path, helper);
+  }
+
+  patch(path: string, helper: EndpointHelper) {
+    this.#addEndpoint("PATCH", path, helper);
+  }
+
+  delete(path: string, helper: EndpointHelper) {
+    this.#addEndpoint("DELETE", path, helper);
+  }
+
+  generateYom(): yom.AppApi {
+    return { endpoints: this.#endpoints };
+  }
+}
+
+export interface GetEndpointHelper {
+  query?: yom.QueryParam[];
+  procedure: EndpointStatementsOrFn;
+}
+
+export interface EndpointHelper {
+  query?: yom.QueryParam[];
+  bodyToTables?: (helper: FromJSONHelper) => void;
+  procedure: EndpointStatementsOrFn;
+}
+
+function createFromJSONTables(
+  f?: (helper: FromJSONHelper) => void
+): yom.JSONToTable[] {
+  if (!f) {
+    return [];
+  }
+  const helper = new FromJSONHelper();
+  f(helper);
+  return helper.finish();
+}
+
+export class FromJSONHelper {
+  #tables: yom.JSONToTable[] = [];
+
+  table(name: string, f: (helper: FromJSONTableHelper) => void) {
+    const builder = new FromJSONTableHelper(this.#tables, name);
+    f(builder);
+    builder.finish();
+  }
+
+  record(name: string, f: (helper: FromJSONTableHelper) => void) {
+    const builder = new FromJSONTableHelper(
+      this.#tables,
+      name,
+      undefined,
+      true
+    );
+    f(builder);
+    builder.finish();
+  }
+
+  finish() {
+    return this.#tables;
+  }
+}
+
+export class FromJSONTableHelper {
+  #fields: FromJSONExtension[] = [];
+  #path?: string[];
+  #scalarField?: string;
+  #primaryKeyFieldName?: string;
+
+  constructor(
+    private outputTables: yom.JSONToTable[],
+    private name: string,
+    private parent?: string,
+    private singleRecord?: boolean
+  ) {}
+
+  path(...path: string[]) {
+    this.#path = path;
+    return this;
+  }
+
+  bool(name: string) {
+    const field = new FromJSONBoolFieldBuilder(name);
+    this.#fields.push(field);
+    return field;
+  }
+
+  date(name: string) {
+    const field = new FromJSONDateFieldBuilder(name);
+    this.#fields.push(field);
+    return field;
+  }
+
+  time(name: string) {
+    const field = new FromJSONTimeFieldBuilder(name);
+    this.#fields.push(field);
+    return field;
+  }
+
+  timestamp(name: string) {
+    const field = new FromJSONTimestampFieldBuilder(name);
+    this.#fields.push(field);
+    return field;
+  }
+
+  tinyInt(name: string) {
+    const field = new FromJSONTinyIntFieldBuilder(name);
+    this.#fields.push(field);
+    return field;
+  }
+
+  smallInt(name: string) {
+    const field = new FromJSONSmallIntFieldBuilder(name);
+    this.#fields.push(field);
+    return field;
+  }
+
+  int(name: string) {
+    const field = new FromJSONIntFieldBuilder(name);
+    this.#fields.push(field);
+    return field;
+  }
+
+  bigInt(name: string) {
+    const field = new FromJSONBigIntFieldBuilder(name);
+    this.#fields.push(field);
+    return field;
+  }
+
+  tinyUint(name: string) {
+    const field = new FromJSONTinyUintFieldBuilder(name);
+    this.#fields.push(field);
+    return field;
+  }
+
+  smallUint(name: string) {
+    const field = new FromJSONSmallUintFieldBuilder(name);
+    this.#fields.push(field);
+    return field;
+  }
+
+  uint(name: string) {
+    const field = new FromJSONUintFieldBuilder(name);
+    this.#fields.push(field);
+    return field;
+  }
+
+  bigUint(name: string) {
+    const field = new FromJSONBigUintFieldBuilder(name);
+    this.#fields.push(field);
+    return field;
+  }
+
+  real(name: string) {
+    const field = new FromJSONRealFieldBuilder(name);
+    this.#fields.push(field);
+    return field;
+  }
+
+  double(name: string) {
+    const field = new FromJSONDoubleFieldBuilder(name);
+    this.#fields.push(field);
+    return field;
+  }
+
+  uuid(name: string) {
+    const field = new FromJSONUuidFieldBuilder(name);
+    this.#fields.push(field);
+    return field;
+  }
+
+  decimal(
+    name: string,
+    opts: {
+      precision: number;
+      scale: number;
+      signed?: boolean;
+    }
+  ) {
+    const field = new FromJSONDecimalFieldBuilder(
+      name,
+      opts.precision,
+      opts.scale,
+      opts.signed ?? true,
+      undefined
+    );
+    this.#fields.push(field);
+    return field;
+  }
+
+  string(name: string, maxLength: number) {
+    const field = new FromJSONStringFieldBuilder(name, maxLength);
+    this.#fields.push(field);
+    return field;
+  }
+
+  enum(name: string, enumName?: string) {
+    const field = new FromJSONEnumFieldBuilder(name, enumName ?? name);
+    this.#fields.push(field);
+    return field;
+  }
+
+  child(name: string, f: (builder: FromJSONTableHelper) => void) {
+    const builder = new FromJSONTableHelper(this.outputTables, name, this.name);
+    f(builder);
+    builder.finish();
+  }
+
+  scalarField(field: string) {
+    this.#scalarField = field;
+  }
+
+  primaryKeyFieldName(field: string) {
+    this.#primaryKeyFieldName = field;
+  }
+
+  finish() {
+    this.outputTables.push({
+      name: this.name,
+      fields: this.#fields.map((f) => f.toJSONToTableField()),
+      parent: this.parent,
+      singleRecord: this.singleRecord,
+      scalarField: this.#scalarField,
+      path: this.#path,
+      primaryKeyFieldName: this.#primaryKeyFieldName,
+    });
+  }
+}
+
+export class Test {
+  #data: yom.TestData[] = [];
+  #api: yom.ApiTest[] = [];
+
+  addTestDataProc(name: string, time: Date, procedure: BasicStatementsOrFn) {
+    this.#data.push({
+      name,
+      time: time.toISOString(),
+      procedure: BasicStatements.normalizeToArray(procedure),
+    });
+  }
+
+  addTestDataDir(name: string, dir: string) {
+    this.#data.push({
+      name,
+      dir,
+    });
+  }
+
+  addApiTest(helper: ApiTestHelper) {
+    this.#api.push({
+      name: helper.name,
+      time: helper.time.toISOString(),
+      seed: helper.seed,
+      skip: helper.skip,
+      only: helper.only,
+      data: helper.data,
+      procedure: ApiTestStatements.normalizeToArray(helper.procedure),
+    });
+  }
+
+  generateYom(): yom.TestModel {
+    return {
+      data: this.#data,
+      api: this.#api,
+    };
+  }
+}
+
+export interface ApiTestHelper {
+  name: string;
+  time: Date;
+  seed?: number;
+  skip?: boolean;
+  only?: boolean;
+  data: string;
+  procedure: ApiTestStatementsOrFn;
+}
+
 export interface ScriptDbModelDefinition {
   type: "Model";
   db: ScriptDbDefinition;
@@ -780,70 +1098,14 @@ export class Table {
       for (const check of f.checks) {
         checks.push(check.check(f.name));
       }
-      const base = {
+      return {
         name: f.name,
         renameFrom: f.renameFrom,
-        description: f.description,
         notNull: f.notNull,
         default: f.default,
         indexed: f.indexed,
+        type: f.generateYomFieldType(),
       };
-      switch (f.type) {
-        case "String":
-          return {
-            type: {
-              type: "String",
-              maxLength: f.maxLength,
-              maxBytesPerChar: f.maxBytesPerChar,
-            },
-            ...base,
-          };
-        case "TinyInt":
-        case "SmallInt":
-        case "Int":
-        case "BigInt":
-        case "TinyUint":
-        case "SmallUint":
-        case "Uint":
-        case "BigUint":
-        case "Real":
-        case "Double":
-        case "Bool":
-        case "Uuid":
-        case "Date":
-        case "Ordering":
-        case "Time":
-        case "Timestamp":
-        case "Tx":
-          return { type: { type: f.type }, ...base };
-        case "Decimal":
-          return {
-            type: {
-              type: "Decimal",
-              precision: f.precision,
-              scale: f.scale,
-              signed: f.signed,
-            },
-            ...base,
-          };
-        case "ForeignKey":
-          return {
-            type: {
-              type: "ForeignKey",
-              table: f.table,
-              onDelete: f.onDelete,
-            },
-            ...base,
-          };
-        case "Enum":
-          return {
-            type: {
-              type: "Enum",
-              enum: f.enum,
-            },
-            ...base,
-          };
-      }
     });
     return {
       primaryKeyFieldName: this.primaryKeyFieldName,
@@ -894,6 +1156,8 @@ abstract class FieldBase {
   isVariablePrecision() {
     return false;
   }
+
+  abstract generateYomFieldType(): yom.FieldType;
 }
 
 export type StringUsage = { type: "Email" } | { type: "PhoneNumber" };
@@ -909,6 +1173,17 @@ export class StringField extends FieldBase {
 
   constructor(name: string, displayName: string, public maxLength: number) {
     super(name, displayName);
+  }
+
+  generateYomFieldType(): yom.FieldType {
+    return {
+      type: "String",
+      maxLength: this.maxLength,
+      maxBytesPerChar: this.maxBytesPerChar,
+      collation: this.collation,
+      autoTrim: this.autoTrim,
+      minLength: this.minLength,
+    };
   }
 }
 
@@ -947,27 +1222,59 @@ abstract class IntegerFieldBase extends NumericFieldBase {
 
 export class TinyUintField extends IntegerFieldBase {
   type = "TinyUint" as const;
+
+  generateYomFieldType(): yom.FieldType {
+    return { type: "TinyUint" };
+  }
 }
 export class SmallUintField extends IntegerFieldBase {
   type = "SmallUint" as const;
+
+  generateYomFieldType(): yom.FieldType {
+    return { type: "SmallUint" };
+  }
 }
 export class UintField extends IntegerFieldBase {
   type = "Uint" as const;
+
+  generateYomFieldType(): yom.FieldType {
+    return { type: "Uint" };
+  }
 }
 export class BigUintField extends IntegerFieldBase {
   type = "BigUint" as const;
+
+  generateYomFieldType(): yom.FieldType {
+    return { type: "BigUint" };
+  }
 }
 export class TinyIntField extends IntegerFieldBase {
   type = "TinyInt" as const;
+
+  generateYomFieldType(): yom.FieldType {
+    return { type: "TinyInt" };
+  }
 }
 export class SmallIntField extends IntegerFieldBase {
   type = "SmallInt" as const;
+
+  generateYomFieldType(): yom.FieldType {
+    return { type: "SmallInt" };
+  }
 }
 export class IntField extends IntegerFieldBase {
   type = "Int" as const;
+
+  generateYomFieldType(): yom.FieldType {
+    return { type: "Int" };
+  }
 }
 export class BigIntField extends IntegerFieldBase {
   type = "BigInt" as const;
+
+  generateYomFieldType(): yom.FieldType {
+    return { type: "BigInt" };
+  }
 }
 
 export type IntegerField =
@@ -985,11 +1292,19 @@ export class RealField extends NumericFieldBase {
   isVariablePrecision(): boolean {
     return true;
   }
+
+  generateYomFieldType(): yom.FieldType {
+    return { type: "Real" };
+  }
 }
 export class DoubleField extends NumericFieldBase {
   type = "Double" as const;
   isVariablePrecision(): boolean {
     return true;
+  }
+
+  generateYomFieldType(): yom.FieldType {
+    return { type: "Double" };
   }
 }
 
@@ -1006,6 +1321,15 @@ export class DecimalField extends NumericFieldBase {
     public signed: boolean
   ) {
     super(name, displayName);
+  }
+
+  generateYomFieldType(): yom.FieldType {
+    return {
+      type: "Decimal",
+      precision: this.precision,
+      scale: this.scale,
+      signed: this.signed,
+    };
   }
 }
 
@@ -1030,6 +1354,10 @@ export class DateField extends FieldBase {
     const formatString = stringLiteral(this.formatString ?? "%-d %b %Y");
     return `format.date(${expr}, ${formatString})`;
   }
+
+  generateYomFieldType(): yom.FieldType {
+    return { type: "Date" };
+  }
 }
 
 export class TimeField extends FieldBase {
@@ -1040,6 +1368,10 @@ export class TimeField extends FieldBase {
     "%-d %b %Y %l:%M%p";
     const formatString = stringLiteral(this.formatString ?? "%l:%M%p");
     return `format.date(${expr}, ${formatString})`;
+  }
+
+  generateYomFieldType(): yom.FieldType {
+    return { type: "Time" };
   }
 }
 
@@ -1053,14 +1385,26 @@ export class TimestampField extends FieldBase {
     );
     return `format.date(${expr}, ${formatString})`;
   }
+
+  generateYomFieldType(): yom.FieldType {
+    return { type: "Timestamp" };
+  }
 }
 
 export class TxField extends FieldBase {
   type = "Tx" as const;
+
+  generateYomFieldType(): yom.FieldType {
+    return { type: "Tx" };
+  }
 }
 
 export class NuvaIdField extends FieldBase {
   type = "NuvaId" as const;
+
+  generateYomFieldType(): yom.FieldType {
+    return { type: "NuvaId" as any };
+  }
 }
 
 export interface BoolEnumLikeConfig {
@@ -1072,14 +1416,26 @@ export interface BoolEnumLikeConfig {
 export class BoolField extends FieldBase {
   type = "Bool" as const;
   enumLike?: BoolEnumLikeConfig;
+
+  generateYomFieldType(): yom.FieldType {
+    return { type: "Bool" };
+  }
 }
 
 export class UuidField extends FieldBase {
   type = "Uuid" as const;
+
+  generateYomFieldType(): yom.FieldType {
+    return { type: "Uuid" };
+  }
 }
 
 export class OrderingField extends FieldBase {
   type = "Ordering" as const;
+
+  generateYomFieldType(): yom.FieldType {
+    return { type: "Ordering" };
+  }
 }
 
 export class EnumField extends FieldBase {
@@ -1088,6 +1444,10 @@ export class EnumField extends FieldBase {
   constructor(name: string, displayName: string, _enum: string) {
     super(name, displayName);
     this.enum = _enum;
+  }
+
+  generateYomFieldType(): yom.FieldType {
+    return { type: "Enum", enum: this.enum };
   }
 }
 
@@ -1100,6 +1460,10 @@ export class ForeignKeyField extends FieldBase {
     public onDelete: yom.OnDeleteBehavior
   ) {
     super(name, displayName);
+  }
+
+  generateYomFieldType(): yom.FieldType {
+    return { type: "ForeignKey", onDelete: this.onDelete, table: this.table };
   }
 }
 
@@ -1160,71 +1524,142 @@ export class TableBuilder {
   }
 
   bool(name: string) {
-    return new BoolFieldBuilder(name, this);
+    const field = new BoolFieldBuilder(name);
+    this.addField(field);
+    return field;
   }
 
   ordering(name: string) {
-    return new OrderingFieldBuilder(name, this);
+    const field = new OrderingFieldBuilder(name);
+    this.addField(field);
+    return field;
   }
 
   date(name: string) {
-    return new DateFieldBuilder(name, this);
+    const field = new DateFieldBuilder(name);
+    this.addField(field);
+    return field;
   }
 
   time(name: string) {
-    return new TimeFieldBuilder(name, this);
+    const field = new TimeFieldBuilder(name);
+    this.addField(field);
+    return field;
   }
 
   timestamp(name: string) {
-    return new TimestampFieldBuilder(name, this);
+    const field = new TimestampFieldBuilder(name);
+    this.addField(field);
+    return field;
   }
 
   tx(name: string) {
-    return new TxFieldBuilder(name, this);
+    const field = new TxFieldBuilder(name);
+    this.addField(field);
+    return field;
   }
 
   tinyInt(name: string) {
-    return new TinyIntFieldBuilder(name, this);
+    const field = new TinyIntFieldBuilder(name);
+    this.addField(field);
+    return field;
   }
 
   smallInt(name: string) {
-    return new SmallIntFieldBuilder(name, this);
+    const field = new SmallIntFieldBuilder(name);
+    this.addField(field);
+    return field;
   }
 
   int(name: string) {
-    return new IntFieldBuilder(name, this);
+    const field = new IntFieldBuilder(name);
+    this.addField(field);
+    return field;
   }
 
   bigInt(name: string) {
-    return new BigIntFieldBuilder(name, this);
+    const field = new BigIntFieldBuilder(name);
+    this.addField(field);
+    return field;
   }
 
   tinyUint(name: string) {
-    return new TinyUintFieldBuilder(name, this);
+    const field = new TinyUintFieldBuilder(name);
+    this.addField(field);
+    return field;
   }
 
   smallUint(name: string) {
-    return new SmallUintFieldBuilder(name, this);
+    const field = new SmallUintFieldBuilder(name);
+    this.addField(field);
+    return field;
   }
 
   uint(name: string) {
-    return new UintFieldBuilder(name, this);
+    const field = new UintFieldBuilder(name);
+    this.addField(field);
+    return field;
   }
 
   bigUint(name: string) {
-    return new BigUintFieldBuilder(name, this);
+    const field = new BigUintFieldBuilder(name);
+    this.addField(field);
+    return field;
   }
 
   real(name: string) {
-    return new RealFieldBuilder(name, this);
+    const field = new RealFieldBuilder(name);
+    this.addField(field);
+    return field;
   }
 
   double(name: string) {
-    return new DoubleFieldBuilder(name, this);
+    const field = new DoubleFieldBuilder(name);
+    this.addField(field);
+    return field;
   }
 
   uuid(name: string) {
-    return new UuidFieldBuilder(name, this);
+    const field = new UuidFieldBuilder(name);
+    this.addField(field);
+    return field;
+  }
+
+  decimal(
+    name: string,
+    opts: {
+      precision: number;
+      scale: number;
+      signed?: boolean;
+    }
+  ) {
+    const field = new DecimalFieldBuilder(
+      name,
+      opts.precision,
+      opts.scale,
+      opts.signed ?? true,
+      undefined
+    );
+    this.addField(field);
+    return field;
+  }
+
+  string(name: string, maxLength: number) {
+    const field = new StringFieldBuilder(name, maxLength);
+    this.addField(field);
+    return field;
+  }
+
+  fk(name: string, table?: string) {
+    const field = new ForeignKeyFieldBuilder(name, table ?? name);
+    this.addField(field);
+    return field;
+  }
+
+  enum(name: string, enumName?: string) {
+    const field = new EnumFieldBuilder(name, enumName ?? name);
+    this.addField(field);
+    return field;
   }
 
   money(
@@ -1239,34 +1674,38 @@ export class TableBuilder {
   ) {
     const usage = { type: "Money", currency: "USD" } as const;
     if (typeof opts === "string") {
+      let field;
       switch (opts) {
         case "TinyUint":
-          return new TinyUintFieldBuilder(name, this, usage);
+          field = new TinyUintFieldBuilder(name, usage);
         case "SmallUint":
-          return new SmallUintFieldBuilder(name, this, usage);
+          field = new SmallUintFieldBuilder(name, usage);
         case "Uint":
-          return new UintFieldBuilder(name, this, usage);
+          field = new UintFieldBuilder(name, usage);
         case "BigUint":
-          return new BigUintFieldBuilder(name, this, usage);
+          field = new BigUintFieldBuilder(name, usage);
         case "TinyInt":
-          return new TinyIntFieldBuilder(name, this, usage);
+          field = new TinyIntFieldBuilder(name, usage);
         case "SmallInt":
-          return new SmallIntFieldBuilder(name, this, usage);
+          field = new SmallIntFieldBuilder(name, usage);
         case "Int":
-          return new IntFieldBuilder(name, this, usage);
+          field = new IntFieldBuilder(name, usage);
         case "BigInt":
-          return new BigIntFieldBuilder(name, this, usage);
+          field = new BigIntFieldBuilder(name, usage);
       }
+      this.addField(field);
+      return field;
     }
     const normalizedOpts = opts ?? { precision: 13, scale: 2, signed: true };
-    return new DecimalFieldBuilder(
+    const field = new DecimalFieldBuilder(
       name,
-      this,
       normalizedOpts.precision,
       normalizedOpts.scale,
       normalizedOpts.signed ?? false,
       usage
     );
+    this.addField(field);
+    return field;
   }
 
   percentage(
@@ -1277,36 +1716,15 @@ export class TableBuilder {
       signed?: boolean;
     }
   ) {
-    return new DecimalFieldBuilder(
+    const field = new DecimalFieldBuilder(
       name,
-      this,
       opts.precision,
       opts.scale,
       opts.signed ?? false,
       { type: "Percentage" }
     );
-  }
-
-  decimal(
-    name: string,
-    opts: {
-      precision: number;
-      scale: number;
-      signed?: boolean;
-    }
-  ) {
-    return new DecimalFieldBuilder(
-      name,
-      this,
-      opts.precision,
-      opts.scale,
-      opts.signed ?? true,
-      undefined
-    );
-  }
-
-  string(name: string, maxLength: number) {
-    return new StringFieldBuilder(name, maxLength, this);
+    this.addField(field);
+    return field;
   }
 
   #duration = (
@@ -1315,24 +1733,27 @@ export class TableBuilder {
     backing: yom.FieldIntegerTypes
   ) => {
     const usage = { type: "Duration", size } as const;
+    let field;
     switch (backing) {
       case "TinyUint":
-        return new TinyUintFieldBuilder(name, this, usage);
+        field = new TinyUintFieldBuilder(name, usage);
       case "SmallUint":
-        return new SmallUintFieldBuilder(name, this, usage);
+        field = new SmallUintFieldBuilder(name, usage);
       case "Uint":
-        return new UintFieldBuilder(name, this, usage);
+        field = new UintFieldBuilder(name, usage);
       case "BigUint":
-        return new BigUintFieldBuilder(name, this, usage);
+        field = new BigUintFieldBuilder(name, usage);
       case "TinyInt":
-        return new TinyIntFieldBuilder(name, this, usage);
+        field = new TinyIntFieldBuilder(name, usage);
       case "SmallInt":
-        return new SmallIntFieldBuilder(name, this, usage);
+        field = new SmallIntFieldBuilder(name, usage);
       case "Int":
-        return new IntFieldBuilder(name, this, usage);
+        field = new IntFieldBuilder(name, usage);
       case "BigInt":
-        return new BigIntFieldBuilder(name, this, usage);
+        field = new BigIntFieldBuilder(name, usage);
     }
+    this.addField(field);
+    return field;
   };
 
   secondsDuration(name: string, backing: yom.FieldIntegerTypes) {
@@ -1349,19 +1770,15 @@ export class TableBuilder {
   }
 
   email(name: string) {
-    return new StringFieldBuilder(name, 254, this, { type: "Email" });
+    const field = new StringFieldBuilder(name, 254, { type: "Email" });
+    this.addField(field);
+    return field;
   }
 
   phoneNumber(name: string) {
-    return new StringFieldBuilder(name, 50, this, { type: "PhoneNumber" });
-  }
-
-  fk(name: string, table?: string) {
-    return new ForeignKeyFieldBuilder(name, this, table ?? name);
-  }
-
-  enum(name: string, enumName?: string) {
-    return new EnumFieldBuilder(name, this, enumName ?? name);
+    const field = new StringFieldBuilder(name, 50, { type: "PhoneNumber" });
+    this.addField(field);
+    return field;
   }
 
   unique(
@@ -1384,17 +1801,6 @@ export class TableBuilder {
     this.#fieldGroups[name] = group;
     return this;
   }
-
-  //   fieldGroupFromCatalog(
-  //     catalog: FieldGroupCatalog | ((table: TableBuilder) => void)
-  //   ) {
-  //     if (typeof catalog === "function") {
-  //       catalog(this);
-  //     } else {
-  //       applyFieldGroupCatalog(catalog, this);
-  //     }
-  //     return this;
-  //   }
 
   check(check: Check): TableBuilder {
     this.#checks.push(check);
@@ -1466,6 +1872,9 @@ export class TableBuilder {
     const fields: { [s: string]: Field } = {};
     for (const f of this.#fields) {
       const field = f.finish();
+      if (field.unique) {
+        this.unique([field.name]);
+      }
       fields[field.name] = field;
     }
     let displayNameFields = this.#recordDisplayNameFields;
@@ -1823,10 +2232,9 @@ abstract class BaseFieldBuilder {
   protected _default?: string;
   protected _group?: string;
 
-  constructor(name: string, protected table: TableBuilder) {
+  constructor(name: string) {
     this._name = name;
     this._displayName = app.displayNameConfig.field(name);
-    table.addField(this);
   }
 
   displayName(name: string) {
@@ -1860,7 +2268,6 @@ abstract class BaseFieldBuilder {
   }
 
   unique() {
-    this.table.unique([this._name]);
     this._unique = true;
     return this;
   }
@@ -1891,12 +2298,50 @@ abstract class BaseFieldBuilder {
   abstract finish(): Field;
 }
 
+interface FromJSONExtension {
+  path(...path: string[]): this;
+  toJSONToTableField(): yom.HierarchyToSqlField;
+}
+
+type BaseFieldBuilderConstructor<T extends BaseFieldBuilder> = new (
+  ...args: any[]
+) => T;
+
+function createFromJSONFieldBuilder<
+  T extends BaseFieldBuilder,
+  U extends BaseFieldBuilderConstructor<T>
+>(clazz: U): U & BaseFieldBuilderConstructor<T & FromJSONExtension> {
+  // @ts-ignore
+  return class extends clazz {
+    #path?: string[];
+
+    constructor(...args: any) {
+      super(...args);
+    }
+
+    path(...path: string[]): this {
+      this.#path = path;
+      return this;
+    }
+
+    toJSONToTableField(): yom.HierarchyToSqlField {
+      const field = this.finish();
+      return {
+        type: field.generateYomFieldType(),
+        name: field.name,
+        notNull: field.notNull,
+        path: this.#path ?? [camelize(field.name)],
+      };
+    }
+  };
+}
+
 abstract class BaseNumericBuilder extends BaseFieldBuilder {
   #max?: string;
   #min?: string;
 
-  constructor(name: string, table: TableBuilder) {
-    super(name, table);
+  constructor(name: string) {
+    super(name);
   }
 
   max(n: string) {
@@ -1919,8 +2364,8 @@ abstract class BaseNumericBuilder extends BaseFieldBuilder {
 abstract class BaseIntegerBuilder extends BaseNumericBuilder {
   #usage?: IntegerUsage;
 
-  constructor(name: string, table: TableBuilder, usage?: IntegerUsage) {
-    super(name, table);
+  constructor(name: string, usage?: IntegerUsage) {
+    super(name);
     this.#usage = usage;
   }
 
@@ -1931,11 +2376,7 @@ abstract class BaseIntegerBuilder extends BaseNumericBuilder {
 }
 
 interface IntegerFieldBuilder {
-  new (
-    name: string,
-    table: TableBuilder,
-    usage?: IntegerUsage
-  ): BaseNumericBuilder;
+  new (name: string, usage?: IntegerUsage): BaseNumericBuilder;
 }
 
 function createIntegerBuilder(
@@ -1951,13 +2392,28 @@ function createIntegerBuilder(
 }
 
 const TinyUintFieldBuilder = createIntegerBuilder(TinyUintField);
+const FromJSONTinyUintFieldBuilder =
+  createFromJSONFieldBuilder(TinyUintFieldBuilder);
 const TinyIntFieldBuilder = createIntegerBuilder(TinyIntField);
+const FromJSONTinyIntFieldBuilder =
+  createFromJSONFieldBuilder(TinyIntFieldBuilder);
 const SmallUintFieldBuilder = createIntegerBuilder(SmallUintField);
+const FromJSONSmallUintFieldBuilder = createFromJSONFieldBuilder(
+  SmallUintFieldBuilder
+);
 const SmallIntFieldBuilder = createIntegerBuilder(SmallIntField);
+const FromJSONSmallIntFieldBuilder =
+  createFromJSONFieldBuilder(SmallIntFieldBuilder);
 const UintFieldBuilder = createIntegerBuilder(UintField);
+const FromJSONUintFieldBuilder = createFromJSONFieldBuilder(UintFieldBuilder);
 const IntFieldBuilder = createIntegerBuilder(IntField);
+const FromJSONIntFieldBuilder = createFromJSONFieldBuilder(IntFieldBuilder);
 const BigUintFieldBuilder = createIntegerBuilder(BigUintField);
+const FromJSONBigUintFieldBuilder =
+  createFromJSONFieldBuilder(BigUintFieldBuilder);
 const BigIntFieldBuilder = createIntegerBuilder(BigIntField);
+const FromJSONBigIntFieldBuilder =
+  createFromJSONFieldBuilder(BigIntFieldBuilder);
 
 class RealFieldBuilder extends BaseNumericBuilder {
   finish(): Field {
@@ -1966,6 +2422,7 @@ class RealFieldBuilder extends BaseNumericBuilder {
     return field;
   }
 }
+const FromJSONRealFieldBuilder = createFromJSONFieldBuilder(RealFieldBuilder);
 class DoubleFieldBuilder extends BaseNumericBuilder {
   finish(): Field {
     const field = new DoubleField(this._name, this._displayName);
@@ -1973,6 +2430,8 @@ class DoubleFieldBuilder extends BaseNumericBuilder {
     return field;
   }
 }
+const FromJSONDoubleFieldBuilder =
+  createFromJSONFieldBuilder(DoubleFieldBuilder);
 
 class DecimalFieldBuilder extends BaseNumericBuilder {
   #precision: number;
@@ -1982,13 +2441,13 @@ class DecimalFieldBuilder extends BaseNumericBuilder {
 
   constructor(
     name: string,
-    table: TableBuilder,
+
     precision: number,
     scale: number,
     signed: boolean,
     usage: DecimalUsage | undefined
   ) {
-    super(name, table);
+    super(name);
     this.#precision = precision;
     this.#scale = scale;
     this.#signed = signed;
@@ -2009,6 +2468,9 @@ class DecimalFieldBuilder extends BaseNumericBuilder {
   }
 }
 
+const FromJSONDecimalFieldBuilder =
+  createFromJSONFieldBuilder(DecimalFieldBuilder);
+
 class UuidFieldBuilder extends BaseFieldBuilder {
   finish(): Field {
     const field = new UuidField(this._name, this._displayName);
@@ -2016,6 +2478,8 @@ class UuidFieldBuilder extends BaseFieldBuilder {
     return field;
   }
 }
+
+const FromJSONUuidFieldBuilder = createFromJSONFieldBuilder(UuidFieldBuilder);
 
 class BoolFieldBuilder extends BaseFieldBuilder {
   #enumLike?: BoolEnumLikeConfig;
@@ -2033,6 +2497,8 @@ class BoolFieldBuilder extends BaseFieldBuilder {
   }
 }
 
+const FromJSONBoolFieldBuilder = createFromJSONFieldBuilder(BoolFieldBuilder);
+
 class OrderingFieldBuilder extends BaseFieldBuilder {
   finish(): Field {
     const field = new OrderingField(this._name, this._displayName);
@@ -2040,6 +2506,9 @@ class OrderingFieldBuilder extends BaseFieldBuilder {
     return field;
   }
 }
+
+const FromJSONOrderingFieldBuilder =
+  createFromJSONFieldBuilder(OrderingFieldBuilder);
 
 class DateFieldBuilder extends BaseFieldBuilder {
   finish(): Field {
@@ -2049,6 +2518,8 @@ class DateFieldBuilder extends BaseFieldBuilder {
   }
 }
 
+const FromJSONDateFieldBuilder = createFromJSONFieldBuilder(DateFieldBuilder);
+
 class TimeFieldBuilder extends BaseFieldBuilder {
   finish(): Field {
     const field = new TimeField(this._name, this._displayName);
@@ -2057,6 +2528,8 @@ class TimeFieldBuilder extends BaseFieldBuilder {
   }
 }
 
+const FromJSONTimeFieldBuilder = createFromJSONFieldBuilder(TimeFieldBuilder);
+
 class TimestampFieldBuilder extends BaseFieldBuilder {
   finish(): Field {
     const field = new TimestampField(this._name, this._displayName);
@@ -2064,6 +2537,10 @@ class TimestampFieldBuilder extends BaseFieldBuilder {
     return field;
   }
 }
+
+const FromJSONTimestampFieldBuilder = createFromJSONFieldBuilder(
+  TimestampFieldBuilder
+);
 
 class TxFieldBuilder extends BaseFieldBuilder {
   finish(): Field {
@@ -2085,10 +2562,10 @@ class StringFieldBuilder extends BaseFieldBuilder {
   constructor(
     name: string,
     maxLength: number,
-    table: TableBuilder,
+
     usage?: StringUsage
   ) {
-    super(name, table);
+    super(name);
     this.#maxLength = maxLength;
     this.#usage = usage;
   }
@@ -2140,12 +2617,15 @@ class StringFieldBuilder extends BaseFieldBuilder {
   }
 }
 
+const FromJSONStringFieldBuilder =
+  createFromJSONFieldBuilder(StringFieldBuilder);
+
 class ForeignKeyFieldBuilder extends BaseFieldBuilder {
   #table: string;
   #onDelete: yom.OnDeleteBehavior = "Cascade";
 
-  constructor(name: string, table: TableBuilder, tableName: string) {
-    super(name, table);
+  constructor(name: string, tableName: string) {
+    super(name);
     this.#table = tableName;
   }
 
@@ -2169,8 +2649,8 @@ class ForeignKeyFieldBuilder extends BaseFieldBuilder {
 class EnumFieldBuilder extends BaseFieldBuilder {
   #enum: string;
 
-  constructor(name: string, table: TableBuilder, enumName: string) {
-    super(name, table);
+  constructor(name: string, enumName: string) {
+    super(name);
     this.#enum = enumName;
   }
 
@@ -2180,6 +2660,8 @@ class EnumFieldBuilder extends BaseFieldBuilder {
     return field;
   }
 }
+
+const FromJSONEnumFieldBuilder = createFromJSONFieldBuilder(EnumFieldBuilder);
 
 export type HelperScalarType =
   | yom.ScalarType

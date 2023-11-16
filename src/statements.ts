@@ -747,3 +747,158 @@ export class ScriptStatements extends StatementsBase<yom.ScriptStatement> {
     return this;
   }
 }
+
+export type EndpointStatementsOrFn = StatementsOrFn<EndpointStatements>;
+
+export class EndpointStatements extends StatementsBase<yom.ApiEndpointStatement> {
+  static normalize(p: EndpointStatementsOrFn | false | undefined | null) {
+    return p instanceof EndpointStatements
+      ? p
+      : new EndpointStatements().statements(p);
+  }
+
+  static normalizeToArray(
+    p: EndpointStatementsOrFn | false | undefined | null
+  ) {
+    return EndpointStatements.normalize(p)[BACKING_ARRAY];
+  }
+
+  startTransaction(opts: Omit<yom.StartTransactionStatement, "t"> = {}) {
+    this.pushToBacking({ t: "StartTransaction", ...opts });
+    return this;
+  }
+
+  commitTransaction() {
+    this.pushToBacking({ t: "CommitTransaction" });
+    return this;
+  }
+
+  dynamicQueryToCsv(query: yom.SqlExpression, scalar: string) {
+    this.pushToBacking({ t: "DynamicQueryToCsv", query, scalar });
+    return this;
+  }
+
+  dynamicQuery(props: Omit<yom.DynamicQueryStatement, "t">) {
+    this.pushToBacking({ t: "DynamicQuery", ...props });
+    return this;
+  }
+
+  dynamicModify(sql: yom.SqlExpression) {
+    this.pushToBacking({ t: "DynamicModify", sql });
+    return this;
+  }
+
+  undoTx(txId: yom.SqlExpression) {
+    this.pushToBacking({ t: "UndoTx", tx: txId });
+    return this;
+  }
+
+  search(opts: Omit<yom.SearchStatement, "t">) {
+    this.pushToBacking({ t: "Search", ...opts });
+    return this;
+  }
+
+  /**
+   * This is how you actually add the users to our authorization system, just inserting into the users table is not enough.
+   *
+   * @param query - Expects a sql query with the following fields:
+   *
+   * db_id: biguint (id of the user in the database)
+   *
+   * eamil: string (email of the user, will be sent an email and invited to yolm)
+   *
+   * notification_type: string (either "none" or "new_app" or "user")
+   *
+   * @param outputTable - The name of the table that should be created to store the users that have been added.
+   *
+   * It has the following fields:
+   *
+   * db_id: biguint (id of the user in the database)
+   *
+   * global_id: uuid (id of the user in yolm's authentication system)
+   */
+  addUsers(query: yom.SqlExpression, outputTable = "added_user") {
+    this.pushToBacking({ t: "AddUsers", query, outputTable });
+    return this;
+  }
+
+  removeUsers(query: yom.SqlExpression) {
+    this.pushToBacking({ t: "RemoveUsers", query });
+    return this;
+  }
+
+  removeFiles(query: yom.SqlExpression) {
+    this.pushToBacking({ t: "RemoveFiles", query });
+    return this;
+  }
+
+  returnJSON(f: (helper: ToJSONHelper) => yom.ToJSON) {
+    this.pushToBacking({
+      t: "ReturnJSON",
+      json: f(new ToJSONHelper()),
+    });
+    return this;
+  }
+
+  setHttpStatus(status: yom.SqlExpression) {
+    this.pushToBacking({ t: "SetHttpStatus", status });
+    return this;
+  }
+}
+
+export class ToJSONHelper {
+  scalar(expr: yom.SqlExpression): yom.ToHierarchyScalar {
+    return { type: "Scalar", expr };
+  }
+
+  object(fields: yom.ToHierarchyField[]): yom.ToHierarchyObject {
+    return { type: "Object", fields };
+  }
+
+  if(
+    condition: yom.SqlExpression,
+    then: yom.ToJSON
+  ): yom.ToHierarchyConditional {
+    return { type: "If", condition, then };
+  }
+
+  each(
+    table: string,
+    recordName: string,
+    children: yom.ToJSON
+  ): yom.ToHierarchyEach {
+    return { type: "Each", table, recordName, children };
+  }
+
+  state(s: BasicStatementsOrFn, children: yom.ToJSON): yom.ToHierarchyState {
+    return {
+      type: "State",
+      procedure: BasicStatements.normalizeToArray(s),
+      children,
+    };
+  }
+}
+
+export type ApiTestStatementsOrFn = StatementsOrFn<ApiTestStatements>;
+
+export class ApiTestStatements extends StatementsBase<yom.ApiTestStatment> {
+  static normalize(p: ApiTestStatementsOrFn | undefined | null | false) {
+    return p instanceof ApiTestStatements
+      ? p
+      : new ApiTestStatements().statements(p);
+  }
+
+  static normalizeToArray(p: ApiTestStatementsOrFn | undefined | null | false) {
+    return ApiTestStatements.normalize(p)[BACKING_ARRAY];
+  }
+
+  assertApi(props: Omit<yom.AssertApi, "t">) {
+    this.pushToBacking({ t: "AssertApi", ...props });
+    return this;
+  }
+
+  assertQuery(query: yom.SqlQuery, csv: string) {
+    this.pushToBacking({ t: "AssertQuery", query, csv });
+    return this;
+  }
+}

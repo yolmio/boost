@@ -77,6 +77,22 @@ export async function getScriptModel() {
   return yom;
 }
 
+export async function runTestTs() {
+  await import("file:///" + path.join(process.cwd(), "test.ts"));
+}
+
+export async function getTestModel() {
+  const start = performance.now();
+  await runTestTs();
+  const { app } = await import("../dist/index");
+  const yom = app.generateYom();
+  console.log(
+    "generating yom took",
+    (performance.now() - start).toFixed(2) + "ms"
+  );
+  return yom;
+}
+
 export function writeAppModelToDisk(model) {
   fs.writeFileSync(
     path.join(process.cwd(), "app.json"),
