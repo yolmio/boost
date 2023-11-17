@@ -844,6 +844,16 @@ export class EndpointStatements extends StatementsBase<yom.ApiEndpointStatement>
     this.pushToBacking({ t: "SetHttpStatus", status });
     return this;
   }
+
+  getHeader(name: yom.SqlExpression, scalar: string) {
+    this.pushToBacking({ t: "GetHeader", name, scalar });
+    return this;
+  }
+
+  setHeader(name: yom.SqlExpression, value: yom.SqlExpression) {
+    this.pushToBacking({ t: "SetHeader", name, value });
+    return this;
+  }
 }
 
 export class ToJSONHelper {

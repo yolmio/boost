@@ -2229,6 +2229,18 @@ export interface ReturnJSONStatement {
   json: ToJSON;
 }
 
+export interface GetHeaderStatement {
+  t: "GetHeader";
+  name: SqlExpression;
+  scalar: string;
+}
+
+export interface SetHeaderStatement {
+  t: "SetHeader";
+  name: SqlExpression;
+  value: SqlExpression;
+}
+
 export type ApiEndpointStatement =
   | IfStatement<StateStatement>
   | WhileStatement<StateStatement>
@@ -2250,7 +2262,9 @@ export type ApiEndpointStatement =
   | RemoveUsersStatement
   | AddUsersStatement
   | RemoveFilesStatement
-  | SearchStatement;
+  | SearchStatement
+  | GetHeaderStatement
+  | SetHeaderStatement;
 
 export interface AppApi {
   endpoints: ApiEndpoint[];
@@ -2434,9 +2448,11 @@ export interface AssertApi {
   t: "AssertApi";
   path: string;
   method: EndpointMethod;
+  requestHeaders?: { name: string; value: string }[];
   status: number;
   response: any;
   body?: any;
+  responseHeaders?: { name: string; value: string }[];
 }
 
 export interface AssertQuery {
