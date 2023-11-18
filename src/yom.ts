@@ -7,6 +7,7 @@ export interface Model {
   displayName: string;
   /** Where and how queries and transactions run against the database */
   dbExecutionConfig: DbExecutionConfig;
+  pollingPullConfig?: PollingPullConfig;
   appDomain?: string;
   collation: Collation;
   db: Database;
@@ -64,6 +65,39 @@ export interface ServerConfig {
 }
 
 export type DbExecutionConfig = SyncServiceConfig | ServerConfig;
+
+export interface PollingPullConfig {
+  /**
+   * Stop pulling after this many ms since last interaction.
+   *
+   * default is 90,000 (1.5 minutes)
+   */
+  stopPullsAfter?: number;
+  /**
+   * Pull every this many ms.
+   *
+   * default is 10,000 (10 seconds)
+   */
+  pullEvery?: number;
+  /**
+   * After we stop doing pulls due to interactivity. We want to try a pull before responding
+   * to any procs (that don't have a possible app db write) or state.
+   * This makes sure you don't display overly stale data to the user. This timeout
+   * is how long we wait before we execute the proc or state (if the pull didn't respond in less time).
+   *
+   * If you don't want this behavior, set this to 0, and every proc and state will never wait for a pull.
+   * Setting to 0 is most useful in apps where you don't expect much change coming from other devices.
+   *
+   * default is 500 (0.5 seconds)
+   */
+  preReadAfterInactivePullTimeout?: number;
+  /**
+   * Same behavior as `preReadAfterInactivePullTimeout` except this timeout applies to procs that have a possible app db write.
+   *
+   * default is 1000 (1 second)
+   */
+  prePossibleWriteAfterInactivePullTimeout?: number;
+}
 
 export type Locale = "en_us";
 
