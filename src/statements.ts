@@ -746,6 +746,21 @@ export class ScriptStatements extends StatementsBase<yom.ScriptStatement> {
     this.pushToBacking({ t: "SetDb", ...opts });
     return this;
   }
+
+  startTransaction(db: string) {
+    this.pushToBacking({ t: "StartTransaction", db });
+    return this;
+  }
+
+  commitTransaction(db: string) {
+    this.pushToBacking({ t: "CommitTransaction", db });
+    return this;
+  }
+
+  rollbackTransaction(db: string) {
+    this.pushToBacking({ t: "RollbackTransaction", db });
+    return this;
+  }
 }
 
 export type EndpointStatementsOrFn = StatementsOrFn<EndpointStatements>;

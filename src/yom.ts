@@ -106,12 +106,6 @@ export type SqlExpression = string & {};
 /** This indicates the string is to be treated as a SQL query */
 export type SqlQuery = string & {};
 
-export interface TextCastInfo {
-  date: string;
-  time: string;
-  timestamp: string;
-}
-
 export interface EnumValue {
   name: string;
   renameFrom?: string;
@@ -1504,6 +1498,10 @@ export interface CommitTransactionStatement {
   t: "CommitTransaction";
 }
 
+export interface RollbackTransactionStatement {
+  t: "RollbackTransaction";
+}
+
 export interface UndoTx {
   t: "UndoTx";
   tx: SqlExpression;
@@ -1527,8 +1525,8 @@ export type ServiceProcStatement =
   | CommitTransactionStatement
   | RequestStatement
   | UndoTx
-  | RemoveUsersStatement
-  | AddUsersStatement
+  | UserStatement
+  | RollbackTransactionStatement
   | RemoveFilesStatement
   | SearchStatement;
 
@@ -2293,8 +2291,7 @@ export type ApiEndpointStatement =
   | CommitTransactionStatement
   | RequestStatement
   | UndoTx
-  | RemoveUsersStatement
-  | AddUsersStatement
+  | UserStatement
   | RemoveFilesStatement
   | SearchStatement
   | GetHeaderStatement
@@ -2378,10 +2375,20 @@ export interface AddUsersStatement {
   outputTable?: string;
 }
 
+export interface UpdateUsersStatement {
+  t: "UpdateUsers";
+  query: SqlQuery;
+}
+
 export interface RemoveUsersStatement {
   t: "RemoveUsers";
   query: SqlQuery;
 }
+
+export type UserStatement =
+  | AddUsersStatement
+  | UpdateUsersStatement
+  | RemoveUsersStatement;
 
 export interface RemoveFilesStatement {
   t: "RemoveFiles";
@@ -2437,6 +2444,21 @@ export interface CompactStatement {
   outDir: string;
 }
 
+export interface ScriptCommitTransactionStatement {
+  t: "CommitTransaction";
+  db: string;
+}
+
+export interface ScriptStartTransactionDbStatement {
+  t: "StartTransaction";
+  db: string;
+}
+
+export interface ScriptRollbackTransactionStatement {
+  t: "RollbackTransaction";
+  db: string;
+}
+
 export type ScriptStatement =
   | BaseStatement
   | IfStatement<ScriptStatement>
@@ -2447,15 +2469,17 @@ export type ScriptStatement =
   | ForEachTableStatement<ScriptStatement>
   | TryStatement<ScriptStatement>
   | RemoveFilesStatement
-  | RemoveUsersStatement
+  | UserStatement
   | SaveDbStatement
   | SetDbStatement
   | LoadDbStatement
-  | AddUsersStatement
   | ImportCsvStatement
   | PullStatement
   | PushStatement
-  | CompactStatement;
+  | CompactStatement
+  | ScriptCommitTransactionStatement
+  | ScriptStartTransactionDbStatement
+  | ScriptRollbackTransactionStatement;
 
 ///
 /// TEST
