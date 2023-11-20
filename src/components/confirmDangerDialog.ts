@@ -110,7 +110,10 @@ export function confirmDangerDialog(opts: ConfirmDangerDialogOpts) {
                   color: "danger",
                   loading: `dialog_waiting`,
                   on: {
-                    click: opts.onConfirm(closeModal),
+                    click: {
+                      detachedFromNode: true,
+                      procedure: opts.onConfirm(closeModal),
+                    },
                   },
                   children: opts.confirmButtonText ?? "'Confirm'",
                 }),

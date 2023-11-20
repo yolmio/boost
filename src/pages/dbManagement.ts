@@ -500,7 +500,6 @@ function displayField({ name, notNull, type }: FieldDisplayOpts) {
 }
 
 function collapse(label: Node, node: Node) {
-  const id = getUniqueUiId();
   return nodes.state({
     procedure: (s) => s.scalar(`open`, `false`),
     children: [
@@ -522,8 +521,7 @@ function collapse(label: Node, node: Node) {
           }),
         ],
         on: {
-          click: (s) =>
-            s.setScalar(`open`, `not open`).triggerViewTransition("immediate"),
+          click: (s) => s.setScalar(`open`, `not open`),
         },
       }),
       nodes.if(`open`, node),

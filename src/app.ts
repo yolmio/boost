@@ -12,11 +12,13 @@ import {
   ApiTestStatementsOrFn,
   BasicStatements,
   BasicStatementsOrFn,
+  DomStatements,
   DomStatementsOrFn,
   EndpointStatements,
   EndpointStatementsOrFn,
   ScriptStatements,
   ScriptStatementsOrFn,
+  StateStatementsOrFn,
 } from "./statements";
 import { ident, stringLiteral } from "./utils/sqlHelpers";
 import { Style, StyleObject } from "./styleTypes";
@@ -49,6 +51,8 @@ import { SequentialIDGenerator } from "./utils/SequentialIdGenerator";
 import { escapeHtml } from "./utils/escapeHtml";
 import { default404Page } from "./pages/default404";
 import { rootStyles } from "./rootStyles";
+import { snackbar, SnackbarOpts } from "./components";
+import { nodes } from "./nodeHelpers";
 
 /**
  * The app singleton.
@@ -288,6 +292,30 @@ function defaultGetDisplayName(sqlName: string) {
   return upcaseFirst(normalizeCase(sqlName).join(" "));
 }
 
+interface CrossPageSnackbar {
+  node: Node;
+  stateProc?: StateStatementsOrFn;
+}
+
+export interface CrossPageSnackbarOpts {
+  componentOpts: (close: BasicStatements) => SnackbarOpts;
+  rootStateProc?: StateStatementsOrFn;
+  autoHideDuration?: number;
+}
+
+export interface CustomCrossPageSnackbarOpts {
+  node: Node;
+  rootStateProc?: StateStatementsOrFn;
+  autoHideDuration?: number;
+}
+
+export interface CrossPageSnackbarControls {
+  openSnackbar: DomStatements;
+  openSnackbarWithoutDelayedClose: BasicStatements;
+  delayedCloseSnackbar: DomStatements;
+  closeSnackbar: BasicStatements;
+}
+
 export class Ui {
   webAppConfig: WebAppConfig = {
     htmlHead: "",
@@ -302,6 +330,7 @@ export class Ui {
   theme: Theme = createTheme();
   shell?: (pages: Node) => Node;
   pages: Page[] = [];
+  #crosspageSnackbars: CrossPageSnackbar[] = [];
 
   //
   // Helper methods
@@ -322,6 +351,59 @@ export class Ui {
     const id = this.#keyframeIdGen.next();
     this.#keyFrames.set(keyframes, id);
     return id;
+  }
+
+  registerCrossPageSnackbar(
+    opts: CrossPageSnackbarOpts
+  ): CrossPageSnackbarControls {
+    const closeSnackbar = new BasicStatements().setScalar(
+      "crosspage_snackbar_open",
+      "null"
+    );
+    return this.registerCrossPageCustomSnackbar({
+      node: snackbar(opts.componentOpts(closeSnackbar)),
+      ...opts,
+    });
+  }
+
+  registerCrossPageCustomSnackbar(
+    opts: CustomCrossPageSnackbarOpts
+  ): CrossPageSnackbarControls {
+    const i = this.#crosspageSnackbars.length;
+    const closeSnackbar = new BasicStatements().setScalar(
+      "crosspage_snackbar_open",
+      "null"
+    );
+    this.#crosspageSnackbars.push({
+      node: opts.node,
+      stateProc: opts.rootStateProc,
+    });
+    const delayedClose =
+      typeof opts.autoHideDuration === "number"
+        ? new DomStatements().spawn({
+            detached: true,
+            procedure: (s) =>
+              s
+                .delay(opts.autoHideDuration!.toString())
+                .if(`crosspage_snackbar_open = ${i}`, (s) =>
+                  s.statements(closeSnackbar).commitUiTreeChanges()
+                ),
+          })
+        : new DomStatements().statements(closeSnackbar);
+    return {
+      openSnackbar: new DomStatements()
+        .setScalar("crosspage_snackbar_open", i.toString())
+        .conditionalStatements(
+          typeof opts.autoHideDuration === "number",
+          delayedClose
+        ),
+      openSnackbarWithoutDelayedClose: new BasicStatements().setScalar(
+        "crosspage_snackbar_open",
+        i.toString()
+      ),
+      closeSnackbar,
+      delayedCloseSnackbar: delayedClose,
+    };
   }
 
   useNavbarShell(opts: NavbarProps) {
@@ -427,6 +509,30 @@ export class Ui {
         t: "Routes",
         children: [...pagesWithShell, ...pagesWithoutShell],
       };
+    }
+    if (this.#crosspageSnackbars.length !== 0) {
+      rootNode = [
+        rootNode,
+        nodes.switch(
+          ...this.#crosspageSnackbars.map((s, i) => ({
+            condition: `crosspage_snackbar_open = ${i}`,
+            node: s.node,
+          }))
+        ),
+      ];
+      for (const snackbar of this.#crosspageSnackbars) {
+        if (snackbar.stateProc) {
+          rootNode = nodes.state({
+            procedure: snackbar.stateProc,
+            children: rootNode,
+          });
+        }
+      }
+      rootNode = nodes.state({
+        procedure: (s) =>
+          s.scalar("crosspage_snackbar_open", { type: "SmallUint" }),
+        children: rootNode,
+      });
     }
     const serializer = new StyleSerializer(
       rootStyles(this.theme),

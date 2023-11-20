@@ -47,7 +47,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
         table: ctx.table.name,
         recordId: ctx.recordId,
         size: "sm",
-        afterDeleteService: (s) => s.navigate(stringLiteral(ctx.pathBase)),
+        afterTransactionCommit: (s) => s.navigate(stringLiteral(ctx.pathBase)),
       }),
     ],
   });

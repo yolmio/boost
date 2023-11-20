@@ -201,7 +201,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                             open: `deleting`,
                             table: ctx.table.name,
                             recordId: `record.id`,
-                            afterDeleteService: ctx.triggerRefresh,
+                            afterTransactionCommit: ctx.triggerRefresh,
                           }),
                         ],
                       }),

@@ -15,6 +15,7 @@ import { typography } from "../../components/typography";
 import { circularProgress } from "../../components/circularProgress";
 import { Color, Size, Variant } from "../../components/types";
 import { RecordGridBuilder } from "../recordGrid";
+import { iconButton } from "../../components";
 
 type Chip =
   | string
@@ -255,6 +256,109 @@ function getImageFieldGroup(
   );
 }
 
+let currentSnackbarId = 0;
+
+function createUndoSnackbar() {
+  currentSnackbarId += 1;
+  const undoTxScalar = `named_page_header_undo_tx_${currentSnackbarId}`;
+  const undidSnackbar = app.ui.registerCrossPageSnackbar({
+    autoHideDuration: 5_000,
+    componentOpts: (close) => ({
+      variant: "soft",
+      color: "success",
+      children: "'Successfully undid delete'",
+      anchorOrigin: { vertical: "bottom", horizontal: "center" },
+      startDecorator: materialIcon("CheckCircle"),
+      endDecorator: iconButton({
+        variant: "plain",
+        color: "harmonize",
+        children: materialIcon("Close"),
+        on: { click: close },
+      }),
+    }),
+  });
+  const undoFailure = app.ui.registerCrossPageSnackbar({
+    autoHideDuration: 5_000,
+    componentOpts: (close) => ({
+      variant: "soft",
+      color: "danger",
+      children: "'Unable to undo delete'",
+      anchorOrigin: { vertical: "bottom", horizontal: "center" },
+      startDecorator: materialIcon("Warning"),
+      endDecorator: iconButton({
+        variant: "plain",
+        color: "harmonize",
+        children: materialIcon("Close"),
+        on: { click: close },
+      }),
+    }),
+  });
+  return app.ui.registerCrossPageSnackbar({
+    componentOpts: (close) => ({
+      variant: "soft",
+      color: "success",
+      children: `'Successfully deleted'`,
+      invertColors: true,
+      startDecorator: materialIcon("CheckCircle"),
+      anchorOrigin: { vertical: "bottom", horizontal: "center" },
+      endDecorator: nodes.element("div", {
+        styles: {
+          display: "flex",
+          gap: 1,
+          ml: 4,
+        },
+        children: [
+          button({
+            variant: "soft",
+            color: "harmonize",
+            children: "'Undo'",
+            on: {
+              click: (s) =>
+                s
+                  .try({
+                    body: (s) =>
+                      s.serviceProc((s) =>
+                        s
+                          .startTransaction()
+                          .if(
+                            `(select creator != current_user() from db.tx where id = ${undoTxScalar})`,
+                            (s) => s.throwError(`'Nice try hackerman'`)
+                          )
+                          .undoTx(undoTxScalar)
+                          .commitTransaction()
+                          .navigate(
+                            `named_page_header_undo_return_url_${currentSnackbarId}`
+                          )
+                      ),
+                    errorName: `err`,
+                    catch: (s) =>
+                      s.statements(undoFailure.openSnackbar).return(),
+                  })
+                  .statements(undidSnackbar.openSnackbar),
+            },
+          }),
+          iconButton({
+            variant: "plain",
+            color: "harmonize",
+            children: materialIcon("Close"),
+            on: { click: close },
+          }),
+        ],
+      }),
+    }),
+    rootStateProc: (s) =>
+      s
+        .scalar(undoTxScalar, {
+          type: "BigUint",
+        })
+        .scalar(`named_page_header_undo_return_url_${currentSnackbarId}`, {
+          type: "String",
+          maxLength: 2000,
+        }),
+    autoHideDuration: 7_500,
+  });
+}
+
 export function content(opts: Opts, ctx: RecordGridBuilder) {
   const { table: tableModel, refreshKey, recordId } = ctx;
   if (!tableModel.recordDisplayName) {
@@ -295,6 +399,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
     }
     selectFields += `, ${variant} as named_page_header_thumb`;
   }
+  const undoSnackbar = createUndoSnackbar();
   return nodes.sourceMap(
     "namedPageHeader",
     nodes.state({
@@ -392,8 +497,20 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                 recordId: `ui.record_id`,
                 dialogConfirmDescription: `'Are you sure you want to delete ' || record.name || '?'`,
                 size: "sm",
-                afterDeleteService: (s) =>
+                afterTransactionCommit: (s) =>
                   s.navigate(stringLiteral(ctx.pathBase)),
+                beforeTransactionCommit: (s) =>
+                  s
+                    .setScalar(
+                      `named_page_header_undo_tx_${currentSnackbarId}`,
+                      `current_tx()`
+                    )
+                    .setScalar(
+                      `named_page_header_undo_return_url_${currentSnackbarId}`,
+                      `location.pathname`
+                    ),
+                afterDeleteClient: (s) =>
+                  s.statements(undoSnackbar.openSnackbar),
               }),
             ],
           }),

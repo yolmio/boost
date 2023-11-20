@@ -490,7 +490,7 @@ export function viewDrawer(datagridName: string, dts: DatagridRfns) {
                       deleteRecordDialog({
                         open: `deleting`,
                         onClose: (s) => s.setScalar(`deleting`, `false`),
-                        afterDeleteService: (s) =>
+                        afterTransactionCommit: (s) =>
                           s
                             .if(`view_record.id = view`, (s) =>
                               s.setQueryParam(`ui.view`, `null`)

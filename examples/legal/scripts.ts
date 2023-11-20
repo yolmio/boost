@@ -281,8 +281,10 @@ if (true) {
 app.addScript("init-dev-db", (s) =>
   s
     .importCsv("db", "data/csv")
+    .startTransaction("db")
     .modify(
       `insert into db.user (global_id, is_sys_admin, is_admin, email) values (random.uuid(), true, true, 'coolguy@coolemail.com')`
     )
+    .commitTransaction("db")
     .saveDb("data/dev")
 );

@@ -381,7 +381,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                           onClose: (s) => s.setScalar(`ui.deleting`, `false`),
                           table: notesTable,
                           recordId: `note_record.id`,
-                          afterDeleteService: ctx.triggerRefresh,
+                          afterTransactionCommit: ctx.triggerRefresh,
                         }),
                       ],
                     }),

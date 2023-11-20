@@ -327,7 +327,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                         open: `deleting`,
                         recordId: `attachment_record.id`,
                         table: attachmentTable.name,
-                        afterDeleteService: ctx.triggerRefresh,
+                        afterTransactionCommit: ctx.triggerRefresh,
                       }),
                       iconButton({
                         variant: "plain",

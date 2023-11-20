@@ -369,7 +369,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                             onClose: (s) => s.setScalar(`deleting`, `false`),
                             recordId: `related.assoc_id`,
                             table: assocTable.name,
-                            afterDeleteService: ctx.triggerRefresh,
+                            afterTransactionCommit: ctx.triggerRefresh,
                           }),
                         ],
                       }),

@@ -2,7 +2,12 @@ import { app } from "../app";
 import type { Node } from "../nodeTypes";
 import { StyleObject } from "../styleTypes";
 import { Variant } from "../theme";
-import { createStyles, cssVar, getVariantStyle } from "../styleUtils";
+import {
+  createHarmonizeVars,
+  createStyles,
+  cssVar,
+  getVariantStyle,
+} from "../styleUtils";
 import {
   createSlotsFn,
   getComponentOverwrite,
@@ -21,6 +26,7 @@ export interface SnackbarOpts
   anchorOrigin?: AnchorOrigin;
   startDecorator?: Node;
   endDecorator?: Node;
+  invertColors?: boolean;
   children: Node;
 }
 
@@ -29,7 +35,8 @@ export const styles = createStyles({
     variant: Variant,
     color: Color,
     size: Size,
-    anchorOrigin: AnchorOrigin
+    anchorOrigin: AnchorOrigin,
+    invertColors: boolean
   ) => {
     const theme = app.ui.theme;
     const styles: StyleObject = {
@@ -102,6 +109,9 @@ export const styles = createStyles({
       ],
       ...getVariantStyle(variant, color),
     };
+    if (invertColors) {
+      return [styles, createHarmonizeVars(variant as any, color as any)];
+    }
     return styles;
   },
   startDecorator: {
@@ -149,7 +159,8 @@ export function snackbar(opts: SnackbarOpts) {
       variant,
       color,
       size,
-      opts.anchorOrigin ?? { vertical: "bottom", horizontal: "left" }
+      opts.anchorOrigin ?? { vertical: "bottom", horizontal: "left" },
+      opts.invertColors ?? false
     ),
     children,
   });

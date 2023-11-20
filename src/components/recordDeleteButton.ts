@@ -1,14 +1,14 @@
 import { nodes } from "../nodeHelpers";
-import { ServiceStatementsOrFn } from "../statements";
 import { button } from "./button";
-import { deleteRecordDialog } from "./deleteRecordDialog";
+import { DeleteExtensions, deleteRecordDialog } from "./deleteRecordDialog";
 import { materialIcon } from "./materialIcon";
 import { ComponentOpts } from "./types";
 
-export interface RecordDeleteButtonOpts extends ComponentOpts {
+export interface RecordDeleteButtonOpts
+  extends ComponentOpts,
+    DeleteExtensions {
   table: string;
   recordId: string;
-  afterDeleteService?: ServiceStatementsOrFn;
   dialogConfirmDescription?: string;
 }
 
@@ -30,6 +30,7 @@ export function recordDeleteButton(opts: RecordDeleteButtonOpts) {
         },
       }),
       deleteRecordDialog({
+        ...opts,
         open: `deleting`,
         onClose: (s) => s.setScalar(`ui.deleting`, `false`),
         recordId: `ui.record_id`,
@@ -37,7 +38,6 @@ export function recordDeleteButton(opts: RecordDeleteButtonOpts) {
         confirmDescription:
           opts.dialogConfirmDescription ??
           `'Are you sure you want to delete this record?'`,
-        afterDeleteService: opts.afterDeleteService,
       }),
     ],
   });
