@@ -1302,6 +1302,7 @@ export interface RunTreeChangeEffectsStatement {
  */
 export interface SpawnStatement {
   t: "Spawn";
+  disableAutoUiCommit?: boolean;
   detached?: boolean;
   handleScalar?: string;
   statements: DomProcStatement[];
@@ -2055,7 +2056,7 @@ export interface EventHandlerObject {
    * are aborted. This is to prevent memory leaks.
    */
   detachedFromNode?: boolean;
-  disableAutoCommit?: boolean;
+  disableAutoUiCommit?: boolean;
 }
 
 export type EventHandler = EventHandlerObject | DomProcStatement[];
