@@ -237,7 +237,7 @@ export function button(opts: ButtonOpts) {
     tag: opts.href ? "a" : "button",
     styles: rootStyles,
     dynamicClasses,
-    props: { href: opts.href, ...opts.props },
+    props: { href: opts.href, disabled: opts.disabled, ...opts.props },
     children,
   });
 }

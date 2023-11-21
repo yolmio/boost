@@ -84,7 +84,7 @@ export function iconButton(opts: IconButtonOpts): ElementNode {
   return mergeEls(
     {
       tag: opts.href ? "a" : "button",
-      props: { href: opts.href },
+      props: { href: opts.href, disabled: opts.disabled },
       children: opts.children,
       styles: rootStyles,
     },

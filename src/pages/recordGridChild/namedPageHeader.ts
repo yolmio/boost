@@ -262,7 +262,7 @@ function createUndoSnackbar() {
   currentSnackbarId += 1;
   const undoTxScalar = `named_page_header_undo_tx_${currentSnackbarId}`;
   const undidSnackbar = app.ui.registerCrossPageSnackbar({
-    autoHideDuration: 5_000,
+    autoHideDuration: 3_000,
     componentOpts: (close) => ({
       variant: "soft",
       color: "success",
@@ -278,7 +278,7 @@ function createUndoSnackbar() {
     }),
   });
   const undoFailure = app.ui.registerCrossPageSnackbar({
-    autoHideDuration: 5_000,
+    autoHideDuration: 3_000,
     componentOpts: (close) => ({
       variant: "soft",
       color: "danger",

@@ -24,6 +24,7 @@ import { Node } from "../../nodeTypes";
 import { insertDialog } from "../../components/insertDialog";
 import { DgStateHelpers } from "./shared";
 import * as yom from "../../yom";
+import { createUndoSnackbars } from "../../components/undoSnackbars";
 
 const columnsButtonId = stringLiteral(getUniqueUiId());
 const sortButtonId = stringLiteral(getUniqueUiId());
@@ -115,8 +116,12 @@ export function toolbar(
       ],
     });
   }
+  const undoSnackbars = createUndoSnackbars({
+    successSnackbarContent: `'Deleted ' || deleted_record_count || ' records'`,
+    afterUndo: state.triggerRefresh,
+  });
   const hiddenColumnCount = `(select count(*) from column where not displaying and rfn.${superDts.idToColumnsDisplayName}(id) is not null)`;
-  return nodes.element("div", {
+  let content: Node = nodes.element("div", {
     styles: styles.toolbarWrapper,
     children: nodes.element("div", {
       styles: styles.toolbar,
@@ -378,6 +383,7 @@ export function toolbar(
                       variant: "soft",
                       children: materialIcon("DeleteOutlined"),
                       on: { click: (s) => s.setScalar(`deleting`, `true`) },
+                      disabled: `not selected_all and not exists (select 1 from selected_row)`,
                     }),
                     confirmDangerDialog({
                       open: `deleting`,
@@ -407,39 +413,64 @@ export function toolbar(
                       }),
                       onConfirm: (closeModal) => (s) =>
                         s
-                          .serviceProc((s) =>
-                            s
-                              .startTransaction()
-                              .if({
-                                condition: `selected_all`,
-                                then: (s) =>
-                                  s
-                                    .dynamicQuery({
-                                      query: makeIdsQuery(
-                                        baseDts,
-                                        `db.` + ident(tableModel.name),
-                                        tableModel.primaryKeyIdent,
-                                        additionalWhere
-                                      ),
-                                      columnCount: 1,
-                                      resultTable: `ids`,
-                                    })
-                                    .modify(
-                                      `delete from db.${ident(
-                                        tableModel.name
-                                      )} where id in (select cast(field_0 as bigint) from ids)`
-                                    ),
-                                else: (s) =>
-                                  s.modify(
-                                    `delete from db.${ident(
-                                      tableModel.name
-                                    )} where id in (select id from ui.selected_row)`
-                                  ),
-                              })
-                              .commitTransaction()
-                              .statements(state.triggerRefresh)
-                          )
-                          .statements(closeModal),
+                          .if(`dialog_waiting`, (s) => s.return())
+                          .setScalar(`dialog_waiting`, `true`)
+                          .setScalar(`dialog_error`, `null`)
+                          .commitUiTreeChanges()
+                          .try({
+                            body: (s) =>
+                              s.serviceProc((s) =>
+                                s
+                                  .startTransaction()
+                                  .if({
+                                    condition: `selected_all`,
+                                    then: (s) =>
+                                      s
+                                        .dynamicQuery({
+                                          query: makeIdsQuery(
+                                            baseDts,
+                                            `db.` + ident(tableModel.name),
+                                            tableModel.primaryKeyIdent,
+                                            additionalWhere
+                                          ),
+                                          columnCount: 1,
+                                          resultTable: `ids`,
+                                        })
+                                        .setScalar(
+                                          `deleted_record_count`,
+                                          `(select count(*) from ids)`
+                                        )
+                                        .modify(
+                                          `delete from db.${ident(
+                                            tableModel.name
+                                          )} where id in (select cast(field_0 as bigint) from ids)`
+                                        ),
+                                    else: (s) =>
+                                      s
+                                        .setScalar(
+                                          `deleted_record_count`,
+                                          `(select count(*) from ui.selected_row)`
+                                        )
+                                        .modify(
+                                          `delete from db.${ident(
+                                            tableModel.name
+                                          )} where id in (select id from ui.selected_row)`
+                                        ),
+                                  })
+                                  .statements(undoSnackbars.setUndoTx())
+                                  .commitTransaction()
+                                  .modify(`delete from ui.selected_row`)
+                                  .statements(state.triggerRefresh)
+                              ),
+                            catch: (s) =>
+                              s
+                                .setScalar(
+                                  `dialog_error`,
+                                  `'Unable to delete records'`
+                                )
+                                .return(),
+                          })
+                          .statements(closeModal, undoSnackbars.openSuccess),
                     }),
                   ],
                 })
@@ -491,4 +522,11 @@ export function toolbar(
       ],
     }),
   });
+  if (toolbar.delete) {
+    content = nodes.state({
+      procedure: (s) => s.scalar(`deleted_record_count`, `0`),
+      children: undoSnackbars.wrap(content),
+    });
+  }
+  return content;
 }
