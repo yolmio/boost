@@ -56,13 +56,13 @@ const styles = createStyles({
   menuIcon: {
     display: "block",
     flexGrow: 1,
-    md: { display: "none" },
+    lg: { display: "none" },
   },
   links: {
     display: "none",
     flexGrow: 1,
     gap: 1.5,
-    md: { display: "flex" },
+    lg: { display: "flex" },
   },
   navRight: {
     display: "flex",

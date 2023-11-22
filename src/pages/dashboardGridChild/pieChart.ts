@@ -2,10 +2,11 @@ import { circularProgress } from "../../components/circularProgress";
 import { nodes } from "../../nodeHelpers";
 import { PieChartNode } from "../../nodeTypes";
 import { Style } from "../../styleTypes";
-import { createStyles, cssVar } from "../../styleUtils";
+import { createStyles, cssVar, getVariantStyle } from "../../styleUtils";
 import { stringLiteral } from "../../utils/sqlHelpers";
 import { StateStatementsOrFn } from "../../statements";
 import * as yom from "../../yom";
+import { alert, materialIcon, skeleton, typography } from "../../components";
 
 export interface Opts {
   styles?: Style;
@@ -26,15 +27,17 @@ const styles = createStyles({
     gridColumnSpan: "full",
     display: "flex",
     flexDirection: "column",
+    gap: 1.5,
     lg: { gridColumnSpan: 6 },
   },
-  card: {
+  card: () => ({
     border: "1px solid",
     borderColor: "divider",
     borderRadius: "md",
     boxShadow: "sm",
     height: "100%",
-  },
+    ...getVariantStyle("outlined", "neutral"),
+  }),
   header: {
     fontWeight: "lg",
     fontSize: "lg",
@@ -91,6 +94,20 @@ const styles = createStyles({
       stroke: cssVar("palette-success-200"),
     },
   },
+  alert: {
+    m: 2,
+  },
+  skeletonWrapperWrapper: {
+    height: "100%",
+    width: "100%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  skeletonWrapper: {
+    height: "80%",
+    aspectRatio: "1/1",
+  },
 });
 
 export function content(opts: Opts) {
@@ -100,35 +117,62 @@ export function content(opts: Opts) {
   return nodes.element("div", {
     styles: opts.styles ? [styles.root, opts.styles] : styles.root,
     children: [
-      nodes.element("h3", {
-        styles: styles.header,
+      typography({
+        level: "h4",
         children: stringLiteral(opts.header),
       }),
       nodes.element("div", {
-        styles: opts.cardStyles ? [styles.card, opts.cardStyles] : styles.card,
+        styles: opts.cardStyles
+          ? [styles.card(), opts.cardStyles]
+          : styles.card(),
         children: nodes.state({
           procedure:
             typeof opts.state === "string"
               ? (s) => s.table(`result`, opts.state as string)
               : opts.state,
           statusScalar: `status`,
-          children: nodes.if({
-            condition: `status = 'fallback_triggered'`,
-            then: circularProgress({ size: "md" }),
-            else: {
-              t: "PieChart",
-              styles: {
-                root: styles.chartRoot,
-                sliceDonut: styles.slice,
-                label: styles.label,
-              },
-              donutWidth: "30",
-              labelDirection: "'explode'",
-              labelOffset: "32",
-              chartPadding: "56",
-              ...opts.pieChartOpts,
+          children: nodes.switch(
+            {
+              condition: `status in ('requested', 'fallback_triggered')`,
+              node: nodes.element("div", {
+                styles: styles.skeletonWrapperWrapper,
+                children: nodes.element("div", {
+                  styles: styles.skeletonWrapper,
+                  children: skeleton({
+                    variant: "circular",
+                    level: "h4",
+                  }),
+                }),
+              }),
             },
-          }),
+            {
+              condition: `status = 'failed'`,
+              // not perfect, but good enough for now
+              node: alert({
+                variant: "soft",
+                color: "danger",
+                children: `'Error'`,
+                size: "lg",
+                styles: styles.alert,
+                startDecorator: materialIcon("Error"),
+              }),
+            },
+            {
+              condition: `true`,
+              node: nodes.pieChart({
+                styles: {
+                  root: styles.chartRoot,
+                  sliceDonut: styles.slice,
+                  label: styles.label,
+                },
+                donutWidth: "30",
+                labelDirection: "'explode'",
+                labelOffset: "32",
+                chartPadding: "56",
+                ...opts.pieChartOpts,
+              }),
+            }
+          ),
         }),
       }),
     ],

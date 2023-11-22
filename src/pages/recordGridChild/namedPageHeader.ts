@@ -261,6 +261,7 @@ let currentSnackbarId = 0;
 function createUndoSnackbar() {
   currentSnackbarId += 1;
   const undoTxScalar = `named_page_header_undo_tx_${currentSnackbarId}`;
+  const undoUrlScalar = `named_page_header_undo_return_url_${currentSnackbarId}`;
   const undidSnackbar = app.ui.registerCrossPageSnackbar({
     autoHideDuration: 3_000,
     componentOpts: (close) => ({
@@ -326,9 +327,7 @@ function createUndoSnackbar() {
                           )
                           .undoTx(undoTxScalar)
                           .commitTransaction()
-                          .navigate(
-                            `named_page_header_undo_return_url_${currentSnackbarId}`
-                          )
+                          .navigate(undoUrlScalar)
                       ),
                     errorName: `err`,
                     catch: (s) =>
@@ -351,7 +350,7 @@ function createUndoSnackbar() {
         .scalar(undoTxScalar, {
           type: "BigUint",
         })
-        .scalar(`named_page_header_undo_return_url_${currentSnackbarId}`, {
+        .scalar(undoUrlScalar, {
           type: "String",
           maxLength: 2000,
         }),

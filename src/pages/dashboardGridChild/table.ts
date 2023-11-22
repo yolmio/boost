@@ -1,3 +1,4 @@
+import { alert, materialIcon, skeleton, typography } from "../../components";
 import { nodes } from "../../nodeHelpers";
 import { Node } from "../../nodeTypes";
 import { createStyles } from "../../styleUtils";
@@ -18,15 +19,12 @@ export interface Opts {
 const styles = createStyles({
   root: {
     gridColumnSpan: "full",
+    display: "flex",
+    flexDirection: "column",
+    gap: 1.5,
     xl: {
       gridColumnSpan: 6,
     },
-  },
-  header: {
-    fontWeight: "lg",
-    fontSize: "lg",
-    mt: 0,
-    mb: 2,
   },
   table: {
     backgroundColor: "background-body",
@@ -75,47 +73,70 @@ export function content(opts: Opts) {
   return nodes.element("div", {
     styles: styles.root,
     children: [
-      nodes.element("h4", {
-        styles: styles.header,
+      typography({
+        level: "h4",
         children: stringLiteral(opts.header),
       }),
       nodes.state({
         procedure: (s) => s.table(`table`, opts.query),
-        children: nodes.element("table", {
-          styles: styles.table,
-          children: [
-            nodes.element("thead", {
-              children: opts.columns.map((col) =>
-                nodes.element("th", {
-                  styles: styles.eachHeaderCell,
-                  children: stringLiteral(col.header),
-                })
-              ),
-            }),
-            nodes.element("tbody", {
-              children: nodes.each({
-                table: `table`,
-                recordName: `each_record`,
-                children: nodes.element("tr", {
-                  children: opts.columns.map((col) =>
-                    nodes.element("td", {
-                      styles: styles.cell,
-
-                      children: col.href
-                        ? nodes.element("a", {
-                            styles: styles.cellLink,
-                            props: {
-                              href: col.href(`each_record`),
-                            },
-                            children: col.cell(`each_record`),
-                          })
-                        : col.cell(`each_record`),
-                    })
-                  ),
+        statusScalar: `status`,
+        children: nodes.if({
+          condition: `status = 'failed'`,
+          then: alert({
+            size: "lg",
+            startDecorator: materialIcon("Error"),
+            color: "danger",
+            children: `'Error'`,
+          }),
+          else: nodes.element("table", {
+            styles: styles.table,
+            children: [
+              nodes.element("thead", {
+                children: opts.columns.map((col) =>
+                  nodes.element("th", {
+                    styles: styles.eachHeaderCell,
+                    children: stringLiteral(col.header),
+                  })
+                ),
+              }),
+              nodes.element("tbody", {
+                children: nodes.if({
+                  condition: `status in ('requested', 'fallback_triggered')`,
+                  then: nodes.element("tr", {
+                    children: opts.columns.map(() =>
+                      nodes.element("td", {
+                        styles: styles.cell,
+                        children: skeleton({
+                          variant: "text",
+                          level: "body-md",
+                        }),
+                      })
+                    ),
+                  }),
+                  else: nodes.each({
+                    table: `table`,
+                    recordName: `each_record`,
+                    children: nodes.element("tr", {
+                      children: opts.columns.map((col) =>
+                        nodes.element("td", {
+                          styles: styles.cell,
+                          children: col.href
+                            ? nodes.element("a", {
+                                styles: styles.cellLink,
+                                props: {
+                                  href: col.href(`each_record`),
+                                },
+                                children: col.cell(`each_record`),
+                              })
+                            : col.cell(`each_record`),
+                        })
+                      ),
+                    }),
+                  }),
                 }),
               }),
-            }),
-          ],
+            ],
+          }),
         }),
       }),
     ],

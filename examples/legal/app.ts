@@ -265,46 +265,52 @@ ui.addDashboardGridPage((page) =>
         },
       },
     })
-    .threeStats({
+    .statRow({
       header: `'Last 30 Days'`,
-      left: {
-        title: "'Billable Hours'",
-        procedure: (s) =>
-          s
-            .scalar(
-              `value_num`,
-              `(select sum(minutes) from db.time_entry where billable and date > date.add(day, -30, today()))`
-            )
-            .scalar(
-              `previous_num`,
-              `(select sum(minutes) from db.time_entry where billable and date between date.add(day, -60, today()) and date.add(day, -30, today()))`
-            ),
-        value: `sfn.display_minutes_duration(value_num)`,
-        previous: `sfn.display_minutes_duration(previous_num)`,
-        trend: `cast((value_num - previous_num) as decimal(10, 2)) / cast(previous_num as decimal(10, 2))`,
-      },
-      middle: {
-        title: "'Income'",
-        procedure: (s) =>
-          s
-            .scalar(
-              `value_num`,
-              `(select sum(cost) from db.payment where date > date.add(day, -30, today()))`
-            )
-            .scalar(
-              `previous_num`,
-              `(select sum(cost) from db.payment where date between date.add(day, -60, today()) and date.add(day, -30, today()))`
-            ),
-        value: `format.currency(value_num, 'USD')`,
-        previous: `format.currency(previous_num, 'USD')`,
-        trend: `(value_num - previous_num) / previous_num`,
-      },
-      right: {
-        title: "'Closed Matters'",
-        value: `(select count(*) from db.matter where close_date > date.add(day, -30, today()))`,
-        previous: `(select count(*) from db.matter where close_date between date.add(day, -60, today()) and date.add(day, -30, today())))`,
-        trend: `cast((value - previous) as decimal(10, 2)) / cast(previous as decimal(10, 2))`,
-      },
+      stats: [
+        {
+          title: "'Billable Hours'",
+          procedure: (s) =>
+            s
+              .scalar(
+                `value_num`,
+                `(select sum(minutes) from db.time_entry where billable and date > date.add(day, -30, today()))`
+              )
+              .scalar(
+                `previous_num`,
+                `(select sum(minutes) from db.time_entry where billable and date between date.add(day, -60, today()) and date.add(day, -30, today()))`
+              ),
+          value: `sfn.display_minutes_duration(value_num)`,
+          previous: `sfn.display_minutes_duration(previous_num)`,
+          trend: `cast((value_num - previous_num) as decimal(10, 2)) / cast(previous_num as decimal(10, 2))`,
+        },
+        {
+          title: "'Income'",
+          procedure: (s) =>
+            s
+              .scalar(
+                `value_num`,
+                `(select sum(cost) from db.payment where date > date.add(day, -30, today()))`
+              )
+              .scalar(
+                `previous_num`,
+                `(select sum(cost) from db.payment where date between date.add(day, -60, today()) and date.add(day, -30, today()))`
+              ),
+          value: `format.currency(value_num, 'USD')`,
+          previous: `format.currency(previous_num, 'USD')`,
+          trend: `(value_num - previous_num) / previous_num`,
+        },
+        {
+          title: "'Closed Matters'",
+          value: `(select count(*) from db.matter where close_date > date.add(day, -30, today()))`,
+          previous: `(select count(*) from db.matter where close_date between date.add(day, -60, today()) and date.add(day, -30, today())))`,
+          trend: `case
+            when previous = 0 and value = 0 then 0
+            when previous = 0 then 1 else
+            cast((value - previous) as decimal(10, 2)) / cast(previous as decimal(10, 2))
+          end`,
+        },
+      ],
     })
     .table({
       query: openMatters,

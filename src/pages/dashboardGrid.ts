@@ -4,7 +4,7 @@ import { Node } from "../nodeTypes";
 import { baseGridStyles, createStyles } from "../styleUtils";
 import { containerStyles } from "../styleUtils";
 import * as header from "./dashboardGridChild/header";
-import * as threeStats from "./dashboardGridChild/threeStats";
+import * as statRow from "./dashboardGridChild/statRow";
 import * as table from "./dashboardGridChild/table";
 import * as barChart from "./dashboardGridChild/barChart";
 import * as pieChart from "./dashboardGridChild/pieChart";
@@ -44,8 +44,8 @@ export class DashboardGridBuilder {
     return this;
   }
 
-  threeStats(opts: threeStats.Opts) {
-    this.#children.push(threeStats.content(opts));
+  statRow(opts: statRow.Opts) {
+    this.#children.push(statRow.content(opts));
     return this;
   }
 
