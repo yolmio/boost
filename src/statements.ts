@@ -61,8 +61,8 @@ export abstract class StatementsBase<Statement extends object> {
         typeof queryOrFields === "string"
           ? queryOrFields
           : typeof query === "string"
-          ? query
-          : undefined,
+            ? query
+            : undefined,
       fields: Array.isArray(queryOrFields) ? queryOrFields : undefined,
     } as yom.TableDeclaration as any);
     return this;
@@ -172,9 +172,9 @@ export abstract class StatementsBase<Statement extends object> {
     } else if (s === this) {
       throw new Error(
         "Cannot call any helper functions with itself, i.e. \n" +
-          " const statements = new BasicStatements();\n" +
-          "statements.statements(statements); statements.if('true', statements);\n" +
-          "You did something like the above"
+        " const statements = new BasicStatements();\n" +
+        "statements.statements(statements); statements.if('true', statements);\n" +
+        "You did something like the above"
       );
     } else if (s) {
       return s[BACKING_ARRAY] as any;
@@ -717,12 +717,12 @@ export class ScriptStatements extends StatementsBase<yom.ScriptStatement> {
     return this;
   }
 
-  saveDb(dir: string, db?: string) {
-    this.pushToBacking({ t: "SaveDb", dir, db });
+  saveDbToDir(dir: string, db?: string) {
+    this.pushToBacking({ t: "SaveDbToDir", dir, db });
     return this;
   }
 
-  loadDb(dir: string, db?: string) {
+  loadDbFromDir(dir: string, db?: string) {
     this.pushToBacking({ t: "LoadDb", dir, db });
     return this;
   }
@@ -742,8 +742,8 @@ export class ScriptStatements extends StatementsBase<yom.ScriptStatement> {
     return this;
   }
 
-  setDb(opts?: Omit<yom.SetDbStatement, "t">) {
-    this.pushToBacking({ t: "SetDb", ...opts });
+  uploadDb(opts?: Omit<yom.UploadDbStatement, "t">) {
+    this.pushToBacking({ t: "UploadDb", ...opts });
     return this;
   }
 

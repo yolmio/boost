@@ -105,10 +105,10 @@ export function addMigrationScript(opts: MigrationScriptOpts) {
   }
   app.addScript(scriptName, (s) =>
     s
-      .loadDb(opts.inputDir, scriptDbName)
+      .loadDbFromDir(opts.inputDir, scriptDbName)
       .startTransaction("db")
       .statements(opts.before, tableImports)
       .commitTransaction("db")
-      .saveDb(opts.outputDir)
+      .saveDbToDir(opts.outputDir)
   );
 }

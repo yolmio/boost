@@ -4,6 +4,7 @@ const { db, ui } = app;
 app.name = "tutorial";
 app.title = "Tutorial";
 app.displayName = "Tutorial";
+app.dbExecutionConfig = { type: "Server", cpu: "1/2" }
 
 db.addTable("contact", (table) => {
   table.string("first_name", 50).notNull();

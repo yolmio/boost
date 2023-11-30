@@ -131,7 +131,7 @@ export function getAppYolmConfig() {
 
 export async function deploy(majorDbVersion) {
   process.env.YOLM_BOOST_ENV = "deploy";
-  const appModel = await runAppTs();
+  const appModel = await getScriptModel();
   writeAppModelToDisk(appModel);
   const config = getAppYolmConfig();
   const args = ["deploy"];
@@ -144,13 +144,13 @@ export async function deploy(majorDbVersion) {
     args.push(config.profile);
   }
   if (majorDbVersion) {
-    args.push("--major_db_version");
+    args.push("--major-db-version");
     args.push("true");
   }
   try {
     spawn(yolmPath(), args, {
       detached: false,
-      stdio: [process.stdin, process.stdout, process.stderr],
+      stdio: "inherit",
     });
   } catch (e) {
     console.error("Unable to spawn yolm run");

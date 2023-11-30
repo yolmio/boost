@@ -4,7 +4,7 @@
   "type": "module",
   "license": "MIT",
   "dependencies": {
-    "@yolm/boost": "0.2.x"
+    "@yolm/boost": "file:../../"
   },
   "scripts": {
     "start": "bun node_modules/@yolm/boost/scripts/start.js",

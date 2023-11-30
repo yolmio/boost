@@ -4,12 +4,13 @@
   "type": "module",
   "license": "MIT",
   "dependencies": {
-    "@yolm/boost": "0.2.x"
+    "@yolm/boost": "file:../../"
   },
   "scripts": {
     "start": "bun node_modules/@yolm/boost/scripts/start.js",
     "save": "bun node_modules/@yolm/boost/scripts/save.js",
     "save-script": "bun node_modules/@yolm/boost/scripts/saveScript.js",
-    "script": "bun node_modules/@yolm/boost/scripts/script.js"
+    "script": "bun node_modules/@yolm/boost/scripts/script.js",
+    "deploy": "bun node_modules/@yolm/boost/scripts/deploy.js"
   }
 }

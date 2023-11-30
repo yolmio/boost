@@ -117,7 +117,7 @@ if (true) {
       }
       const startDate = new Date(
         lastMatterDate.getTime() +
-          faker.number.int({ min: 1, max: 5 }) * 1000 * 60 * 60 * 24
+        faker.number.int({ min: 1, max: 5 }) * 1000 * 60 * 60 * 24
       );
       if (startDate > new Date()) {
         continue;
@@ -286,5 +286,5 @@ app.addScript("init-dev-db", (s) =>
       `insert into db.user (global_id, is_sys_admin, is_admin, email) values (random.uuid(), true, true, 'coolguy@coolemail.com')`
     )
     .commitTransaction("db")
-    .saveDb("data/dev")
+    .saveDbToDir("data/dev")
 );

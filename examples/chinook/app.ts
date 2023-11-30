@@ -4,7 +4,6 @@ const { db, ui } = app;
 app.name = "chinook";
 app.title = "Chinook";
 app.displayName = "Chinook";
-app.dbExecutionConfig = { hasServer: false, offlineWriting: true };
 
 //
 // DATABASE
@@ -184,36 +183,38 @@ app.ui.addDashboardGridPage((page) =>
       header: "'Chinhook Dashboard'",
       subHeader: "'Welcome back. Here''s whats going on'",
     })
-    .threeStats({
+    .statRow({
       header: `'Last 30 Days'`,
-      left: {
-        title: "'Invoices'",
-        value: `(select count(*) from db.invoice where invoice_date > date.add(day, -30, ${today}))`,
-        previous: `(select count(*) from db.invoice where invoice_date between date.add(day, -60, ${today}) and date.add(day, -30, ${today}))`,
-        trend: `cast((value - previous) as decimal(10, 2)) / cast(previous as decimal(10, 2))`,
-      },
-      middle: {
-        title: "'Income'",
-        procedure: (s) =>
-          s
-            .scalar(
-              `value_num`,
-              `(select sum(total) from db.invoice where invoice_date > date.add(day, -30, ${today}))`
-            )
-            .scalar(
-              `previous_num`,
-              `(select sum(total) from db.invoice where invoice_date between date.add(day, -60, ${today}) and date.add(day, -30, ${today}))`
-            ),
-        value: `format.currency(value_num, 'USD')`,
-        previous: `format.currency(previous_num, 'USD')`,
-        trend: `(value_num - previous_num) / previous_num`,
-      },
-      right: {
-        title: "'Unique Tracks Sold'",
-        value: `(select count(distinct track) from db.invoice join db.invoice_line on invoice.id = invoice_line.id where invoice_date > date.add(day, -30, ${today}))`,
-        previous: `(select count(distinct track) from db.invoice join db.invoice_line on invoice.id = invoice_line.id where invoice_date between date.add(day, -60, ${today}) and date.add(day, -30, ${today})))`,
-        trend: `cast((value - previous) as decimal(10, 2)) / cast(previous as decimal(10, 2))`,
-      },
+      stats: [
+        {
+          title: "'Invoices'",
+          value: `(select count(*) from db.invoice where invoice_date > date.add(day, -30, ${today}))`,
+          previous: `(select count(*) from db.invoice where invoice_date between date.add(day, -60, ${today}) and date.add(day, -30, ${today}))`,
+          trend: `cast((value - previous) as decimal(10, 2)) / cast(previous as decimal(10, 2))`,
+        },
+        {
+          title: "'Income'",
+          procedure: (s) =>
+            s
+              .scalar(
+                `value_num`,
+                `(select sum(total) from db.invoice where invoice_date > date.add(day, -30, ${today}))`
+              )
+              .scalar(
+                `previous_num`,
+                `(select sum(total) from db.invoice where invoice_date between date.add(day, -60, ${today}) and date.add(day, -30, ${today}))`
+              ),
+          value: `format.currency(value_num, 'USD')`,
+          previous: `format.currency(previous_num, 'USD')`,
+          trend: `(value_num - previous_num) / previous_num`,
+        },
+        {
+          title: "'Unique Tracks Sold'",
+          value: `(select count(distinct track) from db.invoice join db.invoice_line on invoice.id = invoice_line.id where invoice_date > date.add(day, -30, ${today}))`,
+          previous: `(select count(distinct track) from db.invoice join db.invoice_line on invoice.id = invoice_line.id where invoice_date between date.add(day, -60, ${today}) and date.add(day, -30, ${today})))`,
+          trend: `cast((value - previous) as decimal(10, 2)) / cast(previous as decimal(10, 2))`,
+        }
+      ]
     })
     .table({
       query: newInvoices,

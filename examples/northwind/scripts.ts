@@ -65,7 +65,7 @@ app.addScript("init-dev-db", (s) =>
     )
     .modify(
       `insert into db.order
-        select 
+        select
           (select id from csv.Customer where Customer.customerID = Order.customerID) as customer,
           (select id from csv.Employee where Employee.employeeID = Order.employeeID) as employee,
           cast(substring(orderDate from 1 for 10) as date) as order_date,
@@ -82,7 +82,7 @@ app.addScript("init-dev-db", (s) =>
     )
     .modify(
       `insert into db.order_detail
-        select 
+        select
           (select id from csv.Order where Order.orderID = OrderDetails.orderID) as order,
           (select id from csv.Product where Product.productID = OrderDetails.productID) as product,
           unitPrice as unit_price,
@@ -90,5 +90,5 @@ app.addScript("init-dev-db", (s) =>
           discount
         from csv.OrderDetails`
     )
-    .saveDb(`data/dev`)
+    .saveDbToDir(`data/dev`)
 );

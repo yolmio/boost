@@ -42,8 +42,11 @@ export interface SyncServiceConfig {
   offlineWriting?: boolean;
 }
 
+export type ServerCpu = "1/4" | "1/2" | "1" | "2" | "4" | "8" | "16"
+
 export interface ServerConfig {
   type: "Server";
+  cpu: ServerCpu
   /**
    * By default can the database be downloaded to the client.
    *
@@ -445,9 +448,9 @@ export interface Table {
 export type UniqueConstraintField =
   | string
   | {
-      field: string;
-      distinctNulls?: boolean;
-    };
+    field: string;
+    distinctNulls?: boolean;
+  };
 
 export interface UniqueConstraint {
   fields: UniqueConstraintField[];
@@ -2071,19 +2074,19 @@ export type ElementEventHandlers = Partial<
 export interface FloatingOpts {
   anchorEl: SqlExpression;
   placement:
-    | "'top'"
-    | "'top-start'"
-    | "'top-end'"
-    | "'right'"
-    | "'right-start'"
-    | "'right-end'"
-    | "'bottom'"
-    | "'bottom-start'"
-    | "'bottom-end'"
-    | "'left'"
-    | "'left-start'"
-    | "'left-end'"
-    | SqlExpression;
+  | "'top'"
+  | "'top-start'"
+  | "'top-end'"
+  | "'right'"
+  | "'right-start'"
+  | "'right-end'"
+  | "'bottom'"
+  | "'bottom-start'"
+  | "'bottom-end'"
+  | "'left'"
+  | "'left-start'"
+  | "'left-end'"
+  | SqlExpression;
   strategy: "'absolute'" | "'fixed'" | SqlExpression;
   offset?: {
     mainAxis: SqlExpression;
@@ -2333,7 +2336,7 @@ export interface ImportCsvStatement {
 }
 
 export interface SaveDbStatement {
-  t: "SaveDb";
+  t: "SaveDbToDir";
   db?: string;
   dir: string;
 }
@@ -2396,8 +2399,8 @@ export interface RemoveFilesStatement {
   query: SqlQuery;
 }
 
-export interface SetDbStatement {
-  t: "SetDb";
+export interface UploadDbStatement {
+  t: "UploadDb";
   allowOverwrite?: boolean;
 }
 
@@ -2472,7 +2475,7 @@ export type ScriptStatement =
   | RemoveFilesStatement
   | UserStatement
   | SaveDbStatement
-  | SetDbStatement
+  | UploadDbStatement
   | LoadDbStatement
   | ImportCsvStatement
   | PullStatement

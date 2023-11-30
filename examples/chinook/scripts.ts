@@ -9,7 +9,7 @@ app.addScript("init-dev-db", (s) =>
       `insert into db.user (global_id, is_sys_admin, is_admin, disabled, email) values (random.uuid(), true, true, false, 'coolguy@coolemail.com')`
     )
     .modify(
-      `insert into db.employee 
+      `insert into db.employee
     select
       FirstName as first_name,
       LastName as last_name,
@@ -50,7 +50,7 @@ app.addScript("init-dev-db", (s) =>
     )
     .modify(`insert into db.genre (name) select Name as name from csv.genre`)
     .modify(
-      `insert into db.invoice 
+      `insert into db.invoice
     select
       CustomerId - 1 as customer,
       cast(substring(InvoiceDate from 1 for 10) as date) as invoice_date,
@@ -64,7 +64,7 @@ app.addScript("init-dev-db", (s) =>
     )
     .modify(`insert into db.playlist select Name as name from csv.playlist`)
     .modify(
-      `insert into db.track 
+      `insert into db.track
     select
       Name as name,
       AlbumId - 1 as album,
@@ -97,5 +97,5 @@ app.addScript("init-dev-db", (s) =>
     .modify(
       `insert into db.playlist_track select PlaylistId - 1 as playlist, TrackId - 1 as track from csv.playlist_track`
     )
-    .saveDb(`data/dev`)
+    .saveDbToDir(`data/dev`)
 );
