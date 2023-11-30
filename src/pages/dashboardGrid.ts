@@ -11,16 +11,6 @@ import * as pieChart from "./dashboardGridChild/pieChart";
 import * as lineChart from "./dashboardGridChild/lineChart";
 
 const styles = createStyles({
-  header: {
-    ml: 1.5,
-    my: 1,
-  },
-  loadingWrapper: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    height: 156,
-  },
   root: () => ({
     ...containerStyles(),
     ...baseGridStyles,
