@@ -42,7 +42,7 @@ if (!fs.existsSync(dbPath)) {
     const scriptModel = await getScriptModel();
     const initScriptName = `init-${parsed.name}-db`;
     const initScript = scriptModel.scripts?.find(
-      (script) => script.name === initScriptName
+      (script) => script.name === initScriptName,
     );
     if (initScript) {
       console.log(`About to run script "${initScriptName}"`);
@@ -79,7 +79,7 @@ try {
   console.error("Unable to spawn yolm run");
   throw e;
 }
-await sleep(1000);
+await sleep(200);
 
 let found = false;
 for (let i = 0; i < 10; i++) {
@@ -94,7 +94,7 @@ for (let i = 0; i < 10; i++) {
         break;
       }
     }
-    await sleep(1000);
+    await sleep(200);
   } catch {}
 }
 
@@ -106,7 +106,7 @@ if (!found) {
 
 const sendModelPath = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
-  "sendModel.js"
+  "sendModel.js",
 );
 
 if (hasBun()) {

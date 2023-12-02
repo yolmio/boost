@@ -15,7 +15,9 @@
     "create-ts:watch": "tsc --project tsconfig.json --watch",
     "lint": "TIMING=1 eslint src --fix",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist",
-    "format": "prettier --write \"**/*.ts\""
+    "format": "prettier --write \"**/*.ts\"",
+    "test:hello_world": "cd tests/hello_world && playwright test",
+    "test:tutorial": "cd tests/tutorial && playwright test"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -27,6 +29,7 @@
     "which": "^3.0.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.40.1",
     "@types/toposort": "=2.0.3",
     "bun": "^1.0.2",
     "eslint": "=8.42.0",
