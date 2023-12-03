@@ -359,7 +359,7 @@ function columnFilter(columns: SuperGridColumn[], dts: SuperGridDts) {
         nodes.element("option", {
           props: { value: i.toString() },
           children: stringLiteral(col.filterDisplayName),
-        })
+        }),
       );
     }
   }
@@ -377,15 +377,15 @@ function columnFilter(columns: SuperGridColumn[], dts: SuperGridDts) {
                 input: (s) =>
                   s.statements(
                     filterTermHelper.setValue1(
-                      `case when target_value = '' then null else target_value end`
+                      `case when target_value = '' then null else target_value end`,
                     ),
-                    filterTermHelper.debounceInputTriggerRefresh
+                    filterTermHelper.debounceInputTriggerRefresh,
                   ),
                 blur: filterTermHelper.debounceBlurHandler,
               },
             },
           },
-        })
+        }),
       ),
     });
   }
@@ -403,14 +403,14 @@ function columnFilter(columns: SuperGridColumn[], dts: SuperGridDts) {
                   s.if("literal.number(target_value) is not null", (s) =>
                     s.statements(
                       filterTermHelper.setValue1(`target_value`),
-                      filterTermHelper.debounceInputTriggerRefresh
-                    )
+                      filterTermHelper.debounceInputTriggerRefresh,
+                    ),
                   ),
                 blur: filterTermHelper.debounceBlurHandler,
               },
             },
           },
-        })
+        }),
       ),
     });
   }
@@ -432,13 +432,13 @@ function columnFilter(columns: SuperGridColumn[], dts: SuperGridDts) {
                           when ${filterTermHelper.value1} = 'exact date' or target_value = 'exact date' then null
                           when (${filterTermHelper.value1} like 'number%') != (target_value like 'number%') then null
                           else ${filterTermHelper.value2}
-                        end`
+                        end`,
                     )
                     .statements(
                       filterTermHelper.setValue1("target_value"),
                       filterTermHelper.setValue2("new_value_2"),
-                      dgState.triggerRefresh
-                    )
+                      dgState.triggerRefresh,
+                    ),
               ),
           },
           slots: {
@@ -462,7 +462,7 @@ function columnFilter(columns: SuperGridColumn[], dts: SuperGridDts) {
                     input: (s) =>
                       s.if(
                         "try_cast(target_value as int) is not null",
-                        filterTermHelper.setValue2("target_value")
+                        filterTermHelper.setValue2("target_value"),
                       ),
                     blur: dgState.triggerRefresh,
                   },
@@ -482,15 +482,15 @@ function columnFilter(columns: SuperGridColumn[], dts: SuperGridDts) {
                       s.if("literal.date(target_value) is not null", (s) =>
                         s.statements(
                           filterTermHelper.setValue1("'exact date'"),
-                          filterTermHelper.setValue2("target_value")
-                        )
+                          filterTermHelper.setValue2("target_value"),
+                        ),
                       ),
                     blur: dgState.triggerRefresh,
                   },
                 },
               },
             }),
-          }
+          },
         ),
       ],
     });
@@ -513,13 +513,13 @@ function columnFilter(columns: SuperGridColumn[], dts: SuperGridDts) {
                           when ${filterTermHelper.value1} = 'exact date' or target_value = 'exact date' then null
                           when (${filterTermHelper.value1} like 'number%') != (target_value like 'number%') then null
                           else ${filterTermHelper.value2}
-                        end`
+                        end`,
                     )
                     .statements(
                       filterTermHelper.setValue1("target_value"),
                       filterTermHelper.setValue2("new_value_2"),
-                      dgState.triggerRefresh
-                    )
+                      dgState.triggerRefresh,
+                    ),
               ),
           },
           slots: {
@@ -543,7 +543,7 @@ function columnFilter(columns: SuperGridColumn[], dts: SuperGridDts) {
                     input: (s) =>
                       s.if(
                         "try_cast(target_value as int) is not null",
-                        filterTermHelper.setValue2("target_value")
+                        filterTermHelper.setValue2("target_value"),
                       ),
                     blur: dgState.triggerRefresh,
                   },
@@ -566,15 +566,15 @@ function columnFilter(columns: SuperGridColumn[], dts: SuperGridDts) {
                       s.if("literal.date(target_value) is not null", (s) =>
                         s.statements(
                           filterTermHelper.setValue1("'exact date'"),
-                          filterTermHelper.setValue2("target_value")
-                        )
+                          filterTermHelper.setValue2("target_value"),
+                        ),
                       ),
                     blur: dgState.triggerRefresh,
                   },
                 },
               },
             }),
-          }
+          },
         ),
       ],
     });
@@ -604,7 +604,7 @@ function columnFilter(columns: SuperGridColumn[], dts: SuperGridDts) {
             checkboxChange: (s) =>
               s.statements(
                 filterTermHelper.setValue1("cast(target_checked as string)"),
-                dgState.triggerRefresh
+                dgState.triggerRefresh,
               ),
           },
         }),
@@ -625,7 +625,7 @@ function columnFilter(columns: SuperGridColumn[], dts: SuperGridDts) {
         procedure: (s) =>
           s.scalar(
             `value`,
-            `coalesce(sfn.display_minutes_duration(try_cast(${filterTermHelper.value1} as bigint)), '')`
+            `coalesce(sfn.display_minutes_duration(try_cast(${filterTermHelper.value1} as bigint)), '')`,
           ),
         children: durationInput({
           durationSize: "minutes",
@@ -636,9 +636,9 @@ function columnFilter(columns: SuperGridColumn[], dts: SuperGridDts) {
               .setScalar(`value`, value)
               .statements(
                 filterTermHelper.setValue1(
-                  `sfn.parse_minutes_duration(${value})`
+                  `sfn.parse_minutes_duration(${value})`,
                 ),
-                dgState.triggerRefresh
+                dgState.triggerRefresh,
               ),
         }),
       }),
@@ -663,7 +663,7 @@ function columnFilter(columns: SuperGridColumn[], dts: SuperGridDts) {
           nodes.element("optgroup", {
             props: { label: stringLiteral(optGroup) },
             children: opts,
-          })
+          }),
         );
       } else {
         columnOptions.push(...opts);
@@ -682,9 +682,9 @@ function columnFilter(columns: SuperGridColumn[], dts: SuperGridDts) {
             .if(`${filterTermHelper.columnId} != new_id`, (s) =>
               s
                 .modify(
-                  `update filter_term_record set column_id = new_id, op = rfn.${dts.idToDefaultOp}(new_id), value_1 = null, value_2 = null, value_3 = null`
+                  `update filter_term_record set column_id = new_id, op = rfn.${dts.idToDefaultOp}(new_id), value_1 = null, value_2 = null, value_3 = null`,
                 )
-                .statements(dgState.triggerRefresh)
+                .statements(dgState.triggerRefresh),
             ),
       },
       slots: { select: { props: { value: filterTermHelper.columnId } } },
@@ -703,14 +703,14 @@ function columnFilter(columns: SuperGridColumn[], dts: SuperGridDts) {
               .if(`${filterTermHelper.op} != new_op`, (s) =>
                 s
                   .modify(
-                    `update ui.filter_term set op = new_op where id = ${filterTermHelper.id}`
+                    `update ui.filter_term set op = new_op where id = ${filterTermHelper.id}`,
                   )
-                  .statements(dgState.triggerRefresh)
+                  .statements(dgState.triggerRefresh),
               ),
         },
         slots: { select: { props: { value: filterTermHelper.op } } },
         children: typeSpecificOps(columns),
-      })
+      }),
     ),
     nodes.switch(...switchCases),
     iconButton({
@@ -718,6 +718,7 @@ function columnFilter(columns: SuperGridColumn[], dts: SuperGridDts) {
       color: "neutral",
       size: "sm",
       children: materialIcon("Delete"),
+      ariaLabel: "'Delete filter'",
       on: {
         click: (s) =>
           s
@@ -746,8 +747,8 @@ function enumLikeBoolSelect(columns: SuperGridColumn[]) {
           (s) =>
             s.statements(
               filterTermHelper.setValue1("target_value"),
-              dgState.triggerRefresh
-            )
+              dgState.triggerRefresh,
+            ),
         ),
     },
     slots: { select: { props: { value: filterTermHelper.value1 } } },
@@ -776,7 +777,7 @@ function enumLikeBoolSelect(columns: SuperGridColumn[]) {
               : null,
           ],
         };
-      })
+      }),
     ),
   });
 }
@@ -804,8 +805,8 @@ function enumSelect(columns: SuperGridColumn[]) {
           (s) =>
             s.statements(
               filterTermHelper.setValue1("target_value"),
-              dgState.triggerRefresh
-            )
+              dgState.triggerRefresh,
+            ),
         ),
     },
     slots: { select: { props: { value: filterTermHelper.value1 } } },
@@ -815,13 +816,13 @@ function enumSelect(columns: SuperGridColumn[]) {
           nodes.element("option", {
             children: stringLiteral(v.displayName),
             props: { value: stringLiteral(v.name) },
-          })
+          }),
         );
         return {
           condition: `${filterTermHelper.columnId} in (${columns.join(",")})`,
           node: opts,
         };
-      })
+      }),
     ),
   });
 }
@@ -856,8 +857,8 @@ function tableInput(columns: SuperGridColumn[]) {
                 s.statements(
                   filterTermHelper.setValue1(`cast(${id} as string)`),
                   filterTermHelper.setValue2(label),
-                  dgState.triggerRefresh
-                )
+                  dgState.triggerRefresh,
+                ),
             ),
           onSelectValue: (value) => (s) =>
             s.if(
@@ -865,14 +866,14 @@ function tableInput(columns: SuperGridColumn[]) {
               (s) =>
                 s.statements(
                   filterTermHelper.setValue1(`cast(${value} as string)`),
-                  dgState.triggerRefresh
-                )
+                  dgState.triggerRefresh,
+                ),
             ),
           value: `cast(${filterTermHelper.value1} as bigint)`,
           initialInputText: `coalesce(${filterTermHelper.value2}, '')`,
         }),
       };
-    })
+    }),
   );
 }
 
@@ -907,11 +908,11 @@ const isAnySelector = lazy(() => {
                   then: (s) =>
                     s.setScalar(
                       `ui.root_filter_is_any`,
-                      `target_value= 'true'`
+                      `target_value= 'true'`,
                     ),
                   else: (s) =>
                     s.modify(
-                      `update filter_term set is_any = target_value= 'true' where id = filter_term_record.group`
+                      `update filter_term set is_any = target_value= 'true' where id = filter_term_record.group`,
                     ),
                 })
                 .setScalar(`ui.dg_refresh_key`, `ui.dg_refresh_key + 1`),
@@ -935,7 +936,7 @@ const isAnySelector = lazy(() => {
           styles: styles.isAnyText,
           children: `case when ${isAny} then 'or' else 'and' end`,
         }),
-      }
+      },
     ),
   });
 });
@@ -981,7 +982,7 @@ export function filterPopover(columns: SuperGridColumn[], dts: SuperGridDts) {
                             styles: styles.popoverMenu,
                           },
                           id: `${stringLiteral(
-                            groupBaseId
+                            groupBaseId,
                           )} || '-' || filter_term_record.id`,
                           button: ({ buttonProps, onButtonClick }) =>
                             iconButton({
@@ -990,20 +991,21 @@ export function filterPopover(columns: SuperGridColumn[], dts: SuperGridDts) {
                               size: "sm",
                               props: buttonProps,
                               children: materialIcon("Add"),
+                              ariaLabel: "'Add filter'",
                               on: { click: onButtonClick },
                             }),
                           items: [
                             {
                               onClick: insertFilter(
                                 columns,
-                                `filter_term_record.id`
+                                `filter_term_record.id`,
                               ),
                               children: `'Add condition'`,
                             },
                             {
                               onClick: insertFilterGroup(
                                 columns,
-                                `filter_term_record.id`
+                                `filter_term_record.id`,
                               ),
                               children: `'Add condition group'`,
                             },
@@ -1014,10 +1016,11 @@ export function filterPopover(columns: SuperGridColumn[], dts: SuperGridDts) {
                           color: "neutral",
                           size: "sm",
                           children: materialIcon("Add"),
+                          ariaLabel: "'Add filter'",
                           on: {
                             click: insertFilter(
                               columns,
-                              `filter_term_record.id`
+                              `filter_term_record.id`,
                             ),
                           },
                         }),
@@ -1027,15 +1030,16 @@ export function filterPopover(columns: SuperGridColumn[], dts: SuperGridDts) {
                         color: "neutral",
                         size: "sm",
                         children: materialIcon("Delete"),
+                        ariaLabel: "'Delete filter group'",
                         on: {
                           click: (s) =>
                             s
                               .table(
                                 "all_filters",
-                                "select id from filter_term where group = filter_term_record.id union select filter_term_record.id"
+                                "select id from filter_term where group = filter_term_record.id union select filter_term_record.id",
                               )
                               .modify(
-                                `delete from filter_term where id in (select id from all_filters) or group in (select id from all_filters)`
+                                `delete from filter_term where id in (select id from all_filters) or group in (select id from all_filters)`,
                               )
                               .statements(dgState.triggerRefresh),
                         },
@@ -1100,9 +1104,9 @@ function insertFilter(columns: SuperGridColumn[], parentGroup?: string) {
         ${parentGroup ? parentGroup + "," : ""}
         ${ordering},
         ${stringLiteral(
-          defaultOpForFieldType(columns.find((col) => col.filter)!.filter!)
+          defaultOpForFieldType(columns.find((col) => col.filter)!.filter!),
         )}
-      )`
+      )`,
     )
     .setScalar(`ui.next_filter_id`, `ui.next_filter_id + 1`);
 }
@@ -1125,7 +1129,7 @@ function insertFilterGroup(columns: SuperGridColumn[], parentGroup?: string) {
         ${parentGroup ? parentGroup + "," : ""}
         ${groupOrdering},
         true
-      )`
+      )`,
     )
     .modify(
       `insert into ui.filter_term (group, id, ordering, column_id, op)
@@ -1136,7 +1140,7 @@ function insertFilterGroup(columns: SuperGridColumn[], parentGroup?: string) {
           ordering.new(),
           ${columns.findIndex((col) => Boolean(col.filter))},
           'not_empty'
-        )`
+        )`,
     )
     .setScalar(`ui.next_filter_id`, `ui.next_filter_id + 2`);
 }
@@ -1151,31 +1155,31 @@ export class FilterTermHelper {
 
   setOp(value: yom.SqlExpression) {
     return new BasicStatements().modify(
-      `update filter_term_record set op = ${value}`
+      `update filter_term_record set op = ${value}`,
     );
   }
 
   setColumnId(value: yom.SqlExpression) {
     return new BasicStatements().modify(
-      `update filter_term_record set column_id = ${value}`
+      `update filter_term_record set column_id = ${value}`,
     );
   }
 
   setValue1(value: yom.SqlExpression) {
     return new BasicStatements().modify(
-      `update filter_term_record set value_1 = ${value}`
+      `update filter_term_record set value_1 = ${value}`,
     );
   }
 
   setValue2(value: yom.SqlExpression) {
     return new BasicStatements().modify(
-      `update filter_term_record set value_2 = ${value}`
+      `update filter_term_record set value_2 = ${value}`,
     );
   }
 
   setValue3(value: yom.SqlExpression) {
     return new BasicStatements().modify(
-      `update filter_term_record set value_3 = ${value}`
+      `update filter_term_record set value_3 = ${value}`,
     );
   }
 
@@ -1214,7 +1218,7 @@ export class FilterTermHelper {
         s
           .abortTask(`debounce_handle`)
           .setScalar(`debounce_handle`, `null`)
-          .statements(dgState.triggerRefresh)
+          .statements(dgState.triggerRefresh),
       );
   }
 }

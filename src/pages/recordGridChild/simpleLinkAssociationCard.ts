@@ -101,12 +101,12 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
   const assocTableMatch = getAssociationTable(ctx.table.name, opts.table);
   if (assocTableMatch === "ambiguous") {
     throw new Error(
-      `Ambiguous association between ${ctx.table.name} and ${opts.table}`
+      `Ambiguous association between ${ctx.table.name} and ${opts.table}`,
     );
   }
   if (assocTableMatch === "notFound") {
     throw new Error(
-      `No association found between ${ctx.table.name} and ${opts.table}`
+      `No association found between ${ctx.table.name} and ${opts.table}`,
     );
   }
   const {
@@ -128,26 +128,28 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
   const { recordDisplayName } = otherTable;
   if (recordDisplayName) {
     selectFields += `, ${recordDisplayName.expr(
-      ...recordDisplayName.fields.map((f) => `${ident(opts.table)}.${ident(f)}`)
+      ...recordDisplayName.fields.map(
+        (f) => `${ident(opts.table)}.${ident(f)}`,
+      ),
     )} as display_name`;
   }
   const relatedQuery = `select
     ${ident(otherTable.name)}.${ident(
-    otherTable.primaryKeyFieldName
+    otherTable.primaryKeyFieldName,
   )} as other_id,
     ${ident(assocTable.name)}.${ident(
-    assocTable.primaryKeyFieldName
+    assocTable.primaryKeyFieldName,
   )} as assoc_id
   ${selectFields}
     from db.${ident(assocTable.name)}
         join db.${ident(otherTable.name)}
             on ${ident(otherTable.name)}.${ident(
-    otherTable.primaryKeyFieldName
+    otherTable.primaryKeyFieldName,
   )} = ${ident(assocTable.name)}.${ident(toOtherField.name)}
     where ${ident(assocTable.name)}.${ident(toCurrentField.name)} = ${
     ctx.recordId
   } order by ${ident(assocTable.name)}.${ident(
-    assocTable.primaryKeyFieldName
+    assocTable.primaryKeyFieldName,
   )} desc
   limit row_count`;
   return nodes.sourceMap(
@@ -173,6 +175,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                 variant: "soft",
                 color: "primary",
                 size: "sm",
+                ariaLabel: `case when adding then 'Cancel' else 'Add' end`,
                 children: nodes.if({
                   condition: `adding`,
                   then: materialIcon("Close"),
@@ -218,13 +221,13 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                             otherFieldHelper.hasError,
                             formHelperText({
                               children: otherFieldHelper.error,
-                            })
+                            }),
                           ),
                         ],
                       }),
                       button({
                         children: `'Add ' || ${stringLiteral(
-                          otherTable.displayName
+                          otherTable.displayName,
                         )}`,
                         loading: formState.submitting,
                         on: {
@@ -239,11 +242,11 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                       styles: { mt: 1 },
                       color: "danger",
                       children: formState.formError,
-                    })
+                    }),
                   ),
                 ];
               },
-            })
+            }),
           ),
           divider(),
           cardOverflow({
@@ -263,18 +266,18 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                     s
                       .if(
                         `status != 'received' or (service_row_count is not null and (select count(*) from related) < service_row_count)`,
-                        (s) => s.return()
+                        (s) => s.return(),
                       )
                       .getElProperty(
                         "scrollHeight",
                         "el_scroll_height",
-                        listScrollId
+                        listScrollId,
                       )
                       .getBoundingClientRect(listScrollId, "el_rect")
                       .getElProperty("scrollTop", "el_scroll_top", listScrollId)
                       .if(
                         `el_scroll_height - el_scroll_top - el_rect.height < 300`,
-                        (s) => s.setScalar(`row_count`, `row_count + 20`)
+                        (s) => s.setScalar(`row_count`, `row_count + 20`),
                       ),
                 },
                 children: nodes.each({
@@ -288,7 +291,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                         ? nodes.element("a", {
                             props: {
                               href: otherTable.getHrefToRecord(
-                                "record.other_id"
+                                "record.other_id",
                               ),
                             },
                             styles: styles.link,
@@ -306,7 +309,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                           const field = otherTable.fields[displayValue];
                           if (!field) {
                             throw new Error(
-                              `Field ${displayValue} does not exist in table ${otherTable.name}`
+                              `Field ${displayValue} does not exist in table ${otherTable.name}`,
                             );
                           }
                           const value = `record.${ident(displayValue)}`;
@@ -318,7 +321,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                                 color: "neutral",
                                 size: "sm",
                                 children: stringLiteral(field.displayName),
-                              })
+                              }),
                             );
                           }
                           const content = nodes.element("div", {
@@ -327,7 +330,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                               nodes.element("p", {
                                 styles: styles.itemValue,
                                 children: `${stringLiteral(
-                                  field.displayName
+                                  field.displayName,
                                 )} || ':'`,
                               }),
                               inlineFieldDisplay(field, value),
@@ -344,7 +347,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                               nodes.element("p", {
                                 styles: styles.itemValue,
                                 children: `${stringLiteral(
-                                  displayValue.label
+                                  displayValue.label,
                                 )} || ':'`,
                               }),
                               displayValue.display(`record.expr_${i}`),
@@ -360,6 +363,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                             color: "neutral",
                             size: "sm",
                             children: materialIcon("DeleteOutlined"),
+                            ariaLabel: "'Delete'",
                             on: {
                               click: (s) => s.setScalar(`deleting`, `true`),
                             },
@@ -382,6 +386,6 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
           ,
         ],
       }),
-    })
+    }),
   );
 }

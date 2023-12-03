@@ -70,7 +70,7 @@ const checkboxSortAscNode = lazy(() =>
       `' → '`,
       materialIcon("CheckBoxOutlineBlank"),
     ],
-  })
+  }),
 );
 const checkboxSortDescNode = lazy(() =>
   nodes.element("span", {
@@ -80,7 +80,7 @@ const checkboxSortDescNode = lazy(() =>
       `' → '`,
       materialIcon("CheckBoxOutlined"),
     ],
-  })
+  }),
 );
 const checkboxSortAscText = `'☐ → ✓'`;
 const checkboxSortDescText = `'✓ → ☐'`;
@@ -297,11 +297,11 @@ export function columnPopover(
   state: DgStateHelpers,
   i: number,
   startFixedColumns: number,
-  sort: SortConfig | undefined
+  sort: SortConfig | undefined,
 ) {
   function updateBetweenColumns(before: string, after: string) {
     return new DomStatements().modify(
-      `update ui.column set ordering = ordering.new(${before}, ${after}) where id = ${i}`
+      `update ui.column set ordering = ordering.new(${before}, ${after}) where id = ${i}`,
     );
   }
   function getColumnN(n: number) {
@@ -315,10 +315,10 @@ export function columnPopover(
       else: (s) =>
         s
           .modify(
-            `update ui.column set sort_index = sort_index + 1 where sort_index is not null`
+            `update ui.column set sort_index = sort_index + 1 where sort_index is not null`,
           )
           .modify(
-            `update ui.column set sort_index = 0, sort_asc = ${asc} where id = ${i}`
+            `update ui.column set sort_index = 0, sort_asc = ${asc} where id = ${i}`,
           ),
     });
   }
@@ -333,11 +333,12 @@ export function columnPopover(
           s
             .setScalar(
               `ui.open_column_dialog`,
-              `case when ui.open_column_dialog = ${i} then null else ${i} end`
+              `case when ui.open_column_dialog = ${i} then null else ${i} end`,
             )
             .stopPropagation()
             .triggerViewTransition("immediate"),
       },
+      ariaLabel: `'Open column menu'`,
       children: materialIcon({
         fontSize: "md",
         name: "MoreVert",
@@ -401,7 +402,7 @@ export function columnPopover(
             on: {
               click: (s) =>
                 s.modify(
-                  `update ui.column set displaying = false where id = ${i}`
+                  `update ui.column set displaying = false where id = ${i}`,
                 ),
             },
             children: listItemButton({
@@ -416,14 +417,14 @@ export function columnPopover(
                 s
                   .scalar(
                     `next_col`,
-                    `(select min(ordering) from ui.column where ordering > (select ordering from ui.column where id = ${i}))`
+                    `(select min(ordering) from ui.column where ordering > (select ordering from ui.column where id = ${i}))`,
                   )
                   .if(`next_col is null`, (s) => s.return())
                   .statements(
                     updateBetweenColumns(
                       `next_col`,
-                      `(select min(ordering) from ui.column where ordering > next_col)`
-                    )
+                      `(select min(ordering) from ui.column where ordering > next_col)`,
+                    ),
                   ),
             },
             children: listItemButton({
@@ -438,23 +439,23 @@ export function columnPopover(
                 s
                   .scalar(
                     `current_col`,
-                    `(select ordering from ui.column where id = ${i})`
+                    `(select ordering from ui.column where id = ${i})`,
                   )
                   .scalar(
                     `prev_col`,
-                    `(select max(ordering) from ui.column where ordering < current_col)`
+                    `(select max(ordering) from ui.column where ordering < current_col)`,
                   )
                   .if(
                     `prev_col is null or (select count(*) from column where ordering < current_col) <= ${
                       startFixedColumns + 1
                     }`,
-                    (s) => s.return()
+                    (s) => s.return(),
                   )
                   .statements(
                     updateBetweenColumns(
                       `(select max(ordering) from ui.column where ordering < prev_col)`,
-                      `prev_col`
-                    )
+                      `prev_col`,
+                    ),
                   ),
             },
             children: listItemButton({
@@ -467,7 +468,7 @@ export function columnPopover(
             on: {
               click: updateBetweenColumns(
                 `(select max(ordering) from ui.column)`,
-                `null`
+                `null`,
               ),
             },
             children: listItemButton({
@@ -480,7 +481,7 @@ export function columnPopover(
             on: {
               click: updateBetweenColumns(
                 getColumnN(startFixedColumns),
-                getColumnN(startFixedColumns + 1)
+                getColumnN(startFixedColumns + 1),
               ),
             },
             children: listItemButton({
@@ -490,7 +491,7 @@ export function columnPopover(
             }),
           }),
         ],
-      })
+      }),
     ),
   ];
 }
@@ -507,7 +508,7 @@ export interface SuperGridDts {
  */
 function addSupergridDatagridDts(
   datagridName: string,
-  columns: SuperGridColumn[]
+  columns: SuperGridColumn[],
 ): SuperGridDts {
   const columnsDisplayName: string[][] = [];
   const sortDisplayName: string[][] = [];
@@ -603,8 +604,8 @@ export function styledDatagrid(config: StyledDatagridConfig) {
           config.columns,
           dts,
           superDts,
-          config.tableModel
-        )
+          config.tableModel,
+        ),
       ),
       nodes.state({
         procedure: (s) => s.scalar(`show_query_err`, `false`),
@@ -613,7 +614,7 @@ export function styledDatagrid(config: StyledDatagridConfig) {
             document: {
               keydown: (s) =>
                 s.if(`event.meta_key and event.key = 'v'`, (s) =>
-                  s.setScalar(`show_query_err`, `not show_query_err`)
+                  s.setScalar(`show_query_err`, `not show_query_err`),
                 ),
             },
           }),
@@ -629,7 +630,7 @@ export function styledDatagrid(config: StyledDatagridConfig) {
                   children: `dg_error.description`,
                 }),
               ],
-            })
+            }),
           ),
         ],
       }),
@@ -664,7 +665,7 @@ export function styledDatagrid(config: StyledDatagridConfig) {
     additionalWhere: config.toolbar.quickSearch?.(`ui.quick_search_query`),
     extraState: (s) => {
       s.scalar("open_column_dialog", { type: "Int" }).statements(
-        config.extraState
+        config.extraState,
       );
       if (config.toolbar.quickSearch) {
         s.scalar("ui.quick_search_query", "''");

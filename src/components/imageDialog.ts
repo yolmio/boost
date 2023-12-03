@@ -79,7 +79,7 @@ export function imageDialog(opts: ImageDialogOptions) {
     throw new Error("Image dialog requires a full image variant");
   }
   const fullImageIndex = Object.keys(fieldGroup.variants).indexOf(
-    fullImageFieldName
+    fullImageFieldName,
   );
   const { spawnUploadTasks, joinUploadTasks, updateImagesInDb } =
     getUploadStatements(opts.tableName, opts.recordId, fieldGroup);
@@ -97,8 +97,8 @@ export function imageDialog(opts: ImageDialogOptions) {
               .scalar(
                 `full_img`,
                 `(select ${fullImageFieldName} from db.${ident(
-                  table.name
-                )} where id = ${opts.recordId})`
+                  table.name,
+                )} where id = ${opts.recordId})`,
               )
               .scalar(`uploading`, `false`)
               .scalar(`deleting`, `false`)
@@ -125,6 +125,7 @@ export function imageDialog(opts: ImageDialogOptions) {
                     variant: "plain",
                     size: "sm",
                     on: { click: opts.onClose },
+                    ariaLabel: `'Close dialog'`,
                   }),
                   divider({ styles: styles.divider, inset: "none" }),
                   button({
@@ -157,9 +158,9 @@ export function imageDialog(opts: ImageDialogOptions) {
                                         .commitTransaction()
                                         .setScalar(
                                           `full_img`,
-                                          `uuid_` + fullImageIndex
+                                          `uuid_` + fullImageIndex,
                                         )
-                                        .statements(opts.afterReplace)
+                                        .statements(opts.afterReplace),
                                     ),
                                 catch: (s) =>
                                   s.setScalar(`failed_upload`, `true`),
@@ -190,13 +191,13 @@ export function imageDialog(opts: ImageDialogOptions) {
                                   .startTransaction()
                                   .modify(
                                     `update db.${ident(
-                                      table.name
+                                      table.name,
                                     )} set ${setFieldsToNull} where id = ${
                                       opts.recordId
-                                    }`
+                                    }`,
                                   )
                                   .commitTransaction()
-                                  .statements(opts.afterRemove)
+                                  .statements(opts.afterRemove),
                               ),
                             ...opts.onClose,
                             catch: (s) => s.setScalar(`failed_remove`, `true`),
@@ -213,14 +214,14 @@ export function imageDialog(opts: ImageDialogOptions) {
                     alert({
                       color: "danger",
                       children: `'Failed to upload image'`,
-                    })
+                    }),
                   ),
                   nodes.if(
                     `failed_remove`,
                     alert({
                       color: "danger",
                       children: `'Failed to remove image'`,
-                    })
+                    }),
                   ),
                 ],
               }),

@@ -13,6 +13,7 @@ export interface IconButtonOpts
   disabled?: string;
   /** expression for href, will make button into an anchor tag and add this prop */
   href?: string;
+  ariaLabel: string;
 
   children: Node;
 }
@@ -79,15 +80,19 @@ export function iconButton(opts: IconButtonOpts): ElementNode {
   const rootStyles = styles.root(
     opts.size ?? "md",
     opts.variant ?? "solid",
-    opts.color ?? "primary"
+    opts.color ?? "primary",
   );
   return mergeEls(
     {
       tag: opts.href ? "a" : "button",
-      props: { href: opts.href, disabled: opts.disabled },
+      props: {
+        href: opts.href,
+        disabled: opts.disabled,
+        "aria-label": opts.ariaLabel,
+      },
       children: opts.children,
       styles: rootStyles,
     },
-    opts
+    opts,
   );
 }

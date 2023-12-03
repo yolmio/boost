@@ -96,11 +96,11 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
       throw new Error(`No notes table found for ${notesTable}`);
     }
     const fkField = Object.values(notesTableModel.fields).find(
-      (f) => f.type === "ForeignKey" && f.table === ctx.table.name
+      (f) => f.type === "ForeignKey" && f.table === ctx.table.name,
     );
     if (!fkField) {
       throw new Error(
-        `No foreign key field found for ${notesTable} to ${ctx.table.name}`
+        `No foreign key field found for ${notesTable} to ${ctx.table.name}`,
       );
     }
     foreignKeyField = fkField.name;
@@ -129,6 +129,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                   variant: "plain",
                   color: "primary",
                   size: "sm",
+                  ariaLabel: `case when ui.adding then 'Cancel adding note' else 'Add note' end`,
                   children: nodes.if({
                     condition: `adding`,
                     then: materialIcon("Close"),
@@ -169,7 +170,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                         styles: styles.addingError,
                         color: "danger",
                         children: `'Unable to add note at this time'`,
-                      })
+                      }),
                     ),
                     nodes.element("div", {
                       styles: styles.addingButtons,
@@ -191,10 +192,10 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                                         s
                                           .startTransaction()
                                           .modify(
-                                            `insert into db.${notesTable} (content, date, ${foreignKeyField}) values (ui.content, current_date(), ${ctx.recordId})`
+                                            `insert into db.${notesTable} (content, date, ${foreignKeyField}) values (ui.content, current_date(), ${ctx.recordId})`,
                                           )
                                           .commitTransaction()
-                                          .statements(ctx.triggerRefresh)
+                                          .statements(ctx.triggerRefresh),
                                       )
                                       .setScalar(`ui.adding`, `false`),
                                   catch: (s) =>
@@ -208,14 +209,14 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                     }),
                   ],
                 }),
-              })
+              }),
             ),
             nodes.state({
               watch: [ctx.refreshKey],
               procedure: (s) =>
                 s.table(
                   `note`,
-                  `select content, date, id from db.${notesTable} where ${foreignKeyField} = ${ctx.recordId} order by date desc, id desc`
+                  `select content, date, id from db.${notesTable} where ${foreignKeyField} = ${ctx.recordId} order by date desc, id desc`,
                 ),
               children: nodes.if({
                 condition: `exists (select id from note)`,
@@ -266,8 +267,8 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                                               (s) =>
                                                 s.setScalar(
                                                   `ui.date`,
-                                                  `cast(target_value as date)`
-                                                )
+                                                  `cast(target_value as date)`,
+                                                ),
                                             ),
                                         },
                                       }),
@@ -281,7 +282,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                                       input: (s) =>
                                         s.setScalar(
                                           `ui.content`,
-                                          `target_value`
+                                          `target_value`,
                                         ),
                                     },
                                   }),
@@ -291,7 +292,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                                       styles: styles.editingError,
                                       color: "danger",
                                       children: `'Unable to edit note at this time'`,
-                                    })
+                                    }),
                                   ),
                                   nodes.element("div", {
                                     styles: styles.editButtons,
@@ -312,11 +313,11 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                                           click: (s) =>
                                             s
                                               .if(`in_progress`, (s) =>
-                                                s.return()
+                                                s.return(),
                                               )
                                               .setScalar(
                                                 `ui.in_progress`,
-                                                `true`
+                                                `true`,
                                               )
                                               .setScalar(`ui.failed`, `false`)
                                               .commitUiTreeChanges()
@@ -327,16 +328,16 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                                                       s
                                                         .startTransaction()
                                                         .modify(
-                                                          `update db.${notesTable} set content = ui.content, date = ui.date where id = note_record.id`
+                                                          `update db.${notesTable} set content = ui.content, date = ui.date where id = note_record.id`,
                                                         )
                                                         .commitTransaction()
                                                         .statements(
-                                                          ctx.triggerRefresh
-                                                        )
+                                                          ctx.triggerRefresh,
+                                                        ),
                                                     )
                                                     .setScalar(
                                                       `ui.editing`,
-                                                      `false`
+                                                      `false`,
                                                     ),
                                                 catch: (s) =>
                                                   s.setScalar(`failed`, `true`),
@@ -366,6 +367,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                                       variant: "plain",
                                       size: "sm",
                                       children: materialIcon("EditOutlined"),
+                                      ariaLabel: "'Edit Note'",
                                       on: {
                                         click: (s) =>
                                           s.setScalar(`ui.editing`, `true`),
@@ -376,6 +378,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                                       variant: "plain",
                                       size: "sm",
                                       children: materialIcon("DeleteOutlined"),
+                                      ariaLabel: "'Delete Note'",
                                       on: {
                                         click: (s) =>
                                           s.setScalar(`ui.deleting`, `true`),
@@ -412,7 +415,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
             }),
           ],
         }),
-      })
-    )
+      }),
+    ),
   );
 }

@@ -108,7 +108,7 @@ const styles = createStyles({
 function imagePart(
   imageFieldGroup: ImageSetFieldGroup,
   opts: Opts,
-  ctx: RecordGridBuilder
+  ctx: RecordGridBuilder,
 ) {
   const { spawnUploadTasks, joinUploadTasks, updateImagesInDb } =
     getUploadStatements(ctx.table.name, ctx.recordId, imageFieldGroup);
@@ -146,7 +146,7 @@ function imagePart(
                               .startTransaction()
                               .statements(updateImagesInDb)
                               .commitTransaction()
-                              .statements(ctx.triggerRefresh)
+                              .statements(ctx.triggerRefresh),
                           ),
                       catch: (s) =>
                         s.setScalar(`failed_upload`, `true`).spawn({
@@ -181,7 +181,7 @@ function imagePart(
                 click: (s) => s.setScalar(`dialog_open`, `true`),
                 keydown: (s) =>
                   s.if(`event.key = 'Enter'`, (s) =>
-                    s.setScalar(`dialog_open`, `true`)
+                    s.setScalar(`dialog_open`, `true`),
                   ),
               },
             }),
@@ -207,7 +207,7 @@ function imagePart(
             size: "lg",
             startDecorator: materialIcon("Warning"),
           }),
-        })
+        }),
       ),
     ],
   });
@@ -215,7 +215,7 @@ function imagePart(
 
 function getImageFieldGroup(
   table: Table,
-  opts: Opts
+  opts: Opts,
 ): ImageSetFieldGroup | undefined {
   if (opts.disableImage) {
     return;
@@ -227,7 +227,7 @@ function getImageFieldGroup(
     }
     if (imageFieldGroup.type !== "Image") {
       throw new Error(
-        `Field group ${opts.imageGroup} is not an image set field group`
+        `Field group ${opts.imageGroup} is not an image set field group`,
       );
     }
     return imageFieldGroup;
@@ -243,7 +243,7 @@ function getImageFieldGroup(
   }
   if (imageSetCount === 1) {
     return Object.values(table.fieldGroups).find(
-      (g) => g.type === "Image"
+      (g) => g.type === "Image",
     ) as ImageSetFieldGroup;
   }
   for (const group of Object.values(table.fieldGroups)) {
@@ -252,7 +252,7 @@ function getImageFieldGroup(
     }
   }
   throw new Error(
-    "Multiple image set field groups found, but none named 'main_image'"
+    "Multiple image set field groups found, but none named 'main_image'",
   );
 }
 
@@ -274,6 +274,7 @@ function createUndoSnackbar() {
         variant: "plain",
         color: "harmonize",
         children: materialIcon("Close"),
+        ariaLabel: "'Close snackbar'",
         on: { click: close },
       }),
     }),
@@ -290,6 +291,7 @@ function createUndoSnackbar() {
         variant: "plain",
         color: "harmonize",
         children: materialIcon("Close"),
+        ariaLabel: "'Close snackbar'",
         on: { click: close },
       }),
     }),
@@ -323,11 +325,11 @@ function createUndoSnackbar() {
                           .startTransaction()
                           .if(
                             `(select creator != current_user() from db.tx where id = ${undoTxScalar})`,
-                            (s) => s.throwError(`'Nice try hackerman'`)
+                            (s) => s.throwError(`'Nice try hackerman'`),
                           )
                           .undoTx(undoTxScalar)
                           .commitTransaction()
-                          .navigate(undoUrlScalar)
+                          .navigate(undoUrlScalar),
                       ),
                     errorName: `err`,
                     catch: (s) =>
@@ -340,6 +342,7 @@ function createUndoSnackbar() {
             variant: "plain",
             color: "harmonize",
             children: materialIcon("Close"),
+            ariaLabel: "'Close snackbar'",
             on: { click: close },
           }),
         ],
@@ -364,7 +367,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
     throw new Error("Table must have recordDisplayName for simpleNamedHeader");
   }
   const nameExpr = tableModel.recordDisplayName.expr(
-    ...tableModel.recordDisplayName.fields.map((f) => `record.${f}`)
+    ...tableModel.recordDisplayName.fields.map((f) => `record.${f}`),
   );
   let selectFields = opts.chips
     ? ", " +
@@ -376,7 +379,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
             ? v.field
             : v.condition(...v.fields.map((f) => `record.${f}`)) +
               " as chip_" +
-              i
+              i,
         )
         .join(", ")
     : "";
@@ -391,7 +394,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
     const variant = getVariantFromImageSet(
       imageFieldGroup,
       "square_thumbnail",
-      ["general_thumbnail"]
+      ["general_thumbnail"],
     );
     if (!variant) {
       throw new Error("No thumbnail variant found");
@@ -406,7 +409,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
       procedure: (s) =>
         s.record(
           `record`,
-          `select ${nameExpr} as name${selectFields} from db.${tableModel.identName} as record where id = ${recordId}`
+          `select ${nameExpr} as name${selectFields} from db.${tableModel.identName} as record where id = ${recordId}`,
         ),
       children: nodes.element("div", {
         styles: styles.root,
@@ -446,7 +449,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                             color: "neutral",
                             size: "sm",
                             children: stringLiteral(field.displayName),
-                          })
+                          }),
                         );
                       } else if ("field" in c) {
                         const field = tableModel.fields[c.field];
@@ -457,7 +460,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                             color: c.color ?? "neutral",
                             size: c.size ?? "sm",
                             children: stringLiteral(field.displayName),
-                          })
+                          }),
                         );
                       } else {
                         return nodes.if(
@@ -467,7 +470,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                             color: c.color ?? "neutral",
                             size: c.size ?? "sm",
                             children: stringLiteral(c.displayName),
-                          })
+                          }),
                         );
                       }
                     }),
@@ -488,7 +491,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                 startDecorator: materialIcon("Edit"),
                 children: `'Edit'`,
                 href: `${stringLiteral(
-                  ctx.pathBase
+                  ctx.pathBase,
                 )} || '/' || ui.record_id || '/edit'`,
               }),
               recordDeleteButton({
@@ -502,11 +505,11 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                   s
                     .setScalar(
                       `named_page_header_undo_tx_${currentSnackbarId}`,
-                      `current_tx()`
+                      `current_tx()`,
                     )
                     .setScalar(
                       `named_page_header_undo_return_url_${currentSnackbarId}`,
-                      `location.pathname`
+                      `location.pathname`,
                     ),
                 afterDeleteClient: (s) =>
                   s.statements(undoSnackbar.openSnackbar),
@@ -515,6 +518,6 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
           }),
         ],
       }),
-    })
+    }),
   );
 }

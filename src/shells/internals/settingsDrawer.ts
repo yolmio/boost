@@ -108,6 +108,7 @@ export function settingsDrawer(opts: SettingsDrawerOpts) {
             children: materialIcon("Close"),
             variant: "plain",
             size: "sm",
+            ariaLabel: "'Close settings'",
             on: { click: closeDrawer },
           }),
         ],
@@ -196,7 +197,7 @@ export function settingsDrawer(opts: SettingsDrawerOpts) {
         procedure: (s) =>
           s.scalar(
             `email`,
-            `(select email from db.${app.db.userTableName} where id = current_user())`
+            `(select email from db.${app.db.userTableName} where id = current_user())`,
           ),
         statusScalar: `status`,
         children: nodes.switch(
@@ -219,7 +220,7 @@ export function settingsDrawer(opts: SettingsDrawerOpts) {
           {
             condition: `status = 'failed'`,
             node: alert({ children: `'Unable to get current user'` }),
-          }
+          },
         ),
       }),
       nodes.element("div", {

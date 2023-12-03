@@ -36,8 +36,8 @@ function withViewDrawerState(datagridName: string, children: Node) {
         s.table(
           `datagrid_view`,
           `select id, ordering, name, user is not null as is_personal from db.datagrid_view where datagrid_name = ${stringLiteral(
-            datagridName
-          )} and user is null or user = current_user() order by user is not null, ordering`
+            datagridName,
+          )} and user is null or user = current_user() order by user is not null, ordering`,
         ),
       statusScalar: `drawer_status`,
       children,
@@ -147,6 +147,7 @@ export function viewDrawer(datagridName: string, dts: DatagridRfns) {
           iconButton({
             size: "sm",
             variant: "outlined",
+            ariaLabel: `case when adding then 'Cancel' else 'Add view' end`,
             children: nodes.if({
               condition: `adding`,
               then: materialIcon("Close"),
@@ -177,7 +178,7 @@ export function viewDrawer(datagridName: string, dts: DatagridRfns) {
               alert({
                 color: "danger",
                 children: `error`,
-              })
+              }),
             ),
             nodes.element("div", {
               styles: styles.addButtons,
@@ -220,14 +221,14 @@ export function viewDrawer(datagridName: string, dts: DatagridRfns) {
                                     datagridName,
                                     dts,
                                     `view_name`,
-                                    `personal`
-                                  )
+                                    `personal`,
+                                  ),
                                 )
                                 .setScalar(
                                   `drawer_refresh_key`,
-                                  `drawer_refresh_key + 1`
+                                  `drawer_refresh_key + 1`,
                                 )
-                                .setQueryParam(`ui.view`, `view_id`)
+                                .setQueryParam(`ui.view`, `view_id`),
                             ),
                           catch: (s) =>
                             s
@@ -242,12 +243,12 @@ export function viewDrawer(datagridName: string, dts: DatagridRfns) {
               ],
             }),
           ],
-        })
+        }),
       ),
       divider(),
       nodes.if(
         `proc_error is not null`,
-        alert({ color: "danger", children: `proc_error` })
+        alert({ color: "danger", children: `proc_error` }),
       ),
       nodes.switch(
         {
@@ -278,7 +279,7 @@ export function viewDrawer(datagridName: string, dts: DatagridRfns) {
                     click: (s) =>
                       s.if(
                         `ui.view is null or ui.view != view_record.id`,
-                        (s) => s.setQueryParam(`ui.view`, `view_record.id`)
+                        (s) => s.setQueryParam(`ui.view`, `view_record.id`),
                       ),
                   },
                   dynamicClasses: [
@@ -308,7 +309,7 @@ export function viewDrawer(datagridName: string, dts: DatagridRfns) {
                                   .if(
                                     `view_name = view_record.name or view_name = ''`,
                                     (s) =>
-                                      s.setScalar(`editing`, `false`).return()
+                                      s.setScalar(`editing`, `false`).return(),
                                   )
                                   .setScalar(`proc_in_progress`, `true`)
                                   .setScalar(`proc_error`, `null`)
@@ -319,19 +320,22 @@ export function viewDrawer(datagridName: string, dts: DatagridRfns) {
                                         s
                                           .startTransaction()
                                           .modify(
-                                            `update db.datagrid_view set name = view_name where id = view_record.id`
+                                            `update db.datagrid_view set name = view_name where id = view_record.id`,
                                           )
                                           .commitTransaction()
                                           .setScalar(
                                             `drawer_refresh_key`,
-                                            `drawer_refresh_key + 1`
+                                            `drawer_refresh_key + 1`,
                                           )
-                                          .setQueryParam(`ui.view`, `view_name`)
+                                          .setQueryParam(
+                                            `ui.view`,
+                                            `view_name`,
+                                          ),
                                       ),
                                     catch: (s) =>
                                       s.setScalar(
                                         `proc_error`,
-                                        `'Unable to change view name at this time'`
+                                        `'Unable to change view name at this time'`,
                                       ),
                                   })
                                   .setScalar(`proc_in_progress`, `false`)
@@ -343,7 +347,9 @@ export function viewDrawer(datagridName: string, dts: DatagridRfns) {
                                     .if(
                                       `view_name = view_record.name or view_name = ''`,
                                       (s) =>
-                                        s.setScalar(`editing`, `false`).return()
+                                        s
+                                          .setScalar(`editing`, `false`)
+                                          .return(),
                                     )
                                     .setScalar(`proc_in_progress`, `true`)
                                     .setScalar(`proc_error`, `null`)
@@ -354,26 +360,26 @@ export function viewDrawer(datagridName: string, dts: DatagridRfns) {
                                           s
                                             .startTransaction()
                                             .modify(
-                                              `update db.datagrid_view set name = view_name where id = view_record.id`
+                                              `update db.datagrid_view set name = view_name where id = view_record.id`,
                                             )
                                             .commitTransaction()
                                             .setScalar(
                                               `drawer_refresh_key`,
-                                              `drawer_refresh_key + 1`
+                                              `drawer_refresh_key + 1`,
                                             )
                                             .setQueryParam(
                                               `ui.view`,
-                                              `view_record.id`
-                                            )
+                                              `view_record.id`,
+                                            ),
                                         ),
                                       catch: (s) =>
                                         s.setScalar(
                                           `proc_error`,
-                                          `'Unable to change view name at this time'`
+                                          `'Unable to change view name at this time'`,
                                         ),
                                     })
                                     .setScalar(`proc_in_progress`, `false`)
-                                    .setScalar(`editing`, `false`)
+                                    .setScalar(`editing`, `false`),
                                 ),
                             },
                           },
@@ -388,7 +394,7 @@ export function viewDrawer(datagridName: string, dts: DatagridRfns) {
                       nodes.element("div", { styles: flexGrowStyles }),
                       nodes.if(
                         `view_record.is_personal`,
-                        materialIcon("PersonOutline")
+                        materialIcon("PersonOutline"),
                       ),
                       popoverMenu({
                         id: `${viewIdBase} || '-' || view_record.id`,
@@ -401,6 +407,7 @@ export function viewDrawer(datagridName: string, dts: DatagridRfns) {
                             size: "sm",
                             children: materialIcon("MoreHoriz"),
                             props: buttonProps,
+                            ariaLabel: `'Open Actions Menu'`,
                             on: {
                               click: (s) =>
                                 s.stopPropagation().statements(onButtonClick),
@@ -425,18 +432,21 @@ export function viewDrawer(datagridName: string, dts: DatagridRfns) {
                                     s.serviceProc((s) =>
                                       s
                                         .statements(
-                                          duplicateView(`view_record.id`)
+                                          duplicateView(`view_record.id`),
                                         )
                                         .setScalar(
                                           `drawer_refresh_key`,
-                                          `drawer_refresh_key + 1`
+                                          `drawer_refresh_key + 1`,
                                         )
-                                        .setQueryParam(`ui.view`, `new_view_id`)
+                                        .setQueryParam(
+                                          `ui.view`,
+                                          `new_view_id`,
+                                        ),
                                     ),
                                   catch: (s) =>
                                     s.setScalar(
                                       `proc_error`,
-                                      `'Unable to duplicate view at this time'`
+                                      `'Unable to duplicate view at this time'`,
                                     ),
                                 })
                                 .setScalar(`proc_in_progress`, `false`),
@@ -456,23 +466,23 @@ export function viewDrawer(datagridName: string, dts: DatagridRfns) {
                                         .statements(
                                           saveToExistingView(
                                             dts,
-                                            `view_record.id`
-                                          )
+                                            `view_record.id`,
+                                          ),
                                         )
                                         .setScalar(
                                           `drawer_refresh_key`,
-                                          `drawer_refresh_key + 1`
+                                          `drawer_refresh_key + 1`,
                                         )
                                         .setQueryParam(
                                           `ui.view`,
-                                          `view_record.id`
-                                        )
+                                          `view_record.id`,
+                                        ),
                                     ),
                                   errorName: `caught_error`,
                                   catch: (s) =>
                                     s.setScalar(
                                       `proc_error`,
-                                      `'Error saving view'`
+                                      `'Error saving view'`,
                                     ),
                                 })
                                 .setScalar(`proc_in_progress`, `false`),
@@ -493,11 +503,11 @@ export function viewDrawer(datagridName: string, dts: DatagridRfns) {
                         afterTransactionCommit: (s) =>
                           s
                             .if(`view_record.id = view`, (s) =>
-                              s.setQueryParam(`ui.view`, `null`)
+                              s.setQueryParam(`ui.view`, `null`),
                             )
                             .setScalar(
                               `drawer_refresh_key`,
-                              `drawer_refresh_key + 1`
+                              `drawer_refresh_key + 1`,
                             ),
                         recordId: `view_record.id`,
                         table: `datagrid_view`,
@@ -517,12 +527,12 @@ export function viewDrawer(datagridName: string, dts: DatagridRfns) {
             level: "body-sm",
             styles: styles.emptyText,
           }),
-        }
+        },
       ),
     ],
   });
   return nodes.if(
     `view_drawer_open`,
-    withViewDrawerState(datagridName, drawerContent)
+    withViewDrawerState(datagridName, drawerContent),
   );
 }

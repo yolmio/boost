@@ -97,7 +97,7 @@ const styles = createStyles({
 
 function andNotImmutable(
   immutable: boolean | undefined | yom.SqlExpression,
-  expr: yom.SqlExpression
+  expr: yom.SqlExpression,
 ) {
   return typeof immutable === "string"
     ? expr + " and not " + parenWrap(expr)
@@ -106,11 +106,11 @@ function andNotImmutable(
 
 function foreignKeyCell(
   opts: BaseFieldCellOpts,
-  field: ForeignKeyField
+  field: ForeignKeyField,
 ): CellNode {
   const toTable = app.db.tables[field.table];
   const nameExpr = toTable.recordDisplayName!.expr(
-    ...toTable.recordDisplayName!.fields.map((f) => `r.${f}`)
+    ...toTable.recordDisplayName!.fields.map((f) => `r.${f}`),
   );
   return (cell, state) => {
     function wrapInState(children: Node) {
@@ -119,7 +119,7 @@ function foreignKeyCell(
         procedure: (s) =>
           s.scalar(
             `text`,
-            `(select ${nameExpr} from db.${toTable.name} as r where id = try_cast(${cell.value} as bigint))`
+            `(select ${nameExpr} from db.${toTable.name} as r where id = try_cast(${cell.value} as bigint))`,
           ),
         children,
       });
@@ -129,7 +129,7 @@ function foreignKeyCell(
         nodes.element("span", {
           styles: sharedStyles.ellipsisSpan,
           children: `text`,
-        })
+        }),
       );
     }
     if (!toTable.searchConfig) {
@@ -140,7 +140,7 @@ function foreignKeyCell(
           opts.tableName +
           "." +
           field.name +
-          "."
+          ".",
       );
     }
     const shouldUseEditedText = `did_edit and ((edited_id is null and ${cell.value} is null) or edited_id = try_cast(${cell.value} as bigint))`;
@@ -169,6 +169,7 @@ function foreignKeyCell(
                     variant: "plain",
                     color: "neutral",
                     children: materialIcon("Close"),
+                    ariaLabel: `'Remove field value'`,
                     on: {
                       click: {
                         detachedFromNode: true,
@@ -180,11 +181,11 @@ function foreignKeyCell(
                               dbValue: `null`,
                               fieldName: field.name,
                               resetValue: cell.setValue(`prev_id`),
-                            })
+                            }),
                           ),
                       },
                     },
-                  })
+                  }),
                 ),
               ],
             }),
@@ -206,14 +207,14 @@ function foreignKeyCell(
                         dbValue: id,
                         fieldName: field.name,
                         resetValue: new DomStatements(),
-                      })
+                      }),
                     ),
                 else: cell.stopEditingAndFocus,
               }),
             open: `true`,
             onClose: cell.stopEditingAndFocus,
             table: toTable.name,
-          })
+          }),
         ),
       ]),
     });
@@ -226,7 +227,7 @@ function enumCell(opts: BaseFieldCellOpts, field: EnumField): CellNode {
     const display = nodes.element("span", {
       styles: sharedStyles.ellipsisSpan,
       children: enumModel.getDisplayName!(
-        `try_cast(${cell.value} as enums.${enumModel.name})`
+        `try_cast(${cell.value} as enums.${enumModel.name})`,
       ),
     });
     if (opts.immutable === true) {
@@ -236,14 +237,14 @@ function enumCell(opts: BaseFieldCellOpts, field: EnumField): CellNode {
       nodes.element("option", {
         children: stringLiteral(v.displayName),
         props: { value: stringLiteral(v.name) },
-      })
+      }),
     );
     if (!field.notNull) {
       options.unshift(
         nodes.element("option", {
           children: stringLiteral("No value"),
           props: { value: stringLiteral("''") },
-        })
+        }),
       );
     }
     const handlers = cell.fieldEditorEventHandlers({
@@ -262,7 +263,7 @@ function enumCell(opts: BaseFieldCellOpts, field: EnumField): CellNode {
         procedure: (s) =>
           s.scalar(
             `value`,
-            `try_cast(${cell.value} as enums.${enumModel.name})`
+            `try_cast(${cell.value} as enums.${enumModel.name})`,
           ),
         children: nodes.element("div", {
           styles: styles.selectWrapper,
@@ -276,7 +277,7 @@ function enumCell(opts: BaseFieldCellOpts, field: EnumField): CellNode {
                 input: (s) =>
                   s.setScalar(
                     `ui.value`,
-                    `try_cast(target_value as enums.${enumModel.name}))`
+                    `try_cast(target_value as enums.${enumModel.name}))`,
                   ),
               },
             }),
@@ -335,7 +336,7 @@ function dateCell(opts: BaseFieldCellOpts, field: DateField): CellNode {
 
 function timestampCell(
   opts: BaseFieldCellOpts,
-  field: TimestampField
+  field: TimestampField,
 ): CellNode {
   return (cell) => {
     const formatString = field.formatString ?? "%-d %b %Y %l:%M%p";
@@ -345,7 +346,7 @@ function timestampCell(
     const display = nodes.element("span", {
       styles: sharedStyles.ellipsisSpan,
       children: `format.date(${timestampValue}, ${stringLiteral(
-        formatString
+        formatString,
       )})`,
     });
     if (opts.immutable === true) {
@@ -385,7 +386,7 @@ function timestampCell(
 
 function numericField(
   opts: BaseFieldCellOpts,
-  field: IntegerField | DecimalField | RealField | DoubleField
+  field: IntegerField | DecimalField | RealField | DoubleField,
 ): CellNode {
   let typeName: string;
   switch (field.type) {
@@ -421,7 +422,7 @@ function numericField(
     if (field.type === "Decimal" && field.usage) {
       if (field.usage.type === "Money") {
         formatted = `format.currency(${numberValue}, ${stringLiteral(
-          field.usage.currency
+          field.usage.currency,
         )})`;
       } else if (field.usage.type === "Percentage") {
         formatted = `format.percent(${numberValue})`;
@@ -439,7 +440,7 @@ function numericField(
       procedure: (s) =>
         s.scalar(
           `value`,
-          `coalesce(start_edit_with_char, cast(${cell.value} as string))`
+          `coalesce(start_edit_with_char, cast(${cell.value} as string))`,
         ),
       children: nodes.element("input", {
         styles: sharedStyles.cellInput,
@@ -504,7 +505,7 @@ function castEventHandlers(
   opts: BaseFieldCellOpts,
   field: Field,
   cell: CellHelpers,
-  typeName: string
+  typeName: string,
 ) {
   const { value } = cell;
   return cell.fieldEditorEventHandlers({
@@ -540,7 +541,7 @@ function uuidCell(opts: BaseFieldCellOpts, field: UuidField): CellNode {
       procedure: (s) =>
         s.scalar(
           `value`,
-          `coalesce(start_edit_with_char, cast(${cell.value} as string))`
+          `coalesce(start_edit_with_char, cast(${cell.value} as string))`,
         ),
       children: nodes.element("input", {
         styles: sharedStyles.cellInput,
@@ -567,7 +568,7 @@ function boolCell(opts: BaseFieldCellOpts, field: BoolField): CellNode {
         styles: sharedStyles.ellipsisSpan,
         children: enumLikeDisplayName(
           `try_cast(${cell.value} as bool)`,
-          enumLike
+          enumLike,
         ),
       });
       if (opts.immutable === true) {
@@ -593,7 +594,7 @@ function boolCell(opts: BaseFieldCellOpts, field: BoolField): CellNode {
               `value`,
               opts.stringified
                 ? cell.value
-                : `coalesce(cast(${cell.value} as string), '')`
+                : `coalesce(cast(${cell.value} as string), '')`,
             ),
           children: nodes.element("div", {
             styles: styles.selectWrapper,
@@ -666,15 +667,15 @@ function boolCell(opts: BaseFieldCellOpts, field: BoolField): CellNode {
                       typeof opts.immutable === "string",
                       (s) =>
                         s.if(opts.immutable as string, (s) =>
-                          s.preventDefault().return()
-                        )
+                          s.preventDefault().return(),
+                        ),
                     )
                     .scalar(`prev_value`, cell.value)
                     .statements(
                       cell.setValue(
                         opts.stringified
                           ? `cast(target_checked as string)`
-                          : `target_checked`
+                          : `target_checked`,
                       ),
                       cell.updateFieldValueInDb({
                         ...opts,
@@ -683,7 +684,7 @@ function boolCell(opts: BaseFieldCellOpts, field: BoolField): CellNode {
                           ? `cast(${cell.value} as bool)`
                           : cell.value,
                         resetValue: cell.setValue(`prev_value`),
-                      })
+                      }),
                     ),
               },
       },
@@ -693,7 +694,7 @@ function boolCell(opts: BaseFieldCellOpts, field: BoolField): CellNode {
 function durationCell(
   opts: BaseFieldCellOpts,
   field: IntegerField,
-  usage: DurationUsage
+  usage: DurationUsage,
 ): CellNode {
   if (usage.size === "minutes") {
     return (cell) => {
@@ -732,7 +733,7 @@ function durationCell(
                   start_edit_with_char is not null and start_edit_with_char in ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')
                     then start_edit_with_char
                   else sfn.display_minutes_duration(try_cast(${cell.value} as bigint))
-                end`
+                end`,
               )
               .scalar(`input_value`, `value`),
           children: nodes.element("input", {
@@ -746,13 +747,13 @@ function durationCell(
               keydown: (s) =>
                 s.if(
                   `not event.ctrl_key and not event.meta_key and char_length(event.key) = 1 and event.key not in ('1', '2', '3', '4', '5', '6', '7', '8', '9', '0', ':')`,
-                  (s) => s.preventDefault()
+                  (s) => s.preventDefault(),
                 ),
               input: (s) => s.setScalar(`input_value`, `target_value`),
               change: (s) =>
                 s.setScalar(
                   `value`,
-                  `sfn.display_minutes_duration(sfn.parse_minutes_duration(target_value))`
+                  `sfn.display_minutes_duration(sfn.parse_minutes_duration(target_value))`,
                 ),
             }),
           }),
@@ -766,7 +767,7 @@ function durationCell(
 
 function imageCell(
   opts: BaseFieldCellOpts,
-  group: ImageSetFieldGroup
+  group: ImageSetFieldGroup,
 ): CellNode {
   return (cell, state) => {
     const { spawnUploadTasks, joinUploadTasks, updateImagesInDb } =
@@ -805,11 +806,11 @@ function imageCell(
                                 .startTransaction()
                                 .statements(updateImagesInDb)
                                 .commitTransaction()
-                                .statements(state.triggerRefresh)
+                                .statements(state.triggerRefresh),
                             ),
                         catch:
                           state.displayEditErrorAndRemoveAfter(
-                            `'Upload failed'`
+                            `'Upload failed'`,
                           ),
                       })
                       .setScalar(`uploading`, `false`),
@@ -840,7 +841,7 @@ function imageCell(
                     .setScalar(`ui.open`, `true`)
                     .modify(`update ui.editing_state set is_editing = false`)
                     .modify(
-                      `update ui.focus_state set should_focus = false, row = ${cell.row}, column = ${cell.column}`
+                      `update ui.focus_state set should_focus = false, row = ${cell.row}, column = ${cell.column}`,
                     ),
               },
             }),

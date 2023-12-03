@@ -91,6 +91,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
             iconButton({
               tag: "label",
               size: "sm",
+              ariaLabel: `'Upload attachment'`,
               children: [
                 nodes.element("input", {
                   styles: visuallyHiddenStyles,
@@ -115,15 +116,15 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                                   .startTransaction()
                                   .modify(
                                     `insert into db.${ident(
-                                      attachmentTable.name
+                                      attachmentTable.name,
                                     )} (name, file, ${
                                       ctx.table.name
                                     }) values ((select name from file), added_file.uuid, ${
                                       ctx.recordId
-                                    })`
+                                    })`,
                                   )
                                   .commitTransaction()
-                                  .statements(ctx.triggerRefresh)
+                                  .statements(ctx.triggerRefresh),
                               ),
                           catch: (s) =>
                             s.setScalar(`failed_upload`, `true`).spawn({
@@ -141,10 +142,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                 nodes.if({
                   condition: `uploading`,
                   then: circularProgress({ size: "sm" }),
-                  else: materialIcon({
-                    name: "Upload",
-                    title: "'Upload Attachment'",
-                  }),
+                  else: materialIcon("Upload"),
                 }),
               ],
               variant: "plain",
@@ -161,8 +159,8 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
               s.record(
                 "attachment",
                 `select id, name, file from db.${ident(
-                  attachmentTable.name
-                )} where ${ctx.table.name} = ${ctx.recordId}`
+                  attachmentTable.name,
+                )} where ${ctx.table.name} = ${ctx.recordId}`,
               ),
             children: nodes.if({
               condition: `exists (select 1 from attachment)`,
@@ -199,7 +197,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                                       s
                                         .if(
                                           `new_name = attachment_record.name`,
-                                          (s) => s.return()
+                                          (s) => s.return(),
                                         )
                                         .setScalar(`submitting`, `true`)
                                         .commitUiTreeChanges()
@@ -210,11 +208,11 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                                                 .startTransaction()
                                                 .modify(
                                                   `update db.${ident(
-                                                    attachmentTable.name
-                                                  )} set name = new_name where id = attachment_record.id`
+                                                    attachmentTable.name,
+                                                  )} set name = new_name where id = attachment_record.id`,
                                                 )
                                                 .commitTransaction()
-                                                .statements(ctx.triggerRefresh)
+                                                .statements(ctx.triggerRefresh),
                                             ),
                                           catch: (s) =>
                                             s
@@ -226,7 +224,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                                                     .delay("4000")
                                                     .setScalar(
                                                       `failed_edit`,
-                                                      `false`
+                                                      `false`,
                                                     )
                                                     .commitUiTreeChanges(),
                                               }),
@@ -245,19 +243,19 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                                                     .startTransaction()
                                                     .modify(
                                                       `update db.${ident(
-                                                        attachmentTable.name
-                                                      )} set name = new_name where id = attachment_record.id`
+                                                        attachmentTable.name,
+                                                      )} set name = new_name where id = attachment_record.id`,
                                                     )
                                                     .commitTransaction()
                                                     .statements(
-                                                      ctx.triggerRefresh
-                                                    )
+                                                      ctx.triggerRefresh,
+                                                    ),
                                                 ),
                                               catch: (s) =>
                                                 s
                                                   .setScalar(
                                                     `failed_edit`,
-                                                    `true`
+                                                    `true`,
                                                   )
                                                   .spawn({
                                                     detached: true,
@@ -266,15 +264,15 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                                                         .delay("4000")
                                                         .setScalar(
                                                           `failed_edit`,
-                                                          `false`
+                                                          `false`,
                                                         )
                                                         .commitUiTreeChanges(),
                                                   }),
                                             })
-                                            .setScalar(`editing`, `false`)
+                                            .setScalar(`editing`, `false`),
                                         )
                                         .if(`event.key = 'Escape'`, (s) =>
-                                          s.setScalar(`editing`, `false`)
+                                          s.setScalar(`editing`, `false`),
                                         ),
                                   },
                                 },
@@ -285,7 +283,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                               circularProgress({
                                 styles: styles.editLoading,
                                 size: "sm",
-                              })
+                              }),
                             ),
                           ],
                         }),
@@ -305,19 +303,15 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                         variant: "plain",
                         color: "neutral",
                         size: "sm",
-                        children: materialIcon({
-                          name: "DownloadOutlined",
-                          title: "'Download'",
-                        }),
+                        ariaLabel: `'Download File'`,
+                        children: materialIcon("DownloadOutlined"),
                       }),
                       iconButton({
                         variant: "plain",
                         color: "neutral",
                         size: "sm",
-                        children: materialIcon({
-                          name: "EditOutlined",
-                          title: "'Edit'",
-                        }),
+                        ariaLabel: `'Edit Attachment'`,
+                        children: materialIcon("EditOutlined"),
                         on: {
                           click: (s) => s.setScalar(`editing`, `not editing`),
                         },
@@ -333,10 +327,8 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                         variant: "plain",
                         color: "neutral",
                         size: "sm",
-                        children: materialIcon({
-                          name: "DeleteOutlined",
-                          title: "'Delete'",
-                        }),
+                        ariaLabel: `'Delete Attachment'`,
+                        children: materialIcon("DeleteOutlined"),
                         on: { click: (s) => s.setScalar(`deleting`, `true`) },
                       }),
                     ],
@@ -362,7 +354,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
               size: "lg",
               startDecorator: materialIcon("Warning"),
             }),
-          })
+          }),
         ),
       ],
     }),

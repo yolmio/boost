@@ -71,7 +71,7 @@ export function styledSimpleDatagrid(config: StyledSimpleGridConfig) {
       cellClickHandler: c.cellClickHandler,
       queryGeneration: c.queryGeneration,
       initialWidth: c.width,
-    })
+    }),
   );
   let addButton: Node | undefined;
   if (config.toolbar.add?.type === "href") {
@@ -81,6 +81,7 @@ export function styledSimpleDatagrid(config: StyledSimpleGridConfig) {
       size: "sm",
       children: materialIcon("Add"),
       href: stringLiteral(config.toolbar.add.href),
+      ariaLabel: `'Add new record'`,
     });
   } else if (config.toolbar.add?.type === "dialog") {
     const withValues: Record<string, string> =
@@ -94,6 +95,7 @@ export function styledSimpleDatagrid(config: StyledSimpleGridConfig) {
           size: "sm",
           children: materialIcon("Add"),
           on: { click: (s) => s.setScalar(`adding`, `true`) },
+          ariaLabel: `'Add new record'`,
         }),
         insertDialog({
           ...config.toolbar.add.opts,
@@ -107,7 +109,7 @@ export function styledSimpleDatagrid(config: StyledSimpleGridConfig) {
           afterTransactionCommit: (formState, s) => {
             (config.toolbar.add as any).opts?.afterTransactionCommit?.(
               formState,
-              s
+              s,
             );
             s.statements(dgState.triggerRefresh);
           },
@@ -139,7 +141,7 @@ export function styledSimpleDatagrid(config: StyledSimpleGridConfig) {
                   startDecorator: circularProgress({ size: "sm" }),
                   level: "body-sm",
                   children: `'Reloading...'`,
-                })
+                }),
               ),
               nodes.if(
                 `saving_edit`,
@@ -147,7 +149,7 @@ export function styledSimpleDatagrid(config: StyledSimpleGridConfig) {
                   startDecorator: circularProgress({ size: "sm" }),
                   level: "body-sm",
                   children: `'Saving change...'`,
-                })
+                }),
               ),
               nodes.if(
                 `display_error_message is not null`,
@@ -157,7 +159,7 @@ export function styledSimpleDatagrid(config: StyledSimpleGridConfig) {
                   color: "danger",
                   variant: "solid",
                   children: `display_error_message`,
-                })
+                }),
               ),
               nodes.if(
                 `status = 'failed'`,
@@ -167,7 +169,7 @@ export function styledSimpleDatagrid(config: StyledSimpleGridConfig) {
                   color: "danger",
                   variant: "solid",
                   children: `'Failed to load data'`,
-                })
+                }),
               ),
               nodes.element("div", { styles: flexGrowStyles }),
               config.toolbar.delete
@@ -180,6 +182,7 @@ export function styledSimpleDatagrid(config: StyledSimpleGridConfig) {
                         variant: "soft",
                         children: materialIcon("DeleteOutlined"),
                         on: { click: (s) => s.setScalar(`deleting`, `true`) },
+                        ariaLabel: `'Delete selected records'`,
                       }),
                       confirmDangerDialog({
                         open: `deleting`,
@@ -195,9 +198,9 @@ export function styledSimpleDatagrid(config: StyledSimpleGridConfig) {
                                     `count`,
                                     "(" +
                                       getCountQuery(
-                                        "db." + config.tableModel.name
+                                        "db." + config.tableModel.name,
                                       ) +
-                                      ")"
+                                      ")",
                                   ),
                                 children: `count`,
                               }),
@@ -216,18 +219,18 @@ export function styledSimpleDatagrid(config: StyledSimpleGridConfig) {
                                   then: (s) =>
                                     s.modify(
                                       `delete from db.${ident(
-                                        config.tableModel.name
-                                      )}`
+                                        config.tableModel.name,
+                                      )}`,
                                     ),
                                   else: (s) =>
                                     s.modify(
                                       `delete from db.${ident(
-                                        config.tableModel.name
-                                      )} where id in (select id from ui.selected_row)`
+                                        config.tableModel.name,
+                                      )} where id in (select id from ui.selected_row)`,
                                     ),
                                 })
                                 .commitTransaction()
-                                .statements(dgState.triggerRefresh)
+                                .statements(dgState.triggerRefresh),
                             )
                             .statements(closeModal),
                       }),

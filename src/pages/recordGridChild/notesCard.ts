@@ -63,6 +63,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
               iconButton({
                 variant: "plain",
                 size: "sm",
+                ariaLabel: `case editing: 'Cancel edit' else 'Edit note' end`,
                 children: nodes.if({
                   condition: `editing`,
                   then: materialIcon("Close"),
@@ -80,7 +81,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                 `note`,
                 `(select notes from db.${ident(ctx.table.name)} where id = ${
                   ctx.recordId
-                })`
+                })`,
               ),
             children: nodes.if({
               condition: `editing`,
@@ -113,7 +114,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                       styles: styles.editingError,
                       color: "danger",
                       children: `'Unable to add note at this time'`,
-                    })
+                    }),
                   ),
                   nodes.element("div", {
                     styles: styles.buttons,
@@ -137,13 +138,13 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                                         .startTransaction()
                                         .modify(
                                           `update db.${ident(
-                                            ctx.table.name
+                                            ctx.table.name,
                                           )} set notes = ui.editing_note where id = ${
                                             ctx.recordId
-                                          }`
+                                          }`,
                                         )
                                         .commitTransaction()
-                                        .statements(ctx.triggerRefresh)
+                                        .statements(ctx.triggerRefresh),
                                     )
                                     .setScalar(`ui.editing`, `false`),
                                 catch: (s) =>
@@ -172,6 +173,6 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
           }),
         ],
       }),
-    })
+    }),
   );
 }

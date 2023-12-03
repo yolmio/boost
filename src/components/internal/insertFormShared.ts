@@ -51,7 +51,7 @@ export type InsertRelationFormPart = {
         onChange?: (
           formState: FormState,
           cursor: FormStateTableCursor,
-          s: DomStatements
+          s: DomStatements,
         ) => unknown;
       }
   )[];
@@ -122,7 +122,7 @@ export interface InsertFormContentOpts {
 
 export function getFieldsAndRelationsFromInsertFormContent(
   content: InsertFormContent,
-  table: Table
+  table: Table,
 ) {
   let fields: InsertFormField[] = [];
   const relations: InsertFormRelation[] = [];
@@ -133,7 +133,7 @@ export function getFieldsAndRelationsFromInsertFormContent(
           relations.push({
             table: section.relation.table,
             fields: section.relation.fields.map((f) =>
-              typeof f === "string" ? { field: f } : f
+              typeof f === "string" ? { field: f } : f,
             ),
           });
         }
@@ -171,7 +171,7 @@ export function getFieldsAndRelationsFromInsertFormContent(
 
 export function insertFormContent(
   content: InsertFormContent,
-  opts: InsertFormContentOpts
+  opts: InsertFormContentOpts,
 ): Node {
   switch (content.type) {
     case "LabelOnLeft":
@@ -182,7 +182,7 @@ export function insertFormContent(
         .map((f) => ({ field: f, ...content.fieldOverrides?.[f] }));
       return labelOnLeftInsertFormContent(
         { type: "LabelOnLeft", parts, header: content.header },
-        opts
+        opts,
       );
     }
     case "TwoColumnSectioned":
@@ -193,7 +193,7 @@ export function insertFormContent(
 function gridPart(
   part: InsertGridFormPart,
   formState: FormState,
-  table: Table
+  table: Table,
 ) {
   if (!part.field) {
     return nodes.element("div", { styles: part.styles });
@@ -213,7 +213,7 @@ function gridPart(
           props: { id },
           on: {
             checkboxChange: fieldHelper.setValue(
-              `coalesce(not ` + fieldHelper.value + `, true)`
+              `coalesce(not ` + fieldHelper.value + `, true)`,
             ),
           },
         }),
@@ -222,7 +222,7 @@ function gridPart(
           nodes.element("div", {
             styles: genericFormStyles.errorText,
             children: fieldHelper.error,
-          })
+          }),
         ),
       ],
     });
@@ -235,7 +235,7 @@ function gridPart(
   });
   if (!fieldValue) {
     throw new Error(
-      "sectionedGridFormContent does not handle field of type " + field.type
+      "sectionedGridFormContent does not handle field of type " + field.type,
     );
   }
   return formControl({
@@ -249,7 +249,7 @@ function gridPart(
       fieldValue,
       nodes.if(
         fieldHelper.hasError,
-        formHelperText({ children: fieldHelper.error })
+        formHelperText({ children: fieldHelper.error }),
       ),
     ],
   });
@@ -257,10 +257,10 @@ function gridPart(
 
 function twoColumnSectionedInsertFormContent(
   content: TwoColumnSectionedInsertFormContent,
-  { table, formState, cancel }: InsertFormContentOpts
+  { table, formState, cancel }: InsertFormContentOpts,
 ): Node {
   const header = stringLiteral(
-    content.header ?? downcaseFirst(table.displayName)
+    content.header ?? downcaseFirst(table.displayName),
   );
   const sections: Node[] = [
     nodes.element("h1", {
@@ -303,10 +303,11 @@ function twoColumnSectionedInsertFormContent(
                     size: "sm",
                     children: materialIcon("Delete"),
                     on: { click: cursor.delete },
+                    ariaLabel: `'Delete'`,
                   }),
                 }),
               ],
-            })
+            }),
           ),
           nodes.element("div", {
             styles: multiCardInsertStyles.addButtonWrapper,
@@ -315,7 +316,7 @@ function twoColumnSectionedInsertFormContent(
               children: typography({
                 startDecorator: materialIcon("Add"),
                 children: `'Add ' || ${stringLiteral(
-                  downcaseFirst(relationTable.displayName)
+                  downcaseFirst(relationTable.displayName),
                 )}`,
               }),
               on: {
@@ -358,7 +359,7 @@ function twoColumnSectionedInsertFormContent(
           }),
           sectionBody,
         ],
-      })
+      }),
     );
   }
   sections.push(
@@ -369,8 +370,8 @@ function twoColumnSectionedInsertFormContent(
         size: "lg",
         children: formState.formError,
         startDecorator: materialIcon("Error"),
-      })
-    )
+      }),
+    ),
   );
   sections.push(
     nodes.element("div", {
@@ -391,7 +392,7 @@ function twoColumnSectionedInsertFormContent(
           },
         }),
       ],
-    })
+    }),
   );
   return nodes.element("div", {
     styles: twoColumnFormStyles.root,
@@ -401,7 +402,7 @@ function twoColumnSectionedInsertFormContent(
 
 export function labelOnLeftInsertFormContent(
   content: LabelOnLeftInsertFormContent,
-  { table, formState, cancel }: InsertFormContentOpts
+  { table, formState, cancel }: InsertFormContentOpts,
 ) {
   const fields: Node[] = [];
   if (content.header) {
@@ -410,7 +411,7 @@ export function labelOnLeftInsertFormContent(
         styles: genericFormStyles.pageHeader,
         children: stringLiteral(content.header),
       }),
-      divider()
+      divider(),
     );
   }
   for (const part of content.parts) {
@@ -420,7 +421,7 @@ export function labelOnLeftInsertFormContent(
         fieldHelper: formState.field(part.field),
         id: stringLiteral(getUniqueUiId()),
         onChange: (s) => part.onChange?.(formState, s),
-      })
+      }),
     );
   }
   fields.push(
@@ -443,7 +444,7 @@ export function labelOnLeftInsertFormContent(
           on: { click: formState.onSubmit },
         }),
       ],
-    })
+    }),
   );
   fields.push(
     nodes.if(
@@ -453,8 +454,8 @@ export function labelOnLeftInsertFormContent(
         size: "lg",
         children: formState.formError,
         startDecorator: materialIcon("Error"),
-      })
-    )
+      }),
+    ),
   );
   return nodes.element("div", {
     styles: labelOnLeftStyles.root,

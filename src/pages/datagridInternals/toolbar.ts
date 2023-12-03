@@ -75,7 +75,7 @@ export function toolbar(
   baseDts: DatagridRfns,
   superDts: SuperGridDts,
   tableModel: Table,
-  additionalWhere?: yom.SqlExpression
+  additionalWhere?: yom.SqlExpression,
 ) {
   let addButton: Node | undefined;
   if (toolbar.add?.type === "href") {
@@ -84,6 +84,7 @@ export function toolbar(
       color: "primary",
       size: "sm",
       children: materialIcon("Add"),
+      ariaLabel: "'Add'",
       href: stringLiteral(toolbar.add.href),
     });
   } else if (toolbar.add?.type === "dialog") {
@@ -96,6 +97,7 @@ export function toolbar(
           variant: "soft",
           color: "primary",
           size: "sm",
+          ariaLabel: "'Add'",
           children: materialIcon("Add"),
           on: { click: (s) => s.setScalar(`adding`, `true`) },
         }),
@@ -139,19 +141,19 @@ export function toolbar(
                     s
                       .setScalar(
                         "ui.view_drawer_open",
-                        "not ui.view_drawer_open"
+                        "not ui.view_drawer_open",
                       )
                       .if({
                         condition: `ui.view_drawer_open`,
                         then: (s) =>
                           s.triggerViewTransition(
                             "final",
-                            "'open-view-drawer'"
+                            "'open-view-drawer'",
                           ),
                         else: (s) =>
                           s.triggerViewTransition(
                             "immediate",
-                            "'close-view-drawer'"
+                            "'close-view-drawer'",
                           ),
                       }),
                 },
@@ -197,7 +199,7 @@ export function toolbar(
                 else ${hiddenColumnCount} || ' hidden columns'
                 end`,
                             startDecorator: materialIcon(
-                              "VisibilityOffOutlined"
+                              "VisibilityOffOutlined",
                             ),
                             on: {
                               click: (s) => {
@@ -209,7 +211,7 @@ export function toolbar(
                                 }
                                 s.setScalar(
                                   `columns_dialog_open`,
-                                  `not columns_dialog_open`
+                                  `not columns_dialog_open`,
                                 )
                                   .stopPropagation()
                                   .triggerViewTransition("immediate");
@@ -247,7 +249,7 @@ export function toolbar(
                                 }
                                 s.setScalar(
                                   `filter_dialog_open`,
-                                  `not filter_dialog_open`
+                                  `not filter_dialog_open`,
                                 )
                                   .stopPropagation()
                                   .triggerViewTransition("immediate");
@@ -285,7 +287,7 @@ export function toolbar(
                                 }
                                 s.setScalar(
                                   `sort_dialog_open`,
-                                  `not sort_dialog_open`
+                                  `not sort_dialog_open`,
                                 )
                                   .stopPropagation()
                                   .triggerViewTransition("immediate");
@@ -342,7 +344,7 @@ export function toolbar(
                   then: `'Reloading...'`,
                   else: `'Loading more rows...'`,
                 }),
-              })
+              }),
             ),
             nodes.if(
               `saving_edit`,
@@ -350,7 +352,7 @@ export function toolbar(
                 startDecorator: circularProgress({ size: "sm" }),
                 level: "body-sm",
                 children: `'Saving change...'`,
-              })
+              }),
             ),
             nodes.if(
               `display_error_message is not null`,
@@ -360,7 +362,7 @@ export function toolbar(
                 color: "danger",
                 variant: "solid",
                 children: `display_error_message`,
-              })
+              }),
             ),
             nodes.if(
               `status = 'failed'`,
@@ -370,7 +372,7 @@ export function toolbar(
                 color: "danger",
                 variant: "solid",
                 children: `'Failed to load data'`,
-              })
+              }),
             ),
             nodes.element("div", { styles: flexGrowStyles }),
             toolbar.delete
@@ -381,6 +383,7 @@ export function toolbar(
                       size: "sm",
                       color: "danger",
                       variant: "soft",
+                      ariaLabel: `'Delete selected records'`,
                       children: materialIcon("DeleteOutlined"),
                       on: { click: (s) => s.setScalar(`deleting`, `true`) },
                       disabled: `not selected_all and not exists (select 1 from selected_row)`,
@@ -399,7 +402,7 @@ export function toolbar(
                                   query: makeCountQuery(
                                     baseDts,
                                     `db.` + ident(tableModel.name),
-                                    additionalWhere
+                                    additionalWhere,
                                   ),
                                   columnCount: 1,
                                   resultTable: `dyn_count`,
@@ -431,42 +434,42 @@ export function toolbar(
                                             baseDts,
                                             `db.` + ident(tableModel.name),
                                             tableModel.primaryKeyIdent,
-                                            additionalWhere
+                                            additionalWhere,
                                           ),
                                           columnCount: 1,
                                           resultTable: `ids`,
                                         })
                                         .setScalar(
                                           `deleted_record_count`,
-                                          `(select count(*) from ids)`
+                                          `(select count(*) from ids)`,
                                         )
                                         .modify(
                                           `delete from db.${ident(
-                                            tableModel.name
-                                          )} where id in (select cast(field_0 as bigint) from ids)`
+                                            tableModel.name,
+                                          )} where id in (select cast(field_0 as bigint) from ids)`,
                                         ),
                                     else: (s) =>
                                       s
                                         .setScalar(
                                           `deleted_record_count`,
-                                          `(select count(*) from ui.selected_row)`
+                                          `(select count(*) from ui.selected_row)`,
                                         )
                                         .modify(
                                           `delete from db.${ident(
-                                            tableModel.name
-                                          )} where id in (select id from ui.selected_row)`
+                                            tableModel.name,
+                                          )} where id in (select id from ui.selected_row)`,
                                         ),
                                   })
                                   .statements(undoSnackbars.setUndoTx())
                                   .commitTransaction()
                                   .modify(`delete from ui.selected_row`)
-                                  .statements(state.triggerRefresh)
+                                  .statements(state.triggerRefresh),
                               ),
                             catch: (s) =>
                               s
                                 .setScalar(
                                   `dialog_error`,
-                                  `'Unable to delete records'`
+                                  `'Unable to delete records'`,
                                 )
                                 .return(),
                           })
@@ -504,7 +507,7 @@ export function toolbar(
                     props: {
                       value: "quick_search_query",
                       placeholder: `'Search ${downcaseFirst(
-                        pluralize(tableModel.displayName)
+                        pluralize(tableModel.displayName),
                       )}'`,
                     },
                   },

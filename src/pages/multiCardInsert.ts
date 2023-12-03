@@ -31,11 +31,11 @@ import { DomStatementsOrFn, StateStatementsOrFn } from "../statements";
 export interface CardFormField extends InsertFormField {
   emptyComboboxQuery?: (
     formState: FormState,
-    cursor: FormStateTableCursor
+    cursor: FormStateTableCursor,
   ) => string;
   onChange?: (
     formState: FormState,
-    cursor: FormStateTableCursor
+    cursor: FormStateTableCursor,
   ) => DomStatementsOrFn;
 }
 
@@ -192,7 +192,7 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
                       throw new Error(
                         "multiCardInsert does not handle field of type " +
                           field.type +
-                          "for shared fields"
+                          "for shared fields",
                       );
                     }
                     return formControl({
@@ -203,7 +203,7 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
                           fieldHelper.hasError,
                           formHelperText({
                             children: fieldHelper.error,
-                          })
+                          }),
                         ),
                       ],
                     });
@@ -214,7 +214,7 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
           typography({
             level: "h4",
             children: `'Add your ${downcaseFirst(
-              pluralize(table.displayName)
+              pluralize(table.displayName),
             )}'`,
           }),
           nodes.element("div", {
@@ -236,7 +236,7 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
                         onChange: f.onChange?.(formState, cursor),
                         comboboxEmptyQuery: f.emptyComboboxQuery?.(
                           formState,
-                          cursor
+                          cursor,
                         ),
                       });
                     }),
@@ -253,7 +253,7 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
                                 checked: fieldHelper.value,
                                 on: {
                                   checkboxChange: fieldHelper.setValue(
-                                    `not ${fieldHelper.value}`
+                                    `not ${fieldHelper.value}`,
                                   ),
                                 },
                                 label: stringLiteral(field.displayName),
@@ -262,7 +262,7 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
                             throw new Error(
                               "multiCardInsert does not handle field of type " +
                                 field.type +
-                                "for card footer fields"
+                                "for card footer fields",
                             );
                           }),
                         nodes.element("div", { styles: flexGrowStyles }),
@@ -270,13 +270,14 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
                           color: "danger",
                           variant: "plain",
                           size: "sm",
+                          ariaLabel: `'Delete'`,
                           children: materialIcon("Delete"),
                           on: { click: cursor.delete },
                         }),
                       ],
                     }),
                   ],
-                })
+                }),
               ),
               nodes.element("div", {
                 styles: styles.addButtonWrapper,
@@ -285,13 +286,13 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
                   children: typography({
                     startDecorator: materialIcon("Add"),
                     children: `'Add another ' || ${stringLiteral(
-                      downcaseFirst(table.displayName)
+                      downcaseFirst(table.displayName),
                     )}`,
                   }),
                   on: {
                     click: formState.addRecordToTable(
                       opts.table,
-                      opts.initialNewValues ?? {}
+                      opts.initialNewValues ?? {},
                     ),
                   },
                 }),
@@ -308,7 +309,7 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
                 color: "danger",
                 children: formState.formError,
               }),
-            })
+            }),
           ),
           nodes.element("div", {
             styles: styles.buttons,
@@ -318,7 +319,7 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
                 size: "lg",
                 loading: formState.submitting,
                 children: `'Confirm new ${downcaseFirst(
-                  pluralize(table.displayName)
+                  pluralize(table.displayName),
                 )}'`,
               }),
             ],

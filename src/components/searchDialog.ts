@@ -184,7 +184,7 @@ const styles = createStyles({
 
 function prepareDisplayValue(
   table: Table,
-  value: string | TableSearchDisplay
+  value: string | TableSearchDisplay,
 ): PreparedTableSearchDisplay {
   if (typeof value === "string") {
     const field = table.fields[value];
@@ -195,7 +195,7 @@ function prepareDisplayValue(
       const toTable = app.db.tables[field.table];
       if (toTable.recordDisplayName) {
         const nameExpr = toTable.recordDisplayName.expr(
-          ...toTable.recordDisplayName.fields.map((f) => `other.${f}`)
+          ...toTable.recordDisplayName.fields.map((f) => `other.${f}`),
         );
         return {
           expr: (record) => {
@@ -245,7 +245,7 @@ function prepareDisplayValue(
 function addDisplayValueToTable(
   table: TableBuilder,
   v: PreparedTableSearchDisplay,
-  name: string
+  name: string,
 ) {
   switch (v.type.type) {
     case "String":
@@ -324,7 +324,7 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
     throw new Error("tableSearchDialog expects getHrefToRecord to exist");
   }
   const displayValues = opts.displayValues?.map((value) =>
-    prepareDisplayValue(tableModel, value)
+    prepareDisplayValue(tableModel, value),
   );
   app.ui.deviceDb.addTable(`recent_${opts.table}_search`, (table) => {
     table.bigUint("recent_search_id").notNull();
@@ -337,7 +337,7 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
     }
   });
   const nameExpr = tableModel.recordDisplayName.expr(
-    ...tableModel.recordDisplayName.fields.map((f) => `record.${f}`)
+    ...tableModel.recordDisplayName.fields.map((f) => `record.${f}`),
   );
   const inputId = stringLiteral(getUniqueUiId());
   const listboxId = stringLiteral(getUniqueUiId());
@@ -378,7 +378,7 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
         .getBoundingClientRect(listboxId, `container_rect`)
         .getBoundingClientRect(
           optionId(`(select id from ui.result where active)`),
-          `item_rect`
+          `item_rect`,
         )
         .if(
           `not (item_rect.top >= container_rect.top and item_rect.bottom <= container_rect.bottom)`,
@@ -386,26 +386,26 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
             s.scrollElIntoView({
               elementId: optionId(`(select id from ui.result where active)`),
               block: alignToTop ? `'start'` : `'end'`,
-            })
-        )
+            }),
+        ),
     );
   }
   const updateRecentSearch = new DomStatements().block((s) =>
     s
       .scalar(`result_id`, `(select id from ui.result where active)`)
       .modify(
-        `delete from device.recent_${opts.table}_search where recent_search_id = result_id`
+        `delete from device.recent_${opts.table}_search where recent_search_id = result_id`,
       )
       .modify(
-        `insert into device.recent_${opts.table}_search select id as recent_search_id, label as recent_search_label, current_timestamp() as recent_search_timestamp ${extraValuesToDeviceSelect} from ui.result where active`
+        `insert into device.recent_${opts.table}_search select id as recent_search_id, label as recent_search_label, current_timestamp() as recent_search_timestamp ${extraValuesToDeviceSelect} from ui.result where active`,
       )
       .if(
         `(select count(*) from device.recent_${opts.table}_search) >= 20`,
         (s) =>
           s.modify(
-            `delete from device.recent_${opts.table}_search where recent_search_id = (select recent_search_id from device.recent_${opts.table}_search order by recent_search_timestamp asc limit 1)`
-          )
-      )
+            `delete from device.recent_${opts.table}_search where recent_search_id = (select recent_search_id from device.recent_${opts.table}_search order by recent_search_timestamp asc limit 1)`,
+          ),
+      ),
   );
   return modal({
     open: opts.open,
@@ -452,7 +452,7 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
                         true as is_recent
                         ${extraValuesFromDeviceSelect}
                       from device.recent_${opts.table}_search
-                      order by recent_search_timestamp desc`
+                      order by recent_search_timestamp desc`,
                       ),
                     else: (s) =>
                       s.search({
@@ -512,7 +512,7 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
                           "aria-controls": listboxId,
                           "aria-expanded": `true`,
                           "aria-activedescendant": optionId(
-                            `(select id from ui.result where active)`
+                            `(select id from ui.result where active)`,
                           ),
                           type: `'text'`,
                           spellCheck: `'false'`,
@@ -531,7 +531,7 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
                               .if(`event.key = 'Escape'`, closeModal)
                               .if(
                                 `event.is_composing or event.shift_key or event.meta_key or event.alt_key or event.ctrl_key`,
-                                (s) => s.return()
+                                (s) => s.return(),
                               )
                               .if(
                                 `event.key = 'Enter' or event.key = 'Tab'`,
@@ -539,7 +539,7 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
                                   s
                                     .scalar(
                                       `result_id`,
-                                      `(select id from ui.result where active)`
+                                      `(select id from ui.result where active)`,
                                     )
                                     .if(`result_id is not null`, (s) =>
                                       s
@@ -547,68 +547,68 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
                                         .statements(updateRecentSearch)
                                         .navigate(
                                           tableModel.getHrefToRecord!(
-                                            "result_id"
-                                          )
+                                            "result_id",
+                                          ),
                                         )
                                         .triggerViewTransition(
                                           "all",
-                                          "'navigate close-modal'"
+                                          "'navigate close-modal'",
                                         )
-                                        .statements(closeModal)
+                                        .statements(closeModal),
                                     )
-                                    .return()
+                                    .return(),
                               )
                               .if(`event.key = 'ArrowDown'`, (s) =>
                                 s
                                   .preventDefault()
                                   .if(
                                     `not exists (select id from ui.result)`,
-                                    (s) => s.return()
+                                    (s) => s.return(),
                                   )
                                   .scalar(
                                     `next_index`,
-                                    `(select index from ui.result where active) + 1`
+                                    `(select index from ui.result where active) + 1`,
                                   )
                                   .modify(`update ui.result set active = false`)
                                   .if({
                                     condition: `exists (select id from ui.result where index = next_index)`,
                                     then: (s) =>
                                       s.modify(
-                                        `update ui.result set active = true where index = next_index`
+                                        `update ui.result set active = true where index = next_index`,
                                       ),
                                     else: (s) =>
                                       s.modify(
-                                        `update ui.result set active = true where index = 1`
+                                        `update ui.result set active = true where index = 1`,
                                       ),
                                   })
                                   .statements((s) => scrollToItem(false, s))
-                                  .return()
+                                  .return(),
                               )
                               .if(`event.key = 'ArrowUp'`, (s) =>
                                 s
                                   .preventDefault()
                                   .if(
                                     `not exists (select index from ui.result)`,
-                                    (s) => s.return()
+                                    (s) => s.return(),
                                   )
                                   .scalar(
                                     `next_index`,
-                                    `(select index from ui.result where active) - 1`
+                                    `(select index from ui.result where active) - 1`,
                                   )
                                   .modify(`update ui.result set active = false`)
                                   .if({
                                     condition: `exists (select id from ui.result where index = next_index)`,
                                     then: (s) =>
                                       s.modify(
-                                        `update ui.result set active = true where index = next_index`
+                                        `update ui.result set active = true where index = next_index`,
                                       ),
                                     else: (s) =>
                                       s.modify(
-                                        `update ui.result set active = true where index = (select max(index) from ui.result)`
+                                        `update ui.result set active = true where index = (select max(index) from ui.result)`,
                                       ),
                                   })
                                   .statements((s) => scrollToItem(true, s))
-                                  .return()
+                                  .return(),
                               ),
                         },
                       }),
@@ -618,6 +618,7 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
                       color: "neutral",
                       children: materialIcon("Close"),
                       on: { click: closeModal },
+                      ariaLabel: `'Close search dialog'`,
                     }),
                   ],
                 }),
@@ -657,7 +658,7 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
                               materialIcon({
                                 name: "History",
                                 fontSize: "xl2",
-                              })
+                              }),
                             ),
                             nodes.element("div", {
                               styles: styles.optionLabelContainer,
@@ -681,14 +682,14 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
                                                 styles:
                                                   styles.optionExtraDataLabel,
                                                 children: `${stringLiteral(
-                                                  v.label
+                                                  v.label,
                                                 )} || ':'`,
                                               }),
                                               nodes.element("span", {
                                                 children: v.display(value),
                                               }),
                                             ],
-                                          })
+                                          }),
                                         );
                                       }),
                                     })
@@ -708,13 +709,14 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
                                 s
                                   .stopPropagation()
                                   .modify(
-                                    `delete from device.recent_${opts.table}_search where recent_search_id = record.id`
+                                    `delete from device.recent_${opts.table}_search where recent_search_id = record.id`,
                                   )
                                   .modify(
-                                    `delete from ui.result where id = record.id`
+                                    `delete from ui.result where id = record.id`,
                                   ),
                             },
-                          })
+                            ariaLabel: `'Remove recent search'`,
+                          }),
                         ),
                       ],
                     }),
@@ -756,13 +758,13 @@ function calcMultiTable(tables: PreparedMultiTableSearchDialogTable[]) {
     const tableModel = app.db.tables[table.name];
     if (!tableModel.recordDisplayName) {
       throw new Error(
-        "multiTableSearchDialog expects recordDisplayName to exist"
+        "multiTableSearchDialog expects recordDisplayName to exist",
       );
     }
     if (!tableModel.getHrefToRecord) {
       throw new Error(
         "multiTableSearchDialog expects getHrefToRecord to exist, missing on " +
-          tableModel.name
+          tableModel.name,
       );
     }
     if (!tableModel.searchConfig) {
@@ -780,20 +782,20 @@ function calcMultiTable(tables: PreparedMultiTableSearchDialogTable[]) {
       }
     }
     joinToTables += `left join db.${ident(
-      table.name
+      table.name,
     )} on table = ${stringLiteral(table.name)} and record_id = ${ident(
-      table.name
+      table.name,
     )}.id `;
     tableConfigs.push({
       ...tableModel.searchConfig,
       disabled: table.name + "_disabled",
     });
     const nameExpr = tableModel.recordDisplayName.expr(
-      ...tableModel.recordDisplayName.fields.map((f) => `${table.name}.${f}`)
+      ...tableModel.recordDisplayName.fields.map((f) => `${table.name}.${f}`),
     );
     labelExpr += `when table = ${stringLiteral(table.name)} then ${nameExpr} `;
     urlExpr += `when record.table = ${stringLiteral(
-      table.name
+      table.name,
     )} then ${tableModel.getHrefToRecord(`record.id`)} `;
   }
   labelExpr += `end`;
@@ -833,7 +835,7 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
       icon: t.icon,
       tableModel,
       displayValues: t.displayValues?.map((v) =>
-        prepareDisplayValue(tableModel, v)
+        prepareDisplayValue(tableModel, v),
       ),
     };
   });
@@ -865,7 +867,7 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
     s
       .scalar(`result_id`, `(select id from ui.result where active)`)
       .modify(
-        `delete from device.recent_multi_table_search where recent_search_id = result_id`
+        `delete from device.recent_multi_table_search where recent_search_id = result_id`,
       )
       .modify(
         `insert into device.recent_multi_table_search
@@ -873,15 +875,15 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
         label as recent_search_label,
         cast(table as string) as recent_search_table,
         current_timestamp() as recent_search_timestamp
-        ${extraValuesToDeviceSelect} from ui.result where active`
+        ${extraValuesToDeviceSelect} from ui.result where active`,
       )
       .if(
         `(select count(*) from device.recent_multi_table_search) >= 20`,
         (s) =>
           s.modify(
-            `delete from device.recent_multi_table_search where recent_search_id = (select recent_search_id from device.recent_multi_table_search order by recent_search_timestamp asc limit 1)`
-          )
-      )
+            `delete from device.recent_multi_table_search where recent_search_id = (select recent_search_id from device.recent_multi_table_search order by recent_search_timestamp asc limit 1)`,
+          ),
+      ),
   );
   function scrollToItem(alignToTop: boolean, s: DomStatements) {
     return s.block((s) =>
@@ -890,8 +892,8 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
         .scalar(
           `option_id`,
           optionId(
-            `(select table from ui.result where active) || '_' || (select id from ui.result where active)`
-          )
+            `(select table from ui.result where active) || '_' || (select id from ui.result where active)`,
+          ),
         )
         .getBoundingClientRect(`option_id`, `item_rect`)
         .if(
@@ -900,8 +902,8 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
             s.scrollElIntoView({
               elementId: `option_id`,
               block: alignToTop ? `'start'` : `'end'`,
-            })
-        )
+            }),
+        ),
     );
   }
   return modal({
@@ -932,13 +934,13 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
               },
               startDecorator: nodes.if(
                 `not ${t.name}_disabled`,
-                materialIcon("Check")
+                materialIcon("Check"),
               ),
               children: checkbox({
                 size: "sm",
                 checked: `not ${t.name}_disabled`,
                 label: stringLiteral(
-                  pluralize(app.db.tables[t.name].displayName)
+                  pluralize(app.db.tables[t.name].displayName),
                 ),
                 color: "neutral",
                 variant: "outlined",
@@ -969,7 +971,7 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
               s
                 .scalar("query", "''")
                 .mapArrayToStatements(opts.tables, (table, s) =>
-                  s.scalar(`${table.name}_disabled`, "false")
+                  s.scalar(`${table.name}_disabled`, "false"),
                 ),
             children: nodes.state({
               watch: ["query", ...opts.tables.map((t) => `${t.name}_disabled`)],
@@ -1010,7 +1012,7 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
                         ${extraValuesFromDeviceSelect}
                       from device.recent_multi_table_search
                       where try_cast(recent_search_table as enums.sys_db_table) is not null
-                      order by recent_search_timestamp desc`
+                      order by recent_search_timestamp desc`,
                       ),
                     else: (s) =>
                       s.search({
@@ -1070,7 +1072,7 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
                           "aria-controls": listboxId,
                           "aria-expanded": `true`,
                           "aria-activedescendant": optionId(
-                            `(select id from ui.result where active)`
+                            `(select id from ui.result where active)`,
                           ),
                           type: `'text'`,
                           spellCheck: `'false'`,
@@ -1089,7 +1091,7 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
                               .if(`event.key = 'Escape'`, closeModal)
                               .if(
                                 `event.is_composing or event.shift_key or event.meta_key or event.alt_key or event.ctrl_key`,
-                                (s) => s.return()
+                                (s) => s.return(),
                               )
                               .if(
                                 `event.key = 'Enter' or event.key = 'Tab'`,
@@ -1097,68 +1099,68 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
                                   s
                                     .record(
                                       `record`,
-                                      `select id, table from ui.result where active`
+                                      `select id, table from ui.result where active`,
                                     )
                                     .if(`record.id is not null`, (s) =>
                                       s
                                         .preventDefault()
                                         .statements(updateRecentSearch)
                                         .navigate(urlExpr)
-                                        .statements(closeModal)
+                                        .statements(closeModal),
                                     )
-                                    .return()
+                                    .return(),
                               )
                               .if(`event.key = 'ArrowDown'`, (s) =>
                                 s
                                   .preventDefault()
                                   .if(
                                     `not exists (select id from ui.result)`,
-                                    (s) => s.return()
+                                    (s) => s.return(),
                                   )
                                   .scalar(
                                     `next_index`,
-                                    `(select index from ui.result where active) + 1`
+                                    `(select index from ui.result where active) + 1`,
                                   )
                                   .modify(`update ui.result set active = false`)
                                   .if({
                                     condition: `exists (select id from ui.result where index = next_index)`,
                                     then: (s) =>
                                       s.modify(
-                                        `update ui.result set active = true where index = next_index`
+                                        `update ui.result set active = true where index = next_index`,
                                       ),
                                     else: (s) =>
                                       s.modify(
-                                        `update ui.result set active = true where index = 1`
+                                        `update ui.result set active = true where index = 1`,
                                       ),
                                   })
                                   .statements((s) => scrollToItem(false, s))
-                                  .return()
+                                  .return(),
                               )
                               .if(`event.key = 'ArrowUp'`, (s) =>
                                 s
                                   .preventDefault()
                                   .if(
                                     `not exists (select index from ui.result)`,
-                                    (s) => s.return()
+                                    (s) => s.return(),
                                   )
                                   .scalar(
                                     `next_index`,
-                                    `(select index from ui.result where active) - 1`
+                                    `(select index from ui.result where active) - 1`,
                                   )
                                   .modify(`update ui.result set active = false`)
                                   .if({
                                     condition: `exists (select id from ui.result where index = next_index)`,
                                     then: (s) =>
                                       s.modify(
-                                        `update ui.result set active = true where index = next_index`
+                                        `update ui.result set active = true where index = next_index`,
                                       ),
                                     else: (s) =>
                                       s.modify(
-                                        `update ui.result set active = true where index = (select max(index) from ui.result)`
+                                        `update ui.result set active = true where index = (select max(index) from ui.result)`,
                                       ),
                                   })
                                   .statements((s) => scrollToItem(true, s))
-                                  .return()
+                                  .return(),
                               ),
                         },
                       }),
@@ -1168,6 +1170,7 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
                       color: "neutral",
                       children: materialIcon("Close"),
                       on: { click: closeModal },
+                      ariaLabel: `'Close search dialog'`,
                     }),
                   ],
                 }),
@@ -1211,7 +1214,7 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
                                   materialIcon({
                                     name: "History",
                                     fontSize: "xl2",
-                                  })
+                                  }),
                                 ),
                                 nodes.element("div", {
                                   styles: styles.optionLabelContainer,
@@ -1228,7 +1231,7 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
                                             displayValueNames[t.name];
                                           return {
                                             condition: `record.table = ${stringLiteral(
-                                              t.name
+                                              t.name,
                                             )}`,
                                             node: nodes.element("div", {
                                               styles: styles.displayValues,
@@ -1247,18 +1250,18 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
                                                           styles:
                                                             styles.optionExtraDataLabel,
                                                           children: `${stringLiteral(
-                                                            v.label
+                                                            v.label,
                                                           )} || ':'`,
                                                         }),
                                                         v.display(value),
                                                       ],
-                                                    })
+                                                    }),
                                                   );
-                                                }
+                                                },
                                               ),
                                             }),
                                           };
-                                        })
+                                        }),
                                     ),
                                   ],
                                 }),
@@ -1275,14 +1278,14 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
                                   ...opts.tables.map((t) => {
                                     return {
                                       condition: `record.table = ${stringLiteral(
-                                        t.name
+                                        t.name,
                                       )}`,
                                       node: materialIcon({
                                         name: t.icon,
                                         fontSize: "xl",
                                       }),
                                     };
-                                  })
+                                  }),
                                 ),
                                 nodes.if(
                                   `record.is_recent`,
@@ -1295,13 +1298,14 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
                                         s
                                           .stopPropagation()
                                           .modify(
-                                            `delete from device.recent_multi_table_search where recent_search_id = record.id`
+                                            `delete from device.recent_multi_table_search where recent_search_id = record.id`,
                                           )
                                           .modify(
-                                            `delete from ui.result where id = record.id`
+                                            `delete from ui.result where id = record.id`,
                                           ),
                                     },
-                                  })
+                                    ariaLabel: `'Remove recent search'`,
+                                  }),
                                 ),
                               ],
                             }),
@@ -1336,10 +1340,10 @@ export function recordSelectDialog(opts: RecordSelectDialog) {
     throw new Error("tableSearchDialog expects recordDisplayName to exist");
   }
   const displayValues = opts.displayValues?.map((value) =>
-    prepareDisplayValue(tableModel, value)
+    prepareDisplayValue(tableModel, value),
   );
   const nameExpr = tableModel.recordDisplayName.expr(
-    ...tableModel.recordDisplayName.fields.map((f) => `record.${f}`)
+    ...tableModel.recordDisplayName.fields.map((f) => `record.${f}`),
   );
   const inputId = stringLiteral(getUniqueUiId());
   const listboxId = stringLiteral(getUniqueUiId());
@@ -1370,7 +1374,7 @@ export function recordSelectDialog(opts: RecordSelectDialog) {
         .getBoundingClientRect(listboxId, `container_rect`)
         .getBoundingClientRect(
           optionId(`(select id from ui.result where active)`),
-          `item_rect`
+          `item_rect`,
         )
         .if(
           `not (item_rect.top >= container_rect.top and item_rect.bottom <= container_rect.bottom)`,
@@ -1378,8 +1382,8 @@ export function recordSelectDialog(opts: RecordSelectDialog) {
             s.scrollElIntoView({
               elementId: optionId(`(select id from ui.result where active)`),
               block: alignToTop ? `'start'` : `'end'`,
-            })
-        )
+            }),
+        ),
     );
   }
   return modal({
@@ -1472,7 +1476,7 @@ export function recordSelectDialog(opts: RecordSelectDialog) {
                         "aria-controls": listboxId,
                         "aria-expanded": `true`,
                         "aria-activedescendant": optionId(
-                          `(select id from ui.result where active)`
+                          `(select id from ui.result where active)`,
                         ),
                         type: `'text'`,
                         spellCheck: `'false'`,
@@ -1493,7 +1497,7 @@ export function recordSelectDialog(opts: RecordSelectDialog) {
                               .if(`event.key = 'Escape'`, closeModal)
                               .if(
                                 `event.is_composing or event.shift_key or event.meta_key or event.alt_key or event.ctrl_key`,
-                                (s) => s.return()
+                                (s) => s.return(),
                               )
                               .if(
                                 `event.key = 'Enter' or event.key = 'Tab'`,
@@ -1501,7 +1505,7 @@ export function recordSelectDialog(opts: RecordSelectDialog) {
                                   s
                                     .record(
                                       `selected_record`,
-                                      `select id, label from ui.result where active`
+                                      `select id, label from ui.result where active`,
                                     )
                                     .if(`selected_record.id is not null`, (s) =>
                                       s
@@ -1509,63 +1513,63 @@ export function recordSelectDialog(opts: RecordSelectDialog) {
                                         .statements(
                                           opts.onSelect(
                                             `selected_record.id`,
-                                            `selected_record.label`
-                                          )
-                                        )
+                                            `selected_record.label`,
+                                          ),
+                                        ),
                                     )
-                                    .return()
+                                    .return(),
                               )
                               .if(`event.key = 'ArrowDown'`, (s) =>
                                 s
                                   .preventDefault()
                                   .if(
                                     `not exists (select id from ui.result)`,
-                                    (s) => s.return()
+                                    (s) => s.return(),
                                   )
                                   .scalar(
                                     `next_index`,
-                                    `(select index from ui.result where active) + 1`
+                                    `(select index from ui.result where active) + 1`,
                                   )
                                   .modify(`update ui.result set active = false`)
                                   .if({
                                     condition: `exists (select id from ui.result where index = next_index)`,
                                     then: (s) =>
                                       s.modify(
-                                        `update ui.result set active = true where index = next_index`
+                                        `update ui.result set active = true where index = next_index`,
                                       ),
                                     else: (s) =>
                                       s.modify(
-                                        `update ui.result set active = true where index = 1`
+                                        `update ui.result set active = true where index = 1`,
                                       ),
                                   })
                                   .statements(scrollToItem(false))
-                                  .return()
+                                  .return(),
                               )
                               .if(`event.key = 'ArrowUp'`, (s) =>
                                 s
                                   .preventDefault()
                                   .if(
                                     `not exists (select index from ui.result)`,
-                                    (s) => s.return()
+                                    (s) => s.return(),
                                   )
                                   .scalar(
                                     `next_index`,
-                                    `(select index from ui.result where active) - 1`
+                                    `(select index from ui.result where active) - 1`,
                                   )
                                   .modify(`update ui.result set active = false`)
                                   .if({
                                     condition: `exists (select id from ui.result where index = next_index)`,
                                     then: (s) =>
                                       s.modify(
-                                        `update ui.result set active = true where index = next_index`
+                                        `update ui.result set active = true where index = next_index`,
                                       ),
                                     else: (s) =>
                                       s.modify(
-                                        `update ui.result set active = true where index = (select max(index) from ui.result)`
+                                        `update ui.result set active = true where index = (select max(index) from ui.result)`,
                                       ),
                                   })
                                   .statements(scrollToItem(true))
-                                  .return()
+                                  .return(),
                               ),
                         },
                       },
@@ -1576,6 +1580,7 @@ export function recordSelectDialog(opts: RecordSelectDialog) {
                     color: "neutral",
                     children: materialIcon("Close"),
                     on: { click: closeModal },
+                    ariaLabel: `'Close search dialog'`,
                   }),
                 ],
               }),
@@ -1603,7 +1608,7 @@ export function recordSelectDialog(opts: RecordSelectDialog) {
                         detachedFromNode: true,
                         procedure: opts.onSelect(
                           `search_record.id`,
-                          `search_record.label`
+                          `search_record.label`,
                         ),
                       },
                     },
@@ -1626,14 +1631,14 @@ export function recordSelectDialog(opts: RecordSelectDialog) {
                                     nodes.element("p", {
                                       styles: styles.optionExtraDataLabel,
                                       children: `${stringLiteral(
-                                        v.label
+                                        v.label,
                                       )} || ':'`,
                                     }),
                                     nodes.element("span", {
                                       children: value,
                                     }),
                                   ],
-                                })
+                                }),
                               );
                             }),
                           })

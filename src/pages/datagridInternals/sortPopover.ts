@@ -42,7 +42,7 @@ export function sortPopover(state: DgStateHelpers, columns: SuperGridColumn[]) {
         aggregatedSorts.push({ type: "custom", col: i, config: col.sort });
       } else {
         const existingSort = aggregatedSorts.find(
-          (s) => s.type === col.sort!.type
+          (s) => s.type === col.sort!.type,
         );
         if (existingSort) {
           (existingSort as any).cols.push(i);
@@ -54,7 +54,7 @@ export function sortPopover(state: DgStateHelpers, columns: SuperGridColumn[]) {
         nodes.element("option", {
           props: { value: i.toString() },
           children: stringLiteral(col.sort.displayName),
-        })
+        }),
       );
     }
   }
@@ -102,12 +102,12 @@ export function sortPopover(state: DgStateHelpers, columns: SuperGridColumn[]) {
                   .if("column_record.id != new_id", (s) =>
                     s
                       .modify(
-                        `update ui.column set sort_index = column_record.sort_index, sort_asc = column_record.sort_asc where id = new_id`
+                        `update ui.column set sort_index = column_record.sort_index, sort_asc = column_record.sort_asc where id = new_id`,
                       )
                       .modify(
-                        `update ui.column set sort_index = null where id = column_record.id`
+                        `update ui.column set sort_index = null where id = column_record.id`,
                       )
-                      .statements(state.triggerRefresh)
+                      .statements(state.triggerRefresh),
                   ),
             },
             slots: { select: { props: { value: "column_record.id" } } },
@@ -121,7 +121,7 @@ export function sortPopover(state: DgStateHelpers, columns: SuperGridColumn[]) {
               input: (s) =>
                 s
                   .modify(
-                    `update ui.column set sort_asc = target_value = 'asc' where id = column_record.id`
+                    `update ui.column set sort_asc = target_value = 'asc' where id = column_record.id`,
                   )
                   .statements(state.triggerRefresh),
             },
@@ -149,11 +149,12 @@ export function sortPopover(state: DgStateHelpers, columns: SuperGridColumn[]) {
             color: "primary",
             size: "sm",
             children: materialIcon("Close"),
+            ariaLabel: `'Remove sort'`,
             on: {
               click: (s) =>
                 s
                   .modify(
-                    `update ui.column set sort_index = null where id = column_record.id`
+                    `update ui.column set sort_index = null where id = column_record.id`,
                   )
                   .statements(state.triggerRefresh),
             },
@@ -175,7 +176,7 @@ export function sortPopover(state: DgStateHelpers, columns: SuperGridColumn[]) {
               s
                 .setScalar(`ui.adding`, `false`)
                 .modify(
-                  `update ui.column set sort_index = 0, sort_asc = true where id = try_cast(target_value as int)`
+                  `update ui.column set sort_index = 0, sort_asc = true where id = try_cast(target_value as int)`,
                 )
                 .statements(state.triggerRefresh),
           },

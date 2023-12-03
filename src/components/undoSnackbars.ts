@@ -41,8 +41,9 @@ const undoSuccessSnackbar = lazy(() =>
       color: "harmonize",
       children: materialIcon("Close"),
       on: { click: (s) => s.setScalar(currentlyOpenScalar, `null`) },
+      ariaLabel: `'Close snackbar'`,
     }),
-  })
+  }),
 );
 
 const failureSnackbar = lazy(() =>
@@ -57,8 +58,9 @@ const failureSnackbar = lazy(() =>
       color: "harmonize",
       children: materialIcon("Close"),
       on: { click: (s) => s.setScalar(currentlyOpenScalar, `null`) },
+      ariaLabel: `'Close snackbar'`,
     }),
-  })
+  }),
 );
 
 const styles = createStyles({
@@ -94,11 +96,11 @@ export function createUndoSnackbars(opts: UndoSnackbarsOptions): UndoSnackbars {
                         .startTransaction()
                         .if(
                           `(select creator != current_user() from db.tx where id = ${undoTxScalar})`,
-                          (s) => s.throwError(`'Nice try hackerman'`)
+                          (s) => s.throwError(`'Nice try hackerman'`),
                         )
                         .undoTx(undoTxScalar)
                         .commitTransaction()
-                        .statements(opts.afterUndo)
+                        .statements(opts.afterUndo),
                     ),
                   errorName: `err`,
                   catch: (s) =>
@@ -114,7 +116,7 @@ export function createUndoSnackbars(opts: UndoSnackbarsOptions): UndoSnackbars {
                               (s) =>
                                 s
                                   .setScalar(currentlyOpenScalar, `null`)
-                                  .commitUiTreeChanges()
+                                  .commitUiTreeChanges(),
                             ),
                       })
                       .return(),
@@ -130,7 +132,7 @@ export function createUndoSnackbars(opts: UndoSnackbarsOptions): UndoSnackbars {
                         (s) =>
                           s
                             .setScalar(currentlyOpenScalar, `null`)
-                            .commitUiTreeChanges()
+                            .commitUiTreeChanges(),
                       ),
                 })
                 .statements(opts.afterUndoClient),
@@ -141,6 +143,7 @@ export function createUndoSnackbars(opts: UndoSnackbarsOptions): UndoSnackbars {
           color: "harmonize",
           children: materialIcon("Close"),
           on: { click: (s) => s.setScalar(currentlyOpenScalar, `null`) },
+          ariaLabel: `'Close snackbar'`,
         }),
       ],
     }),
@@ -166,7 +169,7 @@ export function createUndoSnackbars(opts: UndoSnackbarsOptions): UndoSnackbars {
             {
               condition: `${currentlyOpenScalar} = ${SnackbarType.UndoSuccess}`,
               node: undoSuccessSnackbar(),
-            }
+            },
           ),
         ],
       }),
@@ -180,7 +183,7 @@ export function createUndoSnackbars(opts: UndoSnackbarsOptions): UndoSnackbars {
           s
             .delay(`7500`)
             .if(`${currentlyOpenScalar} = ${SnackbarType.Success}`, (s) =>
-              s.setScalar(currentlyOpenScalar, `null`).commitUiTreeChanges()
+              s.setScalar(currentlyOpenScalar, `null`).commitUiTreeChanges(),
             ),
       }),
     closeSuccess: new BasicStatements().setScalar(currentlyOpenScalar, `null`),
@@ -190,7 +193,7 @@ export function createUndoSnackbars(opts: UndoSnackbarsOptions): UndoSnackbars {
         s
           .delay(`7500`)
           .if(`${currentlyOpenScalar} = ${SnackbarType.Success}`, (s) =>
-            s.setScalar(currentlyOpenScalar, `null`).commitUiTreeChanges()
+            s.setScalar(currentlyOpenScalar, `null`).commitUiTreeChanges(),
           ),
     }),
     openSuccessWithoutDelayedClose: (tx) =>

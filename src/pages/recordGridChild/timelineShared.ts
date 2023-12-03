@@ -128,7 +128,7 @@ const basePopoverMenuId = stringLiteral(getUniqueUiId());
 
 export function recordDefaultItemContent(
   ctx: RecordGridBuilder,
-  opts: RecordDefaultTableItemContentOpts
+  opts: RecordDefaultTableItemContentOpts,
 ) {
   const {
     tableModel,
@@ -166,6 +166,7 @@ export function recordDefaultItemContent(
               color: "neutral",
               size: "sm",
               children: materialIcon("MoreHoriz"),
+              ariaLabel: `'Open Actions Menu'`,
               props: buttonProps,
               on: {
                 click: onButtonClick,
@@ -194,7 +195,7 @@ export function recordDefaultItemContent(
               ignoreFields: editIgnoreFields,
             },
             afterTransactionCommit: () => [ctx.triggerRefresh],
-          })
+          }),
         ),
         confirmDangerDialog({
           onConfirm: (closeModal) => (s) =>
@@ -208,18 +209,18 @@ export function recordDefaultItemContent(
                       .startTransaction()
                       .modify(
                         `delete from db.${ident(
-                          tableModel.name
-                        )} where id = record.id`
+                          tableModel.name,
+                        )} where id = record.id`,
                       )
                       .commitTransaction()
-                      .statements(ctx.triggerRefresh)
+                      .statements(ctx.triggerRefresh),
                   ),
                 catch: (s) =>
                   s
                     .setScalar(`dialog_waiting`, `false`)
                     .setScalar(
                       `dialog_error`,
-                      `'Unable to delete, try again another time.'`
+                      `'Unable to delete, try again another time.'`,
                     )
                     .return(),
               })
@@ -227,7 +228,7 @@ export function recordDefaultItemContent(
           open: `ui.deleting`,
           onClose: (s) => s.setScalar(`ui.deleting`, `false`),
           description: `'Are you sure you want to delete this ' || ${stringLiteral(
-            tableModel.displayName.toLowerCase()
+            tableModel.displayName.toLowerCase(),
           )} || '?'`,
         }),
       ],
@@ -251,7 +252,7 @@ export function recordDefaultItemContent(
                     const field = tableModel.fields[value.field];
                     if (!field) {
                       throw new Error(
-                        `Field ${value} does not exist in table ${tableModel.name}}`
+                        `Field ${value} does not exist in table ${tableModel.name}}`,
                       );
                     }
                     if (field.type === "Bool") {
@@ -262,7 +263,7 @@ export function recordDefaultItemContent(
                           color: "neutral",
                           size: "sm",
                           children: stringLiteral(field.displayName),
-                        })
+                        }),
                       );
                     }
                     const content = nodes.element("div", {
@@ -271,7 +272,7 @@ export function recordDefaultItemContent(
                         nodes.element("p", {
                           styles: styles.itemValue,
                           children: `${stringLiteral(
-                            field.displayName
+                            field.displayName,
                           )} || ':'`,
                         }),
                         inlineFieldDisplay(field, value.exprValue),

@@ -58,11 +58,11 @@ const styles = createStyles({
 export function content(opts: Opts, ctx: RecordGridBuilder) {
   const tableModel = app.db.tables[opts.table];
   const foreignKeyField = Object.values(tableModel.fields).find(
-    (f) => f.type === "ForeignKey" && f.table === ctx.table.name
+    (f) => f.type === "ForeignKey" && f.table === ctx.table.name,
   );
   if (!foreignKeyField) {
     throw new Error(
-      `No foreign key field found for ${ctx.table.name} to ${opts.table}`
+      `No foreign key field found for ${ctx.table.name} to ${opts.table}`,
     );
   }
   let selectFields = "";
@@ -83,8 +83,8 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
         s.table(
           "record",
           `select id ${selectFields} from db.${ident(
-            opts.table
-          )} as record where ${foreignKeyField.name} = ${ctx.recordId}`
+            opts.table,
+          )} as record where ${foreignKeyField.name} = ${ctx.recordId}`,
         ),
       children: nodes.element("div", {
         styles: {
@@ -141,7 +141,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                             styles: styles.cell,
                             children: inlineFieldDisplay(
                               fieldModel,
-                              `record.${field}`
+                              `record.${field}`,
                             ),
                           });
                         } else {
@@ -167,6 +167,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                               color: "neutral",
                               size: "sm",
                               children: materialIcon("Edit"),
+                              ariaLabel: `'Edit'`,
                               on: {
                                 click: (s) => s.setScalar(`editing`, `true`),
                               },
@@ -191,6 +192,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                               color: "danger",
                               size: "sm",
                               children: materialIcon("DeleteOutline"),
+                              ariaLabel: `'Delete'`,
                               on: {
                                 click: (s) => s.setScalar(`deleting`, `true`),
                               },
@@ -231,7 +233,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                     type: "AutoLabelOnLeft",
                     ignoreFields: [foreignKeyField.name],
                   },
-                  opts.insertDialog
+                  opts.insertDialog,
                 ),
                 withValues: { [foreignKeyField.name]: ctx.recordId },
                 onClose: (s) => s.setScalar(`adding`, `false`),
@@ -244,6 +246,6 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
           }),
         ],
       }),
-    })
+    }),
   );
 }

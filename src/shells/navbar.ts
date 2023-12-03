@@ -178,7 +178,7 @@ export function navbarShell(opts: NavbarProps): (n: Node) => Node {
         .scalar("showing_mobile_menu", "false")
         .scalar("showing_settings", "false")
         .conditionalStatements(hasSearchDialog, (s) =>
-          s.scalar("searching", "false")
+          s.scalar("searching", "false"),
         ),
     children: nodes.element("nav", {
       styles: styles.root(variant, color),
@@ -189,10 +189,8 @@ export function navbarShell(opts: NavbarProps): (n: Node) => Node {
             color: "harmonize",
             variant: "soft",
             size: "sm",
-            children: materialIcon({
-              title: "'Menu'",
-              name: "Menu",
-            }),
+            ariaLabel: "'Open Menu'",
+            children: materialIcon("Menu"),
             on: {
               click: (s) =>
                 s
@@ -211,15 +209,13 @@ export function navbarShell(opts: NavbarProps): (n: Node) => Node {
                   color: "harmonize",
                   variant: "plain",
                   size: "sm",
-                  children: materialIcon({
-                    title: "'Home'",
-                    name: "Home",
-                  }),
+                  ariaLabel: "'Home'",
+                  children: materialIcon("Home"),
                   href: "'/'",
                 }),
                 nodes.if(
                   `location.pathname = '/'`,
-                  nodes.element("div", { styles: styles.linkActive() })
+                  nodes.element("div", { styles: styles.linkActive() }),
                 ),
               ],
             }),
@@ -235,14 +231,14 @@ export function navbarShell(opts: NavbarProps): (n: Node) => Node {
                     }),
                     nodes.if(
                       `uri.is_match(location.pathname, ${stringLiteral(
-                        link.url
+                        link.url,
                       )})`,
-                      nodes.element("div", { styles: styles.linkActive() })
+                      nodes.element("div", { styles: styles.linkActive() }),
                     ),
                   ],
                 }),
-                link.showIf
-              )
+                link.showIf,
+              ),
             ),
           ],
         }),
@@ -279,10 +275,8 @@ export function navbarShell(opts: NavbarProps): (n: Node) => Node {
               color: "harmonize",
               variant: "soft",
               size: "sm",
-              children: materialIcon({
-                title: "'Settings'",
-                name: "Settings",
-              }),
+              ariaLabel: "'Open Settings'",
+              children: materialIcon("Settings"),
               on: {
                 click: (s) =>
                   s
@@ -308,6 +302,7 @@ export function navbarShell(opts: NavbarProps): (n: Node) => Node {
                 iconButton({
                   color: "neutral",
                   children: materialIcon("Close"),
+                  ariaLabel: "'Close Menu'",
                   variant: "plain",
                   size: "sm",
                   on: { click: closeDrawer },
@@ -344,7 +339,7 @@ export function navbarShell(opts: NavbarProps): (n: Node) => Node {
           onClose: (s) => s.setScalar(`ui.showing_settings`, `false`),
         }),
         globalSearchDialog(opts, `searching`, (open, s) =>
-          s.setScalar(`searching`, open)
+          s.setScalar(`searching`, open),
         ),
       ],
     }),
