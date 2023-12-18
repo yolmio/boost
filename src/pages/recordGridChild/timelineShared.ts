@@ -7,7 +7,7 @@ import { popoverMenu } from "../../components/menu";
 import { typography } from "../../components/typography";
 import { updateDialog } from "../../components/updateDialog";
 import { getUniqueUiId } from "../../components/utils";
-import { Table } from "../../app";
+import { Table } from "../../hub";
 import { nodes } from "../../nodeHelpers";
 import { createStyles } from "../../styleUtils";
 import { ident, stringLiteral } from "../../utils/sqlHelpers";

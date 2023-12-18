@@ -1,5 +1,5 @@
 import { Node } from "../nodeTypes";
-import { app } from "../app";
+import { hub } from "../hub";
 import { StyleObject } from "../styleTypes";
 import { createStyles, cssVar, getVariantStyle } from "../styleUtils";
 import { TypographyKeys, Variant } from "../theme";
@@ -24,6 +24,7 @@ export interface TypographyOpts
 
 export const styles = createStyles({
   root: (
+    { theme },
     hasEndDecorator: boolean,
     hasStartDecorator: boolean,
     inline: boolean,
@@ -31,7 +32,7 @@ export const styles = createStyles({
     gutterBottom: boolean,
     level: Level,
     color: Color | undefined,
-    variant: Variant | undefined
+    variant: Variant | undefined,
   ): StyleObject => {
     return {
       "--icon-font-size": "1.25em",
@@ -54,7 +55,7 @@ export const styles = createStyles({
           }),
         }),
       }),
-      ...(level && level !== "inherit" && app.ui.theme.typography[level]),
+      ...(level && level !== "inherit" && theme.typography[level]),
       ...(noWrap && {
         overflow: "hidden",
         textOverflow: "ellipsis",
@@ -137,7 +138,7 @@ export function typography(opts: TypographyOpts) {
     opts.gutterBottom ?? false,
     level,
     opts.color,
-    opts.variant
+    opts.variant,
   );
   return slot("root", {
     tag,

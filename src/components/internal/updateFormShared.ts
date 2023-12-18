@@ -1,5 +1,5 @@
 import { FormState, UpdateFormField, UpdateFormState } from "../../formState";
-import { Table } from "../../app";
+import { Table } from "../../hub";
 import { nodes } from "../../nodeHelpers";
 import { Node } from "../../nodeTypes";
 import { Style } from "../../styleTypes";
@@ -85,7 +85,7 @@ export interface UpdateFormContentOpts {
 
 export function getFieldsFromUpdateFormContent(
   content: UpdateFormContent,
-  table: Table
+  table: Table,
 ) {
   const fields: UpdateFormField[] = [];
   switch (content.type) {
@@ -123,7 +123,7 @@ export function getFieldsFromUpdateFormContent(
 
 export function updateFormContent(
   content: UpdateFormContent,
-  opts: UpdateFormContentOpts
+  opts: UpdateFormContentOpts,
 ): Node {
   switch (content.type) {
     case "TwoColumnSectioned":
@@ -136,7 +136,7 @@ export function updateFormContent(
         .map((f) => ({ field: f }));
       return labelOnLeftUpdateFormContent(
         { type: "LabelOnLeft", parts, header: content.header },
-        opts
+        opts,
       );
     }
   }
@@ -145,7 +145,7 @@ export function updateFormContent(
 function gridPart(
   part: UpdateGridFormPart,
   formState: FormState,
-  table: Table
+  table: Table,
 ) {
   if (!part.field) {
     return nodes.element("div", { styles: part.styles });
@@ -165,7 +165,7 @@ function gridPart(
           props: { id },
           on: {
             checkboxChange: fieldHelper.setValue(
-              `coalesce(not ` + fieldHelper.value + `, true)`
+              `coalesce(not ` + fieldHelper.value + `, true)`,
             ),
           },
         }),
@@ -174,7 +174,7 @@ function gridPart(
           nodes.element("div", {
             styles: genericFormStyles.errorText,
             children: fieldHelper.error,
-          })
+          }),
         ),
       ],
     });
@@ -186,7 +186,7 @@ function gridPart(
   });
   if (!fieldValue) {
     throw new Error(
-      "sectionedGridFormContent does not handle field of type " + field.type
+      "sectionedGridFormContent does not handle field of type " + field.type,
     );
   }
   return formControl({
@@ -200,7 +200,7 @@ function gridPart(
       fieldValue,
       nodes.if(
         fieldHelper.hasError,
-        formHelperText({ children: fieldHelper.error })
+        formHelperText({ children: fieldHelper.error }),
       ),
     ],
   });
@@ -208,10 +208,10 @@ function gridPart(
 
 function twoColumnSectionedUpdateFormContent(
   content: TwoColumnSectionedUpdateFormContent,
-  { table, formState, cancel }: UpdateFormContentOpts
+  { table, formState, cancel }: UpdateFormContentOpts,
 ): Node {
   const header = stringLiteral(
-    content.header ?? downcaseFirst(table.displayName)
+    content.header ?? downcaseFirst(table.displayName),
   );
   const sections: Node[] = [
     nodes.element("h1", {
@@ -247,7 +247,7 @@ function twoColumnSectionedUpdateFormContent(
             children: section.parts.map((p) => gridPart(p, formState, table)),
           }),
         ],
-      })
+      }),
     );
   }
   sections.push(
@@ -258,8 +258,8 @@ function twoColumnSectionedUpdateFormContent(
         size: "lg",
         children: formState.formError,
         startDecorator: materialIcon("Error"),
-      })
-    )
+      }),
+    ),
   );
   sections.push(
     nodes.element("div", {
@@ -280,7 +280,7 @@ function twoColumnSectionedUpdateFormContent(
           },
         }),
       ],
-    })
+    }),
   );
   return nodes.element("div", {
     styles: twoColumnFormStyles.root,
@@ -290,7 +290,7 @@ function twoColumnSectionedUpdateFormContent(
 
 function labelOnLeftUpdateFormContent(
   content: LabelOnLeftUpdateFormContent,
-  { table, formState, cancel }: UpdateFormContentOpts
+  { table, formState, cancel }: UpdateFormContentOpts,
 ) {
   const fields: Node[] = [];
   if (content.header) {
@@ -299,7 +299,7 @@ function labelOnLeftUpdateFormContent(
         styles: genericFormStyles.pageHeader,
         children: stringLiteral(content.header),
       }),
-      divider()
+      divider(),
     );
   }
   for (const part of content.parts) {
@@ -308,7 +308,7 @@ function labelOnLeftUpdateFormContent(
         field: table.fields[part.field],
         fieldHelper: formState.field(part.field),
         id: stringLiteral(getUniqueUiId()),
-      })
+      }),
     );
   }
   fields.push(
@@ -319,8 +319,8 @@ function labelOnLeftUpdateFormContent(
         size: "lg",
         children: formState.formError,
         startDecorator: materialIcon("Error"),
-      })
-    )
+      }),
+    ),
   );
   fields.push(
     nodes.element("div", {
@@ -342,7 +342,7 @@ function labelOnLeftUpdateFormContent(
           on: { click: formState.onSubmit },
         }),
       ],
-    })
+    }),
   );
   return nodes.element("div", {
     styles: labelOnLeftStyles.root,

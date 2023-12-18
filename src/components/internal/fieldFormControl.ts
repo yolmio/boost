@@ -1,5 +1,5 @@
 import { FormStateFieldHelper } from "../../formState";
-import { Field } from "../../app";
+import { Field } from "../../hub";
 import { Node } from "../../nodeTypes";
 import { durationInput } from "../durationInput";
 import { enumLikeSelect, enumSelect } from "../enumSelect";
@@ -61,7 +61,7 @@ export function fieldFormControl(opts: FieldFormControlOpts): Node | undefined {
             },
             on: {
               input: fieldHelper.setValue(
-                "try_cast(target_value as timestamp)"
+                "try_cast(target_value as timestamp)",
               ),
               blur: fieldHelper.setTouched("true"),
             },
@@ -118,7 +118,7 @@ export function fieldFormControl(opts: FieldFormControlOpts): Node | undefined {
               s.statements(
                 fieldHelper.setValue(v),
                 fieldHelper.setTouched("true"),
-                opts.onChange
+                opts.onChange,
               ),
           });
         }
@@ -149,7 +149,7 @@ export function fieldFormControl(opts: FieldFormControlOpts): Node | undefined {
         slots: { select: { props: { id, value: fieldHelper.value } } },
         on: {
           input: fieldHelper.setValue(
-            `try_cast(target_value as enums.${field.enum})`
+            `try_cast(target_value as enums.${field.enum})`,
           ),
         },
       });
@@ -235,7 +235,7 @@ export function fieldFormControl(opts: FieldFormControlOpts): Node | undefined {
         },
         on: {
           input: fieldHelper.setValue(
-            `case when target_value = '' then null else target_value = 'true' end`
+            `case when target_value = '' then null else target_value = 'true' end`,
           ),
         },
       });

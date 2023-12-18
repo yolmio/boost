@@ -27,13 +27,13 @@ export function durationInput(opts: DurationInputOpts) {
             keydown: (s) =>
               s.if(
                 `not event.ctrl_key and not event.meta_key and char_length(event.key) = 1 and event.key not in ('1', '2', '3', '4', '5', '6', '7', '8', '9', '0', ':')`,
-                (s) => s.preventDefault()
+                (s) => s.preventDefault(),
               ),
             change: opts.onChange(
-              `sfn.display_minutes_duration(sfn.parse_minutes_duration(target_value))`
+              `sfn.display_minutes_duration(sfn.parse_minutes_duration(target_value))`,
             ),
           },
-          opts.slots?.input?.on ?? {}
+          opts.slots?.input?.on ?? {},
         ),
       },
     },

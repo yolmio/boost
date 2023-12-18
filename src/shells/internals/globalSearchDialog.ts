@@ -9,7 +9,7 @@ import { GlobalSearchOpts } from "./types";
 export function globalSearchDialog(
   opts: GlobalSearchOpts,
   open: string,
-  setOpen: (open: string, s: BasicStatements) => BasicStatements
+  setOpen: (open: string, s: BasicStatements) => BasicStatements,
 ) {
   let searchDialog;
   const toggleOpen = setOpen(`not ${open}`, new BasicStatements());
@@ -39,7 +39,7 @@ export function globalSearchDialog(
           s.if(`event.key = 'k' and (event.ctrl_key or event.meta_key)`, (s) =>
             s
               .statements(toggleOpen)
-              .triggerViewTransition("all", "'open-dialog'")
+              .triggerViewTransition("all", "'open-dialog'"),
           ),
       },
     }),

@@ -1,9 +1,6 @@
-import { nodes } from "../nodeHelpers";
 import { Node } from "../nodeTypes";
-import { Style } from "../styleTypes";
 import { createStyles, cssVar, getVariantStyle } from "../styleUtils";
-import { ColorPaletteProp, Variant } from "../theme";
-import { memoize } from "../utils/memoize";
+import { Variant } from "../theme";
 import { Color, ComponentOpts, Size } from "./types";
 import { SlottedComponentWithSlotNames, createSlotsFn } from "./utils";
 
@@ -16,7 +13,7 @@ export interface AlertOpts
 }
 
 const styles = createStyles({
-  root: (variant: Variant, color: Color, size: Size) => {
+  root: (_, variant: Variant, color: Color, size: Size) => {
     return {
       "--alert-radius": cssVar("radius-sm"),
       "--alert-decorator-child-radius":
@@ -58,7 +55,7 @@ const styles = createStyles({
       ...getVariantStyle(variant, color),
     };
   },
-  startDecorator: (color: Color, variant: Variant) => ({
+  startDecorator: (_, color: Color, variant: Variant) => ({
     display: "inherit",
     flex: "none",
     marginRight: "var(--alert-gap)",
@@ -66,7 +63,7 @@ const styles = createStyles({
       color: cssVar(`palette-${color}-${variant}-color`),
     }),
   }),
-  endDecorator: (color: Color, variant: Variant) => ({
+  endDecorator: (_, color: Color, variant: Variant) => ({
     display: "inherit",
     flex: "none",
     marginLeft: "var(--alert-gap)",
@@ -87,7 +84,7 @@ export function alert(opts: AlertOpts) {
         tag: "span",
         styles: styles.startDecorator(color, variant),
         children: opts.startDecorator,
-      })
+      }),
     );
   }
   if (opts.endDecorator) {
@@ -96,7 +93,7 @@ export function alert(opts: AlertOpts) {
         tag: "span",
         styles: styles.endDecorator(color, variant),
         children: opts.endDecorator,
-      })
+      }),
     );
   }
   return slot("root", {

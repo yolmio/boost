@@ -1,6 +1,6 @@
-import { ImageSetFieldGroup, Table } from "../../app";
+import { ImageSetFieldGroup, Table } from "../../hub";
 import { nodes } from "../../nodeHelpers";
-import { app } from "../../app";
+import { hub } from "../../hub";
 import { createStyles, visuallyHiddenStyles } from "../../styleUtils";
 import { getUploadStatements, getVariantFromImageSet } from "../../utils/image";
 import { stringLiteral } from "../../utils/sqlHelpers";
@@ -55,7 +55,7 @@ const styles = createStyles({
       flexDirection: "row",
     },
   },
-  emptyLabel: () => ({
+  emptyLabel: ({ theme }) => ({
     width: 128,
     height: 128,
     borderRadius: "xl",
@@ -66,19 +66,19 @@ const styles = createStyles({
     justifyContent: "center",
     alignItems: "center",
     cursor: "pointer",
-    "&:focus-within": app.ui.theme.focus.default,
+    "&:focus-within": theme.focus.default,
   }),
   imgWrapper: {
     width: 128,
     height: 128,
     borderRadius: "xl",
   },
-  img: () => ({
+  img: ({ theme }) => ({
     width: 128,
     height: 128,
     borderRadius: "xl",
     cursor: "pointer",
-    "&:focus": app.ui.theme.focus.default,
+    "&:focus": theme.focus.default,
   }),
   subHeader: {
     fontSize: "lg",
@@ -262,7 +262,7 @@ function createUndoSnackbar() {
   currentSnackbarId += 1;
   const undoTxScalar = `named_page_header_undo_tx_${currentSnackbarId}`;
   const undoUrlScalar = `named_page_header_undo_return_url_${currentSnackbarId}`;
-  const undidSnackbar = app.ui.registerCrossPageSnackbar({
+  const undidSnackbar = hub.currentApp!.registerCrossPageSnackbar({
     autoHideDuration: 3_000,
     componentOpts: (close) => ({
       variant: "soft",
@@ -279,7 +279,7 @@ function createUndoSnackbar() {
       }),
     }),
   });
-  const undoFailure = app.ui.registerCrossPageSnackbar({
+  const undoFailure = hub.currentApp!.registerCrossPageSnackbar({
     autoHideDuration: 3_000,
     componentOpts: (close) => ({
       variant: "soft",
@@ -296,7 +296,7 @@ function createUndoSnackbar() {
       }),
     }),
   });
-  return app.ui.registerCrossPageSnackbar({
+  return hub.currentApp!.registerCrossPageSnackbar({
     componentOpts: (close) => ({
       variant: "soft",
       color: "success",

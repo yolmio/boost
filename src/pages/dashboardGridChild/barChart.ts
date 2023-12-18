@@ -145,7 +145,7 @@ export function content(opts: Opts) {
                           children: stringLiteral(name),
                         }),
                       ],
-                    })
+                    }),
                   ),
                 }),
                 {

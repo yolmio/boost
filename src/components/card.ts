@@ -20,11 +20,12 @@ export interface CardOpts extends ComponentOpts, SingleElementComponentOpts {
 
 const styles = createStyles({
   card: (
+    _,
     size: Size,
     variant: Variant,
     color: Color,
     orientation: Orientation,
-    createHarmonizeVarsOpt: boolean
+    createHarmonizeVarsOpt: boolean,
   ) => {
     const styles: StyleObject = {
       // a context variable for any child component
@@ -81,7 +82,7 @@ const styles = createStyles({
     }
     return styles;
   },
-  cardOverflow: (variant: Variant, color: Color, row: boolean) => {
+  cardOverflow: (_, variant: Variant, color: Color, row: boolean) => {
     const childRadius =
       "calc(var(--card-overflow-radius) - var(--variant-border-width, 0px))";
     const styles: StyleObject = row
@@ -136,7 +137,7 @@ export function card(opts: CardOpts): ElementNode {
     opts.variant ?? "plain",
     opts.color ?? "neutral",
     opts.orientation ?? "vertical",
-    opts.createHarmonizeVars ?? false
+    opts.createHarmonizeVars ?? false,
   );
   return mergeEls(
     {
@@ -144,7 +145,7 @@ export function card(opts: CardOpts): ElementNode {
       styles: rootStyles,
       children: opts.children,
     },
-    opts
+    opts,
   );
 }
 
@@ -159,7 +160,7 @@ export function cardOverflow(opts: CardOverflowOpts): ElementNode {
   const rootStyles = styles.cardOverflow(
     opts.variant ?? "plain",
     opts.color ?? "neutral",
-    opts.row ?? false
+    opts.row ?? false,
   );
   return mergeEls({
     tag: "div",

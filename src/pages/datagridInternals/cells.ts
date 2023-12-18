@@ -17,8 +17,8 @@ import {
   StringField,
   TimestampField,
   UuidField,
-  app,
-} from "../../app";
+  hub,
+} from "../../hub";
 import { nodes } from "../../nodeHelpers";
 import { createStyles, visuallyHiddenStyles } from "../../styleUtils";
 import { enumLikeDisplayName } from "../../utils/enumLike";
@@ -70,8 +70,8 @@ const styles = createStyles({
   imgInput: {
     display: "flex",
   },
-  uploadButton: () => {
-    return { mx: "auto", "&:focus-within": app.ui.theme.focus.default };
+  uploadButton: ({ theme }) => {
+    return { mx: "auto", "&:focus-within": theme.focus.default };
   },
   checkbox: {
     mx: "auto",
@@ -108,7 +108,7 @@ function foreignKeyCell(
   opts: BaseFieldCellOpts,
   field: ForeignKeyField,
 ): CellNode {
-  const toTable = app.db.tables[field.table];
+  const toTable = hub.db.tables[field.table];
   const nameExpr = toTable.recordDisplayName!.expr(
     ...toTable.recordDisplayName!.fields.map((f) => `r.${f}`),
   );
@@ -223,7 +223,7 @@ function foreignKeyCell(
 
 function enumCell(opts: BaseFieldCellOpts, field: EnumField): CellNode {
   return (cell) => {
-    const enumModel = app.enums[field.enum];
+    const enumModel = hub.enums[field.enum];
     const display = nodes.element("span", {
       styles: sharedStyles.ellipsisSpan,
       children: enumModel.getDisplayName!(
@@ -905,7 +905,7 @@ export function fieldCell(opts: FieldCellOpts): CellNode {
       return numericField(opts, opts.field);
     case "Uuid":
       if (opts.field.group) {
-        const table = app.db.tables[opts.tableName];
+        const table = hub.db.tables[opts.tableName];
         const group = table.fieldGroups[opts.field.group];
         if (group.type === "Image") {
           return imageCell(opts, group);

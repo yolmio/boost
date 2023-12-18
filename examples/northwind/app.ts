@@ -1,9 +1,7 @@
-import { app, components } from "@yolm/boost";
-const { db, ui } = app;
+import { hub, components } from "@yolm/boost";
+const { db } = hub;
 
-app.name = "northwind";
-app.title = "Northwind Traders";
-app.displayName = "Northwind Traders";
+hub.name = "northwind";
 
 //
 // DATABASE
@@ -148,10 +146,12 @@ db.addTable("order_detail", (table) => {
 // UI
 //
 
+const app = hub.addApp("northwind", "Northwind Traders");
+
 const isSysAdmin = `(select is_sys_admin from db.user from where id = current_user())`;
 const isAdmin = `(select is_admin from db.user from where id = current_user())`;
 
-ui.useNavbarShell({
+app.useNavbarShell({
   color: "primary",
   variant: "solid",
   links: [
@@ -294,50 +294,52 @@ select first_name || ' ' || last_name as employee, count
 from employee_order_count
 join db.employee on employee = employee.id`;
 
-ui.addDashboardGridPage((page) =>
+app.addDashboardGridPage((page) =>
   page
     .header({
       header: `'Northwind Traders Dashboard'`,
       subHeader: "'Welcome back. Here''s whats going on'",
     })
-    .threeStats({
+    .statRow({
       header: `'Last 30 Days'`,
-      left: {
-        title: "'Orders'",
-        value: `(select count(*) from db.order where order_date > date.add(day, -30, ${today}))`,
-        previous: `(select count(*) from db.order where order_date between date.add(day, -60, ${today}) and date.add(day, -30, ${today}))`,
-        trend: `cast((value - previous) as decimal(10, 2)) / cast(previous as decimal(10, 2))`,
-      },
-      middle: {
-        title: "'Income'",
-        procedure: (s) =>
-          s
-            .scalar(
-              `value_num`,
-              `(select sum(cast((unit_price * quantity) * (1 - discount) as decimal(10, 2)))
+      stats: [
+        {
+          title: "'Orders'",
+          value: `(select count(*) from db.order where order_date > date.add(day, -30, ${today}))`,
+          previous: `(select count(*) from db.order where order_date between date.add(day, -60, ${today}) and date.add(day, -30, ${today}))`,
+          trend: `cast((value - previous) as decimal(10, 2)) / cast(previous as decimal(10, 2))`,
+        },
+        {
+          title: "'Income'",
+          procedure: (s) =>
+            s
+              .scalar(
+                `value_num`,
+                `(select sum(cast((unit_price * quantity) * (1 - discount) as decimal(10, 2)))
               from db.order
                 join db.order_detail
                   on order = order.id
-              where order_date > date.add(day, -30, ${today}))`
-            )
-            .scalar(
-              `previous_num`,
-              `(select sum(cast((unit_price * quantity) * (1 - discount) as decimal(10, 2)))
+              where order_date > date.add(day, -30, ${today}))`,
+              )
+              .scalar(
+                `previous_num`,
+                `(select sum(cast((unit_price * quantity) * (1 - discount) as decimal(10, 2)))
               from db.order
                 join db.order_detail
                   on order = order.id
-              where order_date between date.add(day, -60, ${today}) and date.add(day, -30, ${today}))`
-            ),
-        value: `format.currency(value_num, 'USD')`,
-        previous: `format.currency(previous_num, 'USD')`,
-        trend: `(value_num - previous_num) / previous_num`,
-      },
-      right: {
-        title: "'Shipped Orders'",
-        value: `(select count(*) from db.order where shipped_date > date.add(day, -30, ${today}))`,
-        previous: `(select count(*) from db.order where shipped_date between date.add(day, -60, ${today}) and date.add(day, -30, ${today})))`,
-        trend: `cast((value - previous) as decimal(10, 2)) / cast(previous as decimal(10, 2))`,
-      },
+              where order_date between date.add(day, -60, ${today}) and date.add(day, -30, ${today}))`,
+              ),
+          value: `format.currency(value_num, 'USD')`,
+          previous: `format.currency(previous_num, 'USD')`,
+          trend: `(value_num - previous_num) / previous_num`,
+        },
+        {
+          title: "'Shipped Orders'",
+          value: `(select count(*) from db.order where shipped_date > date.add(day, -30, ${today}))`,
+          previous: `(select count(*) from db.order where shipped_date between date.add(day, -60, ${today}) and date.add(day, -30, ${today})))`,
+          trend: `cast((value - previous) as decimal(10, 2)) / cast(previous as decimal(10, 2))`,
+        },
+      ],
     })
     .lineChart({
       state: monthlyCountQuery,
@@ -372,7 +374,7 @@ ui.addDashboardGridPage((page) =>
           where order_date > date.add(day, -60, ${today})
           group by product.category
           order by sales desc
-          limit 5`
+          limit 5`,
           )
           .table(
             "last_30",
@@ -385,11 +387,11 @@ ui.addDashboardGridPage((page) =>
               join db.product on product = product.id
             where order_date > date.add(day, -30, ${today}) and product.category = last_60.category
             ) as sales
-          from last_60`
+          from last_60`,
           )
           .table(
             "label",
-            "select name from last_60 join db.category on category = category.id"
+            "select name from last_60 join db.category on category = category.id",
           ),
       series: [
         {
@@ -417,10 +419,10 @@ ui.addDashboardGridPage((page) =>
       query: newOrders,
       header: "New Orders",
       columns: orderTableColumns,
-    })
+    }),
 );
 
-ui.addSimpleDatagridPage("employee", (page) => {
+app.addSimpleDatagridPage("employee", (page) => {
   page
     .selectable()
     .viewButton()
@@ -438,21 +440,21 @@ ui.addSimpleDatagridPage("employee", (page) => {
                 `select ${
                   state.field("email").value
                 } as email, next_record_id(db.user) as db_id, 'none' as notification_type`,
-                "added_user"
+                "added_user",
               )
               .modify(
                 `insert into db.user (global_id, is_sys_admin, is_admin, disabled, email, employee) values ((select global_id from added_user), false, false, false, ${
                   state.field("email").value
-                }, last_record_id(db.employee))`
+                }, last_record_id(db.employee))`,
               ),
-        })
+        }),
     )
     .fieldConfig("email", {
       beforeEdit: (newValue, recordId) => (s) =>
         s
           .scalar(
             `user_id`,
-            `(select id from db.user where employee = ${recordId})`
+            `(select id from db.user where employee = ${recordId})`,
           )
           .modify(`update db.user set email = ${newValue} where id = user_id`)
           .if(`not (select disabled from db.user where id = user_id)`, (s) =>
@@ -460,16 +462,16 @@ ui.addSimpleDatagridPage("employee", (page) => {
               .removeUsers(`select global_id from db.user where id = user_id`)
               .addUsers(
                 `select ${newValue} as email, user_id as db_id, 'none' as notification_type`,
-                `added_user`
+                `added_user`,
               )
               .modify(
-                `update db.user set global_id = (select global_id from added_user) where id = user_id`
-              )
+                `update db.user set global_id = (select global_id from added_user) where id = user_id`,
+              ),
           ),
     });
 });
 
-ui.addRecordGridPage("employee", (page) => {
+app.addRecordGridPage("employee", (page) => {
   page
     .namedPageHeader({
       prefix: "title_of_courtesy",
@@ -495,7 +497,7 @@ ui.addRecordGridPage("employee", (page) => {
     });
 });
 
-ui.addSimpleDatagridPage("user", (page) => {
+app.addSimpleDatagridPage("user", (page) => {
   page
     .toolbar((toolbar) =>
       toolbar.insertDialog({
@@ -505,10 +507,10 @@ ui.addSimpleDatagridPage("user", (page) => {
             .addUsers(
               `select next_record_id(db.user) as db_id, 'none' as notification_type, ${
                 state.field("email").value
-              } as email`
+              } as email`,
             )
             .scalar(`new_global_id`, `(select global_id from added_user)`),
-      })
+      }),
     )
     .fieldConfig("disabled", {
       beforeEdit: (newValue, recordId) => (s) =>
@@ -516,16 +518,16 @@ ui.addSimpleDatagridPage("user", (page) => {
           condition: newValue,
           then: (s) =>
             s.removeUsers(
-              `select global_id from db.user where id = ${recordId}`
+              `select global_id from db.user where id = ${recordId}`,
             ),
           else: (s) =>
             s
               .addUsers(
                 `select email, id as db_id, 'none' as notification_type from db.user where id = ${recordId}`,
-                `added_user`
+                `added_user`,
               )
               .modify(
-                `update db.user set global_id = (select global_id from added_user) where id = ${recordId}`
+                `update db.user set global_id = (select global_id from added_user) where id = ${recordId}`,
               ),
         }),
     })
@@ -534,23 +536,23 @@ ui.addSimpleDatagridPage("user", (page) => {
         s
           .scalar(
             `employee`,
-            `(select employee from db.user where id = ${recordId})`
+            `(select employee from db.user where id = ${recordId})`,
           )
           .modify(
-            `update db.employee set email = ${newValue} where id = employee`
+            `update db.employee set email = ${newValue} where id = employee`,
           )
           .removeUsers(`select global_id from db.user where id = ${recordId}`)
           .addUsers(
             `select ${newValue} as email, ${recordId} as db_id, 'none' as notification_type`,
-            `added_user`
+            `added_user`,
           )
           .modify(
-            `update db.user set global_id = (select global_id from added_user) where id = ${recordId}`
+            `update db.user set global_id = (select global_id from added_user) where id = ${recordId}`,
           ),
     });
 });
 
-ui.addDatagridPage("order", (page) => {
+app.addDatagridPage("order", (page) => {
   page
     .selectable()
     .viewButton()
@@ -559,7 +561,7 @@ ui.addDatagridPage("order", (page) => {
 
 const orderFormPartStyles = { gridColumnSpan: 12, lg: { gridColumnSpan: 3 } };
 
-ui.addInsertFormPage({
+app.addInsertFormPage({
   table: "order",
   withValues: { employee: "current_user()" },
   content: {
@@ -606,32 +608,32 @@ ui.addInsertFormPage({
                       s.modify(
                         `insert into customer select company_name as name, * from db.customer where id = ${
                           state.field("customer").value
-                        }`
-                      )
+                        }`,
+                      ),
                     )
                     .if(
                       `not ` + state.field("ship_address").touched,
-                      state.field("ship_address").setValue("customer.address")
+                      state.field("ship_address").setValue("customer.address"),
                     )
                     .if(
                       `not ` + state.field("ship_name").touched,
-                      state.field("ship_name").setValue("customer.name")
+                      state.field("ship_name").setValue("customer.name"),
                     )
                     .if(
                       `not ` + state.field("ship_city").touched,
-                      state.field("ship_city").setValue("customer.city")
+                      state.field("ship_city").setValue("customer.city"),
                     )
                     .if(
                       `not ` + state.field("ship_zip").touched,
-                      state.field("ship_zip").setValue("customer.zip")
+                      state.field("ship_zip").setValue("customer.zip"),
                     )
                     .if(
                       `not ` + state.field("ship_state").touched,
-                      state.field("ship_state").setValue("customer.state")
+                      state.field("ship_state").setValue("customer.state"),
                     )
                     .if(
                       `not ` + state.field("ship_country").touched,
-                      state.field("ship_country").setValue("customer.country")
+                      state.field("ship_country").setValue("customer.country"),
                     )
                     .commitUiTreeChanges(),
               }),
@@ -685,8 +687,8 @@ ui.addInsertFormPage({
                             "product_unit_price",
                             `(select unit_price from db.product where id = ${
                               cursor.field("product").value
-                            })`
-                          )
+                            })`,
+                          ),
                         )
                         .if(
                           `product_unit_price is not null and not ` +
@@ -697,11 +699,11 @@ ui.addInsertFormPage({
                                 cursor
                                   .field("unit_price")
                                   .setValue(
-                                    "cast(product_unit_price as string)"
-                                  )
+                                    "cast(product_unit_price as string)",
+                                  ),
                               )
-                              .commitUiTreeChanges()
-                        )
+                              .commitUiTreeChanges(),
+                        ),
                     ),
                 }),
             },
@@ -717,7 +719,7 @@ ui.addInsertFormPage({
     s.navigate(`'/orders/' || last_record_id(db.order)`),
 });
 
-ui.addRecordGridPage("order", (page) => {
+app.addRecordGridPage("order", (page) => {
   page
     .superSimpleHeader({
       header: "Order Details",
@@ -784,8 +786,8 @@ ui.addRecordGridPage("order", (page) => {
                           "product_unit_price",
                           `(select unit_price from db.product where id = ${
                             state.field("product").value
-                          })`
-                        )
+                          })`,
+                        ),
                       )
                       .if(
                         `product_unit_price is not null and not ` +
@@ -795,10 +797,10 @@ ui.addRecordGridPage("order", (page) => {
                             .statements(
                               state
                                 .field("unit_price")
-                                .setValue("cast(product_unit_price as string)")
+                                .setValue("cast(product_unit_price as string)"),
                             )
-                            .commitUiTreeChanges()
-                      )
+                            .commitUiTreeChanges(),
+                      ),
                   ),
               }),
           },
@@ -807,14 +809,14 @@ ui.addRecordGridPage("order", (page) => {
     });
 });
 
-ui.addDatagridPage("customer", (page) => {
+app.addDatagridPage("customer", (page) => {
   page
     .selectable()
     .viewButton()
     .toolbar((t) => t.insertDialog().export().delete());
 });
 
-ui.addRecordGridPage("customer", (page) => {
+app.addRecordGridPage("customer", (page) => {
   page
     .namedPageHeader()
     .staticTableCard({
@@ -839,15 +841,15 @@ ui.addRecordGridPage("customer", (page) => {
     });
 });
 
-ui.addSimpleDatagridPage("shipper", (page) => {
+app.addSimpleDatagridPage("shipper", (page) => {
   page.toolbar((t) => t.insertDialog());
 });
 
-ui.addSimpleDatagridPage("supplier", (page) => {
+app.addSimpleDatagridPage("supplier", (page) => {
   page.toolbar((t) => t.insertDialog());
 });
 
-ui.addRecordGridPage("supplier", (page) => {
+app.addRecordGridPage("supplier", (page) => {
   page
     .namedPageHeader()
     .staticTableCard({
@@ -863,13 +865,13 @@ ui.addRecordGridPage("supplier", (page) => {
     });
 });
 
-ui.addSimpleDatagridPage("product", (page) => {
+app.addSimpleDatagridPage("product", (page) => {
   page
     .toolbar((t) => t.insertDialog())
     .fieldConfig("discontinued", { immutable: true });
 });
 
-ui.addRecordGridPage("product", (page) => {
+app.addRecordGridPage("product", (page) => {
   page.namedPageHeader({ chips: ["discontinued"] }).staticTableCard({
     styles: { gridColumnSpan: 12, md: { gridColumnSpan: 6 } },
     rows: [
@@ -884,11 +886,11 @@ ui.addRecordGridPage("product", (page) => {
   });
 });
 
-ui.addSimpleDatagridPage("category", (page) => {
+app.addSimpleDatagridPage("category", (page) => {
   page.toolbar((t) => t.insertDialog());
 });
 
-ui.addSimpleReportsPage((page) => {
+app.addSimpleReportsPage((page) => {
   page.section("Sales");
   const dateRangeParams = page.defineParams(
     {
@@ -900,7 +902,7 @@ ui.addSimpleReportsPage((page) => {
       name: "end_date",
       initialValue: `date.add(year, 1, start_date)`,
       type: "Date",
-    }
+    },
   );
 
   const productSales = `
@@ -1068,4 +1070,4 @@ order by unit_price desc
   });
 });
 
-ui.addDbManagementPage();
+app.addDbManagementPage();

@@ -1,4 +1,4 @@
-import { app } from "../app";
+import { hub } from "../hub";
 import type { Node } from "../nodeTypes";
 import { StyleObject } from "../styleTypes";
 import { Variant } from "../theme";
@@ -32,13 +32,13 @@ export interface SnackbarOpts
 
 export const styles = createStyles({
   snackbar: (
+    { theme },
     variant: Variant,
     color: Color,
     size: Size,
     anchorOrigin: AnchorOrigin,
-    invertColors: boolean
+    invertColors: boolean,
   ) => {
-    const theme = app.ui.theme;
     const styles: StyleObject = {
       "--snackbar-radius": cssVar(`radius-sm`),
       "--snackbar-decorator-child-radius":
@@ -141,7 +141,7 @@ export function snackbar(opts: SnackbarOpts) {
         tag: "span",
         styles: styles.startDecorator,
         children: opts.startDecorator,
-      })
+      }),
     );
   }
   if (opts.endDecorator) {
@@ -150,7 +150,7 @@ export function snackbar(opts: SnackbarOpts) {
         tag: "span",
         styles: styles.endDecorator,
         children: opts.endDecorator,
-      })
+      }),
     );
   }
   return slot("root", {
@@ -160,7 +160,7 @@ export function snackbar(opts: SnackbarOpts) {
       color,
       size,
       opts.anchorOrigin ?? { vertical: "bottom", horizontal: "left" },
-      opts.invertColors ?? false
+      opts.invertColors ?? false,
     ),
     children,
   });

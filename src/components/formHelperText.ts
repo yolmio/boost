@@ -28,6 +28,6 @@ export function formHelperText(opts: FormHelperTextOpts) {
       styles: styles.root,
       children: opts.children,
     },
-    opts
+    opts,
   );
 }

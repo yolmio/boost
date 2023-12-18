@@ -1,6 +1,6 @@
-import { Field } from "../../app";
+import { Field } from "../../hub";
 import { nodes } from "../../nodeHelpers";
-import { app } from "../../app";
+import { hub } from "../../hub";
 import { ident, stringLiteral } from "../../utils/sqlHelpers";
 import * as yom from "../../yom";
 import { fieldCell } from "./cells";
@@ -104,13 +104,13 @@ function getFieldProcFieldType(field: Field): yom.FieldType {
 function getFieldCellWidth(
   field: Field,
   table: string,
-  headerBuffer: number
+  headerBuffer: number,
 ): number {
   const charSize = 10;
   const cellBuffer = 20;
   const headerLength = field.displayName.length * charSize + headerBuffer;
   if (field.type === "Uuid" && field.group) {
-    const tableModel = app.db.tables[table];
+    const tableModel = hub.db.tables[table];
     const group = tableModel.fieldGroups[field.group];
     if (group.type === "Image") {
       return 138;
@@ -121,7 +121,7 @@ function getFieldCellWidth(
       const maxValue = Math.max(
         field.enumLike.true.length,
         field.enumLike.false.length,
-        (field.enumLike.null ?? "Unspecified").length
+        (field.enumLike.null ?? "Unspecified").length,
       );
       const maxValueLength = maxValue * charSize + cellBuffer;
       return Math.max(maxValueLength, headerLength);
@@ -129,9 +129,9 @@ function getFieldCellWidth(
     return headerLength;
   }
   if (field.type === "Enum") {
-    const enum_ = app.enums[field.enum];
+    const enum_ = hub.enums[field.enum];
     const maxVariant = Math.max(
-      ...Object.values(enum_.values).map((v) => v.displayName.length)
+      ...Object.values(enum_.values).map((v) => v.displayName.length),
     );
     const maxVariantTotal = maxVariant * charSize + headerBuffer;
     return Math.max(maxVariantTotal, headerLength);
@@ -149,22 +149,22 @@ export const editWithCharCellKeydownHandler = new DomStatements()
   .if(`event.key = 'Enter'`, (s) =>
     s
       .modify(
-        `update ui.focus_state set column = cell.column, row = cell.row, should_focus = false`
+        `update ui.focus_state set column = cell.column, row = cell.row, should_focus = false`,
       )
       .modify(
-        `update ui.editing_state set column = cell.column, row = cell.row, is_editing = true`
+        `update ui.editing_state set column = cell.column, row = cell.row, is_editing = true`,
       )
-      .setScalar(`ui.start_edit_with_char`, `null`)
+      .setScalar(`ui.start_edit_with_char`, `null`),
   )
   .if(`char_length(event.key) = 1`, (s) =>
     s
       .modify(
-        `update ui.focus_state set column = cell.column, row = cell.row, should_focus = false`
+        `update ui.focus_state set column = cell.column, row = cell.row, should_focus = false`,
       )
       .modify(
-        `update ui.editing_state set column = cell.column, row = cell.row, is_editing = true`
+        `update ui.editing_state set column = cell.column, row = cell.row, is_editing = true`,
       )
-      .setScalar(`ui.start_edit_with_char`, `event.key`)
+      .setScalar(`ui.start_edit_with_char`, `event.key`),
   );
 
 export const opaqueCellKeydownHandler = new DomStatements().if(
@@ -172,32 +172,32 @@ export const opaqueCellKeydownHandler = new DomStatements().if(
   (s) =>
     s
       .modify(
-        `update ui.focus_state set column = cell.column, row = cell.row, should_focus = false`
+        `update ui.focus_state set column = cell.column, row = cell.row, should_focus = false`,
       )
       .modify(
-        `update ui.editing_state set column = cell.column, row = cell.row, is_editing = true`
+        `update ui.editing_state set column = cell.column, row = cell.row, is_editing = true`,
       )
-      .setScalar(`ui.start_edit_with_char`, `null`)
+      .setScalar(`ui.start_edit_with_char`, `null`),
 );
 
 export const dynamicBooleanCellKeydownHandler = (
   col: number,
   sqlName: string,
-  tableName: string
+  tableName: string,
 ) =>
   new DomStatements().if(`event.key = 'Enter'`, (s) =>
     s
       .scalar(
         `row_id`,
-        `(select field_0 from ui.dg_table limit 1 offset cell.row - 1)`
+        `(select field_0 from ui.dg_table limit 1 offset cell.row - 1)`,
       )
       .commitUiTreeChanges()
       .scalar(
         `prev_value`,
-        `(select field_${col} from ui.dg_table where field_0 = row_id)`
+        `(select field_${col} from ui.dg_table where field_0 = row_id)`,
       )
       .modify(
-        `update ui.dg_table set field_${col} = not (field_${col} = 'true') where field_0 = row_id`
+        `update ui.dg_table set field_${col} = not (field_${col} = 'true') where field_0 = row_id`,
       )
       .statements(
         dgState.updateFieldValueInDb({
@@ -207,10 +207,10 @@ export const dynamicBooleanCellKeydownHandler = (
           tableName,
           resetValue: (s) =>
             s.modify(
-              `update ui.dg_table set field_${col} = prev_value where field_0 = row_id`
+              `update ui.dg_table set field_${col} = prev_value where field_0 = row_id`,
             ),
-        })
-      )
+        }),
+      ),
   );
 
 export interface SuperColumnFieldOpts extends FieldEditProcConfig {
@@ -263,7 +263,7 @@ export function columnFromField({
         break;
       case "Uuid":
         if (field.group) {
-          const tableModel = app.db.tables[table];
+          const tableModel = hub.db.tables[table];
           const group = tableModel.fieldGroups[field.group];
           if (group.type === "Image") {
             if (group.variants[field.name].usage !== "square_thumbnail") {
@@ -351,7 +351,7 @@ export function columnFromField({
           minWidth: 50,
           setWidth: (width) =>
             new BasicStatements().modify(
-              `update ui.column set width = ${width} where id = ${columnIndex}`
+              `update ui.column set width = ${width} where id = ${columnIndex}`,
             ),
           width: `(select width from ui.column where id = ${columnIndex})`,
         }),
@@ -368,21 +368,21 @@ export function columnFromField({
 export const simpleBooleanCellKeydownHandler = (
   fieldName: string,
   idField: string,
-  tableName: string
+  tableName: string,
 ) =>
   new DomStatements().if(`event.key = 'Enter'`, (s) =>
     s
       .scalar(
         `row_id`,
-        `(select ${idField} from ui.dg_table limit 1 offset cell.row - 1)`
+        `(select ${idField} from ui.dg_table limit 1 offset cell.row - 1)`,
       )
       .commitUiTreeChanges()
       .scalar(
         `prev_value`,
-        `(select ${fieldName} from ui.dg_table where ${idField} = row_id)`
+        `(select ${fieldName} from ui.dg_table where ${idField} = row_id)`,
       )
       .modify(
-        `update ui.dg_table set ${fieldName} = not ${fieldName} where ${idField} = row_id`
+        `update ui.dg_table set ${fieldName} = not ${fieldName} where ${idField} = row_id`,
       )
       .statements(
         dgState.updateFieldValueInDb({
@@ -392,10 +392,10 @@ export const simpleBooleanCellKeydownHandler = (
           tableName,
           resetValue: (s) =>
             s.modify(
-              `update ui.dg_table set ${fieldName} = prev_value where ${idField} = row_id`
+              `update ui.dg_table set ${fieldName} = prev_value where ${idField} = row_id`,
             ),
-        })
-      )
+        }),
+      ),
   );
 
 export interface SimpleColumnFieldOpts extends FieldEditProcConfig {
@@ -463,7 +463,7 @@ export function simpleColumnFromField({
         break;
       case "Uuid":
         if (field.group) {
-          const tableModel = app.db.tables[table];
+          const tableModel = hub.db.tables[table];
           const group = tableModel.fieldGroups[field.group];
           if (group.type === "Image") {
             if (group.variants[field.name].usage !== "square_thumbnail") {
@@ -500,20 +500,20 @@ export function simpleColumnFromField({
         {
           condition: `sort_info.col = ${columnIndex} and not sort_info.ascending`,
           node: materialIcon("ArrowDownward"),
-        }
+        },
       ),
       resizeableSeperator({
         minWidth: 50,
         setWidth: (width) =>
           new BasicStatements().modify(
-            `update ui.column_width set width = ${width} where col = ${columnIndex}`
+            `update ui.column_width set width = ${width} where col = ${columnIndex}`,
           ),
         width: `(select width from ui.column_width where col = ${columnIndex})`,
       }),
     ],
     keydownHeaderHandler: (s) =>
       s.if(`event.key = 'Enter'`, (s) =>
-        s.statements(toggleColumnSort, dgState.triggerRefresh)
+        s.statements(toggleColumnSort, dgState.triggerRefresh),
       ),
     headerClickHandler: (s) =>
       s.statements(toggleColumnSort, dgState.triggerRefresh),

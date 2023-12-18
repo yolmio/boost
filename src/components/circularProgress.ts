@@ -4,7 +4,6 @@ import { Variant } from "../theme";
 import { createStyles, cssVar, getVariantStyle } from "../styleUtils";
 import { Color, ComponentOpts, Size } from "./types";
 import { createSlotsFn, SlottedComponentWithSlotNames } from "./utils";
-import { app } from "../app";
 
 export interface CircularProgressOpts
   extends ComponentOpts,
@@ -17,14 +16,15 @@ export interface CircularProgressOpts
 
 const styles = createStyles({
   root: (
+    _,
     variant: Variant,
     propColor: Color,
     size: Size | undefined,
-    hasChildren: boolean
+    hasChildren: boolean,
   ) => {
     const { color, backgroundColor, ...rest } = getVariantStyle(
       variant,
-      propColor
+      propColor,
     ) as any;
     return {
       // integration with icon
@@ -118,7 +118,7 @@ const styles = createStyles({
     strokeWidth: "var(--circular-progress-track-thickness)",
     stroke: "var(--circular-progress-track-color)",
   },
-  progress: (determinate: boolean) => {
+  progress: (app, determinate: boolean) => {
     const styles: StyleObject = {
       "--_progress-radius":
         "calc(var(--_inner-size) / 2 - var(--circular-progress-progress-thickness) / 2 - max(0px, var(--_thickness-diff) / 2))",
@@ -140,7 +140,7 @@ const styles = createStyles({
       styles.transition =
         "stroke-dashoffset 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms";
     } else {
-      const circulate = app.ui.registerKeyframes({
+      const circulate = app.registerKeyframes({
         "0%": {
           // let the progress start at the top of the ring
           transform: "rotate(-90deg)",
@@ -174,7 +174,7 @@ export function circularProgress(opts: CircularProgressOpts = {}) {
       opts.variant ?? "soft",
       opts.color ?? "primary",
       opts.size,
-      Boolean(opts.children)
+      Boolean(opts.children),
     ),
     children: [
       slot("svg", {

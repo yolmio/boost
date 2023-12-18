@@ -1,6 +1,6 @@
 import { nodes } from "../nodeHelpers";
 import { Node } from "../nodeTypes";
-import { app } from "../app";
+import { hub } from "../hub";
 import { createStyles, cssVar, fadeIn, fadeOut } from "../styleUtils";
 import { Variant } from "../theme";
 import {
@@ -10,7 +10,7 @@ import {
   SlottedComponentWithSlotNames,
 } from "./utils";
 import { DomStatements, DomStatementsOrFn } from "../statements";
-import { lazy, memoize } from "../utils/memoize";
+import { lazyPerApp, memoizePerApp } from "../utils/memoize";
 
 export interface ModalOpts
   extends SlottedComponentWithSlotNames<"backdrop" | "overflow"> {
@@ -25,8 +25,8 @@ export const styles = createStyles({
     zIndex: 1300,
     inset: 0,
   },
-  backdrop: () => {
-    app.ui.addGlobalStyle({
+  backdrop: (app) => {
+    app.addGlobalStyle({
       "::view-transition-new(modal-backdrop):only-child": {
         animationName: fadeIn(),
       },
@@ -35,8 +35,8 @@ export const styles = createStyles({
       },
       "::view-transition-group(modal-backdrop)": {
         zIndex: 2,
-        animationDuration: app.ui.theme.transitionDurations.dialog,
-        animationTimingFunction: app.ui.theme.transitionEasing.dialog,
+        animationDuration: app.theme.transitionDurations.dialog,
+        animationTimingFunction: app.theme.transitionEasing.dialog,
       },
     });
     return {
@@ -61,28 +61,28 @@ export const styles = createStyles({
     flexDirection: "column", // required for fullscreen ModalDialog, using `row` cannot be achieved.
     opacity: 1,
   },
-  dialog: (size: Size, layout: DialogLayout) => {
+  dialog: (app, size: Size, layout: DialogLayout) => {
     return {
       // Divider integration
       "--divider-inset": "calc(-1 * var(--modal-dialog-padding))",
       "--modal-close-radius":
         "max((var(--modal-dialog-radius) - var(--variant-border-width, 0px)) - var(--modal-close-inset), min(var(--modal-close-inset) / 2, (var(--modal-dialog-radius) - var(--variant-borderWidth, 0px)) / 2))",
       ...(size === "sm" && {
-        "--modal-dialog-padding": app.ui.theme.spacing(1.25),
+        "--modal-dialog-padding": app.theme.spacing(1.25),
         "--modal-dialog-radius": cssVar(`radius-sm`),
-        "--modal-close-inset": app.ui.theme.spacing(0.75),
+        "--modal-close-inset": app.theme.spacing(0.75),
         fontSize: cssVar(`font-size-sm`),
       }),
       ...(size === "md" && {
-        "--modal-dialog-padding": app.ui.theme.spacing(2),
+        "--modal-dialog-padding": app.theme.spacing(2),
         "--modal-dialog-radius": cssVar(`radius-md`),
-        "--modal-close-inset": app.ui.theme.spacing(1),
+        "--modal-close-inset": app.theme.spacing(1),
         fontSize: cssVar(`font-size-md`),
       }),
       ...(size === "lg" && {
-        "--modal-dialog-padding": app.ui.theme.spacing(3),
+        "--modal-dialog-padding": app.theme.spacing(3),
         "--modal-dialog-radius": cssVar(`radius-md`),
-        "--modal-close-inset": app.ui.theme.spacing(1.5),
+        "--modal-close-inset": app.theme.spacing(1.5),
         fontSize: cssVar(`font-size-md`),
       }),
       boxSizing: "border-box",
@@ -151,8 +151,8 @@ export function modal(opts: ModalOpts) {
             children: opts.children(close),
           }),
         ],
-      })
-    )
+      }),
+    ),
   );
 }
 
@@ -166,8 +166,8 @@ export interface ModalDialogOpts extends SingleElementComponentOpts {
   children: Node;
 }
 
-const centerDialogEnter = lazy(() =>
-  app.ui.registerKeyframes({
+const centerDialogEnter = lazyPerApp((app) =>
+  app.registerKeyframes({
     "0%": {
       transform: "scale(0.33) translateY(-50%)",
       opacity: 0,
@@ -180,10 +180,10 @@ const centerDialogEnter = lazy(() =>
       transform: "scale(1) translateY(0%)",
       opacity: 1,
     },
-  })
+  }),
 );
-const centerDialogExit = lazy(() =>
-  app.ui.registerKeyframes({
+const centerDialogExit = lazyPerApp((app) =>
+  app.registerKeyframes({
     "0%": {
       transform: "scale(1) translateY(0%)",
       opacity: 1,
@@ -192,10 +192,10 @@ const centerDialogExit = lazy(() =>
       transform: "scale(0.33) translateY(-50%)",
       opacity: 0,
     },
-  })
+  }),
 );
-const fullscreenDialogEnter = lazy(() =>
-  app.ui.registerKeyframes({
+const fullscreenDialogEnter = lazyPerApp((app) =>
+  app.registerKeyframes({
     "0%": {
       transform: "scale(0.33)",
       opacity: 0,
@@ -204,10 +204,10 @@ const fullscreenDialogEnter = lazy(() =>
       transform: "scale(1)",
       opacity: 1,
     },
-  })
+  }),
 );
-const fullscreenDialogExit = lazy(() =>
-  app.ui.registerKeyframes({
+const fullscreenDialogExit = lazyPerApp((app) =>
+  app.registerKeyframes({
     "0%": {
       transform: "scale(1)",
       opacity: 1,
@@ -216,59 +216,61 @@ const fullscreenDialogExit = lazy(() =>
       transform: "scale(0.33)",
       opacity: 0,
     },
-  })
+  }),
 );
 
-export const addDialogViewTransitionStyles = memoize((layout: DialogLayout) => {
-  const viewTransitionName = `dialog-${layout}`;
-  app.ui.addGlobalStyle({
-    [`::view-transition-group(${viewTransitionName})`]: {
-      zIndex: 5,
-      animationDuration: app.ui.theme.transitionDurations.dialog,
-      animationTimingFunction: app.ui.theme.transitionEasing.dialog,
-    },
-  });
-  switch (layout) {
-    case "center":
-      app.ui.addGlobalStyle({
-        [`::view-transition-new(${viewTransitionName}):only-child`]: {
-          animationName: centerDialogEnter(),
-        },
-        [`::view-transition-old(${viewTransitionName}):only-child`]: {
-          animationName: centerDialogExit(),
-        },
-      });
-      break;
-    case "fullscreen":
-      app.ui.addGlobalStyle({
-        [`::view-transition-new(${viewTransitionName}):only-child`]: {
-          animationName: fullscreenDialogEnter(),
-        },
-        [`::view-transition-old(${viewTransitionName}):only-child`]: {
-          animationName: fullscreenDialogExit(),
-        },
-      });
-      break;
-    case "fullscreenOnMobile":
-      app.ui.addGlobalStyle({
-        [`::view-transition-new(${viewTransitionName}):only-child`]: {
-          animationName: fullscreenDialogEnter(),
-        },
-        [`::view-transition-old(${viewTransitionName}):only-child`]: {
-          animationName: fullscreenDialogExit(),
-        },
-        [app.ui.theme.breakpoints.up("md")]: {
+export const addDialogViewTransitionStyles = memoizePerApp(
+  (app, layout: DialogLayout) => {
+    const viewTransitionName = `dialog-${layout}`;
+    app.addGlobalStyle({
+      [`::view-transition-group(${viewTransitionName})`]: {
+        zIndex: 5,
+        animationDuration: app.theme.transitionDurations.dialog,
+        animationTimingFunction: app.theme.transitionEasing.dialog,
+      },
+    });
+    switch (layout) {
+      case "center":
+        app.addGlobalStyle({
           [`::view-transition-new(${viewTransitionName}):only-child`]: {
             animationName: centerDialogEnter(),
           },
           [`::view-transition-old(${viewTransitionName}):only-child`]: {
             animationName: centerDialogExit(),
           },
-        },
-      });
-      break;
-  }
-});
+        });
+        break;
+      case "fullscreen":
+        app.addGlobalStyle({
+          [`::view-transition-new(${viewTransitionName}):only-child`]: {
+            animationName: fullscreenDialogEnter(),
+          },
+          [`::view-transition-old(${viewTransitionName}):only-child`]: {
+            animationName: fullscreenDialogExit(),
+          },
+        });
+        break;
+      case "fullscreenOnMobile":
+        app.addGlobalStyle({
+          [`::view-transition-new(${viewTransitionName}):only-child`]: {
+            animationName: fullscreenDialogEnter(),
+          },
+          [`::view-transition-old(${viewTransitionName}):only-child`]: {
+            animationName: fullscreenDialogExit(),
+          },
+          [app.theme.breakpoints.up("md")]: {
+            [`::view-transition-new(${viewTransitionName}):only-child`]: {
+              animationName: centerDialogEnter(),
+            },
+            [`::view-transition-old(${viewTransitionName}):only-child`]: {
+              animationName: centerDialogExit(),
+            },
+          },
+        });
+        break;
+    }
+  },
+);
 
 export function modalDialog(opts: ModalDialogOpts) {
   addDialogViewTransitionStyles(opts.layout ?? "fullscreenOnMobile");
@@ -277,13 +279,13 @@ export function modalDialog(opts: ModalDialogOpts) {
       tag: "div",
       styles: styles.dialog(
         opts.size ?? "md",
-        opts.layout ?? "fullscreenOnMobile"
+        opts.layout ?? "fullscreenOnMobile",
       ),
       on: { click: (s) => s.stopPropagation() },
       focusLock: {},
       scrollLock: { enabled: `true` },
       children: opts.children,
     },
-    opts
+    opts,
   );
 }

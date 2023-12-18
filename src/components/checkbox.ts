@@ -1,8 +1,8 @@
-import { app } from "../app";
+import { hub } from "../hub";
 import { nodes } from "../nodeHelpers";
 import { Variant } from "../theme";
 import { createStyles, cssVar, getVariantStyle } from "../styleUtils";
-import { lazy } from "../utils/memoize";
+import { lazyPerApp } from "../utils/memoize";
 import { StyleObject } from "../styleTypes";
 import { svgIcon } from "./svgIcon";
 import { Color, ComponentOpts, Size } from "./types";
@@ -31,12 +31,13 @@ export interface CheckboxOpts
 
 const styles = createStyles({
   root: (
+    _,
     size: Size,
     variant: Variant,
     color: Color,
     overlay: boolean,
     disableIcon: boolean,
-    checkedVariation?: CheckedVariation
+    checkedVariation?: CheckedVariation,
   ) => {
     const styles: StyleObject = {
       "--icon-font-size": "var(--checkbox-size)",
@@ -68,7 +69,7 @@ const styles = createStyles({
         color: (
           getVariantStyle(
             checkedVariation.variant,
-            checkedVariation.color
+            checkedVariation.color,
           ) as any
         ).color,
       };
@@ -79,7 +80,7 @@ const styles = createStyles({
     }
     return styles;
   },
-  label: (disableIcon: boolean) => {
+  label: (_, disableIcon: boolean) => {
     const styles: StyleObject = {
       flex: 1,
       minWidth: 0,
@@ -103,11 +104,12 @@ const styles = createStyles({
     cursor: "pointer",
   },
   action: (
+    app,
     variant: Variant,
     color: Color,
     overlay: boolean,
     disableIcon: boolean,
-    checkedVariation?: CheckedVariation
+    checkedVariation?: CheckedVariation,
   ) => {
     const styles: StyleObject = {
       borderRadius: `var(--checkbox-action-radius, ${
@@ -119,7 +121,7 @@ const styles = createStyles({
       bottom: 0,
       right: 0,
       zIndex: 1, // The action element usually cover the area of nearest positioned parent
-      "&:has(:focus-visible)": app.ui.theme.focus.default,
+      "&:has(:focus-visible)": app.theme.focus.default,
     };
     if (disableIcon) {
       Object.assign(styles, {
@@ -138,12 +140,12 @@ const styles = createStyles({
           "&:hover": getVariantStyle(
             checkedVariation.variant,
             checkedVariation.color,
-            "hover"
+            "hover",
           ),
           "&:active": getVariantStyle(
             checkedVariation.variant,
             checkedVariation.color,
-            "active"
+            "active",
           ),
         };
       }
@@ -151,10 +153,11 @@ const styles = createStyles({
     return styles;
   },
   checkbox: (
+    _,
     variant: Variant,
     color: Color,
     disableIcon: boolean,
-    checkedVariation?: CheckedVariation
+    checkedVariation?: CheckedVariation,
   ) => {
     const styles: StyleObject = {
       boxSizing: "border-box",
@@ -174,7 +177,7 @@ const styles = createStyles({
       };
       if (variant === "outlined" || variant === "plain") {
         (variationStyles as any).backgroundColor = cssVar(
-          `palette-background-surface`
+          `palette-background-surface`,
         );
       }
       return variationStyles;
@@ -184,7 +187,7 @@ const styles = createStyles({
       if (checkedVariation) {
         (styles as any)[".checked &"] = variation(
           checkedVariation.variant,
-          checkedVariation.color
+          checkedVariation.color,
         );
       }
       (styles as any)[".error &"] = variation(variant, "danger");
@@ -193,14 +196,14 @@ const styles = createStyles({
   },
 });
 
-const getIcon = lazy(() =>
+const getIcon = lazyPerApp(() =>
   svgIcon({
     children: nodes.element("path", {
       props: {
         d: "'M9 16.17 5.53 12.7a.9959.9959 0 0 0-1.41 0c-.39.39-.39 1.02 0 1.41l4.18 4.18c.39.39 1.02.39 1.41 0L20.29 7.71c.39-.39.39-1.02 0-1.41a.9959.9959 0 0 0-1.41 0L9 16.17z'",
       },
     }),
-  })
+  }),
 );
 
 export function checkbox(opts: CheckboxOpts) {
@@ -225,7 +228,7 @@ export function checkbox(opts: CheckboxOpts) {
       color,
       overlay,
       disableIcon,
-      opts.checkedVariation
+      opts.checkedVariation,
     ),
     dynamicClasses,
     children: [
@@ -235,7 +238,7 @@ export function checkbox(opts: CheckboxOpts) {
           variant,
           color,
           disableIcon,
-          opts.checkedVariation
+          opts.checkedVariation,
         ),
         children: [
           slot("action", {
@@ -245,7 +248,7 @@ export function checkbox(opts: CheckboxOpts) {
               color,
               overlay,
               disableIcon,
-              opts.checkedVariation
+              opts.checkedVariation,
             ),
             children: slot("input", {
               tag: "input",

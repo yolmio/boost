@@ -3,7 +3,7 @@ import { InsertDialogOpts } from "../../components/insertDialog";
 import { list, listItem, listItemButton } from "../../components/list";
 import { materialIcon } from "../../components/materialIcon";
 import { getUniqueUiId } from "../../components/utils";
-import { app, BoolEnumLikeConfig, DurationSize, Table } from "../../app";
+import { hub, BoolEnumLikeConfig, DurationSize, Table } from "../../hub";
 import { nodes } from "../../nodeHelpers";
 import { Node } from "../../nodeTypes";
 import { createStyles } from "../../styleUtils";
@@ -21,7 +21,7 @@ import { DomStatements, StateStatementsOrFn } from "../../statements";
 import { DgStateHelpers } from "./shared";
 import * as yom from "../../yom";
 import { FilterTermHelper } from "./filterPopover";
-import { lazy } from "../../utils/memoize";
+import { lazyPerApp } from "../../utils/memoize";
 import { createBounceViewTransition } from "./toolbarPopover";
 
 export interface ToolbarConfig {
@@ -62,7 +62,7 @@ const checkboxStyles = {
   ml: 1,
   display: "inline-flex",
 };
-const checkboxSortAscNode = lazy(() =>
+const checkboxSortAscNode = lazyPerApp(() =>
   nodes.element("span", {
     styles: checkboxStyles,
     children: [
@@ -72,7 +72,7 @@ const checkboxSortAscNode = lazy(() =>
     ],
   }),
 );
-const checkboxSortDescNode = lazy(() =>
+const checkboxSortDescNode = lazyPerApp(() =>
   nodes.element("span", {
     styles: checkboxStyles,
     children: [
@@ -259,8 +259,8 @@ const styles = createStyles({
       },
     },
   },
-  columnDialog: (name: string) => {
-    createBounceViewTransition(name, "top right");
+  columnDialog: (app, name: string) => {
+    createBounceViewTransition(app, name, "top right");
     return {
       backgroundColor: "background-popup",
       borderRadius: "md",
@@ -540,7 +540,7 @@ function addSupergridDatagridDts(
     }
   }
   const idToColumnsDisplayName = `${datagridName}_dg_col_id_to_columns_display_name`;
-  app.addRuleFunction({
+  hub.addRuleFunction({
     parameters: [{ name: "id", type: "SmallUint" }],
     header: ["input.id", "display_name"],
     rules: columnsDisplayName,
@@ -548,7 +548,7 @@ function addSupergridDatagridDts(
     returnType: "String",
   });
   const idToDefaultOp = `${datagridName}_dg_col_id_to_op`;
-  app.addRuleFunction({
+  hub.addRuleFunction({
     parameters: [{ name: "id", type: "SmallUint" }],
     header: ["input.id", "op"],
     rules: defaultOps,
@@ -556,7 +556,7 @@ function addSupergridDatagridDts(
     returnType: { type: "Enum", enum: "dg_filter_op" },
   });
   const idToSortDisplayName = `${datagridName}_dg_col_id_to_sort_display_name`;
-  app.addRuleFunction({
+  hub.addRuleFunction({
     parameters: [{ name: "id", type: "SmallUint" }],
     header: ["input.id", "display_name"],
     rules: sortDisplayName,
@@ -564,7 +564,7 @@ function addSupergridDatagridDts(
     returnType: "String",
   });
   const idToFilterDisplayName = `${datagridName}_dg_col_id_to_filter_display_name`;
-  app.addRuleFunction({
+  hub.addRuleFunction({
     parameters: [{ name: "id", type: "SmallUint" }],
     header: ["input.id", "display_name"],
     rules: filterDisplayName,

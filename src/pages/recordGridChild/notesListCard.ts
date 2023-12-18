@@ -11,7 +11,7 @@ import { input } from "../../components/input";
 import { materialIcon } from "../../components/materialIcon";
 import { textarea } from "../../components/textarea";
 import { typography } from "../../components/typography";
-import { app } from "../../app";
+import { hub } from "../../hub";
 import { card } from "../../components/card";
 import { Style } from "../../styleTypes";
 import { RecordGridBuilder } from "../recordGrid";
@@ -91,7 +91,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
   let foreignKeyField = opts.foreignKeyField;
   const notesTable = opts.notesTable ?? ctx.table.name + "_note";
   if (!foreignKeyField) {
-    const notesTableModel = app.db.tables[notesTable];
+    const notesTableModel = hub.db.tables[notesTable];
     if (!notesTableModel) {
       throw new Error(`No notes table found for ${notesTable}`);
     }

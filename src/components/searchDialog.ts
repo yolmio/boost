@@ -1,7 +1,7 @@
-import { TableBuilder } from "../app";
+import { TableBuilder } from "../hub";
 import { nodes } from "../nodeHelpers";
 import { Node } from "../nodeTypes";
-import { app, Table } from "../app";
+import { hub, Table } from "../hub";
 import { DomStatements, DomStatementsOrFn } from "../statements";
 import { createStyles, cssVar } from "../styleUtils";
 import { SequentialIDGenerator } from "../utils/SequentialIdGenerator";
@@ -192,7 +192,7 @@ function prepareDisplayValue(
       throw new Error(`Field ${value} does not exist on table ${table.name}`);
     }
     if (field.type === "ForeignKey") {
-      const toTable = app.db.tables[field.table];
+      const toTable = hub.db.tables[field.table];
       if (toTable.recordDisplayName) {
         const nameExpr = toTable.recordDisplayName.expr(
           ...toTable.recordDisplayName.fields.map((f) => `other.${f}`),
@@ -316,7 +316,7 @@ function addDisplayValueToTable(
 }
 
 export function tableSearchDialog(opts: TableSearchDialogOpts) {
-  const tableModel = app.db.tables[opts.table];
+  const tableModel = hub.db.tables[opts.table];
   if (!tableModel.recordDisplayName) {
     throw new Error("tableSearchDialog expects recordDisplayName to exist");
   }
@@ -326,7 +326,7 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
   const displayValues = opts.displayValues?.map((value) =>
     prepareDisplayValue(tableModel, value),
   );
-  app.ui.deviceDb.addTable(`recent_${opts.table}_search`, (table) => {
+  hub.currentApp!.deviceDb.addTable(`recent_${opts.table}_search`, (table) => {
     table.bigUint("recent_search_id").notNull();
     table.string("recent_search_label", 500).notNull();
     table.timestamp("recent_search_timestamp").notNull();
@@ -469,7 +469,7 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
                           },
                           style: {
                             type: "Fuzzy",
-                            ...app.searchConfig.defaultFuzzyConfig,
+                            ...hub.searchConfig.defaultFuzzyConfig,
                           },
                           tables: [searchConfig],
                         },
@@ -755,7 +755,7 @@ function calcMultiTable(tables: PreparedMultiTableSearchDialogTable[]) {
   let labelExpr = "case ";
   let urlExpr = "case ";
   for (const table of tables) {
-    const tableModel = app.db.tables[table.name];
+    const tableModel = hub.db.tables[table.name];
     if (!tableModel.recordDisplayName) {
       throw new Error(
         "multiTableSearchDialog expects recordDisplayName to exist",
@@ -826,7 +826,7 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
   const optionId = (id: yom.SqlExpression): yom.SqlExpression =>
     `${inputId} || '-' || ${id}`;
   const tables = opts.tables.map((t): PreparedMultiTableSearchDialogTable => {
-    const tableModel = app.db.tables[t.name];
+    const tableModel = hub.db.tables[t.name];
     if (!tableModel) {
       throw new Error(`Table ${t.name} does not exist`);
     }
@@ -839,7 +839,7 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
       ),
     };
   });
-  app.ui.deviceDb.addTable("recent_multi_table_search", (table) => {
+  hub.currentApp!.deviceDb.addTable("recent_multi_table_search", (table) => {
     table.bigUint("recent_search_id").notNull();
     table.string("recent_search_table", 200).notNull();
     table.string("recent_search_label", 500).notNull();
@@ -940,7 +940,7 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
                 size: "sm",
                 checked: `not ${t.name}_disabled`,
                 label: stringLiteral(
-                  pluralize(app.db.tables[t.name].displayName),
+                  pluralize(hub.db.tables[t.name].displayName),
                 ),
                 color: "neutral",
                 variant: "outlined",
@@ -1029,7 +1029,7 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
                           },
                           style: {
                             type: "Fuzzy",
-                            ...app.searchConfig.defaultFuzzyConfig,
+                            ...hub.searchConfig.defaultFuzzyConfig,
                           },
                           tables: tableConfigs,
                         },
@@ -1335,7 +1335,7 @@ export interface RecordSelectDialog {
 }
 
 export function recordSelectDialog(opts: RecordSelectDialog) {
-  const tableModel = app.db.tables[opts.table];
+  const tableModel = hub.db.tables[opts.table];
   if (!tableModel.recordDisplayName) {
     throw new Error("tableSearchDialog expects recordDisplayName to exist");
   }
@@ -1434,7 +1434,7 @@ export function recordSelectDialog(opts: RecordSelectDialog) {
                         },
                         style: {
                           type: "Fuzzy",
-                          ...app.searchConfig.defaultFuzzyConfig,
+                          ...hub.searchConfig.defaultFuzzyConfig,
                         },
                         tables: [searchConfig],
                       },

@@ -1,5 +1,5 @@
 import "./app";
-import { app } from "@yolm/boost";
+import { hub } from "@yolm/boost";
 import { faker } from "@faker-js/faker";
 import { createObjectCsvWriter } from "csv-writer";
 import * as fs from "fs";
@@ -117,7 +117,7 @@ if (true) {
       }
       const startDate = new Date(
         lastMatterDate.getTime() +
-        faker.number.int({ min: 1, max: 5 }) * 1000 * 60 * 60 * 24
+          faker.number.int({ min: 1, max: 5 }) * 1000 * 60 * 60 * 24,
       );
       if (startDate > new Date()) {
         continue;
@@ -125,7 +125,7 @@ if (true) {
       const endDate = faker.date.between({
         from: startDate,
         to: new Date(
-          Math.max(startDate.getTime() + 1000 * 60 * 60 * 24 * 60, Date.now())
+          Math.max(startDate.getTime() + 1000 * 60 * 60 * 24 * 60, Date.now()),
         ),
       });
       lastMatterDate = endDate;
@@ -278,13 +278,13 @@ if (true) {
   await entriesWriter.writeRecords(entries);
 }
 
-app.addScript("init-dev-db", (s) =>
+hub.addScript("init-dev-db", (s) =>
   s
     .importCsv("db", "data/csv")
     .startTransaction("db")
     .modify(
-      `insert into db.user (global_id, is_sys_admin, is_admin, email) values (random.uuid(), true, true, 'coolguy@coolemail.com')`
+      `insert into db.user (global_id, is_sys_admin, is_admin, email) values (random.uuid(), true, true, 'coolguy@coolemail.com')`,
     )
     .commitTransaction("db")
-    .saveDbToDir("data/dev")
+    .saveDbToDir("data/dev"),
 );

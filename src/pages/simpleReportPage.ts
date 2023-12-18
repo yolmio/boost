@@ -7,12 +7,12 @@ import { input } from "../components/input";
 import { materialIcon } from "../components/materialIcon";
 import { getTableRecordSelect } from "../components/tableRecordSelect";
 import { typography } from "../components/typography";
-import { app } from "../app";
+import { hub } from "../hub";
 import { nodes } from "../nodeHelpers";
 import { Node, RouteNode } from "../nodeTypes";
 import { createStyles, cssVar } from "../styleUtils";
 import { normalizeCase, upcaseFirst } from "../utils/inflectors";
-import { lazy } from "../utils/memoize";
+import { lazyPerApp } from "../utils/memoize";
 import { stringLiteral } from "../utils/sqlHelpers";
 import * as yom from "../yom";
 import {
@@ -108,7 +108,7 @@ function getParameterDisplayName(p: ParameterBase): string {
     p.name
       .split("_")
       .map((v, i) => (i === 0 ? upcaseFirst(v) : v))
-      .join(" ")
+      .join(" "),
   );
 }
 
@@ -159,7 +159,7 @@ function getParameterControl(parameter: ReportParameter) {
         on: {
           input: (s) =>
             s.if(`try_cast(target_value as date) is not null`, (s) =>
-              s.setScalar(parameter.name, `try_cast(target_value as date)`)
+              s.setScalar(parameter.name, `try_cast(target_value as date)`),
             ),
         },
       });
@@ -180,7 +180,7 @@ function tableNode(stateTable: string, columns: TableColumn[]) {
           nodes.element("th", {
             styles: styles.eachHeaderCell,
             children: stringLiteral(col.header),
-          })
+          }),
         ),
       }),
       nodes.element("tbody", {
@@ -200,7 +200,7 @@ function tableNode(stateTable: string, columns: TableColumn[]) {
                       children: col.cell(`each_record`),
                     })
                   : col.cell(`each_record`),
-              })
+              }),
             ),
           }),
         }),
@@ -209,12 +209,12 @@ function tableNode(stateTable: string, columns: TableColumn[]) {
   });
 }
 
-const progress = lazy(() => circularProgress());
-const error = lazy(() =>
+const progress = lazyPerApp(() => circularProgress());
+const error = lazyPerApp(() =>
   alert({
     color: "danger",
     children: `'Unable to generate report at this time. Please try again later.'`,
-  })
+  }),
 );
 
 function wrapWithLoadingErrorSwitch(node: Node) {
@@ -230,14 +230,14 @@ function wrapWithLoadingErrorSwitch(node: Node) {
     {
       condition: `true`,
       node,
-    }
+    },
   );
 }
 
 function tableDownloadStatements(
   tableName: string,
   columns: TableColumn[],
-  reportName: string
+  reportName: string,
 ) {
   let selectColumns = "";
   for (const col of columns) {
@@ -466,7 +466,7 @@ export class SimpleReportsPageBuilder {
                       children:
                         typeof v === "string"
                           ? stringLiteral(
-                              upcaseFirst(normalizeCase(v).join(" "))
+                              upcaseFirst(normalizeCase(v).join(" ")),
                             )
                           : stringLiteral(v.header),
                     }),
@@ -478,9 +478,9 @@ export class SimpleReportsPageBuilder {
                 });
               }),
             }),
-          })
+          }),
         ),
-      })
+      }),
     );
     this.#addReport(node, opts);
   }
@@ -511,7 +511,7 @@ export class SimpleReportsPageBuilder {
                   click: tableDownloadStatements(
                     stateTableName,
                     opts.columns,
-                    opts.name
+                    opts.name,
                   ),
                 },
                 children: `'Download table'`,
@@ -519,7 +519,7 @@ export class SimpleReportsPageBuilder {
             : undefined,
           tableNode(opts.stateTable ?? `table_report_query`, opts.columns),
         ]),
-      })
+      }),
     );
     this.#addReport(node, opts);
   }
@@ -549,7 +549,7 @@ export class SimpleReportsPageBuilder {
           click: tableDownloadStatements(
             leftStateTable,
             opts.left.columns,
-            opts.name
+            opts.name,
           ),
         },
         children: `'Download table'`,
@@ -579,7 +579,7 @@ export class SimpleReportsPageBuilder {
           click: tableDownloadStatements(
             rightStateTable,
             opts.right.columns,
-            opts.name
+            opts.name,
           ),
         },
         children: `'Download table'`,
@@ -619,14 +619,14 @@ export class SimpleReportsPageBuilder {
                   rightHeader,
                   tableNode(
                     opts.right.stateTable ?? `right_table_comparison_query`,
-                    opts.right.columns
+                    opts.right.columns,
                   ),
                 ],
               }),
             ],
-          })
+          }),
         ),
-      })
+      }),
     );
     this.#addReport(node, opts);
   }
@@ -639,7 +639,7 @@ export class SimpleReportsPageBuilder {
         procedure: opts.state,
         statusScalar: "status",
         children: wrapWithLoadingErrorSwitch(opts.node),
-      })
+      }),
     );
     this.#addReport(node, opts);
   }
@@ -652,7 +652,7 @@ export class SimpleReportsPageBuilder {
           (p) =>
             `(case when ${p.name} is null then ` +
             getParameterDisplayName(p) +
-            ` end)`
+            ` end)`,
         )
         .join(",");
       node = nodes.if({
@@ -711,7 +711,7 @@ export class SimpleReportsPageBuilder {
                     {
                       classes: "active",
                       condition: `uri.is_match(location.pathname, ${stringLiteral(
-                        this.#basePath + "/" + r.urlName
+                        this.#basePath + "/" + r.urlName,
                       )})`,
                     },
                   ],
@@ -719,11 +719,11 @@ export class SimpleReportsPageBuilder {
                     href: stringLiteral(this.#basePath + "/" + r.urlName),
                   },
                   children: stringLiteral(r.displayName),
-                })
+                }),
               ),
             }),
           ],
-        })
+        }),
       );
       if (section.reports.length === 0) {
         throw new Error("Section must have at least one report");
@@ -733,7 +733,7 @@ export class SimpleReportsPageBuilder {
           nodes.route({
             path: report.urlName,
             children: nodes.element("div", { children: report.node }),
-          })
+          }),
         );
       }
     }
@@ -765,7 +765,7 @@ export class SimpleReportsPageBuilder {
         }),
       ],
     });
-    app.ui.pages.push({
+    hub.currentApp!.pages.push({
       path: this.#basePath,
       content,
     });

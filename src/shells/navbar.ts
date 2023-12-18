@@ -20,7 +20,7 @@ import { makeConditionalLink } from "./internals/authLink";
 import { globalSearchDialog } from "./internals/globalSearchDialog";
 import * as yom from "../yom";
 import { Node } from "../nodeTypes";
-import { app } from "../app";
+import { hub } from "../hub";
 
 export interface NavbarProps extends GlobalSearchOpts {
   variant?: "soft" | "solid";
@@ -33,8 +33,8 @@ export interface NavbarProps extends GlobalSearchOpts {
 }
 
 const styles = createStyles({
-  root: (variant: "soft" | "solid", color: ColorPaletteProp) => {
-    app.ui.addGlobalStyle({
+  root: (app, variant: "soft" | "solid", color: ColorPaletteProp) => {
+    app.addGlobalStyle({
       "::view-transition-new(navbar)": {
         animation: "none",
       },
@@ -68,7 +68,7 @@ const styles = createStyles({
     display: "flex",
     gap: 1.5,
   },
-  searchButton: () => {
+  searchButton: ({ theme }) => {
     return {
       appearance: "none",
       "--icon-margin": "initial", // reset the icon's margin.
@@ -82,7 +82,7 @@ const styles = createStyles({
       fontFamily: cssVar(`font-family-body`),
       fontWeight: cssVar(`font-weight-md`),
       lineHeight: 1,
-      "&:focus-visible": app.ui.theme.focus.default,
+      "&:focus-visible": theme.focus.default,
       "&:hover": getVariantStyle("soft", "harmonize", "hover"),
       "&:active": getVariantStyle("soft", "harmonize", "active"),
       ...getVariantStyle("soft", "harmonize"),
@@ -120,12 +120,12 @@ const styles = createStyles({
   linkWrapper: {
     position: "relative",
   },
-  linkActive: () => {
-    app.ui.addGlobalStyle({
+  linkActive: (app) => {
+    app.addGlobalStyle({
       'html[data-yolm-transition-type*="navigate"]::view-transition-group(navbar-link-active)':
         {
-          animationDuration: app.ui.theme.transitionDurations.navigation,
-          animationTimingFunction: app.ui.theme.transitionEasing.navigation,
+          animationDuration: app.theme.transitionDurations.navigation,
+          animationTimingFunction: app.theme.transitionEasing.navigation,
         },
       'html[data-yolm-transition-type*="navigate"]::view-transition-new(navbar-link-active)':
         {

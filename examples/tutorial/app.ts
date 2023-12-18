@@ -1,10 +1,8 @@
-import { app } from "@yolm/boost";
-const { db, ui } = app;
+import { hub } from "@yolm/boost";
+const { db } = hub;
 
-app.name = "tutorial";
-app.title = "Tutorial";
-app.displayName = "Tutorial";
-app.dbExecutionConfig = { type: "Server", cpu: "1/2" }
+hub.name = "tutorial";
+hub.dbExecutionConfig = { type: "Server", cpu: "1/2" };
 
 db.addTable("contact", (table) => {
   table.string("first_name", 50).notNull();
@@ -17,7 +15,11 @@ db.addTable("contact", (table) => {
 db.catalog.addNotesTable("contact");
 db.catalog.addAttachmentsTable("contact");
 
-ui.useNavbarShell({
+const app = hub.addApp("tutorial", "Tutorial");
+
+app.title = "Tutorial";
+
+app.useNavbarShell({
   color: "primary",
   variant: "solid",
   links: ["/contacts", { label: "DB", url: "/db-management" }],
@@ -27,20 +29,20 @@ ui.useNavbarShell({
   },
 });
 
-ui.pages.push({
+app.pages.push({
   path: "/",
   content: "'hello world!'",
 });
 
-ui.addDatagridPage("contact", (page) => {
+app.addDatagridPage("contact", (page) => {
   page
     .viewButton()
     .selectable()
     .toolbar((toolbar) => toolbar.insertDialog().delete());
 });
 
-ui.addRecordGridPage("contact", (page) => {
+app.addRecordGridPage("contact", (page) => {
   page.namedPageHeader().addressCard({}).attachmentsCard({}).notesListCard({});
 });
 
-ui.addDbManagementPage();
+app.addDbManagementPage();

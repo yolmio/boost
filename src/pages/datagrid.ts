@@ -1,8 +1,8 @@
 import { button } from "../components/button";
 import { InsertDialogOpts } from "../components/insertDialog";
-import { Table } from "../app";
+import { Table } from "../hub";
 import { nodes } from "../nodeHelpers";
-import { app } from "../app";
+import { hub } from "../hub";
 import { upcaseFirst } from "../utils/inflectors";
 import { stringLiteral } from "../utils/sqlHelpers";
 import { columnFromField } from "./datagridInternals/fromModel";
@@ -42,7 +42,7 @@ export interface FieldConfig extends FieldEditProcConfig {
 function idColumn(
   tableModel: Table,
   index: number,
-  startFixedColumns: number
+  startFixedColumns: number,
 ): SuperGridColumn {
   const idDisplayName = tableModel.primaryKeyFieldName
     .split("_")
@@ -72,7 +72,7 @@ function idColumn(
           minWidth: 50,
           setWidth: (width) =>
             new BasicStatements().modify(
-              `update ui.column set width = ${width} where id = ${index}`
+              `update ui.column set width = ${width} where id = ${index}`,
             ),
           width: `(select width from ui.column where id = ${index})`,
         }),
@@ -183,7 +183,7 @@ export class DatagridPageBuilder {
   #pageSize = 100;
 
   constructor(table: string) {
-    this.#table = app.db.tables[table];
+    this.#table = hub.db.tables[table];
     if (!this.#table) {
       throw new Error(`No table ${table} found`);
     }
@@ -209,7 +209,7 @@ export class DatagridPageBuilder {
       if (!this.#table.getHrefToRecord) {
         throw new Error(
           "viewButton is true but table has no getHrefToRecord, on datagrid for table " +
-            this.#table.name
+            this.#table.name,
         );
       }
       this.#viewButtonUrl = (id) => this.#table.getHrefToRecord!(id);
@@ -258,7 +258,7 @@ export class DatagridPageBuilder {
     expr: (
       value1: yom.SqlExpression,
       value2: yom.SqlExpression,
-      value3: yom.SqlExpression
+      value3: yom.SqlExpression,
     ) => yom.SqlExpression;
     node?: (helpers: FilterTermHelper, state: DgStateHelpers) => Node;
   }) {
@@ -346,7 +346,7 @@ export class DatagridPageBuilder {
             minWidth: 50,
             setWidth: (width) =>
               new BasicStatements().modify(
-                `update ui.column set width = ${width} where id = ${currentColumnId}`
+                `update ui.column set width = ${width} where id = ${currentColumnId}`,
               ),
             width: `(select width from ui.column where id = ${currentColumnId})`,
           }),
@@ -411,15 +411,15 @@ export class DatagridPageBuilder {
             s
               .scalar(
                 `row_id`,
-                `(select field_0 from ui.dg_table limit 1 offset cell.row - 1)`
+                `(select field_0 from ui.dg_table limit 1 offset cell.row - 1)`,
               )
-              .statements(toggleRowSelection(`cast(row_id as bigint)`))
+              .statements(toggleRowSelection(`cast(row_id as bigint)`)),
           ),
         keydownHeaderHandler: (s) =>
           s.if(`event.key = 'Enter' or event.key = ' '`, (s) =>
             s
               .setScalar(`selected_all`, `not selected_all`)
-              .modify(`delete from selected_row`)
+              .modify(`delete from selected_row`),
           ),
         viewStorageName: "dg_checkbox_col",
       });
@@ -503,7 +503,7 @@ export class DatagridPageBuilder {
       if (typeof fieldConfig?.immutable === "string") {
         extraState.scalar(
           `field_${field.name}_is_immutable`,
-          fieldConfig.immutable
+          fieldConfig.immutable,
         );
       }
     }
@@ -533,14 +533,14 @@ export class DatagridPageBuilder {
         toolbar: this.#toolbarBuilder._finish(addHref),
         extraState,
         defaultView: this.#defaultView,
-      })
+      }),
     );
   }
 
   private _finish() {
     const path = this.#path ?? this.#table.baseUrl;
     const content = this._createNode();
-    app.ui.pages.push({
+    hub.currentApp!.pages.push({
       path,
       content,
     });
@@ -549,7 +549,7 @@ export class DatagridPageBuilder {
 
 export function datagridPage(
   table: string,
-  f: (t: DatagridPageBuilder) => unknown
+  f: (t: DatagridPageBuilder) => unknown,
 ) {
   const builder = new DatagridPageBuilder(table);
   f(builder);
@@ -558,7 +558,7 @@ export function datagridPage(
 
 export function createDatagridPageNode(
   table: string,
-  f: (t: DatagridPageBuilder) => unknown
+  f: (t: DatagridPageBuilder) => unknown,
 ): Node {
   const builder = new DatagridPageBuilder(table);
   f(builder);

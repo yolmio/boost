@@ -1,4 +1,4 @@
-import { Field, app } from "../app";
+import { Field, hub } from "../hub";
 import { SequentialIDGenerator } from "../utils/SequentialIdGenerator";
 import * as yom from "../yom";
 import { tableFieldSql } from "./sqlHelpers";
@@ -130,7 +130,7 @@ export function createUnionQuery(opts: UnionOpts): Union {
       (mergeField) =>
         mergeField.type === typeKey &&
         // We cannot merge fields from the same source
-        !mergeField.sources.some((s) => s.idx === source.idx)
+        !mergeField.sources.some((s) => s.idx === source.idx),
     );
     if (mergeField) {
       mergeField.sources.push(source);
@@ -145,7 +145,7 @@ export function createUnionQuery(opts: UnionOpts): Union {
   for (let i = 0; i < opts.sources.length; i++) {
     const source = opts.sources[i];
     if (source.type === "Table") {
-      const table = app.db.tables[source.table];
+      const table = hub.db.tables[source.table];
       if (source.fields) {
         for (const f of source.fields) {
           let typeKey: string;
@@ -214,14 +214,14 @@ export function createUnionQuery(opts: UnionOpts): Union {
           (s) =>
             s.idx === idx &&
             (("expr" in s && s.exprName === field) ||
-              ("field" in s && s.field === field))
-        )
+              ("field" in s && s.field === field)),
+        ),
       );
       if (foundField) {
         return recordName + "." + foundField.id;
       }
       throw new Error(
-        `Field '${field}' does not exist in union for source '${idx}'`
+        `Field '${field}' does not exist in union for source '${idx}'`,
       );
     },
   };

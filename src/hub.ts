@@ -46,7 +46,7 @@ import {
 } from "./pages/multiCardInsert";
 import { ComponentOpts } from "./components/types";
 import { addMigrationScript, MigrationScriptOpts } from "./migrate";
-import { KeyFrames, StyleSerializer, transformNode } from "./nodeTransform";
+import { KeyFrames, NodeTransformer } from "./nodeTransform";
 import { SequentialIDGenerator } from "./utils/SequentialIdGenerator";
 import { escapeHtml } from "./utils/escapeHtml";
 import { default404Page } from "./pages/default404";
@@ -59,21 +59,15 @@ import { nodes } from "./nodeHelpers";
  *
  * This is where everything about the app is configured, the database, the ui, the api, everything.
  */
-export class App {
+export class Hub {
   /**
    * The name of the application it will show up at: yolm.app/{YOUR_ACCOUNT_NAME}/{APP_NAME}
    *
    * It needs to be unique within an account
    */
   name = "please-rename";
-  /**
-   * The title of the html document for this application
-   */
-  title = "please-rename";
-  /*
-   * Used in displaying the name of this app to the user (not in the url)
-   */
-  displayName = "Please Rename";
+  region?: yom.Region;
+  replicas: yom.Replica[] = [];
   displayNameConfig: DisplayNameConfig = {
     default: defaultGetDisplayName,
     table: defaultGetDisplayName,
@@ -96,12 +90,11 @@ export class App {
       filters: [{ type: "AsciiFold" }, { type: "Lowercase" }],
     },
   };
-  appDomain?: string;
   collation = "NoCase" as yom.Collation;
   autoTrim = "None" as yom.AutoTrim;
-  dbExecutionConfig: yom.DbExecutionConfig = { type: "SyncService" };
+  dbExecutionConfig: yom.HubExecutionConfig = { type: "SyncService" };
   db: Db = new Db();
-  ui: Ui = new Ui();
+  apps: Record<string, App> = {};
   api: Api = new Api();
   enums: Record<string, Enum> = {};
   recordRuleFunctions: Record<string, RecordRuleFn> = {};
@@ -111,6 +104,17 @@ export class App {
   test = new Test();
   scripts: yom.Script[] = [];
   scriptDbs: ScriptDb[] = [];
+  currentAppName?: string;
+
+  get currentApp() {
+    return this.currentAppName ? this.apps[this.currentAppName] : undefined;
+  }
+
+  addApp(name: string, displayName: string): App {
+    this.apps[name] = new App(name, displayName);
+    this.currentAppName = name;
+    return this.apps[name];
+  }
 
   addScalarFunction(f: HelperScalarFunction) {
     this.scalarFunctions[f.name] = scalarFunctionFromHelper(f);
@@ -125,13 +129,13 @@ export class App {
   }
 
   addEnum(enum_: HelperEnum) {
-    const displayName = app.displayNameConfig.enum(enum_.name);
+    const displayName = hub.displayNameConfig.enum(enum_.name);
     const values = enum_.values.map((v) => {
       if (typeof v === "string") {
-        return { name: v, displayName: app.displayNameConfig.enumValue(v) };
+        return { name: v, displayName: hub.displayNameConfig.enumValue(v) };
       }
       return {
-        displayName: app.displayNameConfig.enumValue(v.name),
+        displayName: hub.displayNameConfig.enumValue(v.name),
         ...v,
       };
     });
@@ -190,7 +194,7 @@ export class App {
       description: enum_.description,
       values: valuesObject,
     };
-    app.enums[enum_.name] = modelEnum;
+    hub.enums[enum_.name] = modelEnum;
     if (!enum_.disableDisplayRfn) {
       modelEnum.getDisplayName = (v) => `rfn.display_${enum_.name}(${v})`;
     }
@@ -198,7 +202,7 @@ export class App {
 
   addScriptDbDefinition(
     name: string,
-    f: (builder: ScriptDbDefinition) => void
+    f: (builder: ScriptDbDefinition) => void,
   ) {
     const db = new ScriptDbDefinition(name);
     f(db);
@@ -220,37 +224,42 @@ export class App {
   }
 
   generateYom(): yom.Model {
-    if (!app.db.tables[app.db.userTableName]) {
-      app.db.addTable(app.db.userTableName, (t) => {
+    if (!hub.db.tables[hub.db.userTableName]) {
+      hub.db.addTable(hub.db.userTableName, (t) => {
         t.catalog.addRequiredUserFields();
       });
     }
-    const ui = this.ui.generateYom();
-    if (app.name === "please-rename") {
+    const apps = Object.values(this.apps).map((app) => app.generateYom());
+    if (hub.name === "please-rename") {
       console.log();
       console.warn(
-        "You should rename your app from 'please-rename' to something else using `setAppName()`."
+        "You should rename your hub from 'please-rename' to something else.",
       );
       console.warn(
-        "Unless you really want to use the name 'please-rename' for your app."
+        "Unless you really want to use the name 'please-rename' for your hub.",
       );
+      console.log();
+    }
+    if (!this.region) {
+      console.log();
+      console.warn("You must set the region for your hub before you deploy.");
       console.log();
     }
     return {
       // todo make this part of the model
       locale: "en_us",
+      region: (this.region ?? "not-set") as any,
+      replicas: this.replicas,
       name: this.name,
-      displayName: this.displayName,
       dbExecutionConfig: this.dbExecutionConfig,
-      appDomain: this.appDomain,
       collation: this.collation,
       db: this.db.generateYom(),
       recordRuleFunctions: Object.values(this.recordRuleFunctions).map(
-        generateRecordRuleFn
+        generateRecordRuleFn,
       ),
       ruleFunctions: Object.values(this.ruleFunctions).map(generateRuleFn),
       scalarFunctions: Object.values(this.scalarFunctions).map(
-        generateScalarFunction
+        generateScalarFunction,
       ),
       enums: Object.values(this.enums).map((e) => ({
         name: e.name,
@@ -262,7 +271,7 @@ export class App {
           description: v.description,
         })),
       })),
-      ui,
+      apps,
       scripts: this.scripts,
       api: this.api.generateYom(),
       test: this.test.generateYom(),
@@ -277,7 +286,7 @@ export class App {
               db: {
                 enableTransactionQueries: false,
                 tables: Object.values(db.definition.db.tables).map((t) =>
-                  t.generateYom()
+                  t.generateYom(),
                 ),
               },
             },
@@ -316,7 +325,11 @@ export interface CrossPageSnackbarControls {
   closeSnackbar: BasicStatements;
 }
 
-export class Ui {
+export class App {
+  /**
+   * The title of the html document for this application
+   */
+  title = "please-rename";
   webAppConfig: WebAppConfig = {
     htmlHead: "",
     viewport: `width=device-width, initial-scale=1`,
@@ -324,13 +337,18 @@ export class Ui {
     manifest: {},
   };
   deviceDb = new DeviceDb();
-  #globalStyles: StyleObject[] = [];
-  #keyframeIdGen = new SequentialIDGenerator();
-  #keyFrames: Map<KeyFrames, string> = new Map();
+  pollingPullConfig?: yom.PollingPullConfig;
+  executionConfig?: yom.AppDbExecutionConfig;
   theme: Theme = createTheme();
   shell?: (pages: Node) => Node;
   pages: Page[] = [];
+
+  #globalStyles: StyleObject[] = [];
+  #keyframeIdGen = new SequentialIDGenerator();
+  #keyFrames: Map<KeyFrames, string> = new Map();
   #crosspageSnackbars: CrossPageSnackbar[] = [];
+
+  constructor(public name: string, public displayName: string) {}
 
   //
   // Helper methods
@@ -354,11 +372,11 @@ export class Ui {
   }
 
   registerCrossPageSnackbar(
-    opts: CrossPageSnackbarOpts
+    opts: CrossPageSnackbarOpts,
   ): CrossPageSnackbarControls {
     const closeSnackbar = new BasicStatements().setScalar(
       "crosspage_snackbar_open",
-      "null"
+      "null",
     );
     return this.registerCrossPageCustomSnackbar({
       node: snackbar(opts.componentOpts(closeSnackbar)),
@@ -367,12 +385,12 @@ export class Ui {
   }
 
   registerCrossPageCustomSnackbar(
-    opts: CustomCrossPageSnackbarOpts
+    opts: CustomCrossPageSnackbarOpts,
   ): CrossPageSnackbarControls {
     const i = this.#crosspageSnackbars.length;
     const closeSnackbar = new BasicStatements().setScalar(
       "crosspage_snackbar_open",
-      "null"
+      "null",
     );
     this.#crosspageSnackbars.push({
       node: opts.node,
@@ -386,7 +404,7 @@ export class Ui {
               s
                 .delay(opts.autoHideDuration!.toString())
                 .if(`crosspage_snackbar_open = ${i}`, (s) =>
-                  s.statements(closeSnackbar).commitUiTreeChanges()
+                  s.statements(closeSnackbar).commitUiTreeChanges(),
                 ),
           })
         : new DomStatements().statements(closeSnackbar);
@@ -395,11 +413,11 @@ export class Ui {
         .setScalar("crosspage_snackbar_open", i.toString())
         .conditionalStatements(
           typeof opts.autoHideDuration === "number",
-          delayedClose
+          delayedClose,
         ),
       openSnackbarWithoutDelayedClose: new BasicStatements().setScalar(
         "crosspage_snackbar_open",
-        i.toString()
+        i.toString(),
       ),
       closeSnackbar,
       delayedCloseSnackbar: delayedClose,
@@ -432,7 +450,7 @@ export class Ui {
 
   addRecordGridPage(
     table: string,
-    fn: (builder: RecordGridBuilder) => unknown
+    fn: (builder: RecordGridBuilder) => unknown,
   ) {
     recordGridPage(table, fn);
   }
@@ -445,7 +463,7 @@ export class Ui {
 
   addSimpleDatagridPage(
     table: string,
-    f: (f: SimpleDatagridPageBuilder) => unknown
+    f: (f: SimpleDatagridPageBuilder) => unknown,
   ) {
     simpleDatagridPage(table, f);
   }
@@ -456,19 +474,19 @@ export class Ui {
 
   createDatagridPageNode(
     table: string,
-    f: (f: DatagridPageBuilder) => unknown
+    f: (f: DatagridPageBuilder) => unknown,
   ) {
     return createDatagridPageNode(table, f);
   }
 
-  generateYom(): yom.UiModel {
+  generateYom(): yom.AppModel {
     if (!this.pages.some((p) => p.path === "/*" || p.path === "*")) {
       this.pages.push({
         path: "*",
         content: default404Page(),
       });
     }
-    const pagesWithShell = app.ui.pages
+    const pagesWithShell = this.pages
       .filter((p) => !p.ignoreShell)
       .map(
         (p) =>
@@ -476,9 +494,9 @@ export class Ui {
             t: "Route",
             path: p.path,
             children: p.content,
-          } as RouteNode)
+          } as RouteNode),
       );
-    const pagesWithoutShell = app.ui.pages
+    const pagesWithoutShell = this.pages
       .filter((p) => p.ignoreShell)
       .map(
         (p) =>
@@ -486,11 +504,11 @@ export class Ui {
             t: "Route",
             path: p.path,
             children: p.content,
-          } as RouteNode)
+          } as RouteNode),
       );
     let rootNode: Node;
-    if (app.ui.shell) {
-      const shell = app.ui.shell({
+    if (this.shell) {
+      const shell = this.shell({
         t: "Routes",
         children: pagesWithShell,
       });
@@ -517,7 +535,7 @@ export class Ui {
           ...this.#crosspageSnackbars.map((s, i) => ({
             condition: `crosspage_snackbar_open = ${i}`,
             node: s.node,
-          }))
+          })),
         ),
       ];
       for (const snackbar of this.#crosspageSnackbars) {
@@ -534,24 +552,19 @@ export class Ui {
         children: rootNode,
       });
     }
-    const serializer = new StyleSerializer(
-      rootStyles(this.theme),
+    const transformer = new NodeTransformer(
+      this,
       this.#keyFrames,
-      this.#globalStyles
+      this.#globalStyles,
     );
-    const tree = transformNode(rootNode, (styles, dynamicStyle) => {
-      if (!styles) {
-        return;
-      }
-      return serializer.addStyle(styles, !dynamicStyle);
-    });
+    const tree = transformer.transformNode(rootNode);
     let htmlHead = this.webAppConfig.htmlHead;
-    if (app.title) {
-      htmlHead += `<title>${escapeHtml(app.title)}</title>`;
+    if (this.title) {
+      htmlHead += `<title>${escapeHtml(this.title)}</title>`;
     }
     if (this.webAppConfig.viewport) {
       htmlHead += `<meta name="viewport" content="${escapeHtml(
-        this.webAppConfig.viewport
+        this.webAppConfig.viewport,
       )}">`;
     }
     switch (this.webAppConfig.logoGeneration.type) {
@@ -589,17 +602,19 @@ export class Ui {
         break;
     }
     if (!this.webAppConfig.manifest.name) {
-      this.webAppConfig.manifest.name = app.displayName;
+      this.webAppConfig.manifest.name = this.displayName;
     }
     return {
+      name: this.name,
+      displayName: this.displayName,
       pwaManifest: this.webAppConfig.manifest,
+      pollingPullConfig: this.pollingPullConfig,
+      executionConfig: this.executionConfig,
       htmlHead: htmlHead,
       tree,
-      css: serializer.getCss(),
+      css: transformer.getCss(),
       deviceDb: {
-        tables: Object.values(app.ui.deviceDb.tables).map((t) =>
-          t.generateYom()
-        ),
+        tables: Object.values(this.deviceDb.tables).map((t) => t.generateYom()),
       },
     };
   }
@@ -672,19 +687,19 @@ export class Db {
 
   generateYom(): yom.Database {
     return {
-      userTableName: app.db.userTableName,
-      collation: app.db.collation,
-      autoTrim: app.db.autoTrim,
-      enableTransactionQueries: app.db.enableTransactionQueries,
-      recordRuleFunctions: Object.values(app.db.recordRuleFunctions).map(
-        generateRecordRuleFn
+      userTableName: hub.db.userTableName,
+      collation: hub.db.collation,
+      autoTrim: hub.db.autoTrim,
+      enableTransactionQueries: hub.db.enableTransactionQueries,
+      recordRuleFunctions: Object.values(hub.db.recordRuleFunctions).map(
+        generateRecordRuleFn,
       ),
-      ruleFunctions: Object.values(app.db.ruleFunctions).map(generateRuleFn),
-      scalarFunctions: Object.values(app.db.scalarFunctions).map(
-        generateScalarFunction
+      ruleFunctions: Object.values(hub.db.ruleFunctions).map(generateRuleFn),
+      scalarFunctions: Object.values(hub.db.scalarFunctions).map(
+        generateScalarFunction,
       ),
-      tables: Object.values(app.db.tables).map((t) => t.generateYom()),
-      searchMatches: Object.values(app.db.searchMatches),
+      tables: Object.values(hub.db.tables).map((t) => t.generateYom()),
+      searchMatches: Object.values(hub.db.searchMatches),
     };
   }
 }
@@ -746,7 +761,7 @@ export class Api {
   #addEndpoint(
     method: yom.EndpointMethod,
     path: string,
-    helper: EndpointHelper
+    helper: EndpointHelper,
   ) {
     this.#endpoints.push({
       method,
@@ -790,7 +805,7 @@ export interface EndpointHelper {
 }
 
 function createFromJSONTables(
-  f?: (helper: FromJSONHelper) => void
+  f?: (helper: FromJSONHelper) => void,
 ): yom.JSONToTable[] {
   if (!f) {
     return [];
@@ -814,7 +829,7 @@ export class FromJSONHelper {
       this.#tables,
       name,
       undefined,
-      true
+      true,
     );
     f(builder);
     builder.finish();
@@ -835,7 +850,7 @@ export class FromJSONTableHelper {
     private outputTables: yom.JSONToTable[],
     private name: string,
     private parent?: string,
-    private singleRecord?: boolean
+    private singleRecord?: boolean,
   ) {}
 
   path(...path: string[]) {
@@ -939,14 +954,14 @@ export class FromJSONTableHelper {
       precision: number;
       scale: number;
       signed?: boolean;
-    }
+    },
   ) {
     const field = new FromJSONDecimalFieldBuilder(
       name,
       opts.precision,
       opts.scale,
       opts.signed ?? true,
-      undefined
+      undefined,
     );
     this.#fields.push(field);
     return field;
@@ -1102,7 +1117,7 @@ export interface TableControlOpts extends ComponentOpts {
   error?: string;
   onComboboxSelectValue?: (
     newId: string,
-    newLabel: string
+    newLabel: string,
   ) => DomStatementsOrFn;
 }
 
@@ -1162,7 +1177,7 @@ export class Table {
   constructor(
     public primaryKeyFieldName: string,
     public name: string,
-    public displayName: string
+    public displayName: string,
   ) {}
 
   get identName() {
@@ -1183,7 +1198,7 @@ export class Table {
       throw new Error("table " + this.name + " has no recordDisplayName");
     }
     return displayNameFn.expr(
-      ...displayNameFn.fields.map((f) => `${record ?? this.identName}.${f}`)
+      ...displayNameFn.fields.map((f) => `${record ?? this.identName}.${f}`),
     );
   }
 
@@ -1194,7 +1209,7 @@ export class Table {
    */
   getFkFieldToTable(table: string): ForeignKeyField | undefined {
     return Object.values(this.fields).find(
-      (f) => f.type === "ForeignKey" && f.table === table
+      (f) => f.type === "ForeignKey" && f.table === table,
     ) as ForeignKeyField | undefined;
   }
 
@@ -1424,7 +1439,7 @@ export class DecimalField extends NumericFieldBase {
     displayName: string,
     public precision: number,
     public scale: number,
-    public signed: boolean
+    public signed: boolean,
   ) {
     super(name, displayName);
   }
@@ -1487,7 +1502,7 @@ export class TimestampField extends FieldBase {
 
   formatExpr(expr: yom.SqlExpression): yom.SqlExpression {
     const formatString = stringLiteral(
-      this.formatString ?? "%-d %b %Y %l:%M%p"
+      this.formatString ?? "%-d %b %Y %l:%M%p",
     );
     return `format.date(${expr}, ${formatString})`;
   }
@@ -1563,7 +1578,7 @@ export class ForeignKeyField extends FieldBase {
     name: string,
     displayName: string,
     public table: string,
-    public onDelete: yom.OnDeleteBehavior
+    public onDelete: yom.OnDeleteBehavior,
   ) {
     super(name, displayName);
   }
@@ -1607,7 +1622,7 @@ export class TableBuilder {
   #primaryKeyFieldName?: string;
 
   constructor(private name: string) {
-    this.#displayName = app.displayNameConfig.table(name);
+    this.#displayName = hub.displayNameConfig.table(name);
   }
 
   /**
@@ -1737,14 +1752,14 @@ export class TableBuilder {
       precision: number;
       scale: number;
       signed?: boolean;
-    }
+    },
   ) {
     const field = new DecimalFieldBuilder(
       name,
       opts.precision,
       opts.scale,
       opts.signed ?? true,
-      undefined
+      undefined,
     );
     this.addField(field);
     return field;
@@ -1776,7 +1791,7 @@ export class TableBuilder {
           scale: number;
           signed?: boolean;
         }
-      | yom.FieldIntegerTypes
+      | yom.FieldIntegerTypes,
   ) {
     const usage = { type: "Money", currency: "USD" } as const;
     if (typeof opts === "string") {
@@ -1808,7 +1823,7 @@ export class TableBuilder {
       normalizedOpts.precision,
       normalizedOpts.scale,
       normalizedOpts.signed ?? false,
-      usage
+      usage,
     );
     this.addField(field);
     return field;
@@ -1820,14 +1835,14 @@ export class TableBuilder {
       precision: number;
       scale: number;
       signed?: boolean;
-    }
+    },
   ) {
     const field = new DecimalFieldBuilder(
       name,
       opts.precision,
       opts.scale,
       opts.signed ?? false,
-      { type: "Percentage" }
+      { type: "Percentage" },
     );
     this.addField(field);
     return field;
@@ -1836,7 +1851,7 @@ export class TableBuilder {
   #duration = (
     name: string,
     size: DurationSize,
-    backing: yom.FieldIntegerTypes
+    backing: yom.FieldIntegerTypes,
   ) => {
     const usage = { type: "Duration", size } as const;
     let field;
@@ -1888,7 +1903,7 @@ export class TableBuilder {
   }
 
   unique(
-    constraint: yom.UniqueConstraintField[] | yom.UniqueConstraint
+    constraint: yom.UniqueConstraintField[] | yom.UniqueConstraint,
   ): TableBuilder {
     if (Array.isArray(constraint)) {
       this.#uniques.push({ fields: constraint });
@@ -1931,7 +1946,7 @@ export class TableBuilder {
   recordDisplayName(fields: string[], expr?: (...fields: string[]) => string) {
     if (fields.length !== 1 && !expr) {
       throw new Error(
-        "Please make sure to specify an expression for setRecordDisplayName"
+        "Please make sure to specify an expression for setRecordDisplayName",
       );
     }
     this.#recordDisplayName = {
@@ -2036,7 +2051,7 @@ export class TableBuilder {
         }
       } else {
         throw new Error(
-          "recordDisplayNameFields only supports a length 1 or 2"
+          "recordDisplayNameFields only supports a length 1 or 2",
         );
       }
     }
@@ -2044,16 +2059,16 @@ export class TableBuilder {
     if (this.#createDefaultNameMatch) {
       if (!displayNameFields) {
         throw new Error(
-          "createDefaultNameMatch assumes recordDisplayNameFields"
+          "createDefaultNameMatch assumes recordDisplayNameFields",
         );
       }
       const name = tableName + "_name";
-      app.db.searchMatches[name] = {
+      hub.db.searchMatches[name] = {
         name: tableName + "_name",
         table: tableName,
-        tokenizer: app.searchConfig.defaultTokenizer,
+        tokenizer: hub.searchConfig.defaultTokenizer,
         style: {
-          ...app.searchConfig.defaultFuzzyConfig,
+          ...hub.searchConfig.defaultFuzzyConfig,
           type: "Fuzzy",
         },
         fieldGroups:
@@ -2080,7 +2095,7 @@ export class TableBuilder {
     const table = new Table(
       this.#primaryKeyFieldName ?? "id",
       this.name,
-      this.#displayName
+      this.#displayName,
     );
     table.renameFrom = this.#renameFrom;
     table.checks = this.#checks;
@@ -2123,7 +2138,7 @@ export class TableCatalog {
     function createFieldName(
       option: boolean | string | undefined,
       defaultName: string,
-      createByDefault: boolean
+      createByDefault: boolean,
     ) {
       if (typeof option === "string") {
         return option;
@@ -2137,19 +2152,19 @@ export class TableCatalog {
     const street1Field = createFieldName(
       opts.createFields?.street,
       "street",
-      true
+      true,
     );
     const street2Field = createFieldName(
       opts.createFields?.streetTwo,
       "street_two",
-      false
+      false,
     );
     const cityField = createFieldName(opts.createFields?.city, "city", true);
     const stateField = createFieldName(opts.createFields?.state, "state", true);
     const countryField = createFieldName(
       opts.createFields?.country,
       "country",
-      true
+      true,
     );
     const zipField = createFieldName(opts.createFields?.zip, "zip", true);
     this.#table.fieldGroup(groupName, {
@@ -2284,7 +2299,7 @@ export interface ImageSetOpts {
 }
 
 function addMinuteDurationFns() {
-  app.addScalarFunction({
+  hub.addScalarFunction({
     name: `parse_minutes_duration`,
     parameters: [
       {
@@ -2300,21 +2315,21 @@ function addMinuteDurationFns() {
             .scalar(`total`, { type: "BigInt" })
             .createQueryCursor(
               `split`,
-              `select value from string.split(input.value, ':') order by ordinal desc`
+              `select value from string.split(input.value, ':') order by ordinal desc`,
             )
             .advanceCursor(`split`)
             .setScalar(`total`, `cast(split.value as bigint)`)
             .forEachCursor(`split`, (s) =>
-              s.setScalar(`total`, `total + cast(split.value as bigint) * 60`)
+              s.setScalar(`total`, `total + cast(split.value as bigint) * 60`),
             )
             .if(`input.value like '-%'`, (s) =>
-              s.setScalar(`total`, `total * -1`)
+              s.setScalar(`total`, `total * -1`),
             )
             .return(`total`),
         catch: (s) => s.return(),
       }),
   });
-  app.addScalarFunction({
+  hub.addScalarFunction({
     name: `display_minutes_duration`,
     parameters: [{ name: "value", type: { type: "BigInt" } }],
     returnType: { type: "String" },
@@ -2340,7 +2355,7 @@ abstract class BaseFieldBuilder {
 
   constructor(name: string) {
     this._name = name;
-    this._displayName = app.displayNameConfig.field(name);
+    this._displayName = hub.displayNameConfig.field(name);
   }
 
   displayName(name: string) {
@@ -2380,7 +2395,7 @@ abstract class BaseFieldBuilder {
 
   check(
     check: (field: string) => string,
-    errorMessage: (field: string) => string
+    errorMessage: (field: string) => string,
   ) {
     this._checks.push({ check, errorMessage });
   }
@@ -2415,7 +2430,7 @@ type BaseFieldBuilderConstructor<T extends BaseFieldBuilder> = new (
 
 function createFromJSONFieldBuilder<
   T extends BaseFieldBuilder,
-  U extends BaseFieldBuilderConstructor<T>
+  U extends BaseFieldBuilderConstructor<T>,
 >(clazz: U): U & BaseFieldBuilderConstructor<T & FromJSONExtension> {
   // @ts-ignore
   return class extends clazz {
@@ -2486,7 +2501,7 @@ interface IntegerFieldBuilder {
 }
 
 function createIntegerBuilder(
-  constructor: new (name: string, displayName: string) => IntegerField
+  constructor: new (name: string, displayName: string) => IntegerField,
 ): IntegerFieldBuilder {
   return class extends BaseIntegerBuilder {
     finish(): Field {
@@ -2505,7 +2520,7 @@ const FromJSONTinyIntFieldBuilder =
   createFromJSONFieldBuilder(TinyIntFieldBuilder);
 const SmallUintFieldBuilder = createIntegerBuilder(SmallUintField);
 const FromJSONSmallUintFieldBuilder = createFromJSONFieldBuilder(
-  SmallUintFieldBuilder
+  SmallUintFieldBuilder,
 );
 const SmallIntFieldBuilder = createIntegerBuilder(SmallIntField);
 const FromJSONSmallIntFieldBuilder =
@@ -2551,7 +2566,7 @@ class DecimalFieldBuilder extends BaseNumericBuilder {
     precision: number,
     scale: number,
     signed: boolean,
-    usage: DecimalUsage | undefined
+    usage: DecimalUsage | undefined,
   ) {
     super(name);
     this.#precision = precision;
@@ -2566,7 +2581,7 @@ class DecimalFieldBuilder extends BaseNumericBuilder {
       this._displayName,
       this.#precision,
       this.#scale,
-      this.#signed
+      this.#signed,
     );
     this.writeBaseFields(field);
     field.usage = this.#usage;
@@ -2645,7 +2660,7 @@ class TimestampFieldBuilder extends BaseFieldBuilder {
 }
 
 const FromJSONTimestampFieldBuilder = createFromJSONFieldBuilder(
-  TimestampFieldBuilder
+  TimestampFieldBuilder,
 );
 
 class TxFieldBuilder extends BaseFieldBuilder {
@@ -2669,7 +2684,7 @@ class StringFieldBuilder extends BaseFieldBuilder {
     name: string,
     maxLength: number,
 
-    usage?: StringUsage
+    usage?: StringUsage,
   ) {
     super(name);
     this.#maxLength = maxLength;
@@ -2710,7 +2725,7 @@ class StringFieldBuilder extends BaseFieldBuilder {
     const field = new StringField(
       this._name,
       this._displayName,
-      this.#maxLength
+      this.#maxLength,
     );
     this.writeBaseFields(field);
     field.usage = this.#usage;
@@ -2745,7 +2760,7 @@ class ForeignKeyFieldBuilder extends BaseFieldBuilder {
       this._name,
       this._displayName,
       this.#table,
-      this.#onDelete
+      this.#onDelete,
     );
     this.writeBaseFields(field);
     return field;
@@ -3069,7 +3084,6 @@ function generateScalarFunction(f: ScalarFunction): yom.ScalarFunction {
 }
 
 /**
- * The total model of the app, everything that is needed to generate the app is done through this single
- * variable.
+ * The total model of the database, applications, apis, etc.
  */
-export const app = new App();
+export const hub = new Hub();

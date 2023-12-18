@@ -1,4 +1,4 @@
-import { app } from "../app";
+import { hub } from "../hub";
 import { DomStatementsOrFn, ServiceStatementsOrFn } from "../statements";
 import { confirmDangerDialog } from "./confirmDangerDialog";
 
@@ -20,7 +20,7 @@ export interface DeleteExtensions {
 }
 
 export function deleteRecordDialog(opts: DeleteRecordDialog) {
-  const table = app.db.tables[opts.table];
+  const table = hub.db.tables[opts.table];
   return confirmDangerDialog({
     open: opts.open,
     onClose: opts.onClose,
@@ -42,18 +42,18 @@ export function deleteRecordDialog(opts: DeleteRecordDialog) {
                 .startTransaction()
                 .statements(opts.afterTransactionStart)
                 .modify(
-                  `delete from db.${opts.table} where id = ${opts.recordId}`
+                  `delete from db.${opts.table} where id = ${opts.recordId}`,
                 )
                 .statements(opts.beforeTransactionCommit)
                 .commitTransaction()
-                .statements(opts.afterTransactionCommit)
+                .statements(opts.afterTransactionCommit),
             ),
           errorName: `err`,
           catch: (err) => err.setScalar(`dialog_error`, `'Unable to delete'`),
         })
         .setScalar(`dialog_waiting`, `false`)
         .if(`dialog_error is null`, (s) =>
-          s.statements(closeModal, opts.afterDeleteClient)
+          s.statements(closeModal, opts.afterDeleteClient),
         ),
   });
 }

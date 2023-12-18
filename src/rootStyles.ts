@@ -108,7 +108,7 @@ function getColorSchemeVariables(scheme: ColorScheme) {
 function addSimpleVars(
   target: Record<string, string>,
   prefix: string,
-  vars: object
+  vars: object,
 ) {
   for (const [key, value] of Object.entries(vars)) {
     target[prefix + key] = value;

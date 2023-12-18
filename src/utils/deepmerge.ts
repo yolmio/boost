@@ -1,5 +1,5 @@
 export function isPlainObject(
-  item: unknown
+  item: unknown,
 ): item is Record<keyof any, unknown> {
   return (
     item !== null && typeof item === "object" && item.constructor === Object
@@ -27,7 +27,7 @@ export interface DeepmergeOptions {
 export function deepmerge<T>(
   target: T,
   source: unknown,
-  options: DeepmergeOptions = { clone: true }
+  options: DeepmergeOptions = { clone: true },
 ): T {
   const output = options.clone ? deepClone(target) : target;
 
@@ -47,7 +47,7 @@ export function deepmerge<T>(
         (output as Record<keyof any, unknown>)[key] = deepmerge(
           target[key],
           source[key],
-          options
+          options,
         );
       } else {
         (output as Record<keyof any, unknown>)[key] = source[key];

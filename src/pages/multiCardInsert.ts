@@ -7,7 +7,7 @@ import {
 } from "../formState";
 import { nodes } from "../nodeHelpers";
 import { Node } from "../nodeTypes";
-import { app } from "../app";
+import { hub } from "../hub";
 import { downcaseFirst, pluralize } from "../utils/inflectors";
 import { stringLiteral } from "../utils/sqlHelpers";
 import { button } from "../components/button";
@@ -144,7 +144,7 @@ const styles = createStyles({
 });
 
 export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
-  const table = app.db.tables[opts.table];
+  const table = hub.db.tables[opts.table];
   const formStateFields = opts.cardFields.slice();
   if (opts.cardFooterFields) {
     formStateFields.push(...opts.cardFooterFields);
@@ -339,7 +339,7 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
       }),
     });
   }
-  app.ui.pages.push({
+  hub.currentApp!.pages.push({
     path: opts.path ?? "/" + getTableBaseUrl(table.name) + "/add",
     content,
   });

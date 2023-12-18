@@ -36,7 +36,7 @@ const mergeStyleCache = new WeakMap<object, WeakMap<object, Style>>();
 
 function mergeStyle(
   base: Style | undefined,
-  ovewrite: Style | undefined
+  ovewrite: Style | undefined,
 ): Style | undefined {
   if (!base) {
     return ovewrite;
@@ -67,7 +67,7 @@ export interface SingleElementComponentBase extends SingleElementComponentOpts {
 
 export function mergeEls(
   opts: SingleElementComponentBase,
-  overwriteOpts: SingleElementComponentOpts = {}
+  overwriteOpts: SingleElementComponentOpts = {},
 ) {
   return nodes.element(overwriteOpts.tag ?? opts.tag, {
     props: { ...opts.props, ...overwriteOpts.props },
@@ -97,11 +97,11 @@ export function mergeEls(
 export type SlotFn<T> = (slot: T, opts: SingleElementComponentBase) => Node;
 
 export function createSlotsFn<T extends SlottedComponentOpts>(
-  overwrite: T
+  overwrite: T,
 ): SlotFn<keyof NonNullable<T["slots"]> | "root"> {
   return (
     slot: keyof NonNullable<T["slots"]> | "root",
-    opts: SingleElementComponentBase
+    opts: SingleElementComponentBase,
   ) => {
     if (slot === "root") {
       return mergeEls(opts, overwrite);
@@ -112,7 +112,7 @@ export function createSlotsFn<T extends SlottedComponentOpts>(
 
 export function mergeElEventHandlers(
   a: HelperEventHandlers,
-  b: HelperEventHandlers
+  b: HelperEventHandlers,
 ) {
   const newHandlers: HelperEventHandlers = {};
   for (const [key, value] of Object.entries(a)) {
@@ -137,7 +137,7 @@ function mergeEventHandlerProc(a: DomStatementsOrFn, b: DomStatementsOrFn) {
 
 export function mergeEventHandler(
   a: HelperEventHandler,
-  b: HelperEventHandler
+  b: HelperEventHandler,
 ): HelperEventHandler {
   if (
     typeof a === "function" ||
@@ -174,7 +174,7 @@ const componentOverwrite = new Map<string, (...args: any[]) => Node>();
 
 export function addComponentOverwrite(
   name: string,
-  overwrite: (...args: any[]) => Node
+  overwrite: (...args: any[]) => Node,
 ) {
   componentOverwrite.set(name, overwrite);
 }

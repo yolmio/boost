@@ -1,5 +1,5 @@
 import { stringLiteral } from "../utils/sqlHelpers";
-import { app } from "../app";
+import { hub } from "../hub";
 import type { ElementNode, Node } from "../nodeTypes";
 import { Style } from "../styleTypes";
 import { createStyles, cssVar } from "../styleUtils";
@@ -19,9 +19,10 @@ export interface DividerOpts extends SingleElementComponentOpts {
 
 const styles = createStyles({
   root: (
+    app,
     orientation: Orientation,
     hasChildren: boolean,
-    inset: Inset | undefined
+    inset: Inset | undefined,
   ) => {
     const styles: Style = {
       "--divider-thickness": "1px",
@@ -43,7 +44,7 @@ const styles = createStyles({
     }
     if (hasChildren) {
       Object.assign(styles, {
-        "--divider-gap": app.ui.theme.spacing(1),
+        "--divider-gap": app.theme.spacing(1),
         "--divider-child-position": "50%",
         display: "flex",
         flexDirection: orientation === "vertical" ? "column" : "row",
@@ -106,7 +107,7 @@ export function divider(opts: DividerOpts = {}): ElementNode {
   const rootStyles = styles.root(
     orientation,
     Boolean(opts.children),
-    opts.inset
+    opts.inset,
   );
   return mergeEls(
     {
@@ -122,6 +123,6 @@ export function divider(opts: DividerOpts = {}): ElementNode {
       children: opts.children,
       styles: rootStyles,
     },
-    opts
+    opts,
   );
 }

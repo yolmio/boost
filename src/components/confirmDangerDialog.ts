@@ -2,7 +2,7 @@ import { nodes } from "../nodeHelpers";
 import { Node } from "../nodeTypes";
 import { DomStatementsOrFn } from "../statements";
 import { createStyles, flexGrowStyles } from "../styleUtils";
-import { lazy } from "../utils/memoize";
+import { lazyPerApp } from "../utils/memoize";
 import { alert } from "./alert";
 import { button } from "./button";
 import { divider } from "./divider";
@@ -37,7 +37,7 @@ const styles = createStyles({
 const titleId = "'confirm-dialog-title'";
 const descriptionId = "'confirm-dialog-description'";
 
-const header = lazy(() => [
+const header = lazyPerApp(() => [
   typography({
     tag: "h2",
     level: "inherit",

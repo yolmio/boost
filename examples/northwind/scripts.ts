@@ -1,21 +1,21 @@
 import "./app.ts";
 import "./csvScriptDb.ts";
-import { app } from "@yolm/boost";
+import { hub } from "@yolm/boost";
 
-app.addScript("init-dev-db", (s) =>
+hub.addScript("init-dev-db", (s) =>
   s
     .importCsv(`csv`, `data/csv`)
     .modify(
-      `insert into db.user (global_id, is_sys_admin, is_admin, disabled, email) values (random.uuid(), true, true, false, 'coolguy@coolemail.com')`
+      `insert into db.user (global_id, is_sys_admin, is_admin, disabled, email) values (random.uuid(), true, true, false, 'coolguy@coolemail.com')`,
     )
     .modify(
-      `insert into db.shipper select companyName as name, phone from csv.Shipper`
+      `insert into db.shipper select companyName as name, phone from csv.Shipper`,
     )
     .modify(
-      `insert into db.category select categoryName as name, description from csv.Category`
+      `insert into db.category select categoryName as name, description from csv.Category`,
     )
     .modify(
-      `insert into db.supplier select companyName as company_name, contactName as contact_name, contactTitle as contact_title, address, city, region as state, postalCode as zip, country, phone, fax from csv.Supplier`
+      `insert into db.supplier select companyName as company_name, contactName as contact_name, contactTitle as contact_title, address, city, region as state, postalCode as zip, country, phone, fax from csv.Supplier`,
     )
     .modify(
       `insert into db.customer
@@ -29,7 +29,7 @@ app.addScript("init-dev-db", (s) =>
             country,
             phone,
             fax
-      from csv.Customer`
+      from csv.Customer`,
     )
     .modify(
       `insert into db.product
@@ -42,7 +42,7 @@ app.addScript("init-dev-db", (s) =>
           unitsOnOrder as units_on_order,
           reorderLevel as reorder_level,
           discontinued = 1 as discontinued
-        from csv.Product`
+        from csv.Product`,
     )
     .modify(
       `insert into db.employee
@@ -61,7 +61,7 @@ app.addScript("init-dev-db", (s) =>
           cast(extension as string),
           reportsTo - 1 as reports_to,
           firstName || ' ' || lastName || '@yolmail.com' as email
-          from csv.Employee`
+          from csv.Employee`,
     )
     .modify(
       `insert into db.order
@@ -78,7 +78,7 @@ app.addScript("init-dev-db", (s) =>
           shipRegion as ship_state,
           shipPostalCode as ship_zip,
           shipCountry as ship_country
-        from csv.Order`
+        from csv.Order`,
     )
     .modify(
       `insert into db.order_detail
@@ -88,7 +88,7 @@ app.addScript("init-dev-db", (s) =>
           unitPrice as unit_price,
           quantity,
           discount
-        from csv.OrderDetails`
+        from csv.OrderDetails`,
     )
-    .saveDbToDir(`data/dev`)
+    .saveDbToDir(`data/dev`),
 );

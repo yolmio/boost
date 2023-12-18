@@ -52,7 +52,7 @@ export abstract class StatementsBase<Statement extends object> {
   table(
     name: string,
     queryOrFields: string | yom.ProcTableField[],
-    query?: string
+    query?: string,
   ): this {
     this.pushToBacking({
       t: "TableDeclaration",
@@ -61,8 +61,8 @@ export abstract class StatementsBase<Statement extends object> {
         typeof queryOrFields === "string"
           ? queryOrFields
           : typeof query === "string"
-            ? query
-            : undefined,
+          ? query
+          : undefined,
       fields: Array.isArray(queryOrFields) ? queryOrFields : undefined,
     } as yom.TableDeclaration as any);
     return this;
@@ -83,7 +83,7 @@ export abstract class StatementsBase<Statement extends object> {
   scalar(
     name: string,
     exprOrTy: yom.SqlExpression | yom.FieldType,
-    expr?: yom.SqlExpression
+    expr?: yom.SqlExpression,
   ) {
     this.pushToBacking({
       t: "ScalarDeclaration",
@@ -146,7 +146,7 @@ export abstract class StatementsBase<Statement extends object> {
   }
 
   protected addGenericStatements(
-    statements: StatementsOrFn<this> | undefined | null | false
+    statements: StatementsOrFn<this> | undefined | null | false,
   ) {
     if (!statements) {
       return;
@@ -163,7 +163,7 @@ export abstract class StatementsBase<Statement extends object> {
   }
 
   protected normalizeGenericStatements(
-    s: StatementsOrFn<this> | undefined | null | false
+    s: StatementsOrFn<this> | undefined | null | false,
   ): Statement[] | undefined {
     if (typeof s === "function") {
       const arr = new (this.constructor as any)();
@@ -172,9 +172,9 @@ export abstract class StatementsBase<Statement extends object> {
     } else if (s === this) {
       throw new Error(
         "Cannot call any helper functions with itself, i.e. \n" +
-        " const statements = new BasicStatements();\n" +
-        "statements.statements(statements); statements.if('true', statements);\n" +
-        "You did something like the above"
+          " const statements = new BasicStatements();\n" +
+          "statements.statements(statements); statements.if('true', statements);\n" +
+          "You did something like the above",
       );
     } else if (s) {
       return s[BACKING_ARRAY] as any;
@@ -208,7 +208,7 @@ export abstract class StatementsBase<Statement extends object> {
   if(opts: If<StatementsOrFn<this>>): this;
   if(
     condition: yom.SqlExpression | If<StatementsOrFn<this>>,
-    then?: StatementsOrFn<this>
+    then?: StatementsOrFn<this>,
   ) {
     if (typeof condition === "string") {
       this.pushToBacking({
@@ -237,7 +237,7 @@ export abstract class StatementsBase<Statement extends object> {
   while(opts: While<StatementsOrFn<this>>): this;
   while(
     condition: yom.SqlExpression | While<StatementsOrFn<this>>,
-    body?: StatementsOrFn<this>
+    body?: StatementsOrFn<this>,
   ) {
     if (typeof condition === "string") {
       this.pushToBacking({
@@ -260,7 +260,7 @@ export abstract class StatementsBase<Statement extends object> {
   forEachCursor(opts: ForEachCursor<StatementsOrFn<this>>): this;
   forEachCursor(
     cursor: string | ForEachCursor<StatementsOrFn<this>>,
-    body?: StatementsOrFn<this>
+    body?: StatementsOrFn<this>,
   ) {
     if (typeof cursor === "string") {
       this.pushToBacking({
@@ -282,13 +282,13 @@ export abstract class StatementsBase<Statement extends object> {
   forEachTable(
     table: string,
     cursorName: string,
-    body: StatementsOrFn<this>
+    body: StatementsOrFn<this>,
   ): this;
   forEachTable(opts: ForEachTable<StatementsOrFn<this>>): this;
   forEachTable(
     table: string | ForEachTable<StatementsOrFn<this>>,
     cursorName?: string,
-    body?: StatementsOrFn<this>
+    body?: StatementsOrFn<this>,
   ) {
     if (typeof table === "string") {
       this.pushToBacking({
@@ -311,13 +311,13 @@ export abstract class StatementsBase<Statement extends object> {
   forEachQuery(
     table: string,
     cursorName: string,
-    body: StatementsOrFn<this>
+    body: StatementsOrFn<this>,
   ): this;
   forEachQuery(opts: ForEachQuery<StatementsOrFn<this>>): this;
   forEachQuery(
     query: yom.SqlQuery | ForEachQuery<StatementsOrFn<this>>,
     cursorName?: string,
-    body?: StatementsOrFn<this>
+    body?: StatementsOrFn<this>,
   ) {
     if (typeof query === "string") {
       this.pushToBacking({
@@ -520,12 +520,12 @@ export class DomStatements extends StatementsBase<yom.DomProcStatement> {
   }
 
   scrollElIntoView(
-    el: yom.SqlExpression | Omit<yom.ScrollIntoViewStatement, "t">
+    el: yom.SqlExpression | Omit<yom.ScrollIntoViewStatement, "t">,
   ) {
     this.pushToBacking(
       typeof el === "string"
         ? { t: "ScrollElIntoView", elementId: el }
-        : { t: "ScrollElIntoView", ...el }
+        : { t: "ScrollElIntoView", ...el },
     );
     return this;
   }
@@ -773,7 +773,7 @@ export class EndpointStatements extends StatementsBase<yom.ApiEndpointStatement>
   }
 
   static normalizeToArray(
-    p: EndpointStatementsOrFn | false | undefined | null
+    p: EndpointStatementsOrFn | false | undefined | null,
   ) {
     return EndpointStatements.normalize(p)[BACKING_ARRAY];
   }
@@ -882,7 +882,7 @@ export class ToJSONHelper {
 
   if(
     condition: yom.SqlExpression,
-    then: yom.ToJSON
+    then: yom.ToJSON,
   ): yom.ToHierarchyConditional {
     return { type: "If", condition, then };
   }
@@ -890,7 +890,7 @@ export class ToJSONHelper {
   each(
     table: string,
     recordName: string,
-    children: yom.ToJSON
+    children: yom.ToJSON,
   ): yom.ToHierarchyEach {
     return { type: "Each", table, recordName, children };
   }

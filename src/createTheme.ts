@@ -294,7 +294,7 @@ const defaultFocus: Focus = {
   default: {
     outlineOffset: `var(--focus-outline-offset, ${cssVar("focus-thickness")})`,
     outline: `${cssVar("focus-thickness")} solid ${cssVar(
-      "palette-focus-visible"
+      "palette-focus-visible",
     )}`,
   },
 };
@@ -317,31 +317,31 @@ const defaultRadius: Radius = {
 
 const defaultShadow: Shadow = {
   xs: `${cssVar("shadow-ring")}, 0 1px 2px 0 rgba(${cssVar(
-    "shadow-channel"
+    "shadow-channel",
   )} / ${cssVar("shadow-opacity")})`,
 
   sm: `${cssVar("shadow-ring")}, 0 1px 2px 0 rgba(${cssVar(
-    "shadow-channel"
+    "shadow-channel",
   )} / ${cssVar("shadow-opacity")}), 0 2px 4px 0 rgba(${cssVar(
-    "shadow-channel"
+    "shadow-channel",
   )} / ${cssVar("shadow-opacity")})`,
 
   md: `${cssVar("shadow-ring")}, 0 2px 8px -2px rgba(${cssVar(
-    "shadow-channel"
+    "shadow-channel",
   )} / ${cssVar("shadow-opacity")}), 0 6px 12px -2px rgba(${cssVar(
-    "shadow-channel"
+    "shadow-channel",
   )} / ${cssVar("shadow-opacity")})`,
 
   lg: `${cssVar("shadow-ring")}, 0 2px 8px -2px rgba(${cssVar(
-    "shadow-channel"
+    "shadow-channel",
   )} / ${cssVar("shadow-opacity")}), 0 12px 16px -4px rgba(${cssVar(
-    "shadow-channel"
+    "shadow-channel",
   )} / ${cssVar("shadow-opacity")})`,
 
   xl: `${cssVar("shadow-ring")}, 0 2px 8px -2px rgba(${cssVar(
-    "shadow-channel"
+    "shadow-channel",
   )} / ${cssVar("shadow-opacity")}), 0 20px 24px -4px rgba(${cssVar(
-    "shadow-channel"
+    "shadow-channel",
   )} / ${cssVar("shadow-opacity")})`,
 };
 
@@ -463,7 +463,7 @@ const sortBreakpointsValues = (values: BreakpointValues) => {
     })) || [];
   // Sort in ascending order
   breakpointsAsArray.sort(
-    (breakpoint1, breakpoint2) => breakpoint1.val - breakpoint2.val
+    (breakpoint1, breakpoint2) => breakpoint1.val - breakpoint2.val,
   );
   return breakpointsAsArray.reduce((acc, obj) => {
     return { ...acc, [obj.key]: obj.val };
@@ -486,19 +486,19 @@ export function createTheme(themeOptions: ThemeOpts = {}): Theme {
   const lightColorScheme = deepmerge(
     defaultLightColorScheme,
     themeOptions.lightColorSystem,
-    { clone: true }
+    { clone: true },
   );
   attachColorChannels(lightColorScheme.palette);
   const darkColorScheme = deepmerge(
     defaultDarkColorScheme,
     themeOptions.darkColorSystem,
-    { clone: true }
+    { clone: true },
   );
   attachColorChannels(darkColorScheme.palette);
   const breakpoints = createBreakpoints(
     deepmerge(defaultBreakpointValues, themeOptions.breakpointValues, {
       clone: true,
-    })
+    }),
   );
   return {
     lightColorScheme,

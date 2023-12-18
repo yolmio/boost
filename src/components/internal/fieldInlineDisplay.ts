@@ -1,5 +1,5 @@
 import { nodes } from "../../nodeHelpers";
-import { app, Field } from "../../app";
+import { hub, Field } from "../../hub";
 import { createStyles } from "../../styleUtils";
 import { stringLiteral } from "../../utils/sqlHelpers";
 
@@ -18,17 +18,17 @@ export function inlineFieldDisplay(field: Field, expr: string) {
       return `format.date(${expr}, ${formatString})`;
     }
     case "ForeignKey": {
-      const toTable = app.db.tables[field.table];
+      const toTable = hub.db.tables[field.table];
       if (toTable.inlineRecordDisplay) {
         return toTable.inlineRecordDisplay(expr);
       }
       if (!toTable.recordDisplayName) {
         throw new Error(
-          `Table ${field.table} does not have a recordDisplayName`
+          `Table ${field.table} does not have a recordDisplayName`,
         );
       }
       const nameExpr = toTable.recordDisplayName.expr(
-        ...toTable.recordDisplayName.fields.map((f) => `other.${f}`)
+        ...toTable.recordDisplayName.fields.map((f) => `other.${f}`),
       );
       let innerDisplay;
       if (toTable.getHrefToRecord) {
@@ -47,7 +47,7 @@ export function inlineFieldDisplay(field: Field, expr: string) {
         procedure: (s) =>
           s.scalar(
             `name`,
-            `(select ${nameExpr} from db.${field.table} as other where other.id = ${expr})`
+            `(select ${nameExpr} from db.${field.table} as other where other.id = ${expr})`,
           ),
         children: innerDisplay,
       });

@@ -20,7 +20,7 @@ import {
 } from "./datagridBase";
 import { alert } from "../../components/alert";
 import { checkbox } from "../../components/checkbox";
-import { app } from "../../app";
+import { hub } from "../../hub";
 
 function withViewDrawerState(datagridName: string, children: Node) {
   return nodes.state({
@@ -46,8 +46,8 @@ function withViewDrawerState(datagridName: string, children: Node) {
 }
 
 const styles = createStyles({
-  root: () => {
-    const enterAnimation = app.ui.registerKeyframes({
+  root: (app) => {
+    const enterAnimation = app.registerKeyframes({
       from: {
         transform: "translate(-100%, 0)",
       },
@@ -55,7 +55,7 @@ const styles = createStyles({
         transform: "translate(0%, 0)",
       },
     });
-    const exitAnimation = app.ui.registerKeyframes({
+    const exitAnimation = app.registerKeyframes({
       from: {
         transform: "translate(0%, 0)",
       },
@@ -63,10 +63,10 @@ const styles = createStyles({
         transform: "translate(-100%, 0)",
       },
     });
-    app.ui.addGlobalStyle({
+    app.addGlobalStyle({
       "::view-transition-group(view-drawer)": {
-        animationDuration: app.ui.theme.transitionDurations.drawer,
-        animationTimingFunction: app.ui.theme.transitionEasing.drawer,
+        animationDuration: app.theme.transitionDurations.drawer,
+        animationTimingFunction: app.theme.transitionEasing.drawer,
       },
       "::view-transition-new(view-drawer):only-child": {
         animationName: enterAnimation,

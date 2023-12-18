@@ -65,7 +65,7 @@ function portal(children: ui.Node): ui.PortalNode {
 
 function queryParams(
   params: yom.QueryParam[],
-  children: ui.Node
+  children: ui.Node,
 ): ui.QueryParamsNode {
   return {
     t: "QueryParams",
@@ -136,7 +136,7 @@ function normalizeEventHandler(helper: HelperEventHandler): yom.EventHandler {
 }
 
 function normalizeEventHandlers(
-  helper: HelperEventHandlers | undefined
+  helper: HelperEventHandlers | undefined,
 ): yom.ElementEventHandlers | undefined {
   if (!helper) {
     return undefined;
@@ -195,7 +195,7 @@ function recursive(props: Omit<ui.RecursiveNode, "t">): ui.RecursiveNode {
 function recurse(props: Omit<ui.RecurseNode, "t">): ui.RecurseNode;
 function recurse(where: yom.SqlExpression): ui.RecurseNode;
 function recurse(
-  props: Omit<ui.RecurseNode, "t"> | yom.SqlExpression
+  props: Omit<ui.RecurseNode, "t"> | yom.SqlExpression,
 ): ui.RecurseNode {
   if (typeof props === "string") {
     return { t: "Recurse", where: props, recordName: "recurse_record" };

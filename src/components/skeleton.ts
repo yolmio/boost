@@ -1,9 +1,9 @@
-import { app } from "../app";
+import { hub } from "../hub";
 import { StyleObject } from "../styleTypes";
 import { TypographyKeys } from "../theme";
 import { createStyles, cssVar } from "../styleUtils";
 import { mergeEls, SingleElementComponentOpts } from "./utils";
-import { lazy } from "../utils/memoize";
+import { lazyPerApp } from "../utils/memoize";
 
 export type SkeletonVariant = "rectangular" | "circular" | "text";
 export type Animation = "pulse" | "wave";
@@ -15,8 +15,8 @@ export interface SkeletonOpts extends SingleElementComponentOpts {
   level?: Level;
 }
 
-const pulseAnimation = lazy(() =>
-  app.ui.registerKeyframes({
+const pulseAnimation = lazyPerApp((app) =>
+  app.registerKeyframes({
     "0%": {
       opacity: 1,
     },
@@ -27,11 +27,11 @@ const pulseAnimation = lazy(() =>
     "100%": {
       opacity: 1,
     },
-  })
+  }),
 );
 
-const waveAnimation = lazy(() =>
-  app.ui.registerKeyframes({
+const waveAnimation = lazyPerApp((app) =>
+  app.registerKeyframes({
     "0%": {
       transform: "translateX(-100%)",
     },
@@ -41,12 +41,17 @@ const waveAnimation = lazy(() =>
     "100%": {
       transform: "translateX(100%)",
     },
-  })
+  }),
 );
 
 const styles = createStyles({
-  skeleton: (variant: SkeletonVariant, animation: Animation, level: Level) => {
-    const theme = app.ui.theme;
+  skeleton: (
+    app,
+    variant: SkeletonVariant,
+    animation: Animation,
+    level: Level,
+  ) => {
+    const theme = app.theme;
     const styleBase: StyleObject = {
       display: "block",
       position: "relative",
@@ -185,9 +190,9 @@ export function skeleton(opts: SkeletonOpts) {
       styles: styles.skeleton(
         opts.variant ?? "rectangular",
         opts.animation ?? "pulse",
-        opts.level ?? "inherit"
+        opts.level ?? "inherit",
       ),
     },
-    opts
+    opts,
   );
 }

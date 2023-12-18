@@ -13,14 +13,15 @@ import type {
   TypographyKeys,
 } from "./theme";
 import { cssVar, darkSchemeSelector, lightSchemeSelector } from "./styleUtils";
-import { app } from "./app";
+import { App, hub } from "./hub";
 import type { Node } from "./nodeTypes";
 import type * as yom from "./yom";
+import { rootStyles } from "./rootStyles";
 
 /** Function that transform the properties in our Style to real css properties, i.e. px -> paddingLeft, paddingRight */
 type StyleValueMapper = (
   v: any,
-  theme: Theme
+  theme: Theme,
 ) => StyleObject | string | number | null;
 
 const mappers: { [s: string]: StyleValueMapper } = {};
@@ -412,7 +413,7 @@ function createRulesFromStyle(
   obj: object,
   cssRules: string[],
   selector?: string,
-  media?: string
+  media?: string,
 ) {
   const thisRule = serializeSimpleCssProperties(obj);
   if (thisRule.length !== 0) {
@@ -437,7 +438,7 @@ function createRulesFromStyle(
         value,
         cssRules,
         selector ? child(key, selector) : key,
-        media
+        media,
       );
     }
   }
@@ -447,7 +448,7 @@ function mergeStyleProp(
   key: string,
   value: any,
   output: Record<string, any>,
-  theme: Theme
+  theme: Theme,
 ) {
   if (value === null) {
     output[key] = undefined;
@@ -531,8 +532,6 @@ function prepStyle(style: Style, theme: Theme) {
   return preppedStyle;
 }
 
-const seenStyles = new WeakMap<StyleObject | Style[], string>();
-
 /**
  * For animation keyframe definition
  */
@@ -543,21 +542,24 @@ export interface KeyFrames {
   ]: Style | undefined;
 }
 
-export class StyleSerializer {
+export class NodeTransformer {
   #cssRules: string[] = [];
+  #transformedNodes = new WeakMap<object, yom.Node>();
+  #seenStyles = new WeakMap<StyleObject | Style[], string>();
 
   constructor(
-    rootStyles: StyleObject,
+    private app: App,
     keyframes: Map<KeyFrames, string>,
-    globalStyles: StyleObject[]
+    globalStyles: StyleObject[],
   ) {
-    createRulesFromStyle(prepStyle(rootStyles, app.ui.theme), this.#cssRules);
+    const rootThemeStyles = rootStyles(app.theme);
+    createRulesFromStyle(prepStyle(rootThemeStyles, app.theme), this.#cssRules);
     for (const [frames, id] of keyframes) {
       const selectors = [];
       for (const [key, v] of Object.entries(frames)) {
         if (v) {
           const properties = serializeSimpleCssProperties(
-            prepStyle(v, app.ui.theme)
+            prepStyle(v, app.theme),
           ).join(";");
           selectors.push(`${key} {${properties}}`);
         }
@@ -565,192 +567,180 @@ export class StyleSerializer {
       this.#cssRules.push(`@keyframes ${id}{${selectors.join("")}}`);
     }
     for (const style of globalStyles) {
-      createRulesFromStyle(prepStyle(style, app.ui.theme), this.#cssRules);
+      createRulesFromStyle(prepStyle(style, app.theme), this.#cssRules);
     }
   }
 
-  addGlobalStyle(style: Style) {
-    createRulesFromStyle(prepStyle(style, app.ui.theme), this.#cssRules);
-  }
-
-  addStyle(style: Style, useCached = true): string {
+  private addStyle(style: Style): string {
     if (typeof style !== "object" || style === null) {
       return "";
     }
-    if (useCached && seenStyles.has(style)) {
-      return seenStyles.get(style)!;
+    if (this.#seenStyles.has(style)) {
+      return this.#seenStyles.get(style)!;
     }
     const className = "boost-" + classNameGenerator.next();
     createRulesFromStyle(
-      prepStyle(style, app.ui.theme),
+      prepStyle(style, this.app.theme),
       this.#cssRules,
-      "." + className
+      "." + className,
     );
-    seenStyles.set(style, className);
+    this.#seenStyles.set(style, className);
     return className;
   }
 
   getCss() {
     return this.#cssRules.join("");
   }
-}
 
-const transformedNodes = new WeakMap<object, yom.Node>();
-
-export function transformNode(
-  node: Node,
-  styleToClass: (
-    styles: Style | undefined,
-    dynamicStyle: boolean
-  ) => string | undefined
-): yom.Node {
-  if (typeof node === "string") {
-    return node;
-  }
-  if (transformedNodes.has(node)) {
-    return transformedNodes.get(node)!;
-  }
-  if (Array.isArray(node)) {
-    const transformed = node
-      .filter((n) => n !== undefined && n !== null)
-      .map((n) => transformNode(n!, styleToClass));
-    transformedNodes.set(node, transformed);
+  transformNode(node: Node): yom.Node {
+    if (typeof node === "string") {
+      return node;
+    }
+    if (this.#transformedNodes.has(node)) {
+      return this.#transformedNodes.get(node)!;
+    }
+    if (Array.isArray(node)) {
+      const transformed = node
+        .filter((n) => n !== undefined && n !== null)
+        .map((n) => this.transformNode(n!));
+      this.#transformedNodes.set(node, transformed);
+      return transformed;
+    }
+    let transformed: yom.Node;
+    switch (node.t) {
+      case "EventHandlers":
+      case "Recurse":
+        transformed = node;
+        break;
+      case "Portal":
+      case "QueryParams":
+      case "Route":
+      case "State":
+      case "Mode":
+      case "Each":
+      case "SourceMap":
+      case "Recursive":
+        transformed = {
+          ...node,
+          children: this.transformNode(node.children),
+        };
+        break;
+      case "Switch":
+        transformed = {
+          t: "Switch",
+          cases: node.cases.map(({ condition, node }) => ({
+            condition,
+            node: node ? this.transformNode(node) : undefined,
+          })),
+        };
+        break;
+      case "Element": {
+        let classes = this.addStyle(node.styles);
+        if (node.classes) {
+          classes = classes ? classes + " " + node.classes : node.classes;
+        }
+        transformed = {
+          t: "Element",
+          tag: node.tag,
+          children: node.children
+            ? this.transformNode(node.children)
+            : undefined,
+          floating: node.floating,
+          focusLock: node.focusLock,
+          scrollLock: node.scrollLock,
+          on: node.on,
+          props: node.props,
+          testId: node.testId,
+          classes,
+          style: node.style,
+          dynamicClasses: node.dynamicClasses,
+        };
+        break;
+      }
+      case "If":
+        transformed = {
+          t: "If",
+          condition: node.condition,
+          then: node.then ? this.transformNode(node.then) : undefined,
+          else: node.else ? this.transformNode(node.else) : undefined,
+        };
+        break;
+      case "Routes":
+        transformed = {
+          t: "Routes",
+          children: node.children.map((n) => ({
+            ...n,
+            t: "Route",
+            children: this.transformNode(n.children),
+          })),
+        };
+        break;
+      case "LineChart": {
+        const { styles, ...rest } = node;
+        transformed = {
+          classes: Object.entries(styles).reduce((acc, [k, s]) => {
+            acc[k as keyof yom.LineChartClasses] = this.addStyle(s);
+            return acc;
+          }, {} as yom.LineChartClasses),
+          ...rest,
+        };
+        break;
+      }
+      case "BarChart": {
+        const { styles, ...rest } = node;
+        transformed = {
+          classes: Object.entries(styles).reduce((acc, [k, s]) => {
+            acc[k as keyof yom.BarChartClasses] = this.addStyle(s);
+            return acc;
+          }, {} as yom.BarChartClasses),
+          ...rest,
+        };
+        break;
+      }
+      case "PieChart": {
+        const { styles, ...rest } = node;
+        transformed = {
+          classes: Object.entries(styles).reduce((acc, [k, s]) => {
+            acc[k as keyof yom.PieChartClasses] = this.addStyle(s);
+            return acc;
+          }, {} as yom.PieChartClasses),
+          ...rest,
+        };
+        break;
+      }
+      case "DataGrid":
+        transformed = {
+          t: "DataGrid",
+          columns: node.columns.map((col) => ({
+            header: this.transformNode(col.header),
+            cell: this.transformNode(col.cell),
+            width: col.width,
+            ordering: col.ordering,
+            visible: col.visible,
+          })),
+          classes: {
+            cell: this.addStyle(node.styles.cell),
+            header: this.addStyle(node.styles.header),
+            headerCell: this.addStyle(node.styles.headerCell),
+            root: this.addStyle(node.styles.root),
+            row: this.addStyle(node.styles.row),
+          },
+          headerHeight: node.headerHeight,
+          recordName: node.recordName,
+          rowHeight: node.rowHeight,
+          table: node.table,
+          tableKey: node.tableKey,
+          focusedColumn: node.focusedColumn,
+          focusedRow: node.focusedRow,
+          shouldFocusCell: node.shouldFocusCell,
+          on: node.on,
+        };
+        break;
+      default:
+        console.log(node);
+        throw new Error("Invalid node");
+    }
+    this.#transformedNodes.set(node, transformed);
     return transformed;
   }
-  let transformed: yom.Node;
-  switch (node.t) {
-    case "EventHandlers":
-    case "Recurse":
-      transformed = node;
-      break;
-    case "Portal":
-    case "QueryParams":
-    case "Route":
-    case "State":
-    case "Mode":
-    case "Each":
-    case "SourceMap":
-    case "Recursive":
-      transformed = {
-        ...node,
-        children: transformNode(node.children, styleToClass),
-      };
-      break;
-    case "Switch":
-      transformed = {
-        t: "Switch",
-        cases: node.cases.map(({ condition, node }) => ({
-          condition,
-          node: node ? transformNode(node, styleToClass) : undefined,
-        })),
-      };
-      break;
-    case "Element": {
-      let classes = styleToClass(node.styles, false);
-      if (node.classes) {
-        classes = classes ? classes + " " + node.classes : node.classes;
-      }
-      transformed = {
-        t: "Element",
-        tag: node.tag,
-        children: node.children
-          ? transformNode(node.children, styleToClass)
-          : undefined,
-        floating: node.floating,
-        focusLock: node.focusLock,
-        scrollLock: node.scrollLock,
-        on: node.on,
-        props: node.props,
-        testId: node.testId,
-        classes,
-        style: node.style,
-        dynamicClasses: node.dynamicClasses,
-      };
-      break;
-    }
-    case "If":
-      transformed = {
-        t: "If",
-        condition: node.condition,
-        then: node.then ? transformNode(node.then, styleToClass) : undefined,
-        else: node.else ? transformNode(node.else, styleToClass) : undefined,
-      };
-      break;
-    case "Routes":
-      transformed = {
-        t: "Routes",
-        children: node.children.map((n) => ({
-          ...n,
-          t: "Route",
-          children: transformNode(n.children, styleToClass),
-        })),
-      };
-      break;
-    case "LineChart": {
-      const { styles, ...rest } = node;
-      transformed = {
-        classes: Object.entries(styles).reduce((acc, [k, s]) => {
-          acc[k as keyof yom.LineChartClasses] = styleToClass(s, false);
-          return acc;
-        }, {} as yom.LineChartClasses),
-        ...rest,
-      };
-      break;
-    }
-    case "BarChart": {
-      const { styles, ...rest } = node;
-      transformed = {
-        classes: Object.entries(styles).reduce((acc, [k, s]) => {
-          acc[k as keyof yom.BarChartClasses] = styleToClass(s, false);
-          return acc;
-        }, {} as yom.BarChartClasses),
-        ...rest,
-      };
-      break;
-    }
-    case "PieChart": {
-      const { styles, ...rest } = node;
-      transformed = {
-        classes: Object.entries(styles).reduce((acc, [k, s]) => {
-          acc[k as keyof yom.PieChartClasses] = styleToClass(s, false);
-          return acc;
-        }, {} as yom.PieChartClasses),
-        ...rest,
-      };
-      break;
-    }
-    case "DataGrid":
-      transformed = {
-        t: "DataGrid",
-        columns: node.columns.map((col) => ({
-          header: transformNode(col.header, styleToClass),
-          cell: transformNode(col.cell, styleToClass),
-          width: col.width,
-          ordering: col.ordering,
-          visible: col.visible,
-        })),
-        classes: {
-          cell: styleToClass(node.styles.cell, false),
-          header: styleToClass(node.styles.header, false),
-          headerCell: styleToClass(node.styles.headerCell, false),
-          root: styleToClass(node.styles.root, false),
-          row: styleToClass(node.styles.row, false),
-        },
-        headerHeight: node.headerHeight,
-        recordName: node.recordName,
-        rowHeight: node.rowHeight,
-        table: node.table,
-        tableKey: node.tableKey,
-        focusedColumn: node.focusedColumn,
-        focusedRow: node.focusedRow,
-        shouldFocusCell: node.shouldFocusCell,
-        on: node.on,
-      };
-      break;
-    default:
-      console.log(node);
-      throw new Error("Invalid node");
-  }
-  transformedNodes.set(node, transformed);
-  return transformed;
 }

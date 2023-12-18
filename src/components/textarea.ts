@@ -15,7 +15,7 @@ export interface TextareaOpts
 }
 
 const styles = createStyles({
-  root: (size: Size, variant: Variant, color: Color) => {
+  root: (_, size: Size, variant: Variant, color: Color) => {
     const variantStyle = getVariantStyle(variant, color);
     const styles: StyleObject = {
       "--textarea-radius": cssVar(`radius-sm`),
@@ -31,7 +31,7 @@ const styles = createStyles({
             "--textarea-focused-highlight": cssVar(
               color === "neutral"
                 ? "palette-primary-500"
-                : `palette-${color}-500`
+                : `palette-${color}-500`,
             ),
           }),
       // variables for controlling child components
@@ -192,7 +192,7 @@ export function textarea(opts: TextareaOpts) {
   const rootStyles = styles.root(
     opts.size ?? "md",
     opts.variant ?? "outlined",
-    opts.color ?? "neutral"
+    opts.color ?? "neutral",
   );
   return slot("root", {
     tag: "div",

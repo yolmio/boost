@@ -9,7 +9,7 @@ import { iconButton } from "../../components/iconButton";
 import { materialIcon } from "../../components/materialIcon";
 import { typography } from "../../components/typography";
 import { nodes } from "../../nodeHelpers";
-import { app } from "../../app";
+import { hub } from "../../hub";
 import { createStyles, cssVar } from "../../styleUtils";
 import { DomStatementsOrFn } from "../../statements";
 
@@ -40,7 +40,7 @@ const styles = createStyles({
     borderRadius: "md",
     width: "100%",
   },
-  colorModeButton: () => {
+  colorModeButton: ({ theme }) => {
     return {
       appearance: "none",
       "--icon-margin": "initial", // reset the icon's margin.
@@ -53,7 +53,7 @@ const styles = createStyles({
       fontFamily: cssVar(`font-family-body`),
       fontWeight: "md",
       lineHeight: 1,
-      "&:focus-visible": app.ui.theme.focus.default,
+      "&:focus-visible": theme.focus.default,
       "--icon-font-size": "1.25rem",
       minHeight: "2rem",
       fontSize: cssVar("font-size-md"),
@@ -197,7 +197,7 @@ export function settingsDrawer(opts: SettingsDrawerOpts) {
         procedure: (s) =>
           s.scalar(
             `email`,
-            `(select email from db.${app.db.userTableName} where id = current_user())`,
+            `(select email from db.${hub.db.userTableName} where id = current_user())`,
           ),
         statusScalar: `status`,
         children: nodes.switch(

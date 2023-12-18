@@ -1,8 +1,8 @@
-import { app } from "../../app";
+import { App, hub } from "../../hub";
 import { nodes } from "../../nodeHelpers";
 import { Node } from "../../nodeTypes";
 import { createStyles } from "../../styleUtils";
-import { memoize } from "../../utils/memoize";
+import { memoizePerApp } from "../../utils/memoize";
 
 export interface Opts {
   openScalar: string;
@@ -11,8 +11,8 @@ export interface Opts {
   name: string;
 }
 
-const createBounceKeyframes = memoize((origin: string) => {
-  const enterAnimation = app.ui.registerKeyframes({
+const createBounceKeyframes = memoizePerApp((app, origin: string) => {
+  const enterAnimation = app.registerKeyframes({
     "0%": {
       transform: "scale(0)",
       transformOrigin: origin,
@@ -22,7 +22,7 @@ const createBounceKeyframes = memoize((origin: string) => {
       transformOrigin: origin,
     },
   });
-  const exitAnimation = app.ui.registerKeyframes({
+  const exitAnimation = app.registerKeyframes({
     from: {
       transform: "scale(1)",
       transformOrigin: origin,
@@ -35,12 +35,16 @@ const createBounceKeyframes = memoize((origin: string) => {
   return { enterAnimation, exitAnimation };
 });
 
-export function createBounceViewTransition(name: string, origin: string) {
+export function createBounceViewTransition(
+  app: App,
+  name: string,
+  origin: string,
+) {
   const { enterAnimation, exitAnimation } = createBounceKeyframes(origin);
-  app.ui.addGlobalStyle({
+  app.addGlobalStyle({
     [`::view-transition-group(${name})`]: {
-      animationDuration: app.ui.theme.transitionDurations.popover,
-      animationTimingFunction: app.ui.theme.transitionEasing.popover,
+      animationDuration: app.theme.transitionDurations.popover,
+      animationTimingFunction: app.theme.transitionEasing.popover,
     },
     [`::view-transition-new(${name}):only-child`]: {
       animationName: enterAnimation,
@@ -52,8 +56,8 @@ export function createBounceViewTransition(name: string, origin: string) {
 }
 
 const styles = createStyles({
-  popover: (name: string) => {
-    createBounceViewTransition(name, "top left");
+  popover: (app, name: string) => {
+    createBounceViewTransition(app, name, "top left");
     return {
       backgroundColor: "background-popup",
       borderRadius: "md",
@@ -96,11 +100,11 @@ export function toolbarPopover({ openScalar, buttonId, children, name }: Opts) {
             s.if(`event.key = 'Escape'`, (s) =>
               s
                 .setScalar(openScalar, `false`)
-                .triggerViewTransition("immediate")
+                .triggerViewTransition("immediate"),
             ),
         },
         children,
-      })
-    )
+      }),
+    ),
   );
 }

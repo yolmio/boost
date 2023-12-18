@@ -1,12 +1,12 @@
 import "./app.ts";
 import "./csvScriptDb.ts";
-import { app } from "@yolm/boost";
+import { hub } from "@yolm/boost";
 
-app.addScript("init-dev-db", (s) =>
+hub.addScript("init-dev-db", (s) =>
   s
     .importCsv(`csv`, `data/csv`)
     .modify(
-      `insert into db.user (global_id, is_sys_admin, is_admin, disabled, email) values (random.uuid(), true, true, false, 'coolguy@coolemail.com')`
+      `insert into db.user (global_id, is_sys_admin, is_admin, disabled, email) values (random.uuid(), true, true, false, 'coolguy@coolemail.com')`,
     )
     .modify(
       `insert into db.employee
@@ -25,11 +25,11 @@ app.addScript("init-dev-db", (s) =>
       Phone as phone,
       Fax as fax,
       Email as email
-    from csv.employee`
+    from csv.employee`,
     )
     .modify(`insert into db.artist select Name as name from csv.artist`)
     .modify(
-      `insert into db.album select Title as title, ArtistId - 1 as artist from csv.album`
+      `insert into db.album select Title as title, ArtistId - 1 as artist from csv.album`,
     )
     .modify(
       `insert into db.customer
@@ -46,7 +46,7 @@ app.addScript("init-dev-db", (s) =>
       Fax as fax,
       Email as email,
       SupportRepId - 1 as support_rep
-    from csv.customer`
+    from csv.customer`,
     )
     .modify(`insert into db.genre (name) select Name as name from csv.genre`)
     .modify(
@@ -60,7 +60,7 @@ app.addScript("init-dev-db", (s) =>
       BillingCountry as billing_country,
       BillingPostalCode as billing_postal_code,
       Total as total
-    from csv.invoice`
+    from csv.invoice`,
     )
     .modify(`insert into db.playlist select Name as name from csv.playlist`)
     .modify(
@@ -83,7 +83,7 @@ app.addScript("init-dev-db", (s) =>
       Milliseconds as milliseconds,
       Bytes as bytes,
       UnitPrice as unit_price
-    from csv.track`
+    from csv.track`,
     )
     .modify(
       `insert into db.invoice_line
@@ -92,10 +92,10 @@ app.addScript("init-dev-db", (s) =>
       TrackId - 1 as track,
       UnitPrice as unit_price,
       Quantity as quantity
-    from csv.invoice_item`
+    from csv.invoice_item`,
     )
     .modify(
-      `insert into db.playlist_track select PlaylistId - 1 as playlist, TrackId - 1 as track from csv.playlist_track`
+      `insert into db.playlist_track select PlaylistId - 1 as playlist, TrackId - 1 as track from csv.playlist_track`,
     )
-    .saveDbToDir(`data/dev`)
+    .saveDbToDir(`data/dev`),
 );

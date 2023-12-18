@@ -96,7 +96,7 @@ export function content(opts: Opts) {
                   nodes.element("th", {
                     styles: styles.eachHeaderCell,
                     children: stringLiteral(col.header),
-                  })
+                  }),
                 ),
               }),
               nodes.element("tbody", {
@@ -110,7 +110,7 @@ export function content(opts: Opts) {
                           variant: "text",
                           level: "body-md",
                         }),
-                      })
+                      }),
                     ),
                   }),
                   else: nodes.each({
@@ -129,7 +129,7 @@ export function content(opts: Opts) {
                                 children: col.cell(`each_record`),
                               })
                             : col.cell(`each_record`),
-                        })
+                        }),
                       ),
                     }),
                   }),

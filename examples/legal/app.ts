@@ -1,83 +1,8 @@
-import { app, colors, colorUtils, components, nodes } from "@yolm/boost";
+import { hub, colors, colorUtils, components, nodes } from "@yolm/boost";
 
-const { ui, db } = app;
+const { db } = hub;
 
-app.name = "legal";
-app.title = "Legal";
-app.displayName = "Legal";
-
-// generated the woff files with:
-// https://gwfh.mranftl.com/fonts
-for (const weight of ["regular", "500", "600", "700"]) {
-  ui.addGlobalStyle({
-    "@font-face": {
-      fontDisplay: "swap",
-      fontFamily: "'Arimo'",
-      fontStyle: "normal",
-      fontWeight: weight,
-      src: `url('/assets/arimo-v28-latin-${weight}.woff2') format('woff2')`,
-    },
-  });
-}
-
-// generated palette with:
-// https://www.tints.dev/brand/1345B9
-const primaryLightPalette = {
-  50: "#E3EBFC",
-  100: "#C7D6F9",
-  200: "#90AEF4",
-  300: "#5885EE",
-  400: "#215DE8",
-  500: "#1345B9",
-  600: "#0F3794",
-  700: "#0B296F",
-  800: "#081C4A",
-  900: "#040E25",
-};
-const primaryDarkPalette = {
-  50: "#E8EEFD",
-  100: "#D1DDFA",
-  200: "#A2BBF6",
-  300: "#7499F1",
-  400: "#4578ED",
-  500: "#1756E8",
-  600: "#1245BA",
-  700: "#0E338B",
-  800: "#09225D",
-  900: "#05112E",
-};
-
-ui.setTheme({
-  fontFamily: {
-    body: "Arimo, sans-serif",
-  },
-  radius: {
-    xs: "2px",
-    sm: "4px",
-    md: "6px",
-    lg: "8px",
-    xl: "10px",
-  },
-  lightColorSystem: {
-    palette: {
-      primary: primaryLightPalette,
-      neutral: colors.slate,
-      focusVisible: primaryLightPalette[500],
-    },
-    shadowChannel: colorUtils.colorChannel(primaryLightPalette[50]),
-  },
-  darkColorSystem: {
-    palette: {
-      primary: primaryDarkPalette,
-      neutral: {
-        ...colors.slate,
-        outlinedBorder: colors.slate[700],
-      },
-      focusVisible: primaryDarkPalette[500],
-    },
-    shadowChannel: colorUtils.colorChannel(primaryDarkPalette[900]),
-  },
-});
+hub.name = "legal";
 
 //
 // DATABASE
@@ -96,7 +21,7 @@ db.addTable("employee", (table) => {
   table.email("email").notNull();
 });
 
-app.addEnum({
+hub.addEnum({
   name: "contact_type",
   values: ["prospect", "client", "lead", "other"],
 });
@@ -117,12 +42,12 @@ db.addTable("contact", (table) => {
 db.catalog.addNotesTable("contact");
 db.catalog.addAttachmentsTable("contact");
 
-app.addEnum({
+hub.addEnum({
   name: "matter_type",
   values: ["civil", "corporate", "criminal", "family", "other"],
 });
 
-app.addEnum({
+hub.addEnum({
   name: "client_position",
   values: [
     "plaintiff",
@@ -179,7 +104,7 @@ db.addScalarFunction({
   procedure: (s) =>
     s.return(
       `coalesce((select sum(minutes) from db.payment where contact = input.contact), 0) -
-        coalesce((select sum(minutes) from db.time_entry where matter in (select id from db.matter where contact = input.contact) and billable), 0)`
+        coalesce((select sum(minutes) from db.time_entry where matter in (select id from db.matter where contact = input.contact) and billable), 0)`,
     ),
 });
 
@@ -187,9 +112,84 @@ db.addScalarFunction({
 // UI
 //
 
+const app = hub.addApp("legal", "Legal");
+
+// generated the woff files with:
+// https://gwfh.mranftl.com/fonts
+for (const weight of ["regular", "500", "600", "700"]) {
+  app.addGlobalStyle({
+    "@font-face": {
+      fontDisplay: "swap",
+      fontFamily: "'Arimo'",
+      fontStyle: "normal",
+      fontWeight: weight,
+      src: `url('/assets/arimo-v28-latin-${weight}.woff2') format('woff2')`,
+    },
+  });
+}
+
+// generated palette with:
+// https://www.tints.dev/brand/1345B9
+const primaryLightPalette = {
+  50: "#E3EBFC",
+  100: "#C7D6F9",
+  200: "#90AEF4",
+  300: "#5885EE",
+  400: "#215DE8",
+  500: "#1345B9",
+  600: "#0F3794",
+  700: "#0B296F",
+  800: "#081C4A",
+  900: "#040E25",
+};
+const primaryDarkPalette = {
+  50: "#E8EEFD",
+  100: "#D1DDFA",
+  200: "#A2BBF6",
+  300: "#7499F1",
+  400: "#4578ED",
+  500: "#1756E8",
+  600: "#1245BA",
+  700: "#0E338B",
+  800: "#09225D",
+  900: "#05112E",
+};
+
+app.setTheme({
+  fontFamily: {
+    body: "Arimo, sans-serif",
+  },
+  radius: {
+    xs: "2px",
+    sm: "4px",
+    md: "6px",
+    lg: "8px",
+    xl: "10px",
+  },
+  lightColorSystem: {
+    palette: {
+      primary: primaryLightPalette,
+      neutral: colors.slate,
+      focusVisible: primaryLightPalette[500],
+    },
+    shadowChannel: colorUtils.colorChannel(primaryLightPalette[50]),
+  },
+  darkColorSystem: {
+    palette: {
+      primary: primaryDarkPalette,
+      neutral: {
+        ...colors.slate,
+        outlinedBorder: colors.slate[700],
+      },
+      focusVisible: primaryDarkPalette[500],
+    },
+    shadowChannel: colorUtils.colorChannel(primaryDarkPalette[900]),
+  },
+});
+
 const isSysAdmin = `(select is_sys_admin from db.user from where id = current_user())`;
 
-ui.useNavbarShell({
+app.useNavbarShell({
   color: "primary",
   variant: "solid",
   links: [
@@ -249,7 +249,7 @@ where close_date is null
 order by date
 limit 10`;
 
-ui.addDashboardGridPage((page) =>
+app.addDashboardGridPage((page) =>
   page
     .header({
       header: `'Legal App Demo'`,
@@ -274,11 +274,11 @@ ui.addDashboardGridPage((page) =>
             s
               .scalar(
                 `value_num`,
-                `(select sum(minutes) from db.time_entry where billable and date > date.add(day, -30, today()))`
+                `(select sum(minutes) from db.time_entry where billable and date > date.add(day, -30, today()))`,
               )
               .scalar(
                 `previous_num`,
-                `(select sum(minutes) from db.time_entry where billable and date between date.add(day, -60, today()) and date.add(day, -30, today()))`
+                `(select sum(minutes) from db.time_entry where billable and date between date.add(day, -60, today()) and date.add(day, -30, today()))`,
               ),
           value: `sfn.display_minutes_duration(value_num)`,
           previous: `sfn.display_minutes_duration(previous_num)`,
@@ -290,11 +290,11 @@ ui.addDashboardGridPage((page) =>
             s
               .scalar(
                 `value_num`,
-                `(select sum(cost) from db.payment where date > date.add(day, -30, today()))`
+                `(select sum(cost) from db.payment where date > date.add(day, -30, today()))`,
               )
               .scalar(
                 `previous_num`,
-                `(select sum(cost) from db.payment where date between date.add(day, -60, today()) and date.add(day, -30, today()))`
+                `(select sum(cost) from db.payment where date between date.add(day, -60, today()) and date.add(day, -30, today()))`,
               ),
           value: `format.currency(value_num, 'USD')`,
           previous: `format.currency(previous_num, 'USD')`,
@@ -341,7 +341,7 @@ ui.addDashboardGridPage((page) =>
           `select
             sum(case when billable then minutes end) as billable,
             sum(case when not billable then minutes end) as non_billable
-          from db.time_entry where date > date.add(day, -30, today())`
+          from db.time_entry where date > date.add(day, -30, today())`,
         ),
       pieChartOpts: {
         labels:
@@ -350,7 +350,7 @@ ui.addDashboardGridPage((page) =>
         donut: "true",
         donutWidth: "15",
       },
-    })
+    }),
 );
 
 const thirdStyles = {
@@ -396,7 +396,7 @@ const contactFormSections = [
   },
 ];
 
-ui.addInsertFormPage({
+app.addInsertFormPage({
   table: "contact",
   content: {
     type: "TwoColumnSectioned",
@@ -406,16 +406,16 @@ ui.addInsertFormPage({
     s.navigate(`'/contacts/' || last_record_id(db.contact)`),
 });
 
-ui.addUpdateFormPage({
+app.addUpdateFormPage({
   table: "contact",
   content: {
     type: "TwoColumnSectioned",
     sections: contactFormSections,
   },
-  afterTransactionCommit: (_, s) => s.navigate(`'/contacts/' || ui.record_id`),
+  afterTransactionCommit: (_, s) => s.navigate(`'/contacts/' || app.record_id`),
 });
 
-const contactDatagridPage = ui.createDatagridPageNode("contact", (page) => {
+const contactDatagridPage = app.createDatagridPageNode("contact", (page) => {
   page
     .selectable()
     .viewButton()
@@ -430,8 +430,8 @@ const contactDatagridPage = ui.createDatagridPageNode("contact", (page) => {
     });
 });
 
-ui.pages.push({ path: "/contacts", content: contactDatagridPage });
-ui.pages.push({ path: "/contactsssss", content: contactDatagridPage });
+app.pages.push({ path: "/contacts", content: contactDatagridPage });
+app.pages.push({ path: "/contactsssss", content: contactDatagridPage });
 
 const remainingHoursStyles = {
   color: "text-secondary",
@@ -465,7 +465,7 @@ const linkStyle = {
   "&:hover": { textDecoration: "underline" },
 };
 
-ui.addRecordGridPage("contact", (page) =>
+app.addRecordGridPage("contact", (page) =>
   page
     .namedPageHeader({
       chips: ["mailing_list"],
@@ -488,13 +488,13 @@ ui.addRecordGridPage("contact", (page) =>
       dateField: "date",
       timelineHeader: `'Timeline'`,
       additionalState: (s) =>
-        s.scalar(`remaining_minutes`, `sfn.remaining_minutes(ui.record_id)`),
+        s.scalar(`remaining_minutes`, `sfn.remaining_minutes(app.record_id)`),
       afterHeaderNode: nodes.element("div", {
         styles: { display: "flex", gap: 2, pt: 1, px: 1 },
         children: [
           remainingHoursDisplay(
             `'Remaining paid hours: '`,
-            `remaining_minutes`
+            `remaining_minutes`,
           ),
         ],
       }),
@@ -572,10 +572,10 @@ ui.addRecordGridPage("contact", (page) =>
           },
         },
       ],
-    })
+    }),
 );
 
-ui.addSimpleDatagridPage("employee", (page) => {
+app.addSimpleDatagridPage("employee", (page) => {
   page
     .toolbar((t) =>
       t.insertDialog({
@@ -585,21 +585,21 @@ ui.addSimpleDatagridPage("employee", (page) => {
               `select ${
                 state.field("email").value
               } as email, next_record_id(db.user) as db_id, 'none' as notification_type`,
-              "added_user"
+              "added_user",
             )
             .modify(
               `insert into db.user (global_id, is_sys_admin, is_admin, disabled, email, employee) values ((select global_id from added_user), false, false, false, ${
                 state.field("email").value
-              }, last_record_id(db.employee))`
+              }, last_record_id(db.employee))`,
             ),
-      })
+      }),
     )
     .fieldConfig("email", {
       beforeEdit: (newValue, recordId) => (s) =>
         s
           .scalar(
             `user_id`,
-            `(select id from db.user where employee = ${recordId})`
+            `(select id from db.user where employee = ${recordId})`,
           )
           .modify(`update db.user set email = ${newValue} where id = user_id`)
           .if(`not (select disabled from db.user where id = user_id)`, (s) =>
@@ -607,16 +607,16 @@ ui.addSimpleDatagridPage("employee", (page) => {
               .removeUsers(`select global_id from db.user where id = user_id`)
               .addUsers(
                 `select ${newValue} as email, user_id as db_id, 'none' as notification_type`,
-                `added_user`
+                `added_user`,
               )
               .modify(
-                `update db.user set global_id = (select global_id from added_user) where id = user_id`
-              )
+                `update db.user set global_id = (select global_id from added_user) where id = user_id`,
+              ),
           ),
     });
 });
 
-ui.addSimpleDatagridPage("user", (page) => {
+app.addSimpleDatagridPage("user", (page) => {
   page
     .toolbar((t) =>
       t.insertDialog({
@@ -626,10 +626,10 @@ ui.addSimpleDatagridPage("user", (page) => {
             .addUsers(
               `select next_record_id(db.user) as db_id, 'none' as notification_type, ${
                 state.field("email").value
-              } as email`
+              } as email`,
             )
             .scalar(`new_global_id`, `(select global_id from added_user)`),
-      })
+      }),
     )
     .fieldConfig("disabled", {
       beforeEdit: (newValue, recordId) => (s) =>
@@ -637,16 +637,16 @@ ui.addSimpleDatagridPage("user", (page) => {
           condition: newValue,
           then: (s) =>
             s.removeUsers(
-              `select global_id from db.user where id = ${recordId}`
+              `select global_id from db.user where id = ${recordId}`,
             ),
           else: (s) =>
             s
               .addUsers(
                 `select email, id as db_id, 'none' as notification_type from db.user where id = ${recordId}`,
-                `added_user`
+                `added_user`,
               )
               .modify(
-                `update db.user set global_id = (select global_id from added_user) where id = ${recordId}`
+                `update db.user set global_id = (select global_id from added_user) where id = ${recordId}`,
               ),
         }),
     })
@@ -655,23 +655,23 @@ ui.addSimpleDatagridPage("user", (page) => {
         s
           .scalar(
             `employee`,
-            `(select employee from db.user where id = ${recordId})`
+            `(select employee from db.user where id = ${recordId})`,
           )
           .modify(
-            `update db.employee set email = ${newValue} where id = employee`
+            `update db.employee set email = ${newValue} where id = employee`,
           )
           .removeUsers(`select global_id from db.user where id = ${recordId}`)
           .addUsers(
             `select ${newValue} as email, ${recordId} as db_id, 'none' as notification_type`,
-            `added_user`
+            `added_user`,
           )
           .modify(
-            `update db.user set global_id = (select global_id from added_user) where id = ${recordId}`
+            `update db.user set global_id = (select global_id from added_user) where id = ${recordId}`,
           ),
     });
 });
 
-ui.addRecordGridPage("matter", (page) =>
+app.addRecordGridPage("matter", (page) =>
   page
     .namedPageHeader({
       subHeader: "rfn.display_matter_type(type)",
@@ -722,10 +722,10 @@ ui.addRecordGridPage("matter", (page) =>
         displayValues: ["matter", "minutes", "billable", "note"],
       },
       timelineHeader: `'Time entries'`,
-    })
+    }),
 );
 
-ui.addDatagridPage("matter", (page) => {
+app.addDatagridPage("matter", (page) => {
   page
     .selectable()
     .viewButton()
@@ -735,15 +735,15 @@ ui.addDatagridPage("matter", (page) => {
           withValues: { close_date: "null", date: "current_date()" },
         })
         .export()
-        .delete()
+        .delete(),
     );
 });
 
-ui.addDatagridPage("time_entry", (page) => {
+app.addDatagridPage("time_entry", (page) => {
   page.selectable().toolbar((t) => t.insertPage().export().delete());
 });
 
-ui.addMultiCardInsert({
+app.addMultiCardInsert({
   table: "time_entry",
   sharedSection: {
     header: `'Choose an employee and date'`,
@@ -811,7 +811,7 @@ ui.addMultiCardInsert({
           variant: "soft",
           color: "success",
           children: `'Click here to add more'`,
-          on: { click: (s) => s.setScalar(`ui.added`, `false`) },
+          on: { click: (s) => s.setScalar(`app.added`, `false`) },
         }),
       ],
     }),
@@ -823,13 +823,13 @@ ui.addMultiCardInsert({
   afterSubmitClient: (_, s) =>
     s
       .setScalar(
-        `ui.added_minutes`,
-        `(select sum(sfn.parse_minutes_duration(minutes)) from ui.time_entry)`
+        `app.added_minutes`,
+        `(select sum(sfn.parse_minutes_duration(minutes)) from app.time_entry)`,
       )
-      .setScalar(`ui.added_entries`, `(select count(*) from ui.time_entry)`),
+      .setScalar(`app.added_entries`, `(select count(*) from app.time_entry)`),
 });
 
-ui.addSimpleReportsPage((page) => {
+app.addSimpleReportsPage((page) => {
   page.section("Employees");
 
   const lastMonthParams = page.defineParams(
@@ -842,7 +842,7 @@ ui.addSimpleReportsPage((page) => {
       name: "end_date",
       initialValue: `current_date()`,
       type: "Date",
-    }
+    },
   );
 
   const timeEntryStats = `
@@ -1037,4 +1037,4 @@ limit 10`;
   page.finish();
 });
 
-ui.addDbManagementPage({ allow: isSysAdmin });
+app.addDbManagementPage({ allow: isSysAdmin });

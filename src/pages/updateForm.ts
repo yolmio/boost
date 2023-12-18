@@ -2,7 +2,7 @@ import {
   FormStateProcedureExtensions,
   withUpdateFormState,
 } from "../formState";
-import { app } from "../app";
+import { hub } from "../hub";
 import { nodes } from "../nodeHelpers";
 import { Node } from "../nodeTypes";
 import { containerStyles, createStyles } from "../styleUtils";
@@ -42,7 +42,7 @@ const styles = createStyles({
 });
 
 export function updateFormPage(opts: UpdateFormPage) {
-  const table = app.db.tables[opts.table];
+  const table = hub.db.tables[opts.table];
   const pathBase = getTableBaseUrl(opts.table);
   const path = opts.path ?? pathBase + `/{record_id:id}/edit`;
   let content: Node = withUpdateFormState({
@@ -69,7 +69,7 @@ export function updateFormPage(opts: UpdateFormPage) {
     styles: styles.root(),
     children: content,
   });
-  app.ui.pages.push({
+  hub.currentApp!.pages.push({
     path,
     content: nodes.sourceMap(
       `updateForm(table: ${opts.table})`,
@@ -77,7 +77,7 @@ export function updateFormPage(opts: UpdateFormPage) {
         procedure: (s) =>
           s.record(
             `record`,
-            `select * from db.${opts.table} where id = record_id`
+            `select * from db.${opts.table} where id = record_id`,
           ),
         statusScalar: `status`,
         children: nodes.switch(
@@ -94,7 +94,7 @@ export function updateFormPage(opts: UpdateFormPage) {
                 startDecorator: materialIcon("Report"),
                 size: "lg",
                 children: `'No ' || ${stringLiteral(
-                  table.displayName.toLowerCase()
+                  table.displayName.toLowerCase(),
                 )} || ' with id'`,
               }),
             }),
@@ -117,9 +117,9 @@ export function updateFormPage(opts: UpdateFormPage) {
                 children: `'Unable to load page'`,
               }),
             }),
-          }
+          },
         ),
-      })
+      }),
     ),
   });
 }

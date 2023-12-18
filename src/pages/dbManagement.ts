@@ -8,7 +8,7 @@ import { textarea } from "../components/textarea";
 import { typography } from "../components/typography";
 import * as yom from "../yom";
 import { input } from "../components/input";
-import { app } from "../app";
+import { hub } from "../hub";
 import { Node } from "../nodeTypes";
 import { stringLiteral } from "../utils/sqlHelpers";
 import { createStyles, flexGrowStyles } from "../styleUtils";
@@ -175,13 +175,13 @@ function undoTxTab() {
                   body: (s) =>
                     s
                       .if(`try_cast(ui.tx_id as bigint) is null`, (s) =>
-                        s.return()
+                        s.return(),
                       )
                       .serviceProc((s) =>
                         s
                           .startTransaction()
                           .undoTx(`cast(ui.tx_id as bigint)`)
-                          .commitTransaction()
+                          .commitTransaction(),
                       )
                       .setScalar(`ui.succeeded`, `true`)
                       .setScalar(`ui.err_type`, `null`)
@@ -205,7 +205,7 @@ function undoTxTab() {
           startDecorator: materialIcon("CheckCircle"),
           color: "success",
           children: `'Successfully undid transaction ' || tx_id`,
-        })
+        }),
       ),
       nodes.if(
         `err_type is not null`,
@@ -224,7 +224,7 @@ function undoTxTab() {
               children: `err_description`,
             }),
           ],
-        })
+        }),
       ),
     ],
   });
@@ -270,7 +270,7 @@ function modifyTab() {
                           .startTransaction()
                           .setScalar(`ui.tx_id`, `current_tx()`)
                           .dynamicModify(`ui.statement`)
-                          .commitTransaction()
+                          .commitTransaction(),
                       )
                       .setScalar(`ui.err_type`, `null`)
                       .setScalar(`ui.err_message`, `null`)
@@ -293,7 +293,7 @@ function modifyTab() {
           startDecorator: materialIcon("CheckCircle"),
           color: "success",
           children: `'Successfully ran statement. Transaction id is: ' || tx_id`,
-        })
+        }),
       ),
       nodes.if(
         `err_type is not null`,
@@ -312,7 +312,7 @@ function modifyTab() {
               children: `err_description`,
             }),
           ],
-        })
+        }),
       ),
     ],
   });
@@ -339,7 +339,7 @@ function queryTab() {
               keydown: (s) =>
                 s.if(
                   `event.key = 'Enter' and (event.ctrl_key or event.meta_key)`,
-                  (s) => s.setScalar(`ui.query_to_run`, `ui.query`)
+                  (s) => s.setScalar(`ui.query_to_run`, `ui.query`),
                 ),
             },
           },
@@ -363,7 +363,7 @@ function queryTab() {
                   .serviceProc((s) =>
                     s
                       .dynamicQueryToCsv(`ui.query`, `query_csv`)
-                      .setScalar(`csv`, `query_csv`)
+                      .setScalar(`csv`, `query_csv`),
                   )
                   .download(`'result.csv'`, `csv`),
             },
@@ -452,7 +452,7 @@ function queryTab() {
                 }),
               ],
             }),
-          }
+          },
         ),
       }),
     ],
@@ -530,7 +530,7 @@ function collapse(label: Node, node: Node) {
 }
 
 function transactionQueryReference(): Node[] {
-  const userFk = app.db.userTableName;
+  const userFk = hub.db.userTableName;
   return [
     typography({ level: "h4", children: "'Transaction Queries'" }),
     divider(),
@@ -551,7 +551,7 @@ function transactionQueryReference(): Node[] {
             notNull: false,
           }),
         ],
-      })
+      }),
     ),
     collapse(
       "'tx_op'",
@@ -595,7 +595,7 @@ function transactionQueryReference(): Node[] {
             notNull: true,
           }),
         ],
-      })
+      }),
     ),
     collapse(
       "'{table}_as_of'",
@@ -615,7 +615,7 @@ function transactionQueryReference(): Node[] {
             children: `'The above query gets the first_name of the contact with id 0 after the second transaction (transaction with id 1) was applied.'`,
           }),
         ],
-      })
+      }),
     ),
     collapse(
       "'{table}_insert_op'",
@@ -651,7 +651,7 @@ function transactionQueryReference(): Node[] {
             notNull: true,
           }),
         ],
-      })
+      }),
     ),
     collapse(
       "'{table}_update_op'",
@@ -687,7 +687,7 @@ function transactionQueryReference(): Node[] {
             notNull: true,
           }),
         ],
-      })
+      }),
     ),
     collapse(
       "'sys_op_kind'",
@@ -715,19 +715,19 @@ function transactionQueryReference(): Node[] {
             children: `'restore'`,
           }),
         ],
-      })
+      }),
     ),
     collapse(
       "'sys_db_table'",
       nodes.element("div", {
         styles: styles.enumValues,
-        children: Object.keys(app.db.tables).map((name) =>
+        children: Object.keys(hub.db.tables).map((name) =>
           nodes.element("div", {
             styles: styles.enumValue,
             children: stringLiteral(name),
-          })
+          }),
         ),
-      })
+      }),
     ),
   ];
 }
@@ -740,7 +740,7 @@ function schemaReference() {
       children: [
         typography({ level: "h4", children: "'Tables'" }),
         divider(),
-        Object.values(app.db.tables).map((table) => {
+        Object.values(hub.db.tables).map((table) => {
           const fields = Object.values(table.fields).map((field) => {
             let typeString = field.type.toLowerCase();
             if (field.type === "ForeignKey") {
@@ -756,7 +756,7 @@ function schemaReference() {
               type: typeString,
             });
           });
-          if (app.db.enableTransactionQueries) {
+          if (hub.db.enableTransactionQueries) {
             fields.unshift(
               displayField({
                 name: "last_modified_by_tx",
@@ -767,7 +767,7 @@ function schemaReference() {
                 name: "created_by_tx",
                 notNull: true,
                 type: "tx (biguint)",
-              })
+              }),
             );
           }
           fields.unshift(
@@ -775,14 +775,14 @@ function schemaReference() {
               name: table.primaryKeyFieldName,
               notNull: true,
               type: "pk (biguint)",
-            })
+            }),
           );
           return collapse(
             nodes.state({
               procedure: (s) =>
                 s.scalar(
                   `count`,
-                  `(select count(*) from db.${table.identName})`
+                  `(select count(*) from db.${table.identName})`,
                 ),
               statusScalar: `status`,
               children: nodes.if({
@@ -797,19 +797,19 @@ function schemaReference() {
             nodes.element("div", {
               styles: styles.tableFields,
               children: fields,
-            })
+            }),
           );
         }),
         typography({ level: "h4", children: "'Enums'" }),
         divider(),
-        Object.values(app.enums).length !== 0
-          ? Object.values(app.enums)
+        Object.values(hub.enums).length !== 0
+          ? Object.values(hub.enums)
               .filter((enum_) =>
-                Object.values(app.db.tables).some((t) =>
+                Object.values(hub.db.tables).some((t) =>
                   Object.values(t.fields).some(
-                    (f) => f.type === "Enum" && f.enum === enum_.name
-                  )
-                )
+                    (f) => f.type === "Enum" && f.enum === enum_.name,
+                  ),
+                ),
               )
               .map((enum_) => {
                 return collapse(
@@ -820,13 +820,13 @@ function schemaReference() {
                       nodes.element("div", {
                         styles: styles.enumValue,
                         children: stringLiteral(v.name),
-                      })
+                      }),
                     ),
-                  })
+                  }),
                 );
               })
           : undefined,
-        ...(app.db.enableTransactionQueries ? transactionQueryReference() : []),
+        ...(hub.db.enableTransactionQueries ? transactionQueryReference() : []),
       ],
     }),
   });
@@ -893,11 +893,11 @@ export function dbManagementPage(opts: DbManagmentPageOpts = {}) {
         {
           condition: `true`,
           node: content,
-        }
+        },
       ),
     });
   }
-  app.ui.pages.push({
+  hub.currentApp!.pages.push({
     path: opts.path ?? `/db-management`,
     content,
   });

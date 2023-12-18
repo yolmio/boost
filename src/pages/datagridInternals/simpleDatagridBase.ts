@@ -58,7 +58,7 @@ export function simpleDatagridBase(opts: SimpleDatagridBaseOpts) {
     opts.source,
     opts.idFieldSource,
     opts.idField,
-    typeof opts.pageSize === "number"
+    typeof opts.pageSize === "number",
   );
   getResultsProc.statements(opts.extraQueryState);
   const rowHeight = rowHeightInPixels(opts.rowHeight);
@@ -77,23 +77,23 @@ export function simpleDatagridBase(opts: SimpleDatagridBaseOpts) {
         keyboardNavigation: (s) =>
           s
             .modify(
-              `update ui.focus_state set column = cell.column, row = cell.row, should_focus = true`
+              `update ui.focus_state set column = cell.column, row = cell.row, should_focus = true`,
             )
             .modify(`update ui.editing_state set is_editing = false`),
         cellClick: (s) =>
           s
             .modify(
-              `update ui.focus_state set column = cell.column, row = cell.row, should_focus = true`
+              `update ui.focus_state set column = cell.column, row = cell.row, should_focus = true`,
             )
             .modify(`update ui.editing_state set is_editing = false`)
             .statements(colClickHandlers(columns)),
         cellDoubleClick: (s) =>
           s
             .modify(
-              `update ui.focus_state set column = cell.column, row = cell.row, should_focus = false`
+              `update ui.focus_state set column = cell.column, row = cell.row, should_focus = false`,
             )
             .modify(
-              `update ui.editing_state set column = cell.column, row = cell.row, is_editing = true`
+              `update ui.editing_state set column = cell.column, row = cell.row, is_editing = true`,
             )
             .setScalar(`ui.start_edit_with_char`, `null`),
         cellKeydown: colKeydownHandlers(columns),
@@ -123,17 +123,17 @@ export function simpleDatagridBase(opts: SimpleDatagridBaseOpts) {
                   idField: opts.idField,
                 },
                 i + 1 === columns.length ? `null` : (i + 1).toString(),
-                `dg_record.${opts.idField}`
+                `dg_record.${opts.idField}`,
               ),
-              dgState
-            )
+              dgState,
+            ),
           ),
           header: nodes.sourceMap("cell header " + name, col.header),
           width: `(select width from column_width where col = ${i})`,
         };
       }),
     }),
-    dgState
+    dgState,
   );
   children = nodes.state({
     watch: ["dg_refresh_key"],
@@ -180,7 +180,7 @@ function getQuery(
   source: string,
   idFieldSource: string,
   idField: string,
-  paginated: boolean
+  paginated: boolean,
 ): StateStatements {
   const queryColumns: string[] = [];
   const tableFields: yom.ProcTableField[] = [
@@ -189,7 +189,7 @@ function getQuery(
   for (const col of columns) {
     if (col.queryGeneration) {
       queryColumns.push(
-        col.queryGeneration.expr + " as " + col.queryGeneration.sqlName
+        col.queryGeneration.expr + " as " + col.queryGeneration.sqlName,
       );
       tableFields.push({
         name: col.queryGeneration.sqlName,
@@ -198,7 +198,7 @@ function getQuery(
     }
   }
   let queryBase = `select ${idFieldSource} as ${idField}, ${queryColumns.join(
-    ","
+    ",",
   )} from ${source} as record`;
   if (paginated) {
     queryBase += ` limit ui.row_count`;
@@ -218,13 +218,13 @@ function getQuery(
             s.modify(
               `insert into dg_table ${queryBase} order by ${
                 col.queryGeneration!.sqlName
-              } nulls last`
+              } nulls last`,
             ),
           else: (s) =>
             s.modify(
               `insert into dg_table ${queryBase} order by ${
                 col.queryGeneration!.sqlName
-              } desc nulls last`
+              } desc nulls last`,
             ),
         }),
       else: currentStatements,

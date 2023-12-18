@@ -11,7 +11,7 @@ import { button } from "../../components/button";
 import { insertDialog } from "../../components/insertDialog";
 import { AutoLabelOnLeftInsertFormContent } from "../../components/internal/insertFormShared";
 import { deepmerge } from "../../utils/deepmerge";
-import { app } from "../../app";
+import { hub } from "../../hub";
 import { RecordGridBuilder } from "../recordGrid";
 
 export interface Opts {
@@ -56,7 +56,7 @@ const styles = createStyles({
 });
 
 export function content(opts: Opts, ctx: RecordGridBuilder) {
-  const tableModel = app.db.tables[opts.table];
+  const tableModel = hub.db.tables[opts.table];
   const foreignKeyField = Object.values(tableModel.fields).find(
     (f) => f.type === "ForeignKey" && f.table === ctx.table.name,
   );

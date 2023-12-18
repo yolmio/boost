@@ -56,7 +56,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
         procedure: (s) =>
           s.record(
             "record",
-            `select ${selectFields} from db.${ctx.table.identName} where ${ctx.table.primaryKeyIdent} = ${ctx.recordId}`
+            `select ${selectFields} from db.${ctx.table.identName} where ${ctx.table.primaryKeyIdent} = ${ctx.recordId}`,
           ),
         children: displayAddressText(fieldGroup, "record"),
       }),

@@ -1,7 +1,7 @@
 import "./app.ts";
-import { app } from "@yolm/boost";
+import { hub } from "@yolm/boost";
 
-app.addScript("init-dev-db", (s) =>
+hub.addScript("init-dev-db", (s) =>
   s
     .startTransaction("db")
     .modify(
@@ -12,7 +12,7 @@ app.addScript("init-dev-db", (s) =>
     .saveDbToDir("data/dev"),
 );
 
-app.addScript("init-db", (s) =>
+hub.addScript("init-db", (s) =>
   s
     .addUsers(
       `select * from (values(next_record_id(db.user), 'none', 'test@yolm.io')) as user(db_id, notification_type, email)`,
@@ -26,6 +26,6 @@ app.addScript("init-db", (s) =>
     .uploadDb(),
 );
 
-app.addScript("debug-stuff", (s) =>
+hub.addScript("debug-stuff", (s) =>
   s.pull().debugQuery(`select * from db.tx_op`),
 );

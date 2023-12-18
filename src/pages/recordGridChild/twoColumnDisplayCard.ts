@@ -66,7 +66,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
     }
   }
   const query = `select id${selectFields} from db.${ident(
-    ctx.table.name
+    ctx.table.name,
   )} as record where id = ${ctx.recordId}`;
   return card({
     variant: "outlined",

@@ -3,7 +3,7 @@ import {
   withInsertFormState,
 } from "../formState";
 import { nodes } from "../nodeHelpers";
-import { app } from "../app";
+import { hub } from "../hub";
 import { createStyles } from "../styleUtils";
 import { stringLiteral } from "../utils/sqlHelpers";
 import { divider } from "./divider";
@@ -43,10 +43,10 @@ const styles = createStyles({
 const titleId = stringLiteral(getUniqueUiId());
 
 export function insertDialog(opts: InsertDialogOpts) {
-  const tableModel = app.db.tables[opts.table];
+  const tableModel = hub.db.tables[opts.table];
   const { fields, relations } = getFieldsAndRelationsFromInsertFormContent(
     opts.content,
-    tableModel
+    tableModel,
   );
   return nodes.sourceMap(
     `insertDialog(table: "${opts.table}")`,
@@ -95,6 +95,6 @@ export function insertDialog(opts: InsertDialogOpts) {
             }),
           ],
         }),
-    })
+    }),
   );
 }

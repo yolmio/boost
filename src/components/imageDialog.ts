@@ -1,5 +1,5 @@
 import { nodes } from "../nodeHelpers";
-import { app } from "../app";
+import { hub } from "../hub";
 import { createStyles, visuallyHiddenStyles } from "../styleUtils";
 import { getUploadStatements, getVariantFromImageSet } from "../utils/image";
 import { ident } from "../utils/sqlHelpers";
@@ -63,11 +63,11 @@ const styles = createStyles({
     display: "none",
     lg: { display: "block" },
   },
-  replaceButton: () => ({ "&:focus-within": app.ui.theme.focus.default }),
+  replaceButton: (app) => ({ "&:focus-within": app.theme.focus.default }),
 });
 
 export function imageDialog(opts: ImageDialogOptions) {
-  const table = app.db.tables[opts.tableName];
+  const table = hub.db.tables[opts.tableName];
   const fieldGroup = table.fieldGroups[opts.group];
   if (fieldGroup.type !== "Image") {
     throw new Error("Invalid field group type for image dialog");

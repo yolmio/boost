@@ -1,4 +1,4 @@
-import { app } from "../app";
+import { hub } from "../hub";
 import type { Node } from "../nodeTypes";
 import { StyleObject } from "../styleTypes";
 import { Variant } from "../theme";
@@ -23,11 +23,12 @@ export interface ListOpts extends ComponentOpts, SingleElementComponentOpts {
 
 export const styles = createStyles({
   list: (
+    _,
     size: Size | undefined,
     variant: Variant,
     color: Color,
     isNested: boolean,
-    orientation: Orientation
+    orientation: Orientation,
   ): StyleObject => {
     const styles: StyleObject = {
       boxSizing: "border-box",
@@ -125,7 +126,7 @@ export const styles = createStyles({
     }
     return styles;
   },
-  baseListItemButton: (inRow: boolean): StyleObject => {
+  baseListItemButton: (app, inRow: boolean): StyleObject => {
     return {
       WebkitTapHighlightColor: "transparent",
       boxSizing: "border-box",
@@ -161,23 +162,24 @@ export const styles = createStyles({
         marginRight: inRow ? "var(--list-gap)" : undefined,
         marginTop: inRow ? undefined : "var(--list-gap)",
       },
-      "&:focus-visible": app.ui.theme.focus.default,
+      "&:focus-visible": app.theme.focus.default,
     };
   },
   listItemButton: (
+    app,
     variant: Variant,
     color: Color,
-    inRow: boolean
+    inRow: boolean,
   ): StyleObject => {
     return {
       ...styles.baseListItemButton(inRow),
-      '[aria-selected="true"]': app.ui.theme.focus.default,
+      '[aria-selected="true"]': app.theme.focus.default,
       "&:hover": getVariantStyle(variant, color, "hover"),
       "&:active": getVariantStyle(variant, color, "active"),
       ...getVariantStyle(variant, color),
     };
   },
-  listItem: (sticky: boolean, nested: boolean) => {
+  listItem: (_, sticky: boolean, nested: boolean) => {
     const styles: StyleObject = {
       // Integration with control elements, eg. Checkbox, Radio.
       "--internal-action-radius":
@@ -241,7 +243,7 @@ export function list(opts: ListOpts) {
     opts.variant ?? "plain",
     opts.color ?? "neutral",
     typeof opts.nestedIn === "string",
-    opts.orientation ?? "vertical"
+    opts.orientation ?? "vertical",
   );
   return mergeEls(
     {
@@ -250,7 +252,7 @@ export function list(opts: ListOpts) {
       children: opts.children,
       styles: listStyles,
     },
-    opts
+    opts,
   );
 }
 
@@ -266,7 +268,7 @@ export function listItemButton(opts: ListItemButtonOpts) {
   const rootStyles = styles.listItemButton(
     opts.variant ?? "plain",
     opts.color ?? "neutral",
-    opts.inRow ?? false
+    opts.inRow ?? false,
   );
   return mergeEls(
     {
@@ -275,7 +277,7 @@ export function listItemButton(opts: ListItemButtonOpts) {
       props: { tabIndex: `0` },
       children: opts.children,
     },
-    opts
+    opts,
   );
 }
 
@@ -300,7 +302,7 @@ export function listItem(opts: ListItemOpts) {
       styles: styles.listItem(opts.sticky ?? false, opts.nested ?? false),
       children: opts.children,
     },
-    opts
+    opts,
   );
 }
 

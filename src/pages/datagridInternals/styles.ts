@@ -1,12 +1,12 @@
-import { app } from "../../app";
+import { hub } from "../../hub";
 import { createStyles } from "../../styleUtils";
 
 export const styles = createStyles({
-  root: () => {
-    app.ui.addGlobalStyle({
+  root: (app) => {
+    app.addGlobalStyle({
       "::view-transition-group(dg-body)": {
-        animationDuration: app.ui.theme.transitionDurations.drawer,
-        animationTimingFunction: app.ui.theme.transitionEasing.drawer,
+        animationDuration: app.theme.transitionDurations.drawer,
+        animationTimingFunction: app.theme.transitionEasing.drawer,
       },
       'html[data-yolm-transition-type="open-view-drawer"]::view-transition-old(dg-body)':
         {
@@ -47,11 +47,11 @@ export const styles = createStyles({
     };
   },
   row: { display: "flex" },
-  cell: () => {
+  cell: ({ theme }) => {
     return {
       "&:focus-within": {
         "--focus-outline-offset": -1,
-        ...app.ui.theme.focus.default,
+        ...theme.focus.default,
       },
       display: "flex",
       alignItems: "center",
@@ -63,11 +63,11 @@ export const styles = createStyles({
       borderColor: "divider",
     };
   },
-  headerCell: () => {
+  headerCell: ({ theme }) => {
     return {
       "&:focus-within": {
         "--focus-outline-offset": -1,
-        ...app.ui.theme.focus.default,
+        ...theme.focus.default,
       },
       display: "flex",
       alignItems: "center",

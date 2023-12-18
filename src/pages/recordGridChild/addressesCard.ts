@@ -1,4 +1,4 @@
-import { AddressFieldGroup } from "../../app";
+import { AddressFieldGroup } from "../../hub";
 import { nodes } from "../../nodeHelpers";
 import { createStyles } from "../../styleUtils";
 import { ident } from "../../utils/sqlHelpers";
@@ -72,8 +72,8 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
           s.record(
             "record",
             `select ${allSelectFields} from db.${ident(
-              ctx.table.name
-            )} where id = ${ctx.recordId}`
+              ctx.table.name,
+            )} where id = ${ctx.recordId}`,
           ),
         children: groups.map(({ header, fieldGroup }) => [
           nodes.element("h6", {

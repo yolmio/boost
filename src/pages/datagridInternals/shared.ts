@@ -37,11 +37,11 @@ export function editFocusState() {
   return new StateStatements()
     .record(
       "focus_state",
-      "select 0 as column, 0 as row, false as should_focus"
+      "select 0 as column, 0 as row, false as should_focus",
     )
     .record(
       "editing_state",
-      "select 0 as column, 0 as row, false as is_editing"
+      "select 0 as column, 0 as row, false as is_editing",
     )
     .scalar(`start_edit_with_char`, { type: "String", maxLength: 1 })
     .scalar("saving_edit", "false")
@@ -75,7 +75,7 @@ export class DgStateHelpers {
   get triggerRefresh() {
     return new BasicStatements().setScalar(
       this.refreshKey,
-      `${this.refreshKey} + 1`
+      `${this.refreshKey} + 1`,
     );
   }
 
@@ -93,7 +93,7 @@ export class DgStateHelpers {
 
   displayEditErrorAndRemoveAfter(
     message: yom.SqlExpression,
-    delay: yom.SqlExpression = "4000"
+    delay: yom.SqlExpression = "4000",
   ) {
     return new DomStatements().statements(this.setErrorMessage(message)).spawn({
       detached: true,
@@ -122,7 +122,7 @@ export class DgStateHelpers {
               .startTransaction()
               .statements(opts.transactionBody)
               .commitTransaction()
-              .statements(opts.afterTransaction, this.triggerRefresh)
+              .statements(opts.afterTransaction, this.triggerRefresh),
           ),
         errorName: `edit_err`,
         catch: opts.onError(`edit_err`),
@@ -134,25 +134,25 @@ export class DgStateHelpers {
     return this.doEditTransaction({
       beforeTransaction: opts.beforeEditTransaction?.(
         opts.dbValue,
-        opts.recordId
+        opts.recordId,
       ),
       afterTransaction: opts.afterEditTransaction?.(
         opts.dbValue,
-        opts.recordId
+        opts.recordId,
       ),
       transactionBody: (s) =>
         s
           .statements(opts.beforeEdit?.(opts.dbValue, opts.recordId))
           .modify(
             `update db.${ident(opts.tableName)} set ${ident(
-              opts.fieldName
-            )} = ${opts.dbValue} where id = ${opts.recordId}`
+              opts.fieldName,
+            )} = ${opts.dbValue} where id = ${opts.recordId}`,
           )
           .statements(opts.afterEdit?.(opts.dbValue, opts.recordId)),
       onError: () => (s) =>
         s.statements(
           opts.resetValue,
-          this.displayEditErrorAndRemoveAfter(`'Error saving edit'`)
+          this.displayEditErrorAndRemoveAfter(`'Error saving edit'`),
         ),
     });
   }
@@ -162,7 +162,7 @@ export const dgState = new DgStateHelpers();
 
 export type FieldEditStatements = (
   newValue: string,
-  recordId: string
+  recordId: string,
 ) => ServiceStatementsOrFn;
 
 export interface FieldEditProcConfig {
@@ -193,7 +193,7 @@ export class CellHelpers {
       idField: string;
     },
     public nextCol: yom.SqlExpression,
-    public recordId: yom.SqlExpression
+    public recordId: yom.SqlExpression,
   ) {}
 
   get value(): yom.SqlExpression {
@@ -205,7 +205,7 @@ export class CellHelpers {
   setValue(v: yom.SqlExpression) {
     return this.opts.field
       ? new BasicStatements().modify(
-          `update ui.dg_table set ${this.opts.field} = ${v} where dg_table.${this.opts.idField} = ${this.record}.${this.opts.idField}`
+          `update ui.dg_table set ${this.opts.field} = ${v} where dg_table.${this.opts.idField} = ${this.record}.${this.opts.idField}`,
         )
       : new BasicStatements();
   }
@@ -223,7 +223,7 @@ export class CellHelpers {
   updateFieldValueInDb(
     opts: Omit<UpdateCellFieldOpts, "recordId"> & {
       recordId?: yom.SqlExpression;
-    }
+    },
   ) {
     return dgState.updateFieldValueInDb({
       ...opts,
@@ -239,7 +239,7 @@ export class CellHelpers {
         this.updateFieldValueInDb({
           ...opts,
           resetValue: this.setValue(`prev_value`),
-        })
+        }),
       );
     const displayErrAndExit = new DomStatements()
       .statements(dgState.displayEditErrorAndRemoveAfter(`'Invalid value'`))
@@ -255,7 +255,7 @@ export class CellHelpers {
               s
                 .statements(this.stopEditingAndFocus)
                 .if(`not ${parenWrap(opts.validUiValue)}`, displayErrAndExit)
-                .if(opts.changedUiValue, editStatements)
+                .if(opts.changedUiValue, editStatements),
             )
             .if(`event.key = 'Escape'`, this.stopEditingAndFocus)
             .if(`event.key = 'Tab'`, (s) =>
@@ -264,11 +264,11 @@ export class CellHelpers {
                 .scalar(`next_col`, { type: "SmallInt" }, this.nextCol)
                 .modify(`update ui.editing_state set is_editing = false`)
                 .modify(
-                  `update ui.focus_state set should_focus = true, column = next_col`
+                  `update ui.focus_state set should_focus = true, column = next_col`,
                 )
                 .if(`next_col is null`, (s) => s.return())
                 .if(`not ${parenWrap(opts.validUiValue)}`, displayErrAndExit)
-                .if(opts.changedUiValue, editStatements)
+                .if(opts.changedUiValue, editStatements),
             ),
       },
       blur: {
@@ -292,13 +292,13 @@ export function colKeydownHandlers(columns: ColumnEventHandlers[]) {
     if (column.keydownHeaderHandler) {
       statements.if(
         `cell.row = 0 and cell.column = ${i}`,
-        column.keydownHeaderHandler
+        column.keydownHeaderHandler,
       );
     }
     if (column.keydownCellHandler) {
       statements.if(
         `cell.row != 0 and cell.column = ${i}`,
-        column.keydownCellHandler
+        column.keydownCellHandler,
       );
     }
   }
@@ -423,11 +423,11 @@ export function resizeableSeperator({
                         .statements(setWidth(`pending_width`))
                         .setScalar(`waiting`, `false`)
                         .commitUiTreeChanges(),
-                  })
+                  }),
                 ),
               mouseUp: (s) => s.setScalar(`start_width`, `null`),
             },
-          })
+          }),
         ),
       ],
     }),

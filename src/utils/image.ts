@@ -1,11 +1,11 @@
-import { ImageSetFieldGroup, ImageUsage } from "../app";
+import { ImageSetFieldGroup, ImageUsage } from "../hub";
 import { DomStatements, ServiceStatements } from "../statements";
 import { ident } from "./sqlHelpers";
 
 export function getUploadStatements(
   tableName: string,
   recordId: string,
-  group: ImageSetFieldGroup
+  group: ImageSetFieldGroup,
 ) {
   const spawnUploadTasks = new DomStatements();
   const variants = Object.values(group.variants);
@@ -26,13 +26,13 @@ export function getUploadStatements(
     });
   }
   const joinUploadTasks = new DomStatements().joinTasks(
-    Object.values(group.variants).map((_, i) => `task_${i}`)
+    Object.values(group.variants).map((_, i) => `task_${i}`),
   );
   const setFields = Object.keys(group.variants)
     .map((fieldName, i) => `${ident(fieldName)} = uuid_${i}`)
     .join(",");
   const updateImagesInDb = new ServiceStatements().modify(
-    `update db.${ident(tableName)} set ${setFields} where id = ${recordId}`
+    `update db.${ident(tableName)} set ${setFields} where id = ${recordId}`,
   );
   return { spawnUploadTasks, joinUploadTasks, updateImagesInDb };
 }
@@ -40,7 +40,7 @@ export function getUploadStatements(
 export function getVariantFromImageSet(
   group: ImageSetFieldGroup,
   variant: ImageUsage,
-  fallbackVariants: ImageUsage[] = []
+  fallbackVariants: ImageUsage[] = [],
 ) {
   const variants = Object.entries(group.variants);
   let fallbackIndex: number | undefined;

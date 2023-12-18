@@ -1,4 +1,4 @@
-import { app } from "../app";
+import { hub } from "../hub";
 import { nodes } from "../nodeHelpers";
 import { Node } from "../nodeTypes";
 import { baseGridStyles, createStyles } from "../styleUtils";
@@ -78,5 +78,5 @@ export class DashboardGridBuilder {
 export function dashboardGridPage(fn: (page: DashboardGridBuilder) => any) {
   const builder = new DashboardGridBuilder();
   fn(builder);
-  app.ui.pages.push(builder.createPage());
+  hub.currentApp!.pages.push(builder.createPage());
 }

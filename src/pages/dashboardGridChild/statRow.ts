@@ -27,7 +27,7 @@ const styles = createStyles({
     flexDirection: "column",
     gap: 1.5,
   },
-  card: (statCount: number) => {
+  card: (_, statCount: number) => {
     let mediaQuery: StyleObject = {};
     switch (statCount) {
       case 2:
@@ -66,7 +66,7 @@ const styles = createStyles({
       ...mediaQuery,
     };
   },
-  stat: (statCount: number) => {
+  stat: (_, statCount: number) => {
     let mediaQuery: StyleObject = {};
     switch (statCount) {
       case 2:
@@ -168,10 +168,10 @@ function createStat(opts: StatOptions, statCount: number) {
             .statements(opts.procedure)
             .scalar("value", opts.value)
             .conditionalStatements(Boolean(opts.previous), (s) =>
-              s.scalar("previous", opts.previous!)
+              s.scalar("previous", opts.previous!),
             )
             .conditionalStatements(Boolean(opts.trend), (s) =>
-              s.scalar("trend", opts.trend!)
+              s.scalar("trend", opts.trend!),
             ),
         statusScalar: `status`,
         children: nodes.switch(
@@ -220,7 +220,7 @@ function createStat(opts: StatOptions, statCount: number) {
                         {
                           condition: `trend < 0`,
                           node: materialIcon("TrendingDown"),
-                        }
+                        },
                       ),
                       color: "success",
                       children: `format.percent(trend)`,
@@ -228,7 +228,7 @@ function createStat(opts: StatOptions, statCount: number) {
                   ],
                 })
               : valueAndPrevious,
-          }
+          },
         ),
       }),
     ],

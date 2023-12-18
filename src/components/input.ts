@@ -18,7 +18,7 @@ export interface InputOpts
 }
 
 export const styles = createStyles({
-  root: (size: Size, variant: Variant, color: Color, fullWidth: boolean) => {
+  root: (_, size: Size, variant: Variant, color: Color, fullWidth: boolean) => {
     const styles: StyleObject = {
       "--input-radius": cssVar(`radius-sm`),
       "--input-gap": "0.5rem",
@@ -70,7 +70,7 @@ export const styles = createStyles({
     } else {
       const paletteColor = color === "neutral" ? "primary" : color;
       styles["--input-focused-highlight"] = cssVar(
-        `palette-${paletteColor}-500`
+        `palette-${paletteColor}-500`,
       );
     }
     switch (size) {
@@ -162,7 +162,7 @@ export const styles = createStyles({
       opacity: "var(--input-placeholder-opacity)",
     },
   },
-  startDecorator: (color: Color, variant: Variant) => ({
+  startDecorator: (_, color: Color, variant: Variant) => ({
     "--button-margin": "0 0 0 calc(var(--input-decorator-child-offset) * -1)",
     "--icon-button-margin":
       "0 0 0 calc(var(--input-decorator-child-offset) * -1)",
@@ -181,7 +181,7 @@ export const styles = createStyles({
           : cssVar(`palette-${color}-${variant}-color`),
     },
   }),
-  endDecorator: (color: Color, variant: Variant) => ({
+  endDecorator: (_, color: Color, variant: Variant) => ({
     "--button-margin": "0 calc(var(--input-decorator-child-offset) * -1) 0 0",
     "--icon-button-margin":
       "0 calc(var(--input-decorator-child-offset) * -1) 0 0",
@@ -218,7 +218,7 @@ export function input(opts: InputOpts) {
         tag: "span",
         styles: styles.startDecorator(color, variant),
         children: opts.startDecorator,
-      })
+      }),
     );
   }
   if (opts.endDecorator) {
@@ -227,7 +227,7 @@ export function input(opts: InputOpts) {
         tag: "span",
         styles: styles.endDecorator(color, variant),
         children: opts.endDecorator,
-      })
+      }),
     );
   }
   return slot("root", {

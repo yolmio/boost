@@ -2,7 +2,7 @@ import {
   FormStateProcedureExtensions,
   withUpdateFormState,
 } from "../formState";
-import { app } from "../app";
+import { hub } from "../hub";
 import { createStyles } from "../styleUtils";
 import { ident, stringLiteral } from "../utils/sqlHelpers";
 import { divider } from "./divider";
@@ -45,7 +45,7 @@ const styles = createStyles({
 });
 
 export function updateDialog(opts: UpdateDialogOpts) {
-  const tableModel = app.db.tables[opts.table];
+  const tableModel = hub.db.tables[opts.table];
   return nodes.sourceMap(
     `updateDialog(${opts.table})`,
     modal({
@@ -76,7 +76,7 @@ export function updateDialog(opts: UpdateDialogOpts) {
                   `update_dialog_record`,
                   `select * from db.${ident(opts.table)} where id = ${
                     opts.recordId
-                  }`
+                  }`,
                 ),
               statusScalar: `update_dialog_status`,
               children: nodes.switch(
@@ -87,7 +87,7 @@ export function updateDialog(opts: UpdateDialogOpts) {
                     recordId: opts.recordId,
                     fields: getFieldsFromUpdateFormContent(
                       opts.content,
-                      tableModel
+                      tableModel,
                     ),
                     initialRecord: `update_dialog_record`,
                     beforeSubmitClient: opts.beforeSubmitClient,
@@ -121,11 +121,11 @@ export function updateDialog(opts: UpdateDialogOpts) {
                     size: "lg",
                     children: `'Unable to load page'`,
                   }),
-                }
+                },
               ),
             }),
           ],
         }),
-    })
+    }),
   );
 }

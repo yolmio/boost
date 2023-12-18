@@ -1,4 +1,4 @@
-import { app } from "../app";
+import { hub } from "../hub";
 
 export function escapeStringLiteral(s: string) {
   return s.replace(/[\0\x08\x09\x1a\n\r"'\\\%]/g, function (char: string) {
@@ -29,20 +29,20 @@ export function ident(s: string): string {
 }
 
 export function recordDisplayNameExpr(table: string, recordName?: string) {
-  const displayNameFn = app.db.tables[table].recordDisplayName;
+  const displayNameFn = hub.db.tables[table].recordDisplayName;
   if (!displayNameFn) {
     throw new Error("table " + table + " has no recordDisplayName");
   }
   return displayNameFn.expr(
-    ...displayNameFn.fields.map((f) => `${recordName ?? table}.${f}`)
+    ...displayNameFn.fields.map((f) => `${recordName ?? table}.${f}`),
   );
 }
 
 export function tableFieldSql(tableName: string, field: string) {
-  const table = app.db.tables[tableName];
+  const table = hub.db.tables[tableName];
   if (!table) {
     throw new Error(
-      `Tried to create sql for table ${tableName} but table does not exist`
+      `Tried to create sql for table ${tableName} but table does not exist`,
     );
   }
   if (
@@ -54,17 +54,17 @@ export function tableFieldSql(tableName: string, field: string) {
   }
   if (!table.fields[field]) {
     throw new Error(
-      `Tried to create sql for table ${tableName} field ${field} but field does not exist`
+      `Tried to create sql for table ${tableName} field ${field} but field does not exist`,
     );
   }
   return `${ident(tableName)}.${ident(field)}`;
 }
 
 export function tableIdSql(tableName: string) {
-  const table = app.db.tables[tableName];
+  const table = hub.db.tables[tableName];
   if (!table) {
     throw new Error(
-      `Tried to create sql for table ${tableName} but table does not exist`
+      `Tried to create sql for table ${tableName} but table does not exist`,
     );
   }
   const field = ident(table.primaryKeyFieldName);

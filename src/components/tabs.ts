@@ -1,4 +1,4 @@
-import { app } from "../app";
+import { hub } from "../hub";
 import { nodes } from "../nodeHelpers";
 import type { Node } from "../nodeTypes";
 import { Style, StyleObject } from "../styleTypes";
@@ -9,11 +9,12 @@ import { Color, ComponentOpts, Size } from "./types";
 
 const styles = createStyles({
   tab: (
+    { theme },
     defaultVariant: Variant,
     defaultColor: Color,
     selectedVariant: Variant,
     selectedColor: Color,
-    orientation: Orientation
+    orientation: Orientation,
   ) => {
     const styles = listStyles.baseListItemButton(orientation === "horizontal");
     Object.assign(styles, {
@@ -23,16 +24,16 @@ const styles = createStyles({
       '&:not(&[aria-selected="true"]):hover': getVariantStyle(
         defaultVariant,
         defaultColor,
-        "hover"
+        "hover",
       ),
       '&:not(&[aria-selected="true"]):active': getVariantStyle(
         defaultVariant,
         defaultColor,
-        "active"
+        "active",
       ),
       '&[aria-selected="true"]': {
         ...getVariantStyle(selectedVariant, selectedColor),
-        boxShadow: app.ui.theme.shadow.sm,
+        boxShadow: theme.shadow.sm,
         fontWeight: "initial",
         ...((selectedVariant === "plain" || selectedVariant === "outlined") && {
           backgroundColor: cssVar(`palette-background-surface`),
@@ -41,7 +42,7 @@ const styles = createStyles({
     });
     return styles;
   },
-  tabList: (size: Size | undefined, variant: Variant, color: Color) => {
+  tabList: (_, size: Size | undefined, variant: Variant, color: Color) => {
     const styles = listStyles.list(size, variant, color, false, "horizontal");
     switch (size) {
       case "sm":
@@ -66,10 +67,11 @@ const styles = createStyles({
     return styles;
   },
   root: (
+    _,
     variant: Variant,
     color: Color,
     size: Size,
-    orientation: Orientation
+    orientation: Orientation,
   ) => {
     const styles = {
       display: "flex",
@@ -104,7 +106,7 @@ const styles = createStyles({
     }
     return styles;
   },
-  tabPanel: (size: Size, orientation: Orientation) => {
+  tabPanel: (_, size: Size, orientation: Orientation) => {
     const styles: StyleObject = {
       flexGrow: 1,
       fontFamily: cssVar(`font-family-body`),
@@ -152,12 +154,12 @@ export function tabs(opts: BetterTabsOpts) {
     opts.variant ?? "plain",
     opts.color ?? "neutral",
     size,
-    orientation
+    orientation,
   );
   const tabListStyles = styles.tabList(
     size,
     opts.variant ?? "soft",
-    opts.color ?? "neutral"
+    opts.color ?? "neutral",
   );
   const tabPanelStyles = styles.tabPanel(size, orientation);
   const tabStyles = styles.tab(
@@ -165,7 +167,7 @@ export function tabs(opts: BetterTabsOpts) {
     opts.tabDefaultColor ?? "neutral",
     opts.tabSelectedVariant ?? "outlined",
     opts.tabSelectedColor ?? "neutral",
-    orientation
+    orientation,
   );
   const lastTabIdx = opts.tabs.length - 1;
   const getTabId = (idx: number | string) => `${opts.idBase} || 't' || ${idx}`;
@@ -189,7 +191,7 @@ export function tabs(opts: BetterTabsOpts) {
                 tabIndex: `case when selected_tab = ${i} then 0 else -1 end`,
                 id: getTabId(i),
                 "aria-controls": `case when selected_tab = 0 then ${getPanelId(
-                  i
+                  i,
                 )} end`,
               },
               on: {
@@ -198,7 +200,7 @@ export function tabs(opts: BetterTabsOpts) {
                     .setScalar(`ui.selected_tab`, `${i}`)
                     .setScalar(`ui.focus_tab`, `${i}`),
               },
-            })
+            }),
           ),
           on: {
             keydown: (s) =>
@@ -212,9 +214,9 @@ export function tabs(opts: BetterTabsOpts) {
                     s
                       .setScalar(
                         `ui.focus_tab`,
-                        `case when ui.focus_tab = 0 then ${lastTabIdx} else ui.focus_tab - 1 end`
+                        `case when ui.focus_tab = 0 then ${lastTabIdx} else ui.focus_tab - 1 end`,
                       )
-                      .focusEl(getTabId(`ui.focus_tab`))
+                      .focusEl(getTabId(`ui.focus_tab`)),
                 )
                 .if(
                   `event.key = ${
@@ -226,24 +228,24 @@ export function tabs(opts: BetterTabsOpts) {
                     s
                       .setScalar(
                         `ui.focus_tab`,
-                        `case when ui.focus_tab = ${lastTabIdx} then 0 else ui.focus_tab + 1 end`
+                        `case when ui.focus_tab = ${lastTabIdx} then 0 else ui.focus_tab + 1 end`,
                       )
-                      .focusEl(getTabId(`ui.focus_tab`))
+                      .focusEl(getTabId(`ui.focus_tab`)),
                 )
                 .if(`event.key = 'Enter' or event.key = ' '`, (s) =>
                   s
                     .setScalar(`ui.selected_tab`, `ui.focus_tab`)
-                    .focusEl(getTabId(`ui.focus_tab`))
+                    .focusEl(getTabId(`ui.focus_tab`)),
                 )
                 .if(`event.key = 'Home'`, (s) =>
                   s
                     .setScalar(`ui.focus_tab`, `0`)
-                    .focusEl(getTabId(`ui.focus_tab`))
+                    .focusEl(getTabId(`ui.focus_tab`)),
                 )
                 .if(`event.key = 'End'`, (s) =>
                   s
                     .setScalar(`ui.focus_tab`, `${lastTabIdx}`)
-                    .focusEl(getTabId(`ui.focus_tab`))
+                    .focusEl(getTabId(`ui.focus_tab`)),
                 ),
           },
         }),
@@ -259,7 +261,7 @@ export function tabs(opts: BetterTabsOpts) {
               },
               children: t.content,
             }),
-          }))
+          })),
         ),
       ],
     }),

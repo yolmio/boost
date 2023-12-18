@@ -2,7 +2,7 @@ import { alert } from "../components/alert";
 import { circularProgress } from "../components/circularProgress";
 import { nodes } from "../nodeHelpers";
 import { Node } from "../nodeTypes";
-import { Table, app } from "../app";
+import { Table, hub } from "../hub";
 import { Style } from "../styleTypes";
 import { baseGridStyles, containerStyles, createStyles } from "../styleUtils";
 import { pluralize } from "../utils/inflectors";
@@ -38,13 +38,13 @@ export class RecordGridBuilder {
   #children: Node[] = [];
 
   constructor(table: string) {
-    const tableModel = app.db.tables[table];
+    const tableModel = hub.db.tables[table];
     this.pathBase = pluralize(table.split("_").join(" ")).split(" ").join("-");
     this.recordId = "ui.record_id";
     this.refreshKey = "ui.record_grid_refresh_key";
     this.triggerRefresh = new BasicStatements().setScalar(
       "ui.record_grid_refresh_key",
-      `ui.record_grid_refresh_key + 1`
+      `ui.record_grid_refresh_key + 1`,
     );
     this.table = tableModel;
   }
@@ -164,7 +164,7 @@ export class RecordGridBuilder {
         procedure: (s) =>
           s.scalar(
             `record_exists`,
-            `exists (select 1 from db.${this.table.identName} where ${this.table.primaryKeyIdent} = ${this.recordId})`
+            `exists (select 1 from db.${this.table.identName} where ${this.table.primaryKeyIdent} = ${this.recordId})`,
           ),
         allow: this.#allow,
         statusScalar: "status",
@@ -208,7 +208,7 @@ export class RecordGridBuilder {
                 : styles.root(),
               children: this.#children,
             }),
-          }
+          },
         ),
       }),
     });
@@ -238,9 +238,9 @@ const styles = createStyles({
 
 export function recordGridPage(
   table: string,
-  fn: (builder: RecordGridBuilder) => unknown
+  fn: (builder: RecordGridBuilder) => unknown,
 ) {
   const builder = new RecordGridBuilder(table);
   fn(builder);
-  app.ui.pages.push(builder.createPage());
+  hub.currentApp!.pages.push(builder.createPage());
 }

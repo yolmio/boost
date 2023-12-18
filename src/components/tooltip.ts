@@ -197,8 +197,8 @@ export function tooltip(opts: TooltipOpts) {
               props: { id: arrowId },
             }),
           ],
-        })
-      )
+        }),
+      ),
     ),
   });
 }
@@ -232,7 +232,7 @@ export function wrapInTooltip(opts: WrapInTooltipOpts) {
             delay(`50`),
             if_(
               `prev_enter_count = enter_count`,
-              setScalar(`open_tooltip`, `false`)
+              setScalar(`open_tooltip`, `false`),
             ),
           ],
         },

@@ -1,29 +1,28 @@
-import { app } from "@yolm/boost";
-const { ui } = app;
+import { hub } from "@yolm/boost";
 
-app.name = "hello_world";
-app.title = "Hello World App";
-app.displayName = "Hello World";
+hub.name = "hello_world";
 
 // ui
 
-ui.useNavbarShell({
+const app = hub.addApp("hello_world", "Hello World");
+
+app.useNavbarShell({
   color: "primary",
   variant: "solid",
   links: ["/contacts", "/reports"],
 });
 
-ui.pages.push({
+app.pages.push({
   path: "/",
   content: "'hello world!'",
 });
 
-ui.pages.push({
+app.pages.push({
   path: "/contacts",
   content: "'No contacts yet'",
 });
 
-ui.pages.push({
+app.pages.push({
   path: "/reports",
   content: "'No reports yet'",
 });

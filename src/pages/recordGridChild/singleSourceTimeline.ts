@@ -6,7 +6,7 @@ import { materialIcon } from "../../components/materialIcon";
 import { typography } from "../../components/typography";
 import { nodes } from "../../nodeHelpers";
 import { Node } from "../../nodeTypes";
-import { app } from "../../app";
+import { hub } from "../../hub";
 import { Style } from "../../styleTypes";
 import { ident } from "../../utils/sqlHelpers";
 import { recordDefaultItemContent, styles } from "./timelineShared";
@@ -74,12 +74,12 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
       });
     }
   }
-  const tableModel = app.db.tables[opts.table];
+  const tableModel = hub.db.tables[opts.table];
   const itemContent = opts.itemContent;
   const insertDialogOpts = opts.insertDialogOpts;
   const withValues: Record<string, string> = insertDialogOpts?.withValues ?? {};
   let foreignKeyField = Object.values(tableModel.fields).find(
-    (f) => f.type === "ForeignKey" && f.table === ctx.table.name
+    (f) => f.type === "ForeignKey" && f.table === ctx.table.name,
   );
   const overrides: Record<string, AutoLabelOnLeftFieldOverride> = {
     date: {
@@ -107,7 +107,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
           } else {
             return `record.custom_action_${valueIdx}`;
           }
-        })
+        }),
       );
     }
     if (itemContent.headerValues) {
@@ -133,8 +133,8 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
         ...(itemContent.headerValues?.map((v, headerIdx) =>
           typeof v === "string"
             ? `record.${ident}`
-            : `record.header_value_${headerIdx}`
-        ) ?? [])
+            : `record.header_value_${headerIdx}`,
+        ) ?? []),
       ),
       tableModel,
       customAction,
@@ -148,8 +148,8 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
       ...itemContent.values.map((v, valueIdx) =>
         typeof v === "string"
           ? `record.${v}`
-          : `record.custom_value_${valueIdx}`
-      )
+          : `record.custom_value_${valueIdx}`,
+      ),
     );
   }
   const item = nodes.element("div", {
@@ -180,7 +180,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
             `record.iteration_index != (select count(*) from result) - 1`,
             nodes.element("span", {
               styles: styles.line,
-            })
+            }),
           ),
         ],
       }),
@@ -205,7 +205,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
         if (f.type === "ForeignKey" && f.table === ctx.table.name) {
           if (foreignKeyExpr) {
             throw new Error(
-              "Please specify a foreignKeyExpr when multiple fields could be used and you don't specify a customFrom"
+              "Please specify a foreignKeyExpr when multiple fields could be used and you don't specify a customFrom",
             );
           }
           foreignKeyExpr = ident(f.name);
@@ -213,7 +213,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
       }
     }
     fullQuery += ` from db.${ident(
-      opts.table
+      opts.table,
     )} as record where ${foreignKeyExpr} = ${ctx.recordId}`;
   }
   fullQuery += ` limit row_count`;
@@ -238,17 +238,17 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                   s
                     .if(
                       `status != 'received' or (service_row_count is not null and (select count(*) from result) < service_row_count)`,
-                      (s) => s.return()
+                      (s) => s.return(),
                     )
                     .getWindowProperty("scrollY", "scroll_y")
                     .getWindowProperty("innerHeight", "height")
                     .getElProperty(
                       "scrollHeight",
                       "doc_scroll_height",
-                      "'yolm-document-body'"
+                      "'yolm-document-body'",
                     )
                     .if(`doc_scroll_height - scroll_y - height < 500`, (s) =>
-                      s.setScalar(`row_count`, `row_count + 50`)
+                      s.setScalar(`row_count`, `row_count + 50`),
                     ),
               },
             }),
@@ -310,6 +310,6 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
           ],
         }),
       }),
-    })
+    }),
   );
 }

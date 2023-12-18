@@ -1,9 +1,7 @@
-import { app, components } from "@yolm/boost";
-const { db, ui } = app;
+import { hub, components } from "@yolm/boost";
+const { db } = hub;
 
-app.name = "chinook";
-app.title = "Chinook";
-app.displayName = "Chinook";
+hub.name = "chinook";
 
 //
 // DATABASE
@@ -75,7 +73,7 @@ db.addTable("invoice_line", (table) => {
   table.smallUint("quantity").notNull();
 });
 
-app.addEnum({
+hub.addEnum({
   name: "media_type",
   values: [
     { name: "mpeg", displayName: "MPEG audio file" },
@@ -112,10 +110,12 @@ db.addTable("track", (table) => {
 // UI
 //
 
+const app = hub.addApp("chinook", "Chinook");
+
 const isSysAdmin = `(select is_sys_admin from db.user from where id = current_user())`;
 const isAdmin = `(select is_admin from db.user from where id = current_user())`;
 
-ui.useNavbarShell({
+app.useNavbarShell({
   color: "primary",
   variant: "solid",
   links: [
@@ -177,7 +177,7 @@ from db.invoice
 order by invoice_date desc
 limit 5`;
 
-app.ui.addDashboardGridPage((page) =>
+app.addDashboardGridPage((page) =>
   page
     .header({
       header: "'Chinhook Dashboard'",
@@ -198,11 +198,11 @@ app.ui.addDashboardGridPage((page) =>
             s
               .scalar(
                 `value_num`,
-                `(select sum(total) from db.invoice where invoice_date > date.add(day, -30, ${today}))`
+                `(select sum(total) from db.invoice where invoice_date > date.add(day, -30, ${today}))`,
               )
               .scalar(
                 `previous_num`,
-                `(select sum(total) from db.invoice where invoice_date between date.add(day, -60, ${today}) and date.add(day, -30, ${today}))`
+                `(select sum(total) from db.invoice where invoice_date between date.add(day, -60, ${today}) and date.add(day, -30, ${today}))`,
               ),
           value: `format.currency(value_num, 'USD')`,
           previous: `format.currency(previous_num, 'USD')`,
@@ -213,8 +213,8 @@ app.ui.addDashboardGridPage((page) =>
           value: `(select count(distinct track) from db.invoice join db.invoice_line on invoice.id = invoice_line.id where invoice_date > date.add(day, -30, ${today}))`,
           previous: `(select count(distinct track) from db.invoice join db.invoice_line on invoice.id = invoice_line.id where invoice_date between date.add(day, -60, ${today}) and date.add(day, -30, ${today})))`,
           trend: `cast((value - previous) as decimal(10, 2)) / cast(previous as decimal(10, 2))`,
-        }
-      ]
+        },
+      ],
     })
     .table({
       query: newInvoices,
@@ -262,7 +262,7 @@ app.ui.addDashboardGridPage((page) =>
           where invoice_date > date.add(day, -60, ${today})
           group by genre
           order by sales desc
-          limit 5`
+          limit 5`,
           )
           .table(
             "last_30",
@@ -275,11 +275,11 @@ app.ui.addDashboardGridPage((page) =>
               join db.track on track = track.id
             where invoice_date > date.add(day, -30, ${today}) and track.genre = last_60.genre
             ) as sales
-          from last_60`
+          from last_60`,
           )
           .table(
             "label",
-            "select name from last_60 join db.genre on genre = genre.id"
+            "select name from last_60 join db.genre on genre = genre.id",
           ),
       series: [
         {
@@ -296,10 +296,10 @@ app.ui.addDashboardGridPage((page) =>
         labelInterpolation:
           "'$' || format.decimal(cast(label as decimal(28, 10)))",
       },
-    })
+    }),
 );
 
-ui.addDatagridPage("customer", (page) => {
+app.addDatagridPage("customer", (page) => {
   page
     .viewButton()
     .selectable()
@@ -326,15 +326,15 @@ ui.addDatagridPage("customer", (page) => {
                   input: (s) =>
                     s.statements(
                       helper.setValue1(
-                        `case when target_value = '' then null else target_value end`
+                        `case when target_value = '' then null else target_value end`,
                       ),
-                      helper.debounceInputTriggerRefresh
+                      helper.debounceInputTriggerRefresh,
                     ),
                   blur: helper.debounceBlurHandler,
                 },
               },
             },
-          })
+          }),
         ),
     })
     .customSortColumn({
@@ -358,7 +358,7 @@ ui.addDatagridPage("customer", (page) => {
     });
 });
 
-ui.addRecordGridPage("customer", (page) => {
+app.addRecordGridPage("customer", (page) => {
   page
     .namedPageHeader()
     .staticTableCard({
@@ -384,7 +384,7 @@ ui.addRecordGridPage("customer", (page) => {
     .createUpdatePage();
 });
 
-ui.addSimpleDatagridPage("album", (page) => {
+app.addSimpleDatagridPage("album", (page) => {
   page
     .viewButton()
     .selectable()
@@ -396,7 +396,7 @@ ui.addSimpleDatagridPage("album", (page) => {
     });
 });
 
-ui.addRecordGridPage("album", (page) => {
+app.addRecordGridPage("album", (page) => {
   page
     .namedPageHeader()
     .simpleLinkRelationCard({
@@ -411,7 +411,7 @@ ui.addRecordGridPage("album", (page) => {
     .createUpdatePage();
 });
 
-ui.addSimpleDatagridPage("artist", (page) => {
+app.addSimpleDatagridPage("artist", (page) => {
   page
     .viewButton()
     .selectable()
@@ -423,7 +423,7 @@ ui.addSimpleDatagridPage("artist", (page) => {
     });
 });
 
-ui.addRecordGridPage("artist", (page) => {
+app.addRecordGridPage("artist", (page) => {
   page
     .namedPageHeader()
     .simpleLinkRelationCard({
@@ -444,7 +444,7 @@ ui.addRecordGridPage("artist", (page) => {
     .createUpdatePage();
 });
 
-ui.addSimpleDatagridPage("genre", (page) => {
+app.addSimpleDatagridPage("genre", (page) => {
   page
     .selectable()
     .toolbar((toolbar) => toolbar.insertDialog().delete())
@@ -455,7 +455,7 @@ ui.addSimpleDatagridPage("genre", (page) => {
     });
 });
 
-ui.addSimpleDatagridPage("playlist", (page) => {
+app.addSimpleDatagridPage("playlist", (page) => {
   page
     .selectable()
     .viewButton()
@@ -467,7 +467,7 @@ ui.addSimpleDatagridPage("playlist", (page) => {
     });
 });
 
-ui.addRecordGridPage("playlist", (page) => {
+app.addRecordGridPage("playlist", (page) => {
   page
     .namedPageHeader()
     .simpleLinkAssociationCard({
@@ -482,7 +482,7 @@ ui.addRecordGridPage("playlist", (page) => {
     .createUpdatePage();
 });
 
-ui.addDatagridPage("track", (page) => {
+app.addDatagridPage("track", (page) => {
   page
     .viewButton()
     .selectable()
@@ -495,7 +495,7 @@ ui.addDatagridPage("track", (page) => {
     });
 });
 
-ui.addRecordGridPage("track", (page) => {
+app.addRecordGridPage("track", (page) => {
   page
     .namedPageHeader()
     .staticTableCard({
@@ -519,14 +519,14 @@ ui.addRecordGridPage("track", (page) => {
     .createUpdatePage();
 });
 
-ui.addDatagridPage("invoice", (page) => {
+app.addDatagridPage("invoice", (page) => {
   page
     .viewButton()
     .selectable()
     .toolbar((toolbar) => toolbar.insertDialog().delete());
 });
 
-ui.addRecordGridPage("invoice", (page) => {
+app.addRecordGridPage("invoice", (page) => {
   page
     .superSimpleHeader({ header: "Invoice" })
     .staticTableCard({
@@ -567,4 +567,4 @@ ui.addRecordGridPage("invoice", (page) => {
     .createUpdatePage();
 });
 
-ui.addDbManagementPage();
+app.addDbManagementPage();

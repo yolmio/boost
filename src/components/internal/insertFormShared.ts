@@ -5,7 +5,7 @@ import {
   InsertFormRelation,
   InsertFormState,
 } from "../../formState";
-import { Table, app } from "../../app";
+import { Table, hub } from "../../hub";
 import { nodes } from "../../nodeHelpers";
 import { Node } from "../../nodeTypes";
 import { Style } from "../../styleTypes";
@@ -272,7 +272,7 @@ function twoColumnSectionedInsertFormContent(
     sections.push(divider());
     let sectionBody: Node;
     if (section.relation) {
-      const relationTable = app.db.tables[section.relation.table];
+      const relationTable = hub.db.tables[section.relation.table];
       sectionBody = nodes.element("div", {
         styles: twoColumnFormStyles.cardRelation,
         children: [

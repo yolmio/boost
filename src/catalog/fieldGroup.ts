@@ -20,7 +20,7 @@ function address(opts: AddressFieldGroupCatalog, table: TableBuilder) {
   function createFieldName(
     option: boolean | string | undefined,
     defaultName: string,
-    createByDefault: boolean
+    createByDefault: boolean,
   ) {
     if (typeof option === "string") {
       return option;
@@ -34,19 +34,19 @@ function address(opts: AddressFieldGroupCatalog, table: TableBuilder) {
   const street1Field = createFieldName(
     opts.createFields?.street,
     "street",
-    true
+    true,
   );
   const street2Field = createFieldName(
     opts.createFields?.streetTwo,
     "street_two",
-    false
+    false,
   );
   const cityField = createFieldName(opts.createFields?.city, "city", true);
   const stateField = createFieldName(opts.createFields?.state, "state", true);
   const countryField = createFieldName(
     opts.createFields?.country,
     "country",
-    true
+    true,
   );
   const zipField = createFieldName(opts.createFields?.zip, "zip", true);
   table.fieldGroup(groupName, {
@@ -144,7 +144,7 @@ export type FieldGroupCatalog =
 
 export function applyFieldGroupCatalog(
   catalog: FieldGroupCatalog,
-  table: TableBuilder
+  table: TableBuilder,
 ) {
   switch (catalog.type) {
     case "requiredUserFields": {

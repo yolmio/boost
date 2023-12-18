@@ -1,5 +1,5 @@
 import { nodes } from "../../nodeHelpers";
-import { app } from "../../app";
+import { hub } from "../../hub";
 import { createStyles, flexGrowStyles } from "../../styleUtils";
 import { ident, stringLiteral } from "../../utils/sqlHelpers";
 import { divider } from "../../components/divider";
@@ -90,7 +90,7 @@ const styles = createStyles({
 });
 
 export function content(opts: Opts, ctx: RecordGridBuilder) {
-  const otherTable = app.db.tables[opts.table];
+  const otherTable = hub.db.tables[opts.table];
   const listScrollId = stringLiteral(getUniqueUiId());
   if (!otherTable) {
     throw new Error(`Table ${opts.table} not found`);

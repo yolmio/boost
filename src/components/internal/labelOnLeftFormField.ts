@@ -56,7 +56,7 @@ export function labelOnLeftFormField(opts: LabelOnLeftFormFieldOpts): Node {
               slots: { input: { props: { id: opts.id } } },
               on: {
                 checkboxChange: opts.fieldHelper.setValue(
-                  `coalesce(not ` + opts.fieldHelper.value + `, true)`
+                  `coalesce(not ` + opts.fieldHelper.value + `, true)`,
                 ),
               },
             }),
@@ -65,7 +65,7 @@ export function labelOnLeftFormField(opts: LabelOnLeftFormFieldOpts): Node {
               nodes.element("div", {
                 styles: styles.errorText,
                 children: opts.fieldHelper.error,
-              })
+              }),
             ),
           ],
         }),
@@ -77,7 +77,7 @@ export function labelOnLeftFormField(opts: LabelOnLeftFormFieldOpts): Node {
     throw new Error(
       "labelOnLeftFormField does not handle field of type " +
         opts.field.type +
-        "for card fields"
+        "for card fields",
     );
   }
   return nodes.element("div", {
@@ -96,7 +96,7 @@ export function labelOnLeftFormField(opts: LabelOnLeftFormFieldOpts): Node {
             nodes.element("div", {
               styles: styles.errorText,
               children: opts.fieldHelper.error,
-            })
+            }),
           ),
         ],
       }),

@@ -1,5 +1,5 @@
 import { InsertDialogOpts } from "../components/insertDialog";
-import { HelperFieldType, Table, app, fieldTypeFromHelper } from "../app";
+import { HelperFieldType, Table, hub, fieldTypeFromHelper } from "../hub";
 import { pluralize, upcaseFirst } from "../utils/inflectors";
 import { stringLiteral } from "../utils/sqlHelpers";
 import * as yom from "../yom";
@@ -116,7 +116,7 @@ export class SimpleDatagridPageBuilder {
   #rowHeight?: RowHeight;
 
   constructor(table: string) {
-    this.#table = app.db.tables[table];
+    this.#table = hub.db.tables[table];
     if (!this.#table) {
       throw new Error(`No table ${table} found`);
     }
@@ -153,7 +153,7 @@ export class SimpleDatagridPageBuilder {
       if (!this.#table.getHrefToRecord) {
         throw new Error(
           "viewButton is true but table has no getHrefToRecord, on datagrid for table " +
-            this.#table.name
+            this.#table.name,
         );
       }
       this.#viewButtonUrl = (id) => this.#table.getHrefToRecord!(id);
@@ -204,7 +204,7 @@ export class SimpleDatagridPageBuilder {
         column.name
           .split("_")
           .map((v, i) => (i === 0 ? upcaseFirst(v) : v))
-          .join(" ")
+          .join(" "),
     );
     this.#extraColumns.push(({ columnIndex }) => {
       const toggleColumnSort = simpleToggleColumnSort(columnIndex);
@@ -223,20 +223,20 @@ export class SimpleDatagridPageBuilder {
             {
               condition: `sort_info.col = ${columnIndex} and not sort_info.ascending`,
               node: materialIcon("ArrowDownward"),
-            }
+            },
           ),
           resizeableSeperator({
             minWidth: 50,
             setWidth: (width) =>
               new BasicStatements().modify(
-                `update ui.column_width set width = ${width} where col = ${columnIndex}`
+                `update ui.column_width set width = ${width} where col = ${columnIndex}`,
               ),
             width: `(select width from ui.column_width where col = ${columnIndex})`,
           }),
         ],
         keydownHeaderHandler: (s) =>
           s.if(`event.key = 'Enter'`, (s) =>
-            s.statements(toggleColumnSort, dgState.triggerRefresh)
+            s.statements(toggleColumnSort, dgState.triggerRefresh),
           ),
         headerClickHandler: (s) =>
           s.statements(toggleColumnSort, dgState.triggerRefresh),
@@ -285,7 +285,7 @@ export class SimpleDatagridPageBuilder {
           s
             .scalar(
               `row_id`,
-              `(select id from ui.dg_table limit 1 offset cell.row - 1)`
+              `(select id from ui.dg_table limit 1 offset cell.row - 1)`,
             )
             .statements(toggleRowSelection(`row_id`)),
         headerClickHandler: (s) =>
@@ -296,7 +296,7 @@ export class SimpleDatagridPageBuilder {
           s
             .scalar(
               `row_id`,
-              `(select id from ui.dg_table limit 1 offset cell.row - 1)`
+              `(select id from ui.dg_table limit 1 offset cell.row - 1)`,
             )
             .statements(toggleRowSelection(`cast(row_id as bigint)`)),
         keydownHeaderHandler: (s) =>
@@ -380,9 +380,9 @@ export class SimpleDatagridPageBuilder {
         toolbar: this.#toolbarBuilder._finish(addHref),
         extraState,
         rowHeight: this.#rowHeight,
-      })
+      }),
     );
-    app.ui.pages.push({
+    hub.currentApp!.pages.push({
       path,
       content,
     });
@@ -391,7 +391,7 @@ export class SimpleDatagridPageBuilder {
 
 export function simpleDatagridPage(
   table: string,
-  f: (b: SimpleDatagridPageBuilder) => unknown
+  f: (b: SimpleDatagridPageBuilder) => unknown,
 ) {
   const builder = new SimpleDatagridPageBuilder(table);
   f(builder);

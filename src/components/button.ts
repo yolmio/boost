@@ -1,4 +1,4 @@
-import { app } from "../app";
+import { App, hub } from "../hub";
 import { nodes } from "../nodeHelpers";
 import type { Node } from "../nodeTypes";
 import { StyleObject } from "../styleTypes";
@@ -34,7 +34,13 @@ export interface ButtonOpts
 }
 
 export const styles = createStyles({
-  button: (variant: Variant, color: Color, size: Size, fullWidth: boolean) => {
+  button: (
+    app,
+    variant: Variant,
+    color: Color,
+    size: Size,
+    fullWidth: boolean,
+  ) => {
     const styles: StyleObject = {
       appearance: "none",
       "--icon-margin": "initial", // reset the icon's margin.
@@ -52,7 +58,7 @@ export const styles = createStyles({
       fontFamily: cssVar(`font-family-body`),
       fontWeight: cssVar(`font-weight-md`),
       lineHeight: 1,
-      "&:focus-visible": app.ui.theme.focus.default,
+      "&:focus-visible": app.theme.focus.default,
       "&:hover": getVariantStyle(variant, color, "hover"),
       "&:active": getVariantStyle(variant, color, "active"),
       ...getVariantStyle(variant, color),
@@ -117,7 +123,7 @@ export const styles = createStyles({
     display: "inherit",
     marginLeft: "var(--button-gap)",
   },
-  loadingCenter: (variant: Variant, color: Color) => ({
+  loadingCenter: (_, variant: Variant, color: Color) => ({
     display: "inherit",
     position: "absolute",
     left: "50%",
@@ -142,7 +148,7 @@ export function button(opts: ButtonOpts) {
     opts.variant ?? "solid",
     color,
     size,
-    opts.fullWidth ?? false
+    opts.fullWidth ?? false,
   );
   const children: Node[] = [opts.children];
   const dynamicClasses: yom.DynamicClass[] = [];
@@ -158,11 +164,11 @@ export function button(opts: ButtonOpts) {
           tag: "span",
           styles: styles.loadingCenter(
             opts.variant ?? "solid",
-            opts.color ?? "primary"
+            opts.color ?? "primary",
           ),
           children: loadingIndicator!,
-        })
-      )
+        }),
+      ),
     );
   }
   if (opts.startDecorator || (opts.loading && loadingPosition === "start")) {
@@ -174,8 +180,8 @@ export function button(opts: ButtonOpts) {
             tag: "span",
             styles: styles.startDecorator,
             children: loadingIndicator!,
-          })
-        )
+          }),
+        ),
       );
     } else if (!opts.loading) {
       children.unshift(
@@ -183,7 +189,7 @@ export function button(opts: ButtonOpts) {
           tag: "span",
           styles: styles.startDecorator,
           children: opts.startDecorator,
-        })
+        }),
       );
     } else {
       children.unshift(
@@ -195,7 +201,7 @@ export function button(opts: ButtonOpts) {
             then: loadingIndicator!,
             else: opts.startDecorator,
           }),
-        })
+        }),
       );
     }
   }
@@ -208,8 +214,8 @@ export function button(opts: ButtonOpts) {
             tag: "span",
             styles: styles.endDecorator,
             children: loadingIndicator!,
-          })
-        )
+          }),
+        ),
       );
     } else if (!opts.loading) {
       children.push(
@@ -217,7 +223,7 @@ export function button(opts: ButtonOpts) {
           tag: "span",
           styles: styles.endDecorator,
           children: opts.endDecorator,
-        })
+        }),
       );
     } else {
       children.push(
@@ -229,7 +235,7 @@ export function button(opts: ButtonOpts) {
             then: loadingIndicator!,
             else: opts.endDecorator,
           }),
-        })
+        }),
       );
     }
   }

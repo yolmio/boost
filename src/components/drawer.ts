@@ -6,7 +6,6 @@ import { SlottedComponentWithSlotNames } from "./utils";
 import { createSlotsFn } from "./utils";
 import { styles as modalStyles } from "./modal";
 import { DomStatementsOrFn, DomStatements } from "../statements";
-import { app } from "../app";
 
 type Direction = "left" | "right";
 
@@ -20,8 +19,8 @@ export interface DrawerOpts
 }
 
 const styles = createStyles({
-  drawerStyles: (direction: Direction) => {
-    const enterAnimation = app.ui.registerKeyframes({
+  drawerStyles: (app, direction: Direction) => {
+    const enterAnimation = app.registerKeyframes({
       from: {
         transform: getDrawerOutOfViewTransform(direction),
       },
@@ -30,7 +29,7 @@ const styles = createStyles({
       },
     });
     const transform = getDrawerOutOfViewTransform(direction);
-    const exitAnimation = app.ui.registerKeyframes({
+    const exitAnimation = app.registerKeyframes({
       from: {
         transform: "translate(0%, 0)",
       },
@@ -38,7 +37,7 @@ const styles = createStyles({
         transform,
       },
     });
-    app.ui.addGlobalStyle({
+    app.addGlobalStyle({
       [`::view-transition-new(drawer-${direction}):only-child`]: {
         animation: `300ms cubic-bezier(0, 0, 0.2, 1) both ${enterAnimation}`,
       },
@@ -112,7 +111,7 @@ export function drawer(opts: DrawerOpts) {
             children: opts.children(onClose),
           }),
         ],
-      })
+      }),
     ),
   ]);
 }

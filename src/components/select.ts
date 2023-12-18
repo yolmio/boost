@@ -1,4 +1,4 @@
-import { lazy, memoize } from "../utils/memoize";
+import { lazyPerApp, memoizePerApp } from "../utils/memoize";
 import * as yom from "../yom";
 import { nodes } from "../nodeHelpers";
 import type { Node } from "../nodeTypes";
@@ -25,7 +25,7 @@ export interface SelectOpts
 }
 
 const styles = createStyles({
-  root: (variant: Variant, color: Color, size: Size, fullWidth: boolean) => {
+  root: (_, variant: Variant, color: Color, size: Size, fullWidth: boolean) => {
     const styles: StyleObject = {
       "--select-radius": cssVar(`radius-sm`),
       "--select-gap": "0.5rem",
@@ -84,7 +84,7 @@ const styles = createStyles({
     } else {
       const paletteColor = color === "neutral" ? "primary" : color;
       styles["--select-focused-highlight"] = cssVar(
-        `palette-${paletteColor}-500`
+        `palette-${paletteColor}-500`,
       );
     }
     switch (size) {
@@ -129,7 +129,7 @@ const styles = createStyles({
     };
     return styles;
   },
-  select: (size: Size) => ({
+  select: (_, size: Size) => ({
     // reset user-agent button style
     border: 0,
     outline: "none",
@@ -150,7 +150,7 @@ const styles = createStyles({
     cursor: "pointer",
     appearance: "none",
   }),
-  iconSpan: (size: Size) => ({
+  iconSpan: (_, size: Size) => ({
     "--icon-font-size":
       size === "sm" ? "1.125rem" : size === "md" ? "1.25rem" : "1.5rem",
     color: "var(--select-indicator-color)",
@@ -165,7 +165,7 @@ const styles = createStyles({
     //     marginInlineStart: 'calc(var(--Select-gap) / 2)',
     //   },
   }),
-  startDecorator: (color: Color, variant: Variant) => ({
+  startDecorator: (_, color: Color, variant: Variant) => ({
     "--button-margin": "0 0 0 calc(var(--input-decorator-child-offset) * -1)",
     "--icon-button-margin":
       "0 0 0 calc(var(--input-decorator-child-offset) * -1)",
@@ -184,7 +184,7 @@ const styles = createStyles({
           : cssVar(`palette-${color}-${variant}-color`),
     },
   }),
-  endDecorator: (color: Color, variant: Variant) => ({
+  endDecorator: (_, color: Color, variant: Variant) => ({
     "--button-margin": "0 calc(var(--input-decorator-child-offset) * -1) 0 0",
     "--icon-button-margin":
       "0 calc(var(--input-decorator-child-offset) * -1) 0 0",
@@ -200,17 +200,17 @@ const styles = createStyles({
   }),
 });
 
-export const selectIcon = lazy(() =>
+export const selectIcon = lazyPerApp(() =>
   svgIcon({
     children: nodes.element("path", {
       props: {
         d: "'m12 5.83 2.46 2.46c.39.39 1.02.39 1.41 0 .39-.39.39-1.02 0-1.41L12.7 3.7a.9959.9959 0 0 0-1.41 0L8.12 6.88c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0L12 5.83zm0 12.34-2.46-2.46a.9959.9959 0 0 0-1.41 0c-.39.39-.39 1.02 0 1.41l3.17 3.18c.39.39 1.02.39 1.41 0l3.17-3.17c.39-.39.39-1.02 0-1.41a.9959.9959 0 0 0-1.41 0L12 18.17z'",
       },
     }),
-  })
+  }),
 );
 
-export const getIconSpan = memoize((size: Size) => {
+export const getIconSpan = memoizePerApp((_, size: Size) => {
   return nodes.element("span", {
     styles: styles.iconSpan(size),
     children: selectIcon(),
@@ -241,7 +241,7 @@ export function select(opts: SelectOpts) {
         tag: "span",
         styles: styles.startDecorator(color, variant),
         children: opts.startDecorator,
-      })
+      }),
     );
   }
   if (opts.endDecorator) {
@@ -250,7 +250,7 @@ export function select(opts: SelectOpts) {
         tag: "span",
         styles: styles.endDecorator(color, variant),
         children: opts.endDecorator,
-      })
+      }),
     );
   }
   return slot("root", {

@@ -1,5 +1,5 @@
-import { lazy } from "../utils/memoize";
-import { app } from "../app";
+import { lazyPerApp } from "../utils/memoize";
+import { hub } from "../hub";
 import { nodes } from "../nodeHelpers";
 import type { Node } from "../nodeTypes";
 import { StyleObject } from "../styleTypes";
@@ -41,11 +41,12 @@ export interface ChipOpts
 
 const styles = createStyles({
   root: (
+    _,
     variant: Variant,
     color: Color,
     size: Size,
     clickable: boolean,
-    selectedVariant: SelectedVariationBase | undefined
+    selectedVariant: SelectedVariationBase | undefined,
   ) => {
     const styles: StyleObject = {
       // for controlling chip delete margin offset
@@ -124,7 +125,7 @@ const styles = createStyles({
           color: (
             getVariantStyle(
               selectedVariant.variant,
-              selectedVariant.color
+              selectedVariant.color,
             ) as any
           ).color,
         };
@@ -134,14 +135,14 @@ const styles = createStyles({
       if (selectedVariant) {
         styles["&.selected"] = getVariantStyle(
           selectedVariant.variant,
-          selectedVariant.color
+          selectedVariant.color,
         );
       }
       // todo disabled
     }
     return styles;
   },
-  label: (clickable: boolean) => {
+  label: (_, clickable: boolean) => {
     const styles: StyleObject = {
       display: "inline-block",
       overflow: "hidden",
@@ -156,9 +157,10 @@ const styles = createStyles({
     return styles;
   },
   action: (
+    app,
     variant: Variant,
     color: Color,
-    selectedVariant: SelectedVariationBase | undefined
+    selectedVariant: SelectedVariationBase | undefined,
   ) => {
     const styles: StyleObject = {
       position: "absolute",
@@ -174,7 +176,7 @@ const styles = createStyles({
       backgroundColor: "initial",
       textDecoration: "none",
       borderRadius: "inherit",
-      "&:focus": app.ui.theme.focus.default,
+      "&:focus": app.theme.focus.default,
       ...getVariantStyle(variant, color),
       "&:hover": getVariantStyle(variant, color, "hover"),
       "&:active": getVariantStyle(variant, color, "active"),
@@ -187,12 +189,12 @@ const styles = createStyles({
           "&:hover": getVariantStyle(
             selectedVariant.variant,
             selectedVariant.color,
-            "hover"
+            "hover",
           ),
           "&:active": getVariantStyle(
             selectedVariant.variant,
             selectedVariant.color,
-            "active"
+            "active",
           ),
         },
       });
@@ -223,9 +225,10 @@ const styles = createStyles({
     pointerEvents: "none",
   },
   delete: (
+    app,
     variant: Variant,
     color: Color,
-    selectedVariant: SelectedVariationBase | undefined
+    selectedVariant: SelectedVariationBase | undefined,
   ) => {
     const styles: StyleObject = {
       "--icon-margin": "initial", // prevent overrides from parent
@@ -242,7 +245,7 @@ const styles = createStyles({
       border: "none", // reset user agent stylesheet
       background: "none", // reset user agent stylesheet
       padding: "0px", // reset user agent stylesheet
-      "&:focus-visible": app.ui.theme.focus.default,
+      "&:focus-visible": app.theme.focus.default,
       ...getVariantStyle(variant, color),
       "&:hover": getVariantStyle(variant, color, "hover"),
       "&:active": getVariantStyle(variant, color, "active"),
@@ -254,12 +257,12 @@ const styles = createStyles({
           "&:hover": getVariantStyle(
             selectedVariant.variant,
             selectedVariant.color,
-            "hover"
+            "hover",
           ),
           "&:active": getVariantStyle(
             selectedVariant.variant,
             selectedVariant.color,
-            "active"
+            "active",
           ),
         },
       });
@@ -289,7 +292,7 @@ export function chip(opts: ChipOpts) {
       slot("action", {
         tag: "button",
         styles: styles.action(variant, color, selectedVariant),
-      })
+      }),
     );
   }
   if (opts.startDecorator) {
@@ -298,7 +301,7 @@ export function chip(opts: ChipOpts) {
         tag: "span",
         styles: styles.startDecorator,
         children: opts.startDecorator,
-      })
+      }),
     );
   }
   if (opts.endDecorator) {
@@ -307,7 +310,7 @@ export function chip(opts: ChipOpts) {
         tag: "span",
         styles: styles.endDecorator,
         children: opts.endDecorator,
-      })
+      }),
     );
   }
   return slot("root", {
@@ -326,14 +329,14 @@ export interface ChipDeleteOpts
   selected?: SelectedVariationBase;
 }
 
-export const deleteIcon = lazy(() =>
+export const deleteIcon = lazyPerApp(() =>
   svgIcon({
     children: nodes.element("path", {
       props: {
         d: "'M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'",
       },
     }),
-  })
+  }),
 );
 
 export function chipDelete(opts: ChipDeleteOpts) {
@@ -346,10 +349,10 @@ export function chipDelete(opts: ChipDeleteOpts) {
       styles: styles.delete(
         opts.variant ?? "solid",
         opts.color ?? "primary",
-        selectedVariant
+        selectedVariant,
       ),
       children: deleteIcon(),
     },
-    opts
+    opts,
   );
 }

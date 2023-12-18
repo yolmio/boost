@@ -18,7 +18,7 @@ import { getUniqueUiId } from "../../components/utils";
 import { createStyles, flexGrowStyles } from "../../styleUtils";
 import { SuperGridColumn, SuperGridDts, ToolbarConfig } from "./styledDatagrid";
 import { DatagridRfns, makeCountQuery, makeIdsQuery } from "./datagridBase";
-import { Table } from "../../app";
+import { Table } from "../../hub";
 import { select } from "../../components/select";
 import { Node } from "../../nodeTypes";
 import { insertDialog } from "../../components/insertDialog";

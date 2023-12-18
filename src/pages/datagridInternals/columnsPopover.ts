@@ -55,10 +55,10 @@ export function columnsPopover(state: DgStateHelpers, dts: SuperGridDts) {
                 s
                   .if(
                     `column_record.displaying and (select count(*) from ui.column where displaying) = 1`,
-                    (s) => s.return()
+                    (s) => s.return(),
                   )
                   .modify(
-                    `update ui.column set displaying = not displaying where id = column_record.id`
+                    `update ui.column set displaying = not displaying where id = column_record.id`,
                   )
                   .if(`column_record.displaying`, state.triggerRefresh),
             },
@@ -87,7 +87,7 @@ export function columnsPopover(state: DgStateHelpers, dts: SuperGridDts) {
               click: (s) =>
                 s
                   .modify(
-                    `update ui.column set displaying = false where id != 0`
+                    `update ui.column set displaying = false where id != 0`,
                   )
                   .statements(state.triggerRefresh),
             },

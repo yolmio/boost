@@ -17,7 +17,7 @@ export interface FormControlOpts extends SingleElementComponentOpts {
 }
 
 const styles = createStyles({
-  root: (size: Size, orientation: Orientation, color?: Color) => {
+  root: (_, size: Size, orientation: Orientation, color?: Color) => {
     const styles: StyleObject = {
       "--form-label-align-self":
         orientation === "horizontal" ? "align-items" : "flex-start",
@@ -81,7 +81,7 @@ export function formControl(opts: FormControlOpts): ElementNode {
   const rootStyles = styles.root(
     opts.size ?? "md",
     opts.orientation ?? "vertical",
-    opts.color
+    opts.color,
   );
   return mergeEls(
     {
@@ -92,6 +92,6 @@ export function formControl(opts: FormControlOpts): ElementNode {
         : undefined,
       children: opts.children,
     },
-    opts
+    opts,
   );
 }

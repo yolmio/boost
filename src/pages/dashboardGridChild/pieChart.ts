@@ -171,7 +171,7 @@ export function content(opts: Opts) {
                 chartPadding: "56",
                 ...opts.pieChartOpts,
               }),
-            }
+            },
           ),
         }),
       }),

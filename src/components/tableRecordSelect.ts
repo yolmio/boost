@@ -1,6 +1,6 @@
-import { TableControlOpts } from "../app";
+import { TableControlOpts } from "../hub";
 import { nodes } from "../nodeHelpers";
-import { app } from "../app";
+import { hub } from "../hub";
 import { circularProgress } from "./circularProgress";
 import { queryCombobox } from "./searchSelect";
 import { select } from "./select";
@@ -8,15 +8,15 @@ import { DomStatements } from "../statements";
 
 export function getTableRecordSelect(
   tableName: string,
-  opts: TableControlOpts
+  opts: TableControlOpts,
 ) {
-  const tableModel = app.db.tables[tableName];
+  const tableModel = hub.db.tables[tableName];
   let selectInfo = tableModel.control ?? { type: "Combobox" };
   switch (selectInfo.type) {
     case "Combobox": {
       if (!tableModel.recordDisplayName) {
         throw new Error(
-          "Tried getting a table record select when table does not have recordDisplayName"
+          "Tried getting a table record select when table does not have recordDisplayName",
         );
       }
       const searchConfig = tableModel.searchConfig;
@@ -24,7 +24,7 @@ export function getTableRecordSelect(
         throw new Error(`Table ${tableName} does not have searchConfig`);
       }
       const nameExpr = tableModel.recordDisplayName.expr(
-        ...tableModel.recordDisplayName.fields.map((f) => `record.${f}`)
+        ...tableModel.recordDisplayName.fields.map((f) => `record.${f}`),
       );
       const selectPart = `select ${nameExpr} as label, rank() over () - 1 as index, id `;
       let emptyQuery = `${selectPart} from db.${tableModel.name} as record limit 10 order by id desc`;
@@ -38,8 +38,8 @@ export function getTableRecordSelect(
             .if(opts.value + ` is not null`, (s) =>
               s.setScalar(
                 `initial_text`,
-                `(select ${nameExpr} from db.${tableModel.name} as record where id = ${opts.value})`
-              )
+                `(select ${nameExpr} from db.${tableModel.name} as record where id = ${opts.value})`,
+              ),
             ),
         children: queryCombobox({
           immediateFocus: opts.immediateFocus,
@@ -60,13 +60,13 @@ export function getTableRecordSelect(
                       },
                       style: {
                         type: "Fuzzy",
-                        ...app.searchConfig.defaultFuzzyConfig,
+                        ...hub.searchConfig.defaultFuzzyConfig,
                       },
                       tables: [searchConfig],
                     },
                   })
                   .modify(
-                    `insert into ${resultTable} ${selectPart} from tmp_result join db.${tableModel.name} as record on record_id = id`
+                    `insert into ${resultTable} ${selectPart} from tmp_result join db.${tableModel.name} as record on record_id = id`,
                   ),
             }),
           id: opts.id,
@@ -90,7 +90,7 @@ export function getTableRecordSelect(
     case "Select": {
       if (!tableModel.recordDisplayName) {
         throw new Error(
-          "Tried getting a table record select when table does not have recordDisplayName"
+          "Tried getting a table record select when table does not have recordDisplayName",
         );
       }
       const searchConfig = tableModel.searchConfig;
@@ -98,7 +98,7 @@ export function getTableRecordSelect(
         throw new Error(`Table ${tableName} does not have searchConfig`);
       }
       const nameExpr = tableModel.recordDisplayName.expr(
-        ...tableModel.recordDisplayName.fields.map((f) => `record.${f}`)
+        ...tableModel.recordDisplayName.fields.map((f) => `record.${f}`),
       );
       const selectPart = `select ${nameExpr} as label, id `;
       const emptyQuery = `${selectPart} from db.${tableModel.name} as record order by id desc`;
@@ -124,7 +124,7 @@ export function getTableRecordSelect(
           }),
           endDecorator: nodes.if(
             `select_query_status = 'fallback_triggered'`,
-            circularProgress({ size: "sm" })
+            circularProgress({ size: "sm" }),
           ),
         }),
       });

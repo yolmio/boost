@@ -18,10 +18,11 @@ export interface MenuListOpts extends ListOpts {
 
 const styles = createStyles({
   menuList: (
+    _,
     size: Size | undefined,
     variant: Variant,
     color: Color,
-    isNested: boolean
+    isNested: boolean,
   ): StyleObject => {
     const styles = listStyles.list(size, variant, color, isNested, "vertical");
     Object.assign(styles as any, {
@@ -55,7 +56,7 @@ export function menuList(opts: MenuListOpts) {
         opts.size,
         opts.variant ?? "plain",
         opts.color ?? "neutral",
-        typeof opts.nestedIn === "string"
+        typeof opts.nestedIn === "string",
       ),
       children: opts.children,
       on: {
@@ -65,16 +66,16 @@ export function menuList(opts: MenuListOpts) {
           s
             .if(
               `event.is_composing or event.shift_key or event.meta_key or event.alt_key or event.ctrl_key`,
-              (s) => s.return()
+              (s) => s.return(),
             )
             .if(`event.key in ('Enter', ' ')`, (s) =>
               s
                 .if(`ui.active_descendant is not null`, (s) =>
                   s
                     .preventDefault()
-                    .statements(opts.onItemSelect(`ui.selected_index`))
+                    .statements(opts.onItemSelect(`ui.selected_index`)),
                 )
-                .return()
+                .return(),
             )
             .if(`event.key = 'ArrowDown'`, (s) =>
               s
@@ -83,9 +84,9 @@ export function menuList(opts: MenuListOpts) {
                   moveDown({
                     getItemId: opts.getItemId,
                     itemCount: opts.itemCount,
-                  })
+                  }),
                 )
-                .return()
+                .return(),
             )
             .if(`event.key = 'ArrowUp'`, (s) =>
               s
@@ -94,24 +95,24 @@ export function menuList(opts: MenuListOpts) {
                   moveUp({
                     getItemId: opts.getItemId,
                     itemCount: opts.itemCount,
-                  })
+                  }),
                 )
-                .return()
+                .return(),
             )
             .if(`event.key = 'Escape'`, (s) =>
               s
                 .preventDefault()
                 .setScalar(
                   `button_focus_key`,
-                  `coalesce(button_focus_key, 0) + 1`
+                  `coalesce(button_focus_key, 0) + 1`,
                 )
                 .statements(onClose)
-                .return()
+                .return(),
             )
             .setScalar(`ui.active_descendant`, `null`),
       },
     },
-    opts
+    opts,
   );
 }
 
@@ -123,9 +124,9 @@ export function moveUp(opts: {
     s
       .setScalar(
         `ui.selected_index`,
-        `case when ui.selected_index = 0 then 0 else coalesce(ui.selected_index - 1, ${opts.itemCount} - 1) end`
+        `case when ui.selected_index = 0 then 0 else coalesce(ui.selected_index - 1, ${opts.itemCount} - 1) end`,
       )
-      .setScalar(`ui.active_descendant`, opts.getItemId(`ui.selected_index`))
+      .setScalar(`ui.active_descendant`, opts.getItemId(`ui.selected_index`)),
   );
 }
 
@@ -137,9 +138,9 @@ export function moveDown(opts: {
     s
       .setScalar(
         `ui.selected_index`,
-        `case when ui.selected_index = ${opts.itemCount} - 1 then ui.selected_index else coalesce(ui.selected_index + 1, 0) end`
+        `case when ui.selected_index = ${opts.itemCount} - 1 then ui.selected_index else coalesce(ui.selected_index + 1, 0) end`,
       )
-      .setScalar(`ui.active_descendant`, opts.getItemId(`ui.selected_index`))
+      .setScalar(`ui.active_descendant`, opts.getItemId(`ui.selected_index`)),
   );
 }
 
@@ -198,7 +199,7 @@ export function popoverMenu(opts: PopoverMenuOpts) {
         },
         flip: { crossAxis: `false`, mainAxis: `false` },
       },
-      opts.menuListOpts?.floating
+      opts.menuListOpts?.floating,
     ),
     props: {
       role: "'menu'",
@@ -219,7 +220,7 @@ export function popoverMenu(opts: PopoverMenuOpts) {
               : item.onClick,
         },
         children: item.children,
-      })
+      }),
     ),
   });
   return nodes.state({

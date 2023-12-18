@@ -1,6 +1,6 @@
 import { nodes } from "../../nodeHelpers";
 import { Node } from "../../nodeTypes";
-import { app } from "../../app";
+import { hub } from "../../hub";
 import { stringLiteral } from "../../utils/sqlHelpers";
 import { button } from "../../components/button";
 import { iconButton } from "../../components/iconButton";
@@ -25,7 +25,7 @@ import {
   DomStatements,
   DomStatementsOrFn,
 } from "../../statements";
-import { lazy } from "../../utils/memoize";
+import { lazyPerApp } from "../../utils/memoize";
 import { dgState, DgStateHelpers } from "./shared";
 import * as yom from "../../yom";
 
@@ -812,7 +812,7 @@ function enumSelect(columns: SuperGridColumn[]) {
     slots: { select: { props: { value: filterTermHelper.value1 } } },
     children: nodes.switch(
       ...Object.entries(columnsByEnum).map(([enumName, columns]) => {
-        const opts = Object.values(app.enums[enumName].values).map((v) =>
+        const opts = Object.values(hub.enums[enumName].values).map((v) =>
           nodes.element("option", {
             children: stringLiteral(v.displayName),
             props: { value: stringLiteral(v.name) },
@@ -879,7 +879,7 @@ function tableInput(columns: SuperGridColumn[]) {
 
 const groupBaseId = getUniqueUiId();
 
-const isAnySelector = lazy(() => {
+const isAnySelector = lazyPerApp(() => {
   const isAny = `case
     when filter_term_record.recursion_depth = 0
       then ui.root_filter_is_any

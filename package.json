@@ -19,6 +19,9 @@
     "test:hello_world": "cd tests/hello_world && playwright test",
     "test:tutorial": "cd tests/tutorial && playwright test"
   },
+  "prettier": {
+    "trailingComma": "all"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "dependencies": {

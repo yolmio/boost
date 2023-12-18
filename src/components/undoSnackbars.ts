@@ -11,7 +11,7 @@ import { iconButton } from "./iconButton";
 import { button } from "./button";
 import { snackbar } from "./snackbar";
 import { nodes } from "../nodeHelpers";
-import { lazy } from "../utils/memoize";
+import { lazyPerApp } from "../utils/memoize";
 import { createStyles } from "../styleUtils";
 
 export interface UndoSnackbarsOptions {
@@ -29,7 +29,7 @@ enum SnackbarType {
   UndoSuccess = "2",
 }
 
-const undoSuccessSnackbar = lazy(() =>
+const undoSuccessSnackbar = lazyPerApp(() =>
   snackbar({
     variant: "soft",
     color: "success",
@@ -46,7 +46,7 @@ const undoSuccessSnackbar = lazy(() =>
   }),
 );
 
-const failureSnackbar = lazy(() =>
+const failureSnackbar = lazyPerApp(() =>
   snackbar({
     variant: "soft",
     color: "danger",

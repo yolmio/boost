@@ -1,5 +1,5 @@
 import { typography } from "../../components/typography";
-import { AddressFieldGroup } from "../../app";
+import { AddressFieldGroup } from "../../hub";
 import { nodes } from "../../nodeHelpers";
 import { createStyles } from "../../styleUtils";
 import { ident } from "../../utils/sqlHelpers";
@@ -15,7 +15,7 @@ const styles = createStyles({
 
 export function displayAddressText(
   group: AddressFieldGroup,
-  recordName: string
+  recordName: string,
 ) {
   return nodes.if({
     condition: Object.values(group.fields)
@@ -51,11 +51,11 @@ export function displayAddressText(
         level: "body-md",
         styles: styles.addressLine,
         children: `record.${ident(
-          group.fields.city!
+          group.fields.city!,
         )} || ', ' || coalesce(record.${ident(
-          group.fields.region!
+          group.fields.region!,
         )} || ' ', '') || record.${ident(
-          group.fields.country!
+          group.fields.country!,
         )} || ' ' ||  record.${ident(group.fields.zip!)}`,
       }),
     ],

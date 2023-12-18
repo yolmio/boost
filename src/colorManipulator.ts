@@ -67,7 +67,7 @@ export function decomposeColor(color: string | Color): Color {
   if (["rgb", "rgba", "hsl", "hsla", "color"].indexOf(type) === -1) {
     throw new Error(
       `Unsupported \`${color}\` color.\n` +
-        "The following formats are supported: #nnn, #nnnnnn, rgb(), rgba(), hsl(), hsla(), color()."
+        "The following formats are supported: #nnn, #nnnnnn, rgb(), rgba(), hsl(), hsla(), color().",
     );
   }
 
@@ -83,12 +83,12 @@ export function decomposeColor(color: string | Color): Color {
     }
     if (
       ["srgb", "display-p3", "a98-rgb", "prophoto-rgb", "rec-2020"].includes(
-        colorSpace ?? ""
+        colorSpace ?? "",
       )
     ) {
       throw new Error(
         `Unsupported \`${colorSpace}\` color space.\n` +
-          "The following color spaces are supported: srgb, display-p3, a98-rgb, prophoto-rgb, rec-2020."
+          "The following color spaces are supported: srgb, display-p3, a98-rgb, prophoto-rgb, rec-2020.",
       );
     }
   } else {
@@ -108,7 +108,7 @@ export const colorChannel = (color: string) => {
   return decomposedColor.values
     .slice(0, 3)
     .map((val, idx) =>
-      decomposedColor.type.indexOf("hsl") !== -1 && idx !== 0 ? `${val}%` : val
+      decomposedColor.type.indexOf("hsl") !== -1 && idx !== 0 ? `${val}%` : val,
     )
     .join(" ");
 };
@@ -208,7 +208,7 @@ export function getLuminance(color: string) {
 
   // Truncate at 3 digits
   return Number(
-    (0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]).toFixed(3)
+    (0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]).toFixed(3),
   );
 }
 

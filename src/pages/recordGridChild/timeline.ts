@@ -1,5 +1,5 @@
 import { nodes } from "../../nodeHelpers";
-import { app } from "../../app";
+import { hub } from "../../hub";
 import { Style } from "../../styleTypes";
 import { ident, stringLiteral } from "../../utils/sqlHelpers";
 import { UnionExpr, createUnionQuery, UnionExprType } from "../../utils/union";
@@ -88,7 +88,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
     limit: `row_count`,
     orderByFields: ["date", "id"],
     sources: sources.map((source) => {
-      const tableModel = app.db.tables[source.table];
+      const tableModel = hub.db.tables[source.table];
       let customFrom = source.customFrom;
       if (!customFrom) {
         let foreignKeyExpr = source.foreignKeyExpr;
@@ -97,7 +97,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
             if (f.type === "ForeignKey" && f.table === ctx.table.name) {
               if (foreignKeyExpr) {
                 throw new Error(
-                  "Please specify a foreignKeyExpr when multiple fields could be used and you don't specify a customFrom"
+                  "Please specify a foreignKeyExpr when multiple fields could be used and you don't specify a customFrom",
                 );
               }
               foreignKeyExpr = f.name;
@@ -105,7 +105,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
           }
         }
         customFrom = ` from db.${ident(
-          source.table
+          source.table,
         )} where ${foreignKeyExpr} = ${ctx.recordId}`;
       }
       let dateExpr = source.dateExpr ?? opts.dateField;
@@ -205,7 +205,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
             `record.iteration_index != (select count(*) from result) - 1`,
             nodes.element("span", {
               styles: styles.line,
-            })
+            }),
           ),
         ],
       }),
@@ -227,7 +227,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                     exprValue: query.getField(
                       sourceIdx,
                       "record",
-                      `display_value_${valueIdx}`
+                      `display_value_${valueIdx}`,
                     ),
                     display: v.display,
                     label: v.label,
@@ -239,11 +239,11 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                   query.getField(
                     sourceIdx,
                     "record",
-                    typeof v === "string" ? v : `header_value_${headerIdx}`
-                  )
-                ) ?? [])
+                    typeof v === "string" ? v : `header_value_${headerIdx}`,
+                  ),
+                ) ?? []),
               ),
-              tableModel: app.db.tables[tableName],
+              tableModel: hub.db.tables[tableName],
               customAction: itemContent.customAction?.node(
                 ...itemContent.customAction.values.map((v, valueIdx) => {
                   if (typeof v === "string") {
@@ -252,10 +252,10 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                     return query.getField(
                       sourceIdx,
                       "record",
-                      `custom_action_value_${valueIdx}`
+                      `custom_action_value_${valueIdx}`,
                     );
                   }
-                })
+                }),
               ),
               disableDefaultAction: itemContent.disableDefaultAction,
             });
@@ -265,16 +265,16 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                 query.getField(
                   sourceIdx,
                   "record",
-                  typeof v === "string" ? v : `custom_value_${valueIdx}`
-                )
-              )
+                  typeof v === "string" ? v : `custom_value_${valueIdx}`,
+                ),
+              ),
             );
           }
           return {
             condition: `record.union_source_idx = ${sourceIdx}`,
             node,
           };
-        })
+        }),
       ),
     ],
   });
@@ -299,17 +299,17 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                   s
                     .if(
                       `status != 'received' or (service_row_count is not null and (select count(*) from result) < service_row_count)`,
-                      (s) => s.return()
+                      (s) => s.return(),
                     )
                     .getWindowProperty("scrollY", "scroll_y")
                     .getWindowProperty("innerHeight", "height")
                     .getElProperty(
                       "scrollHeight",
                       "doc_scroll_height",
-                      "'yolm-document-body'"
+                      "'yolm-document-body'",
                     )
                     .if(`doc_scroll_height - scroll_y - height < 500`, (s) =>
-                      s.setScalar(`row_count`, `row_count + 50`)
+                      s.setScalar(`row_count`, `row_count + 50`),
                     ),
               },
             }),
@@ -355,7 +355,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                           .map((t, i) => ({
                             children:
                               `'Add ' || ` +
-                              stringLiteral(app.db.tables[t.table].displayName),
+                              stringLiteral(hub.db.tables[t.table].displayName),
                             onClick: (s) =>
                               s.setScalar(`ui.adding_${i}`, `true`),
                           })),
@@ -364,16 +364,16 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                     sources
                       .filter((t) => !t.disableInsert)
                       .map((t, i) => {
-                        const tableModel = app.db.tables[t.table];
+                        const tableModel = hub.db.tables[t.table];
                         const opts = t.insertDialogOpts ?? {};
                         const withValues: Record<string, string> =
                           opts.withValues ?? {};
                         let foreignKeyField = Object.values(
-                          tableModel.fields
+                          tableModel.fields,
                         ).find(
                           (f) =>
                             f.type === "ForeignKey" &&
-                            f.table === ctx.table.name
+                            f.table === ctx.table.name,
                         );
                         const overrides: Record<
                           string,
@@ -429,6 +429,6 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
           ],
         }),
       }),
-    })
+    }),
   );
 }

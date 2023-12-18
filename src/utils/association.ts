@@ -1,4 +1,4 @@
-import { app, Field, Table } from "../app";
+import { hub, Field, Table } from "../hub";
 
 interface AssociationTableMatch {
   table: Table;
@@ -13,16 +13,16 @@ type GetAssociationTableResult =
 
 export function getAssociationTable(
   leftTable: string,
-  rightTable: string
+  rightTable: string,
 ): GetAssociationTableResult {
   const possibleMatches: AssociationTableMatch[] = [];
-  for (const assocTable of Object.values(app.db.tables)) {
+  for (const assocTable of Object.values(hub.db.tables)) {
     const assocTableFields = Object.values(assocTable.fields);
     const toLeft = assocTableFields.find(
-      (f) => f.type === "ForeignKey" && f.table === leftTable
+      (f) => f.type === "ForeignKey" && f.table === leftTable,
     );
     const toRight = assocTableFields.find(
-      (f) => f.type === "ForeignKey" && f.table === rightTable
+      (f) => f.type === "ForeignKey" && f.table === rightTable,
     );
     if (toLeft && toRight) {
       possibleMatches.push({ table: assocTable, toLeft, toRight });

@@ -20,7 +20,7 @@ import * as yom from "../yom";
 
 const styles = createStyles({
   root: { position: "relative" },
-  arrowIconButton: (size: Size, color: Color) => [
+  arrowIconButton: (_, size: Size, color: Color) => [
     iconButtonStyles.root(size, "plain", color),
     {
       marginLeft: "calc(var(--input-padding-y) / 2)",
@@ -30,7 +30,7 @@ const styles = createStyles({
       },
     },
   ],
-  clearIconButton: (size: Size, color: Color) => [
+  clearIconButton: (_, size: Size, color: Color) => [
     iconButtonStyles.root(size, "plain", color),
     {
       marginLeft: "calc(var(--input-padding-y) / 2)",
@@ -42,10 +42,11 @@ const styles = createStyles({
     ,
   ],
   listbox: (
+    _,
     size: Size | undefined,
     variant: Variant,
     color: Color,
-    isNested: boolean
+    isNested: boolean,
   ): StyleObject => {
     const styles = listStyles.list(size, variant, color, isNested, "vertical");
     Object.assign(styles as any, {
@@ -94,7 +95,7 @@ export interface QueryComboboxOpts extends ComponentOpts {
 
   populateResultTable: (
     query: string,
-    resultTable: string
+    resultTable: string,
   ) => StateStatementsOrFn;
 
   initialInputText?: string;
@@ -109,18 +110,18 @@ function withComboboxState(opts: QueryComboboxOpts, children: Node) {
         .scalar(
           "input_focus_key",
           { type: "BigInt" },
-          opts.immediateFocus ? `0` : `null`
+          opts.immediateFocus ? `0` : `null`,
         )
         .scalar(
           "query",
           { type: "String", maxLength: 2000 },
-          opts.initialInputText ? `null` : `''`
+          opts.initialInputText ? `null` : `''`,
         )
         .scalar("active_descendant", { type: "String", maxLength: 100 })
         .scalar(
           "last_valid_query",
           { type: "String", maxLength: 2000 },
-          opts.initialInputText ? `null` : `''`
+          opts.initialInputText ? `null` : `''`,
         )
         .scalar(`combobox_width`, "0"),
     children: nodes.state({
@@ -141,8 +142,8 @@ function withComboboxState(opts: QueryComboboxOpts, children: Node) {
               opts.initialInputText
                 ? `coalesce(query, ${opts.initialInputText}, '')`
                 : `query`,
-              `ui.result`
-            )
+              `ui.result`,
+            ),
           )
           .scalar(`selected_index`, { type: "BigInt" }),
       children,
@@ -167,7 +168,7 @@ export function queryCombobox(opts: QueryComboboxOpts) {
   const doSelection = new DomStatements()
     .record(
       `result`,
-      `select id, index, label from ui.result where index = ui.selected_index`
+      `select id, index, label from ui.result where index = ui.selected_index`,
     )
     .statements(opts.onSelect(`result`))
     .setScalar(`ui.showing_list`, `false`)
@@ -217,42 +218,42 @@ export function queryCombobox(opts: QueryComboboxOpts) {
                 focus: (s) =>
                   s
                     .if(`ui.showing_list`, (s) =>
-                      s.triggerViewTransition("next_not_immediate")
+                      s.triggerViewTransition("next_not_immediate"),
                     )
                     .setScalar("ui.showing_list", "true")
                     .statements(updateComboboxWidth),
                 blur: (s) =>
                   s
                     .if("not ui.clicking_on_list", (s) =>
-                      s.setScalar("ui.showing_list", "false")
+                      s.setScalar("ui.showing_list", "false"),
                     )
                     .scalar(
                       `return_to`,
                       opts.initialInputText
                         ? `coalesce(${opts.initialInputText}, last_valid_query, '')`
-                        : `coalesce(last_valid_query, '')`
+                        : `coalesce(last_valid_query, '')`,
                     )
                     .if(`ui.query is not null and ui.query != return_to`, (s) =>
-                      s.setScalar(`ui.query`, `ui.last_valid_query`)
+                      s.setScalar(`ui.query`, `ui.last_valid_query`),
                     ),
                 keydown: (s) =>
                   s
                     .if(
                       `not ui.showing_list or event.is_composing or event.shift_key or event.meta_key or event.alt_key or event.ctrl_key`,
-                      (s) => s.return()
+                      (s) => s.return(),
                     )
                     .if(`event.key in ('Enter', 'Tab')`, (s) =>
                       s
                         .if(`ui.active_descendant is not null`, (s) =>
-                          s.preventDefault().statements(doSelection)
+                          s.preventDefault().statements(doSelection),
                         )
-                        .return()
+                        .return(),
                     )
                     .if(`event.key = 'ArrowDown'`, (s) =>
                       s
                         .preventDefault()
                         .if(`not exists (select index from ui.result)`, (s) =>
-                          s.return()
+                          s.return(),
                         )
                         .setScalar(
                           `ui.selected_index`,
@@ -260,19 +261,19 @@ export function queryCombobox(opts: QueryComboboxOpts) {
                         when ui.selected_index is null or ui.selected_index = (select count(*) from ui.result) - 1
                             then 0
                         else ui.selected_index + 1
-                    end`
+                    end`,
                         )
                         .setScalar(
                           `ui.active_descendant`,
-                          optionId(`ui.selected_index`)
+                          optionId(`ui.selected_index`),
                         )
-                        .return()
+                        .return(),
                     )
                     .if(`event.key = 'ArrowUp'`, (s) =>
                       s
                         .preventDefault()
                         .if(`not exists (select index from ui.result)`, (s) =>
-                          s.return()
+                          s.return(),
                         )
                         .setScalar(
                           `ui.selected_index`,
@@ -280,13 +281,13 @@ export function queryCombobox(opts: QueryComboboxOpts) {
                         when ui.selected_index is null or ui.selected_index = 0
                             then (select count(*) from ui.result)
                         else ui.selected_index - 1
-                    end`
+                    end`,
                         )
                         .setScalar(
                           `ui.active_descendant`,
-                          optionId(`ui.selected_index`)
+                          optionId(`ui.selected_index`),
                         )
-                        .return()
+                        .return(),
                     )
                     .setScalar(`ui.active_descendant`, `null`),
               },
@@ -296,7 +297,7 @@ export function queryCombobox(opts: QueryComboboxOpts) {
             nodes.element("button", {
               styles: styles.clearIconButton(
                 opts.size ?? "md",
-                opts.color ?? "neutral"
+                opts.color ?? "neutral",
               ),
               dynamicClasses: [
                 {
@@ -316,8 +317,8 @@ export function queryCombobox(opts: QueryComboboxOpts) {
                     .if(`not ui.showing_list`, (s) =>
                       s.setScalar(
                         `ui.input_focus_key`,
-                        `coalesce(ui.input_focus_key + 1, 0)`
-                      )
+                        `coalesce(ui.input_focus_key + 1, 0)`,
+                      ),
                     ),
               },
               children: materialIcon({ fontSize: "md", name: "Clear" }),
@@ -326,12 +327,12 @@ export function queryCombobox(opts: QueryComboboxOpts) {
               opts.loading
                 ? `${opts.loading} or combobox_query_status = 'fallback_triggered'`
                 : `combobox_query_status = 'fallback_triggered'`,
-              circularProgress({ size: "sm" })
+              circularProgress({ size: "sm" }),
             ),
             nodes.element("button", {
               styles: styles.arrowIconButton(
                 opts.size ?? "md",
-                opts.color ?? "neutral"
+                opts.color ?? "neutral",
               ),
               dynamicClasses: [
                 {
@@ -348,9 +349,9 @@ export function queryCombobox(opts: QueryComboboxOpts) {
                       s
                         .setScalar(
                           `ui.input_focus_key`,
-                          `coalesce(ui.input_focus_key + 1, 0)`
+                          `coalesce(ui.input_focus_key + 1, 0)`,
                         )
-                        .statements(updateComboboxWidth)
+                        .statements(updateComboboxWidth),
                     )
                     .setScalar(`ui.showing_list`, `not ui.showing_list`),
               },
@@ -385,7 +386,7 @@ export function queryCombobox(opts: QueryComboboxOpts) {
               children: "record.label",
             }),
           }),
-        })
+        }),
       ),
     ],
   });
@@ -404,7 +405,7 @@ export function comboboxListbox(opts: ComboboxListboxOpts) {
     opts.size,
     opts.variant ?? "plain",
     opts.color ?? "neutral",
-    false
+    false,
   );
   return mergeEls(
     {
@@ -433,6 +434,6 @@ export function comboboxListbox(opts: ComboboxListboxOpts) {
       },
       children: opts.children,
     },
-    opts
+    opts,
   );
 }

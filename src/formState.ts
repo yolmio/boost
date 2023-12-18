@@ -1,4 +1,4 @@
-import { Field, Table, app } from "./app";
+import { Field, Table, hub } from "./hub";
 import type * as yom from "./yom";
 import { EachNode, Node, StateNode } from "./nodeTypes";
 import { nodes } from "./nodeHelpers";
@@ -78,7 +78,7 @@ export class FormState {
       return;
     }
     throw new Error(
-      `Passed field '${field}' to form state function ${fnName} which doesn't exist`
+      `Passed field '${field}' to form state function ${fnName} which doesn't exist`,
     );
   }
   #assertTableExists(table: string, fnName: string) {
@@ -86,7 +86,7 @@ export class FormState {
       return;
     }
     throw new Error(
-      `Passed table '${table}' to form state function ${fnName} which doesn't exist`
+      `Passed table '${table}' to form state function ${fnName} which doesn't exist`,
     );
   }
 
@@ -106,8 +106,8 @@ export class FormState {
       }
       proc.modify(
         `insert into ${FORM_FIELDS_RECORD} (${insertFields.join(
-          ","
-        )}) values (${insertValues.join(",")})`
+          ",",
+        )}) values (${insertValues.join(",")})`,
       );
     }
     if (this.#tables && this.#tables.length !== 0) {
@@ -134,7 +134,7 @@ export class FormState {
     return new BasicStatements().modify(
       `update ui.${FORM_FIELDS_RECORD} set ${this.#fields
         .map((f) => `${f.name}${TOUCHED_SUFFIX} = true`)
-        .join(",")}`
+        .join(",")}`,
     );
   }
 
@@ -142,7 +142,7 @@ export class FormState {
     return new BasicStatements().modify(
       `update ui.${FORM_FIELDS_RECORD} set ${this.#fields
         .map((f) => `${f.name}${TOUCHED_SUFFIX} = false`)
-        .join(",")}`
+        .join(",")}`,
     );
   }
 
@@ -150,14 +150,14 @@ export class FormState {
     return new BasicStatements().modify(
       `update ui.${FORM_FIELDS_RECORD} set ${this.#fields
         .map((f) => `${f.name}${ERROR_SUFFIX} = null`)
-        .join(", ")}`
+        .join(", ")}`,
     );
   }
 
   get hasAnyFieldsError(): yom.SqlExpression {
     return this.#fields
       .map(
-        (f) => `ui.${FORM_FIELDS_RECORD}.${f.name}${ERROR_SUFFIX} is not null`
+        (f) => `ui.${FORM_FIELDS_RECORD}.${f.name}${ERROR_SUFFIX} is not null`,
       )
       .join(` or `);
   }
@@ -166,13 +166,13 @@ export class FormState {
     this.#assertFieldExists(name, `field`);
     return new FormStateFieldHelper(
       `ui.${FORM_FIELDS_RECORD}`,
-      this.#fields.find((f) => f.name === name)!
+      this.#fields.find((f) => f.name === name)!,
     );
   }
 
   each(
     tableName: string,
-    render: (opts: FormStateTableCursor) => Node
+    render: (opts: FormStateTableCursor) => Node,
   ): EachNode {
     this.#assertTableExists(tableName, `each`);
     const recordName = `record` + tableName;
@@ -185,8 +185,8 @@ export class FormState {
         new FormStateTableCursor(
           tableName,
           recordName,
-          this.#tables.find((t) => t.name === tableName)!.fields
-        )
+          this.#tables.find((t) => t.name === tableName)!.fields,
+        ),
       ),
     };
   }
@@ -197,13 +197,13 @@ export class FormState {
     return new FormStateTableCursor(
       tableName,
       recordName,
-      this.#tables.find((t) => t.name === tableName)!.fields
+      this.#tables.find((t) => t.name === tableName)!.fields,
     );
   }
 
   addRecordToTable(
     tableName: string,
-    fields: Record<string, yom.SqlExpression>
+    fields: Record<string, yom.SqlExpression>,
   ) {
     this.#assertTableExists(tableName, `addRecordToTable`);
     const tableObj = this.#tables.find((t) => t.name === tableName)!;
@@ -218,8 +218,8 @@ export class FormState {
     return new BasicStatements()
       .modify(
         `insert into ui.${tableName} (fs_id, ${insertFields.join(
-          ","
-        )}) values (ui.${NEXT_ID_SCALAR}, ${insertValues.join(`,`)})`
+          ",",
+        )}) values (ui.${NEXT_ID_SCALAR}, ${insertValues.join(`,`)})`,
       )
       .setScalar(`ui.${NEXT_ID_SCALAR}`, `ui.${NEXT_ID_SCALAR} + 1`);
   }
@@ -239,7 +239,7 @@ export class FormState {
   setSubmitting(waiting: yom.SqlExpression) {
     return new BasicStatements().setScalar(
       `ui.${FORM_SUBMITTING_SCALAR}`,
-      waiting
+      waiting,
     );
   }
 
@@ -247,7 +247,7 @@ export class FormState {
     return new BasicStatements()
       .debugQuery(`select * from ui.${FORM_FIELDS_RECORD}`)
       .mapArrayToStatements(this.#tables, (t, s) =>
-        s.debugQuery(`select * from ui.${t.name}`)
+        s.debugQuery(`select * from ui.${t.name}`),
       )
       .debugExpr(`'Form error: ' || ui.${FORM_ERROR_SCALAR}`)
       .debugExpr(`'Form waiting: ' || ui.${FORM_SUBMITTING_SCALAR}`);
@@ -278,8 +278,8 @@ export class FormState {
         s.modify(
           `update ui.${t.name} set ${t.fields
             .map((f) => f.name + ERROR_SUFFIX + ` = null`)
-            .join(`,`)}`
-        )
+            .join(`,`)}`,
+        ),
       );
   }
 
@@ -290,8 +290,8 @@ export class FormState {
         s.modify(
           `update ui.${t.name} set ${t.fields
             .map((f) => `${f.name}${TOUCHED_SUFFIX} = true`)
-            .join(`,`)}`
-        )
+            .join(`,`)}`,
+        ),
       );
   }
   get setTouchedNone() {
@@ -301,8 +301,8 @@ export class FormState {
         s.modify(
           `update ui.${t.name} set ${t.fields
             .map((f) => `${f.name}${TOUCHED_SUFFIX} = true`)
-            .join(`,`)}`
-        )
+            .join(`,`)}`,
+        ),
       );
   }
 }
@@ -334,7 +334,7 @@ export class FormStateTableCursor {
     const field = this.#fields.find((f) => f.name === name);
     if (!field) {
       throw new Error(
-        `Passed field '${field}' to form state table cursor which doesn't exist`
+        `Passed field '${field}' to form state table cursor which doesn't exist`,
       );
     }
     return new FormStateFieldHelper(this.#recordName, field);
@@ -344,7 +344,7 @@ export class FormStateTableCursor {
     return new BasicStatements().modify(
       `delete from ui.${this.#tableName} where ${FORM_STATE_TABLE_ID} = ${
         this.idField
-      }`
+      }`,
     );
   }
 
@@ -362,7 +362,7 @@ export class FormStateTableCursor {
         this.#tableName
       } set ${FORM_STATE_TABLE_ERR} = ${error} where ${FORM_STATE_TABLE_ID} = ${
         this.idField
-      }`
+      }`,
     );
   }
 }
@@ -382,7 +382,7 @@ export class FormStateFieldHelper {
 
   setValue = (value: yom.SqlExpression) => {
     return new BasicStatements().modify(
-      `update ${this.#recordName} set ${this.#field.name} = ${value}`
+      `update ${this.#recordName} set ${this.#field.name} = ${value}`,
     );
   };
 
@@ -398,7 +398,7 @@ export class FormStateFieldHelper {
     return new BasicStatements().modify(
       `update ${this.#recordName} set ${
         this.#field.name
-      }${ERROR_SUFFIX} = ${error}`
+      }${ERROR_SUFFIX} = ${error}`,
     );
   };
 
@@ -410,7 +410,7 @@ export class FormStateFieldHelper {
     return new BasicStatements().modify(
       `update ${this.#recordName} set ${
         this.#field.name
-      }${TOUCHED_SUFFIX} = ${touched}`
+      }${TOUCHED_SUFFIX} = ${touched}`,
     );
   };
 }
@@ -559,7 +559,7 @@ export class MultiInsertFormState extends FormState {
   #formStateExtensions?: FormStateProcedureExtensions;
 
   constructor(opts: MultiInsertFormOpts) {
-    const table = app.db.tables[opts.table];
+    const table = hub.db.tables[opts.table];
     if (!table) {
       throw new Error("Table " + opts.table + " does not exist in app db");
     }
@@ -567,7 +567,7 @@ export class MultiInsertFormState extends FormState {
       const fieldSchema = table.fields[f.field];
       if (!fieldSchema) {
         throw new Error(
-          "Field " + f.field + " does not exist in table " + table
+          "Field " + f.field + " does not exist in table " + table,
         );
       }
       return {
@@ -627,19 +627,19 @@ export class MultiInsertFormState extends FormState {
             return this.#sharedStaticValues[f];
           }
           const sharedField = this.#sharedFields.find(
-            (sf) => sf.field.name === f
+            (sf) => sf.field.name === f,
           );
           if (sharedField) {
             return this.field(sharedField.field.name).value;
           }
           return getNormalizedValue(
             this.#table.fields[f],
-            tableCursor.field(f).value
+            tableCursor.field(f).value,
           );
         });
         s.if(
           `not (` + check.check(fields) + `)`,
-          tableCursor.setRecordError(check.errorMessage(fields))
+          tableCursor.setRecordError(check.errorMessage(fields)),
         );
       }
     });
@@ -662,17 +662,17 @@ export class MultiInsertFormState extends FormState {
             ].join(",");
             const insertValues = [
               ...this.#sharedFields.map((f) =>
-                getNormalizedValue(f.field, this.field(f.field.name).value)
+                getNormalizedValue(f.field, this.field(f.field.name).value),
               ),
               ...this.#fields.map((f) =>
-                getNormalizedValue(f.field, cursor.field(f.field.name).value)
+                getNormalizedValue(f.field, cursor.field(f.field.name).value),
               ),
               ...Object.values(this.#sharedStaticValues ?? {}),
             ].join(",");
             s.modify(
               `insert into db.${
                 this.#table.name
-              } (${insertFields}) values (${insertValues})`
+              } (${insertFields}) values (${insertValues})`,
             );
           });
           this.#formStateExtensions?.beforeTransactionCommit?.(this, s);
@@ -687,7 +687,7 @@ export class MultiInsertFormState extends FormState {
           .debugExpr(`err.description`)
           .statements(
             this.setFormError("'Unable to submit form'"),
-            this.setSubmitting(`false`)
+            this.setSubmitting(`false`),
           )
           .return(),
     });
@@ -702,7 +702,7 @@ export interface WithMultiInsertFormOpts extends MultiInsertFormOpts {
 }
 
 export function withMultiInsertFormState(
-  opts: WithMultiInsertFormOpts
+  opts: WithMultiInsertFormOpts,
 ): StateNode {
   const state = new MultiInsertFormState(opts);
   return nodes.state({
@@ -740,7 +740,7 @@ export class InsertFormState extends FormState {
   #formStateExtensions?: FormStateProcedureExtensions;
 
   constructor(opts: InsertFormStateOpts) {
-    const table = app.db.tables[opts.table];
+    const table = hub.db.tables[opts.table];
     const formFields: FormStateField[] = [];
     interface ComputedField {
       formStateName: string;
@@ -774,7 +774,7 @@ export class InsertFormState extends FormState {
     }[] = [];
     if (opts.relations) {
       for (const relation of opts.relations) {
-        const relationTable = app.db.tables[relation.table];
+        const relationTable = hub.db.tables[relation.table];
         const sharedFields: ComputedField[] = [];
         if (relation.sharedFields) {
           for (const fieldConfig of relation.sharedFields) {
@@ -803,7 +803,7 @@ export class InsertFormState extends FormState {
           fields.push({ fieldModel, formStateName });
         }
         const foreignKeyField = Object.values(relationTable.fields).find(
-          (f) => f.type === "ForeignKey" && f.table === opts.table
+          (f) => f.type === "ForeignKey" && f.table === opts.table,
         )!.name;
         relations.push({
           fields,
@@ -841,7 +841,7 @@ export class InsertFormState extends FormState {
         defaultValidate(
           field.fieldModel,
           this.field(field.formStateName),
-          domProc
+          domProc,
         );
       }
     }
@@ -854,7 +854,7 @@ export class InsertFormState extends FormState {
       });
       domProc.if(
         `not (` + check.check(fields) + `)`,
-        this.setFormError(check.errorMessage(fields))
+        this.setFormError(check.errorMessage(fields)),
       );
     }
     // todo relation checks
@@ -876,15 +876,15 @@ export class InsertFormState extends FormState {
             ...this.#fields.map((f) =>
               getNormalizedValue(
                 f.fieldModel,
-                this.field(f.formStateName).value
-              )
+                this.field(f.formStateName).value,
+              ),
             ),
             ...Object.values(this.#withValues),
           ].join(",");
           s.modify(
             `insert into db.${ident(
-              this.#table.name
-            )} (${insertCols}) values (${insertValues})`
+              this.#table.name,
+            )} (${insertCols}) values (${insertValues})`,
           );
           for (const relation of this.#relations) {
             const cursor = this.iterTableCursor(relation.tableModel.name);
@@ -900,14 +900,14 @@ export class InsertFormState extends FormState {
                 ...relation.sharedFields.map((f) =>
                   getNormalizedValue(
                     f.fieldModel,
-                    this.field(f.formStateName).value
-                  )
+                    this.field(f.formStateName).value,
+                  ),
                 ),
                 ...relation.fields.map((f) =>
                   getNormalizedValue(
                     f.fieldModel,
-                    cursor.field(f.formStateName).value
-                  )
+                    cursor.field(f.formStateName).value,
+                  ),
                 ),
                 ...(relation.withValues
                   ? Object.values(relation.withValues)
@@ -915,12 +915,12 @@ export class InsertFormState extends FormState {
               ].join(",");
               s.modify(
                 `insert into db.${ident(
-                  relation.tableModel.name
+                  relation.tableModel.name,
                 )} (${insertFields}, ${
                   relation.foreignKeyField
                 }) values (${insertValues}, last_record_id(db.${ident(
-                  this.#table.name
-                )}))`
+                  this.#table.name,
+                )}))`,
               );
             });
           }
@@ -936,7 +936,7 @@ export class InsertFormState extends FormState {
           .debugExpr(`err.description`)
           .statements(
             this.setFormError("'Unable to submit form'"),
-            this.setSubmitting(`false`)
+            this.setSubmitting(`false`),
           )
           .return(),
     });
@@ -988,7 +988,7 @@ export function defaultInitialValue(field: Field): string {
       return `''`;
     case "Enum":
       if (field.notNull) {
-        const enum_ = app.enums[field.enum];
+        const enum_ = hub.enums[field.enum];
         const firstValue = Object.values(enum_.values)[0];
         return `cast(${stringLiteral(firstValue.name)} as enums.${enum_.name})`;
       }
@@ -1007,13 +1007,13 @@ export function defaultInitialValue(field: Field): string {
 export function defaultValidate(
   field: Field,
   { error, value, setError }: FormStateFieldHelper,
-  statements: DomStatements
+  statements: DomStatements,
 ) {
   if (field.checks) {
     for (const check of field.checks) {
       statements.if(
         `${error} is null and not (${check.check(value)})`,
-        setError(check.errorMessage(value))
+        setError(check.errorMessage(value)),
       );
     }
   }
@@ -1022,18 +1022,18 @@ export function defaultValidate(
       if (field.notNull) {
         statements.if(
           `${value} is null or trim(${value}) = ''`,
-          setError(`'Required'`)
+          setError(`'Required'`),
         );
       }
       if (field.minLength) {
         statements.if(
           `${error} is null and ${value} is not null and trim(${value}) != '' and char_length(${value}) < ${field.minLength}`,
-          setError(`'Expected at least ${field.minLength} charcters'`)
+          setError(`'Expected at least ${field.minLength} charcters'`),
         );
       }
       statements.if(
         `${error} is null and ${value} is not null and char_length(${value}) > ${field.maxLength}`,
-        setError(`'Expected at most ${field.maxLength} characters'`)
+        setError(`'Expected at most ${field.maxLength} characters'`),
       );
       break;
     case "ForeignKey":
@@ -1109,7 +1109,7 @@ export function defaultValidate(
       if (field.notNull) {
         statements.if(
           `${value} is null or trim(${value}) = ''`,
-          setError(`'Required'`)
+          setError(`'Required'`),
         );
       }
       statements.block((s) =>
@@ -1117,47 +1117,47 @@ export function defaultValidate(
           .scalar(`as_bigint`, `try_cast(${value} as bigint)`)
           .if(
             `${error} is null and ${value} is not null and trim(${value}) != '' and as_bigint is null`,
-            setError(`'Not a valid number'`)
+            setError(`'Not a valid number'`),
           )
           .if(
             `${error} is null and ${value} is not null and trim(${value}) != '' and as_bigint is not null and as_bigint < ${min}`,
-            setError(`'Must be at least ${min}'`)
+            setError(`'Must be at least ${min}'`),
           )
           .if(
             `${error} is null and ${value} is not null and trim(${value}) != '' and as_bigint is not null and as_bigint > ${max}`,
-            setError(`'Must be at most ${min}'`)
-          )
+            setError(`'Must be at most ${min}'`),
+          ),
       );
     }
     case "Real":
       if (field.notNull) {
         statements.if(
           `${value} is null or trim(${value}) = ''`,
-          setError(`'Required'`)
+          setError(`'Required'`),
         );
       }
       statements.if(
         `${error} is null and ${value} is not null and trim(${value}) != '' and try_cast(${value} as real) is null`,
-        setError(`'Not a valid number'`)
+        setError(`'Not a valid number'`),
       );
       break;
     case "Double":
       if (field.notNull) {
         statements.if(
           `${value} is null or trim(${value}) = ''`,
-          setError(`'Required'`)
+          setError(`'Required'`),
         );
       }
       statements.if(
         `${error} is null and ${value} is not null and trim(${value}) != '' and try_cast(${value} as double) is null`,
-        setError(`'Not a valid number'`)
+        setError(`'Not a valid number'`),
       );
       break;
     case "Decimal": {
       if (field.notNull) {
         statements.if(
           `${value} is null or trim(${value}) = ''`,
-          setError(`'Required'`)
+          setError(`'Required'`),
         );
       }
       // eventually I should improve the error message here
@@ -1165,12 +1165,12 @@ export function defaultValidate(
         s
           .scalar(
             `as_decimal`,
-            `try_cast(${value} as decimal(${field.precision}, ${field.scale}))`
+            `try_cast(${value} as decimal(${field.precision}, ${field.scale}))`,
           )
           .if(
             `${error} is null and ${value} is not null and trim(${value}) != '' and as_decimal is null`,
-            setError(`'Not a valid decimal'`)
-          )
+            setError(`'Not a valid decimal'`),
+          ),
       );
       break;
     }
@@ -1178,24 +1178,24 @@ export function defaultValidate(
       if (field.notNull) {
         statements.if(
           `${value} is null or trim(${value}) = ''`,
-          setError(`'Required'`)
+          setError(`'Required'`),
         );
       }
       statements.if(
         `${error} is null and ${value} is not null and trim(${value}) != '' and try_cast(${value} as uuid) is null`,
-        setError(`'Invalid UUID'`)
+        setError(`'Invalid UUID'`),
       );
       break;
     case "Tx":
       if (field.notNull) {
         statements.if(
           `${value} is null or trim(${value}) = ''`,
-          setError(`'Required'`)
+          setError(`'Required'`),
         );
       }
       statements.if(
         `${error} is null and ${value} is not null and trim(${value}) != '' and try_cast(${value} as bigint) is null`,
-        setError(`'Tx id must be a number'`)
+        setError(`'Tx id must be a number'`),
       );
       break;
   }
@@ -1204,7 +1204,7 @@ export function defaultValidate(
 
 function getUpdateFormStateValueFromRecordValue(
   field: Field,
-  value: yom.SqlExpression
+  value: yom.SqlExpression,
 ): yom.SqlExpression {
   if ("usage" in field) {
     if (field.usage?.type === "Duration") {
@@ -1241,7 +1241,7 @@ export class UpdateFormState extends FormState {
   #recordId?: string;
 
   constructor(opts: UpdateFormStateOpts) {
-    const table = app.db.tables[opts.table];
+    const table = hub.db.tables[opts.table];
     const fields = opts.fields.map((f) => {
       const fieldSchema = table.fields[f.field];
       if (!fieldSchema) {
@@ -1253,11 +1253,11 @@ export class UpdateFormState extends FormState {
       } else if (opts.initialRecord) {
         initialValue = getUpdateFormStateValueFromRecordValue(
           fieldSchema,
-          `${opts.initialRecord}.${f.field}`
+          `${opts.initialRecord}.${f.field}`,
         );
       } else {
         throw new Error(
-          "In an update form `initialRecord` or `initialValue` must be supplied"
+          "In an update form `initialRecord` or `initialValue` must be supplied",
         );
       }
       return {
@@ -1293,17 +1293,17 @@ export class UpdateFormState extends FormState {
         }
         if (!this.#initialRecord) {
           throw new Error(
-            "Update form on table with checks but not supplying an `initialRecord`"
+            "Update form on table with checks but not supplying an `initialRecord`",
           );
         }
         return getNormalizedValue(
           this.#table.fields[f],
-          this.#initialRecord + "." + f
+          this.#initialRecord + "." + f,
         );
       });
       domProc.if(
         `not (` + check.check(fieldExprs) + `)`,
-        this.setFormError(check.errorMessage(fieldExprs))
+        this.setFormError(check.errorMessage(fieldExprs)),
       );
     }
     this.#formStateExtensions?.beforeSubmitClient?.(this, domProc);
@@ -1320,7 +1320,7 @@ export class UpdateFormState extends FormState {
             .map((f) => {
               const value = getNormalizedValue(
                 f.field,
-                this.field(f.field.name).value
+                this.field(f.field.name).value,
               );
               return `${f.field.name} = ${value}`;
             })
@@ -1331,14 +1331,14 @@ export class UpdateFormState extends FormState {
               recordId = `${this.#initialRecord}.id`;
             } else {
               throw new Error(
-                "You must specify either recordId or initialRecord for an update form"
+                "You must specify either recordId or initialRecord for an update form",
               );
             }
           }
           s.modify(
             `update db.${
               this.#table.name
-            } set ${setValues} where id = ${recordId}`
+            } set ${setValues} where id = ${recordId}`,
           );
           this.#formStateExtensions?.beforeTransactionCommit?.(this, s);
           s.commitTransaction();
@@ -1352,7 +1352,7 @@ export class UpdateFormState extends FormState {
           .debugExpr(`err.description`)
           .statements(
             this.setFormError("'Unable to submit form'"),
-            this.setSubmitting(`false`)
+            this.setSubmitting(`false`),
           )
           .return(),
     });

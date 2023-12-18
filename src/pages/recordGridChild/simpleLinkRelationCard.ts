@@ -1,5 +1,5 @@
 import { nodes } from "../../nodeHelpers";
-import { app } from "../../app";
+import { hub } from "../../hub";
 import { createStyles, flexGrowStyles } from "../../styleUtils";
 import { ident, stringLiteral } from "../../utils/sqlHelpers";
 import { divider } from "../../components/divider";
@@ -80,7 +80,7 @@ const styles = createStyles({
 });
 
 export function content(opts: Opts, ctx: RecordGridBuilder) {
-  const otherTable = app.db.tables[opts.table];
+  const otherTable = hub.db.tables[opts.table];
   const listScrollId = stringLiteral(getUniqueUiId());
   if (!otherTable) {
     throw new Error(`Table ${opts.table} not found`);
@@ -89,11 +89,11 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
     throw new Error(`Table ${opts.table} does not have getHrefToRecord`);
   }
   const foreignKeyField = Object.values(otherTable.fields).find(
-    (f) => f.type === "ForeignKey" && f.table === ctx.table.name
+    (f) => f.type === "ForeignKey" && f.table === ctx.table.name,
   );
   if (!foreignKeyField) {
     throw new Error(
-      `No foreign key field found for ${ctx.table.name} to ${opts.table}`
+      `No foreign key field found for ${ctx.table.name} to ${opts.table}`,
     );
   }
   const displayValues = opts.displayValues;
@@ -110,7 +110,9 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
   const { recordDisplayName } = otherTable;
   if (recordDisplayName) {
     selectFields += `, ${recordDisplayName.expr(
-      ...recordDisplayName.fields.map((f) => `${ident(opts.table)}.${ident(f)}`)
+      ...recordDisplayName.fields.map(
+        (f) => `${ident(opts.table)}.${ident(f)}`,
+      ),
     )} as display_name`;
   }
   return nodes.state({
@@ -139,10 +141,10 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                 .record(
                   "related",
                   `select id${selectFields} from db.${ident(
-                    opts.table
+                    opts.table,
                   )} where ${foreignKeyField.name} = ${
                     ctx.recordId
-                  } order by id desc limit row_count`
+                  } order by id desc limit row_count`,
                 )
                 .scalar(`service_row_count`, `row_count`),
             children: nodes.element("ul", {
@@ -153,18 +155,18 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                   s
                     .if(
                       `status != 'received' or (service_row_count is not null and (select count(*) from related) < service_row_count)`,
-                      (s) => s.return()
+                      (s) => s.return(),
                     )
                     .getElProperty(
                       "scrollHeight",
                       "el_scroll_height",
-                      listScrollId
+                      listScrollId,
                     )
                     .getBoundingClientRect(listScrollId, "el_rect")
                     .getElProperty("scrollTop", "el_scroll_top", listScrollId)
                     .if(
                       `el_scroll_height - el_scroll_top - el_rect.height < 300`,
-                      (s) => s.setScalar(`row_count`, `row_count + 20`)
+                      (s) => s.setScalar(`row_count`, `row_count + 20`),
                     ),
               },
               children: nodes.each({
@@ -194,7 +196,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                         const field = otherTable.fields[displayValue];
                         if (!field) {
                           throw new Error(
-                            `Field ${displayValue} does not exist in table ${otherTable.name}`
+                            `Field ${displayValue} does not exist in table ${otherTable.name}`,
                           );
                         }
                         const value = `record.${ident(displayValue)}`;
@@ -206,7 +208,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                               color: "neutral",
                               size: "sm",
                               children: stringLiteral(field.displayName),
-                            })
+                            }),
                           );
                         }
                         const content = nodes.element("div", {
@@ -215,7 +217,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                             nodes.element("p", {
                               styles: styles.itemValue,
                               children: `${stringLiteral(
-                                field.displayName
+                                field.displayName,
                               )} || ':'`,
                             }),
                             inlineFieldDisplay(field, value),
@@ -232,7 +234,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                             nodes.element("p", {
                               styles: styles.itemValue,
                               children: `${stringLiteral(
-                                displayValue.label
+                                displayValue.label,
                               )} || ':'`,
                             }),
                             displayValue.display(`record.expr_${i}`),

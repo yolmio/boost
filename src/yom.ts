@@ -1,17 +1,16 @@
 /**
- * The complete model of a SPA which can be compiled and run.
+ * The complete model of a yolm hub
  */
 export interface Model {
   locale: Locale;
   name: string;
-  displayName: string;
+  region: Region;
+  replicas: Replica[];
   /** Where and how queries and transactions run against the database */
-  dbExecutionConfig: DbExecutionConfig;
-  pollingPullConfig?: PollingPullConfig;
-  appDomain?: string;
+  dbExecutionConfig: HubExecutionConfig;
   collation: Collation;
   db: Database;
-  ui: UiModel;
+  apps: AppModel[];
   enums?: Enum[];
   recordRuleFunctions?: RecordRuleFunction[];
   ruleFunctions?: RuleFunction[];
@@ -23,7 +22,23 @@ export interface Model {
   api?: AppApi;
 }
 
-export interface SyncServiceConfig {
+export type Region =
+  | "us-new-york"
+  | "us-miami"
+  | "us-seattle"
+  | "us-chicago"
+  | "us-dallas"
+  | "us-san-francisco";
+
+export interface Replica {
+  region: Region;
+}
+
+export interface HubSyncServiceConfig {
+  type: "SyncService";
+}
+
+export interface AppDbSyncServiceConfig {
   type: "SyncService";
   /**
    * When writing to the database in the worker, should we store transactions offline and optimistically return success,
@@ -42,11 +57,15 @@ export interface SyncServiceConfig {
   offlineWriting?: boolean;
 }
 
-export type ServerCpu = "1/4" | "1/2" | "1" | "2" | "4" | "8" | "16"
+export type ServerCpu = "1/2" | "1" | "2" | "4" | "8" | "16";
 
-export interface ServerConfig {
+export interface HubServerConfig {
   type: "Server";
-  cpu: ServerCpu
+  cpu: ServerCpu;
+}
+
+export interface AppDbServerConfig {
+  type: "Server";
   /**
    * By default can the database be downloaded to the client.
    *
@@ -67,7 +86,8 @@ export interface ServerConfig {
   preferDownload?: boolean;
 }
 
-export type DbExecutionConfig = SyncServiceConfig | ServerConfig;
+export type HubExecutionConfig = HubSyncServiceConfig | HubServerConfig;
+export type AppDbExecutionConfig = AppDbSyncServiceConfig | AppDbServerConfig;
 
 export interface PollingPullConfig {
   /**
@@ -448,9 +468,9 @@ export interface Table {
 export type UniqueConstraintField =
   | string
   | {
-    field: string;
-    distinctNulls?: boolean;
-  };
+      field: string;
+      distinctNulls?: boolean;
+    };
 
 export interface UniqueConstraint {
   fields: UniqueConstraintField[];
@@ -1553,7 +1573,12 @@ export interface DynamicQueryToCsv {
   scalar: string;
 }
 
-export interface UiModel {
+export interface AppModel {
+  name: string;
+  displayName: string;
+  pollingPullConfig?: PollingPullConfig;
+  executionConfig?: AppDbExecutionConfig;
+  appDomain?: string;
   htmlHead: string;
   pwaManifest: object;
   css: string;
@@ -2074,19 +2099,19 @@ export type ElementEventHandlers = Partial<
 export interface FloatingOpts {
   anchorEl: SqlExpression;
   placement:
-  | "'top'"
-  | "'top-start'"
-  | "'top-end'"
-  | "'right'"
-  | "'right-start'"
-  | "'right-end'"
-  | "'bottom'"
-  | "'bottom-start'"
-  | "'bottom-end'"
-  | "'left'"
-  | "'left-start'"
-  | "'left-end'"
-  | SqlExpression;
+    | "'top'"
+    | "'top-start'"
+    | "'top-end'"
+    | "'right'"
+    | "'right-start'"
+    | "'right-end'"
+    | "'bottom'"
+    | "'bottom-start'"
+    | "'bottom-end'"
+    | "'left'"
+    | "'left-start'"
+    | "'left-end'"
+    | SqlExpression;
   strategy: "'absolute'" | "'fixed'" | SqlExpression;
   offset?: {
     mainAxis: SqlExpression;

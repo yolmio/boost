@@ -1,4 +1,4 @@
-import { app } from "../app";
+import { hub } from "../hub";
 import type { ElementNode, Node } from "../nodeTypes";
 import type { Style, StyleObject } from "../styleTypes";
 import { Variant } from "../theme";
@@ -20,7 +20,7 @@ export interface IconButtonOpts
 
 /** This is internal, don't touch! */
 export const styles = createStyles({
-  root: (size: Size, variant: Variant, color: Color): Style => {
+  root: (app, size: Size, variant: Variant, color: Color): Style => {
     const styles: StyleObject = {
       "--icon-margin": "initial", // reset the icon's margin.
       "--circular-progress-size": "var(--icon-font-size)",
@@ -39,7 +39,7 @@ export const styles = createStyles({
       position: "relative",
       transition:
         "background-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, border-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms",
-      "&:focus-visible": app.ui.theme.focus.default,
+      "&:focus-visible": app.theme.focus.default,
     };
     switch (size) {
       case "sm":
