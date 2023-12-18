@@ -6,7 +6,7 @@ import {
   getScriptModel,
   runScript,
   sleep,
-  writeAppModelToDisk,
+  writeHubModelToDisk,
   yolmPath,
   createProfiles,
 } from "./utils.js";
@@ -46,7 +46,7 @@ if (!fs.existsSync(dbPath)) {
     );
     if (initScript) {
       console.log(`About to run script "${initScriptName}"`);
-      writeAppModelToDisk(scriptModel);
+      writeHubModelToDisk(scriptModel);
       runScript(initScriptName);
       console.log(`Successfully ran script "${initScriptName}"`);
     }

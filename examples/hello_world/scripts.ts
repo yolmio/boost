@@ -1,4 +1,4 @@
-import "./app.ts";
+import "./hub.ts";
 import { hub } from "@yolm/boost";
 
 hub.addScript("init-dev-db", (s) =>

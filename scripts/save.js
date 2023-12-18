@@ -1,4 +1,4 @@
-import { getAppModel, writeAppModelToDisk } from "./utils.js";
+import { getAppModel, writeHubModelToDisk } from "./utils.js";
 
 const appModel = await getAppModel();
-writeAppModelToDisk(appModel);
+writeHubModelToDisk(appModel);

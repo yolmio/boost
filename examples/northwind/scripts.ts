@@ -1,4 +1,4 @@
-import "./app.ts";
+import "./hub.ts";
 import "./csvScriptDb.ts";
 import { hub } from "@yolm/boost";
 

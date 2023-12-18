@@ -1,5 +1,5 @@
-import { getScriptModel, runScript, writeAppModelToDisk } from "./utils.js";
+import { getScriptModel, runScript, writeHubModelToDisk } from "./utils.js";
 
 const appModel = await getScriptModel();
-writeAppModelToDisk(appModel);
+writeHubModelToDisk(appModel);
 runScript(process.argv[process.argv.length - 1]);

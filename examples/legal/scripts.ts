@@ -1,4 +1,4 @@
-import "./app";
+import "./hub";
 import { hub } from "@yolm/boost";
 import { faker } from "@faker-js/faker";
 import { createObjectCsvWriter } from "csv-writer";
