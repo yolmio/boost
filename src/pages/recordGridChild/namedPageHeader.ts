@@ -175,7 +175,7 @@ function imagePart(
               styles: styles.img(),
               props: {
                 tabIndex: `0`,
-                src: `'/_a/file/' || sys.account || '/' || sys.app || '/' || record.named_page_header_thumb`,
+                src: `'/_a/file/' || record.named_page_header_thumb`,
               },
               on: {
                 click: (s) => s.setScalar(`dialog_open`, `true`),

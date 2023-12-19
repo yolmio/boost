@@ -7,7 +7,7 @@ export interface Model {
   region: Region;
   replicas: Replica[];
   /** Where and how queries and transactions run against the database */
-  dbExecutionConfig: HubExecutionConfig;
+  executionConfig: HubExecutionConfig;
   collation: Collation;
   db: Database;
   apps: AppModel[];

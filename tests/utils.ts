@@ -48,31 +48,10 @@ async function loginToE2E(page: Page) {
   await expect(page.getByText("Select an application")).toBeVisible();
 }
 
-async function waitForDevServerReady() {
-  let found = false;
-  for (let i = 0; i < 20; i++) {
-    try {
-      const result = await fetch("http://127.0.0.1:3000");
-      if (result.status === 200) {
-        found = true;
-        break;
-      }
-      await sleep(100);
-    } catch {}
-  }
-  if (!found) {
-    throw new Error("could not connect to development server");
-  }
-}
-
 export async function testSetup() {
   if (process.env.YOLM_E2E_TEST) {
     test.beforeEach(async ({ page }) => {
       await loginToE2E(page);
-    });
-  } else {
-    test.beforeAll(async () => {
-      await waitForDevServerReady();
     });
   }
 }
@@ -111,7 +90,7 @@ export function exampleDevConfig(app: string) {
     use: {
       actionTimeout: 0,
       trace: "on-first-retry",
-      baseURL: "http://localhost:3000/",
+      baseURL: "http://localhost:3001/",
     },
 
     projects: [
@@ -122,7 +101,7 @@ export function exampleDevConfig(app: string) {
     ],
     webServer: {
       command: `cd ../../examples/${app} && YOLM_EXECUTABLE_PATH=~/dev/platform/target/debug/yolm bun start`,
-      url: "http://127.0.0.1:3000",
+      url: "http://127.0.0.1:3001",
       reuseExistingServer: false,
       stdout: "ignore",
       stderr: "pipe",

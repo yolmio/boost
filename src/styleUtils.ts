@@ -1,4 +1,4 @@
-import { App, hub } from "./hub";
+import { App } from "./hub";
 import type { Style, StyleObject } from "./styleTypes";
 import type { ColorPaletteProp, CssVar, Variant } from "./theme";
 import {

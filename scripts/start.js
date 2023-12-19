@@ -1,4 +1,3 @@
-import { spawn } from "child_process";
 import * as path from "path";
 import { fileURLToPath } from "url";
 import {
@@ -11,7 +10,7 @@ import {
   createProfiles,
 } from "./utils.js";
 import * as fs from "fs";
-import { hasBun } from "./transpileUtils.js";
+import { TextDecoderStream } from "stream/web";
 
 const hasProfilesFile = fs.existsSync(path.join(process.cwd(), "profiles.ts"));
 let profiles = createProfiles({});
@@ -53,7 +52,7 @@ if (!fs.existsSync(dbPath)) {
   }
 }
 
-const runArgs = ["run", `--db=${dbPath}`];
+const runArgs = [yolmPath(), "run", `--db=${dbPath}`];
 
 if (profile.user) {
   runArgs.push(`--user=${profile.user}`);
@@ -62,29 +61,26 @@ if (profile.port) {
   runArgs.push(`--port=${profile.port}`);
 }
 
+const port = profile.port ?? 3000;
+
 let handle;
 try {
-  const cmdPath = yolmPath();
-  handle = spawn(cmdPath, runArgs, {
-    detached: false,
-    stdio: "inherit",
+  handle = Bun.spawn(runArgs, {
     env: {
       ...process.env,
       RUST_BACKTRACE: "1",
       YOLM_DEV_SERVER_DELAY: process.env.YOLM_DEV_SERVER_DELAY ?? "0",
     },
   });
-  // console.log("yolm run pid ", run.pid);
 } catch (e) {
   console.error("Unable to spawn yolm run");
   throw e;
 }
-await sleep(200);
 
 let found = false;
-for (let i = 0; i < 10; i++) {
+for (let i = 0; i < 50; i++) {
   try {
-    const request = new Request("http://127.0.0.1:3000/health");
+    const request = new Request(`http://127.0.0.1:${port}/health`);
     const result = await fetchWithTimeout(request, 100);
     if (result.status === 200) {
       const json = await result.json();
@@ -94,8 +90,8 @@ for (let i = 0; i < 10; i++) {
         break;
       }
     }
-    await sleep(200);
   } catch {}
+  await sleep(50);
 }
 
 if (!found) {
@@ -109,14 +105,6 @@ const sendModelPath = path.join(
   "sendModel.js",
 );
 
-if (hasBun()) {
-  spawn("bun", ["--watch", sendModelPath], {
-    stdio: "inherit",
-    shell: true,
-  });
-} else {
-  spawn("tsx", ["watch", "--clear-screen=false", sendModelPath], {
-    stdio: "inherit",
-    shell: true,
-  });
-}
+Bun.spawn(["bun", "--watch", sendModelPath], {
+  env: { ...process.env, YOLM_DEV_SERVER_PORT: port.toString() },
+});

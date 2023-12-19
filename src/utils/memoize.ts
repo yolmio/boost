@@ -42,7 +42,7 @@ export function memoizePerApp(
     const args = Array.prototype.slice.call(arguments); // to simplify JSON.stringify
     const key = resolver
       ? // @ts-ignore
-        resolver.apply(this, ...args)
+        resolver.apply(this, args)
       : JSON.stringify(args);
 
     if (!cache.has(key)) {
@@ -64,7 +64,7 @@ export function lazyPerApp<T extends (app: App) => any>(
       throw new Error("No current app");
     }
     if (!results[hub.currentAppName]) {
-      results[hub.currentAppName] = f(results[hub.currentAppName]);
+      results[hub.currentAppName] = f(hub.currentApp!);
     }
     return results[hub.currentAppName];
   };

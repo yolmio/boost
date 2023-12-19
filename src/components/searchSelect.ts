@@ -17,6 +17,7 @@ import {
   StateStatementsOrFn,
 } from "../statements";
 import * as yom from "../yom";
+import { lazyPerApp } from "../utils/memoize";
 
 const styles = createStyles({
   root: { position: "relative" },
@@ -151,9 +152,11 @@ function withComboboxState(opts: QueryComboboxOpts, children: Node) {
   });
 }
 
-const arrowIcon = svgIcon({
-  children: nodes.element("path", { props: { d: "'M7 10l5 5 5-5z'" } }),
-});
+const arrowIcon = lazyPerApp(() =>
+  svgIcon({
+    children: nodes.element("path", { props: { d: "'M7 10l5 5 5-5z'" } }),
+  }),
+);
 
 /**
  * Combobox that gets its data from a query, the query can also be dependent on the input in the textbox.
@@ -341,7 +344,7 @@ export function queryCombobox(opts: QueryComboboxOpts) {
                 },
               ],
               props: { tabIndex: `-1` },
-              children: arrowIcon,
+              children: arrowIcon(),
               on: {
                 click: (s) =>
                   s

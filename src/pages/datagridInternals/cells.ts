@@ -833,7 +833,7 @@ function imageCell(
             children: nodes.element("img", {
               styles: styles.img,
               props: {
-                src: `'/_a/file/' || sys.account || '/' || sys.app || '/' || ${cell.value}`,
+                src: `'/_a/file/' || ${cell.value}`,
               },
               on: {
                 click: (s) =>

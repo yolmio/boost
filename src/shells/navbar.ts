@@ -20,7 +20,6 @@ import { makeConditionalLink } from "./internals/authLink";
 import { globalSearchDialog } from "./internals/globalSearchDialog";
 import * as yom from "../yom";
 import { Node } from "../nodeTypes";
-import { hub } from "../hub";
 
 export interface NavbarProps extends GlobalSearchOpts {
   variant?: "soft" | "solid";

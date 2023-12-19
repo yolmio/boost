@@ -50,7 +50,6 @@ import { KeyFrames, NodeTransformer } from "./nodeTransform";
 import { SequentialIDGenerator } from "./utils/SequentialIdGenerator";
 import { escapeHtml } from "./utils/escapeHtml";
 import { default404Page } from "./pages/default404";
-import { rootStyles } from "./rootStyles";
 import { snackbar, SnackbarOpts } from "./components";
 import { nodes } from "./nodeHelpers";
 
@@ -240,18 +239,13 @@ export class Hub {
       );
       console.log();
     }
-    if (!this.region) {
-      console.log();
-      console.warn("You must set the region for your hub before you deploy.");
-      console.log();
-    }
     return {
       // todo make this part of the model
       locale: "en_us",
       region: (this.region ?? "not-set") as any,
       replicas: this.replicas,
       name: this.name,
-      dbExecutionConfig: this.dbExecutionConfig,
+      executionConfig: this.dbExecutionConfig,
       collation: this.collation,
       db: this.db.generateYom(),
       recordRuleFunctions: Object.values(this.recordRuleFunctions).map(

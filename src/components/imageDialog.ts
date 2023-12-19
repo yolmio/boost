@@ -111,7 +111,7 @@ export function imageDialog(opts: ImageDialogOptions) {
                 children: nodes.element("img", {
                   styles: styles.img,
                   props: {
-                    src: `'/_a/file/' || sys.account || '/' || sys.app || '/' || full_img`,
+                    src: `'/_a/file/' || full_img`,
                   },
                 }),
               }),

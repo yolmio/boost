@@ -290,7 +290,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                         else: nodes.element("a", {
                           styles: styles.attachmentLink,
                           props: {
-                            href: `'/_a/file/' || sys.account || '/' || sys.app || '/' || attachment_record.file`,
+                            href: `'/_a/file/' || attachment_record.file`,
                             target: "'_blank'",
                           },
                           children: "attachment_record.name",
@@ -298,7 +298,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                       }),
                       nodes.element("div", { styles: flexGrowStyles }),
                       iconButton({
-                        href: `'/_a/file/' || sys.account || '/' || sys.app || '/' || attachment_record.file`,
+                        href: `'/_a/file/' || attachment_record.file`,
                         props: { download: "attachment_record.name" },
                         variant: "plain",
                         color: "neutral",
