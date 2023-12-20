@@ -638,6 +638,7 @@ export class SimpleReportsPageBuilder {
         watch: opts.parameters?.map((p) => p.name),
         procedure: opts.state,
         statusScalar: "status",
+        errorRecord: `report_error`,
         children: wrapWithLoadingErrorSwitch(opts.node),
       }),
     );

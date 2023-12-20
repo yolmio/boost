@@ -66,6 +66,7 @@ const port = profile.port ?? 3000;
 let handle;
 try {
   handle = Bun.spawn(runArgs, {
+    stdout: "inherit",
     env: {
       ...process.env,
       RUST_BACKTRACE: "1",
@@ -106,5 +107,6 @@ const sendModelPath = path.join(
 );
 
 Bun.spawn(["bun", "--watch", sendModelPath], {
+  stdout: "inherit",
   env: { ...process.env, YOLM_DEV_SERVER_PORT: port.toString() },
 });
