@@ -158,28 +158,26 @@ export async function deploy(majorDbVersion) {
   const appModel = await getScriptModel();
   writeHubModelToDisk(appModel);
   const config = getAppYolmConfig();
-  const args = ["deploy"];
+  const cmd = [yolmPath(), "deploy"];
   if (config.deployed) {
-    args.push("-f");
-    args.push("true");
+    cmd.push("-f");
+    cmd.push("true");
   }
   if (config.profile.length > 0) {
-    args.push("-p");
-    args.push(config.profile);
+    cmd.push("-p");
+    cmd.push(config.profile);
   }
   if (majorDbVersion) {
-    args.push("--major-db-version");
-    args.push("true");
+    cmd.push("--major-db-version");
+    cmd.push("true");
   }
-  try {
-    spawn(yolmPath(), args, {
-      detached: false,
-      stdio: "inherit",
-    });
-  } catch (e) {
-    console.error("Unable to spawn yolm run");
-    throw e;
-  }
+  const proc = Bun.spawn({
+    cmd,
+    stdout: "inherit",
+    env: process.env,
+  })
+  const exitCode = await proc.exited
+  process.exit(exitCode)
 }
 
 export function createProfiles(profiles) {

@@ -1,6 +1,7 @@
 import { hub } from "@yolm/boost";
 
 hub.name = "hello_world";
+hub.region = "us-miami"
 
 // ui
 

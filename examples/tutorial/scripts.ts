@@ -14,9 +14,10 @@ hub.addScript("init-dev-db", (s) =>
 
 hub.addScript("init-db", (s) =>
   s
-    .addUsers(
-      `select * from (values(next_record_id(db.user), 'none', 'test@yolm.io')) as user(db_id, notification_type, email)`,
-    )
+    .addUsers({
+      app: "tutorial",
+      query: `select * from (values(next_record_id(db.user), 'none', 'test@yolm.io')) as user(db_id, notification_type, email)`
+    })
     .startTransaction("db")
     .modify(
       `insert into db.user (global_id, disabled, email) values
@@ -24,8 +25,4 @@ hub.addScript("init-db", (s) =>
     )
     .commitTransaction("db")
     .uploadDb(),
-);
-
-hub.addScript("debug-stuff", (s) =>
-  s.pull().debugQuery(`select * from db.tx_op`),
 );

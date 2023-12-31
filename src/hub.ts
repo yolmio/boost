@@ -91,7 +91,7 @@ export class Hub {
   };
   collation = "NoCase" as yom.Collation;
   autoTrim = "None" as yom.AutoTrim;
-  dbExecutionConfig: yom.HubExecutionConfig = { type: "SyncService" };
+  vcpus: yom.VCpus = 1;
   db: Db = new Db();
   apps: Record<string, App> = {};
   api: Api = new Api();
@@ -245,7 +245,7 @@ export class Hub {
       region: (this.region ?? "not-set") as any,
       replicas: this.replicas,
       name: this.name,
-      executionConfig: this.dbExecutionConfig,
+      vcpus: this.vcpus.toString() as any,
       collation: this.collation,
       db: this.db.generateYom(),
       recordRuleFunctions: Object.values(this.recordRuleFunctions).map(
@@ -342,7 +342,7 @@ export class App {
   #keyFrames: Map<KeyFrames, string> = new Map();
   #crosspageSnackbars: CrossPageSnackbar[] = [];
 
-  constructor(public name: string, public displayName: string) {}
+  constructor(public name: string, public displayName: string) { }
 
   //
   // Helper methods
@@ -393,14 +393,14 @@ export class App {
     const delayedClose =
       typeof opts.autoHideDuration === "number"
         ? new DomStatements().spawn({
-            detached: true,
-            procedure: (s) =>
-              s
-                .delay(opts.autoHideDuration!.toString())
-                .if(`crosspage_snackbar_open = ${i}`, (s) =>
-                  s.statements(closeSnackbar).commitUiTreeChanges(),
-                ),
-          })
+          detached: true,
+          procedure: (s) =>
+            s
+              .delay(opts.autoHideDuration!.toString())
+              .if(`crosspage_snackbar_open = ${i}`, (s) =>
+                s.statements(closeSnackbar).commitUiTreeChanges(),
+              ),
+        })
         : new DomStatements().statements(closeSnackbar);
     return {
       openSnackbar: new DomStatements()
@@ -484,21 +484,21 @@ export class App {
       .filter((p) => !p.ignoreShell)
       .map(
         (p) =>
-          ({
-            t: "Route",
-            path: p.path,
-            children: p.content,
-          } as RouteNode),
+        ({
+          t: "Route",
+          path: p.path,
+          children: p.content,
+        } as RouteNode),
       );
     const pagesWithoutShell = this.pages
       .filter((p) => p.ignoreShell)
       .map(
         (p) =>
-          ({
-            t: "Route",
-            path: p.path,
-            children: p.content,
-          } as RouteNode),
+        ({
+          t: "Route",
+          path: p.path,
+          children: p.content,
+        } as RouteNode),
       );
     let rootNode: Node;
     if (this.shell) {
@@ -510,12 +510,12 @@ export class App {
         pagesWithoutShell.length === 0
           ? shell
           : ({
-              t: "Routes",
-              children: [
-                ...pagesWithoutShell,
-                { t: "Route", path: "*", children: shell },
-              ],
-            } as RoutesNode);
+            t: "Routes",
+            children: [
+              ...pagesWithoutShell,
+              { t: "Route", path: "*", children: shell },
+            ],
+          } as RoutesNode);
     } else {
       rootNode = {
         t: "Routes",
@@ -619,20 +619,20 @@ export interface WebAppConfig {
   viewport?: string;
   manifest: WebAppManifest;
   logoGeneration:
-    | {
-        type: "App";
-        safariPinnedTabColor: string;
-        msTileColor: string;
-        themeColor: string;
-      }
-    | {
-        type: "Account";
-        safariPinnedTabColor: string;
-        msTileColor: string;
-        themeColor: string;
-      }
-    | { type: "Default" }
-    | { type: "Custom" };
+  | {
+    type: "App";
+    safariPinnedTabColor: string;
+    msTileColor: string;
+    themeColor: string;
+  }
+  | {
+    type: "Account";
+    safariPinnedTabColor: string;
+    msTileColor: string;
+    themeColor: string;
+  }
+  | { type: "Default" }
+  | { type: "Custom" };
 }
 
 export interface Page {
@@ -845,7 +845,7 @@ export class FromJSONTableHelper {
     private name: string,
     private parent?: string,
     private singleRecord?: boolean,
-  ) {}
+  ) { }
 
   path(...path: string[]) {
     this.#path = path;
@@ -1067,7 +1067,7 @@ export interface ScriptDb {
 export class ScriptDbDefinition {
   tables: Record<string, Table> = {};
 
-  constructor(public name: string) {}
+  constructor(public name: string) { }
 
   addTable(name: string, f: (builder: TableBuilder) => void) {
     const builder = new TableBuilder(name);
@@ -1172,7 +1172,7 @@ export class Table {
     public primaryKeyFieldName: string,
     public name: string,
     public displayName: string,
-  ) {}
+  ) { }
 
   get identName() {
     return ident(this.name);
@@ -1255,7 +1255,7 @@ abstract class FieldBase {
   indexed = false;
   ext: Record<string, any> = {};
 
-  constructor(public name: string, public displayName: string) {}
+  constructor(public name: string, public displayName: string) { }
 
   /** Name of field escaped as sql identifier */
   get identName() {
@@ -1781,10 +1781,10 @@ export class TableBuilder {
     name: string,
     opts?:
       | {
-          precision: number;
-          scale: number;
-          signed?: boolean;
-        }
+        precision: number;
+        scale: number;
+        signed?: boolean;
+      }
       | yom.FieldIntegerTypes,
   ) {
     const usage = { type: "Money", currency: "USD" } as const;
@@ -2491,7 +2491,7 @@ abstract class BaseIntegerBuilder extends BaseNumericBuilder {
 }
 
 interface IntegerFieldBuilder {
-  new (name: string, usage?: IntegerUsage): BaseNumericBuilder;
+  new(name: string, usage?: IntegerUsage): BaseNumericBuilder;
 }
 
 function createIntegerBuilder(
@@ -2814,7 +2814,7 @@ export interface ScalarFunction {
   returnType: yom.ScalarType;
 }
 
-export interface TableFunction {}
+export interface TableFunction { }
 
 export interface EnumValue {
   name: string;
@@ -2913,13 +2913,13 @@ export interface SimpleRfn {
 
 export type BoolRfn =
   | {
-      name: string;
-      trues: string[];
-    }
+    name: string;
+    trues: string[];
+  }
   | {
-      name: string;
-      falses: string[];
-    };
+    name: string;
+    falses: string[];
+  };
 
 export interface HelperEnum {
   name: string;
@@ -2929,11 +2929,11 @@ export interface HelperEnum {
   values: (
     | string
     | {
-        name: string;
-        displayName?: string;
-        renameFrom?: string;
-        description?: string;
-      }
+      name: string;
+      displayName?: string;
+      renameFrom?: string;
+      description?: string;
+    }
   )[];
   withSimpleRfns?: SimpleRfn[];
   withBoolRfns?: BoolRfn[];

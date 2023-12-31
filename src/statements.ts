@@ -61,8 +61,8 @@ export abstract class StatementsBase<Statement extends object> {
         typeof queryOrFields === "string"
           ? queryOrFields
           : typeof query === "string"
-          ? query
-          : undefined,
+            ? query
+            : undefined,
       fields: Array.isArray(queryOrFields) ? queryOrFields : undefined,
     } as yom.TableDeclaration as any);
     return this;
@@ -172,9 +172,9 @@ export abstract class StatementsBase<Statement extends object> {
     } else if (s === this) {
       throw new Error(
         "Cannot call any helper functions with itself, i.e. \n" +
-          " const statements = new BasicStatements();\n" +
-          "statements.statements(statements); statements.if('true', statements);\n" +
-          "You did something like the above",
+        " const statements = new BasicStatements();\n" +
+        "statements.statements(statements); statements.if('true', statements);\n" +
+        "You did something like the above",
       );
     } else if (s) {
       return s[BACKING_ARRAY] as any;
@@ -582,6 +582,32 @@ interface SpawnOpts<T> {
   handleScalar?: string;
 }
 
+interface AddUsersOpts {
+  app: string;
+  /**
+   * Expects a sql query with the following fields:
+   *
+   * db_id: biguint (id of the user in the database)
+   *
+   * eamil: string (email of the user, will be sent an email and invited to yolm)
+   *
+   * notification_type: string (either "none" or "new_app" or "user")
+   */
+  query: yom.SqlQuery
+  /**
+   * @default "added_user"
+   *
+   * The name of the table that should be created to store the users that have been added.
+   *
+   * It has the following fields:
+   *
+   * db_id: biguint (id of the user in the database)
+   *
+   * global_id: uuid (id of the user in yolm's authentication system)
+   */
+  outputTable?: string
+}
+
 export type ServiceStatementsOrFn = StatementsOrFn<ServiceStatements>;
 
 export class ServiceStatements extends StatementsBase<yom.ServiceProcStatement> {
@@ -637,30 +663,9 @@ export class ServiceStatements extends StatementsBase<yom.ServiceProcStatement> 
 
   /**
    * This is how you actually add the users to our authorization system, just inserting into the users table is not enough.
-   *
-   * @param query - Expects a sql query with the following fields:
-   *
-   * db_id: biguint (id of the user in the database)
-   *
-   * eamil: string (email of the user, will be sent an email and invited to yolm)
-   *
-   * notification_type: string (either "none" or "new_app" or "user")
-   *
-   * @param outputTable - The name of the table that should be created to store the users that have been added.
-   *
-   * It has the following fields:
-   *
-   * db_id: biguint (id of the user in the database)
-   *
-   * global_id: uuid (id of the user in yolm's authentication system)
    */
-  addUsers(query: yom.SqlExpression, outputTable = "added_user") {
-    this.pushToBacking({ t: "AddUsers", query, outputTable });
-    return this;
-  }
-
-  removeUsers(query: yom.SqlExpression) {
-    this.pushToBacking({ t: "RemoveUsers", query });
+  addUsers(opts: AddUsersOpts) {
+    this.pushToBacking({ t: "AddUsers", ...opts });
     return this;
   }
 
@@ -737,8 +742,11 @@ export class ScriptStatements extends StatementsBase<yom.ScriptStatement> {
     return this;
   }
 
-  addUsers(query: yom.SqlExpression, outputTable = "added_user") {
-    this.pushToBacking({ t: "AddUsers", query, outputTable });
+  /**
+   * This is how you actually add the users to our authorization system, just inserting into the users table is not enough.
+   */
+  addUsers(opts: AddUsersOpts) {
+    this.pushToBacking({ t: "AddUsers", ...opts });
     return this;
   }
 
@@ -815,30 +823,9 @@ export class EndpointStatements extends StatementsBase<yom.ApiEndpointStatement>
 
   /**
    * This is how you actually add the users to our authorization system, just inserting into the users table is not enough.
-   *
-   * @param query - Expects a sql query with the following fields:
-   *
-   * db_id: biguint (id of the user in the database)
-   *
-   * eamil: string (email of the user, will be sent an email and invited to yolm)
-   *
-   * notification_type: string (either "none" or "new_app" or "user")
-   *
-   * @param outputTable - The name of the table that should be created to store the users that have been added.
-   *
-   * It has the following fields:
-   *
-   * db_id: biguint (id of the user in the database)
-   *
-   * global_id: uuid (id of the user in yolm's authentication system)
    */
-  addUsers(query: yom.SqlExpression, outputTable = "added_user") {
-    this.pushToBacking({ t: "AddUsers", query, outputTable });
-    return this;
-  }
-
-  removeUsers(query: yom.SqlExpression) {
-    this.pushToBacking({ t: "RemoveUsers", query });
+  addUsers(opts: AddUsersOpts) {
+    this.pushToBacking({ t: "AddUsers", ...opts });
     return this;
   }
 

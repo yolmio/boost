@@ -6,8 +6,7 @@ export interface Model {
   name: string;
   region: Region;
   replicas: Replica[];
-  /** Where and how queries and transactions run against the database */
-  executionConfig: HubExecutionConfig;
+  vcpus: VCpusString;
   collation: Collation;
   db: Database;
   apps: AppModel[];
@@ -22,6 +21,36 @@ export interface Model {
   api?: AppApi;
 }
 
+export type VCpus =
+  0.125 | 0.25 | 0.375 | 0.5 | 0.625 |
+  0.75 | 0.875 | 1.0 | 1.125 | 1.25 |
+  1.375 | 1.5 | 1.625 | 1.75 | 1.875 |
+  2.0 | 2.125 | 2.25 | 2.375 | 2.5 |
+  2.625 | 2.75 | 2.875 | 3.0 | 3.125 |
+  3.25 | 3.375 | 3.5 | 3.625 | 3.75 |
+  3.875 | 4.0 | 4.125 | 4.25 | 4.375 |
+  4.5 | 4.625 | 4.75 | 4.875 | 5.0 |
+  5.125 | 5.25 | 5.375 | 5.5 | 5.625 |
+  5.75 | 5.875 | 6.0 | 6.125 | 6.25 |
+  6.375 | 6.5 | 6.625 | 6.75 | 6.875 |
+  7.0 | 7.125 | 7.25 | 7.375 | 7.5 |
+  7.625 | 7.75 | 7.875 | 8.0 | 8.125 |
+  8.25 | 8.375 | 8.5 | 8.625 | 8.75 |
+  8.875 | 9.0 | 9.125 | 9.25 | 9.375 |
+  9.5 | 9.625 | 9.75 | 9.875 | 10.0 |
+  10.125 | 10.25 | 10.375 | 10.5 | 10.625 |
+  10.75 | 10.875 | 11.0 | 11.125 | 11.25 |
+  11.375 | 11.5 | 11.625 | 11.75 | 11.875 |
+  12.0 | 12.125 | 12.25 | 12.375 | 12.5 |
+  12.625 | 12.75 | 12.875 | 13.0 | 13.125 |
+  13.25 | 13.375 | 13.5 | 13.625 | 13.75 |
+  13.875 | 14.0 | 14.125 | 14.25 | 14.375 |
+  14.5 | 14.625 | 14.75 | 14.875 | 15.0 |
+  15.125 | 15.25 | 15.375 | 15.5 | 15.625 |
+  15.75 | 15.875 | 16.0;
+
+export type VCpusString = `${VCpus}`
+
 export type Region =
   | "us-new-york"
   | "us-miami"
@@ -32,40 +61,10 @@ export type Region =
 
 export interface Replica {
   region: Region;
+  vcpus: VCpusString
 }
 
-export interface HubSyncServiceConfig {
-  type: "SyncService";
-}
-
-export interface AppDbSyncServiceConfig {
-  type: "SyncService";
-  /**
-   * When writing to the database in the worker, should we store transactions offline and optimistically return success,
-   * instead of waiting on the server to see if the transaction is valid.
-   *
-   * In this first version of Yolm, we have only an extremely simple conflict resolution strategy:
-   *
-   * If there is a new transaction on the server while we have offline transactions, we will attempt to merge in a
-   * simplistic algorithm and if we can't throw away all offline transactions.
-   *
-   * This is clearly not adequate for more complicated scenarios, but for applications that are
-   * for personal use, it is fine.
-   *
-   * We don't support offline writing with a server right now, but we might in the future.
-   */
-  offlineWriting?: boolean;
-}
-
-export type ServerCpu = "1/2" | "1" | "2" | "4" | "8" | "16";
-
-export interface HubServerConfig {
-  type: "Server";
-  cpu: ServerCpu;
-}
-
-export interface AppDbServerConfig {
-  type: "Server";
+export interface AppDbExecutionConfig {
   /**
    * By default can the database be downloaded to the client.
    *
@@ -85,9 +84,6 @@ export interface AppDbServerConfig {
    */
   preferDownload?: boolean;
 }
-
-export type HubExecutionConfig = HubSyncServiceConfig | HubServerConfig;
-export type AppDbExecutionConfig = AppDbSyncServiceConfig | AppDbServerConfig;
 
 export interface PollingPullConfig {
   /**
@@ -468,9 +464,9 @@ export interface Table {
 export type UniqueConstraintField =
   | string
   | {
-      field: string;
-      distinctNulls?: boolean;
-    };
+    field: string;
+    distinctNulls?: boolean;
+  };
 
 export interface UniqueConstraint {
   fields: UniqueConstraintField[];
@@ -1514,8 +1510,6 @@ export interface SetQueryParam {
 
 export interface StartTransactionStatement {
   t: "StartTransaction";
-  retryCount?: number;
-  alwaysOptimistic?: boolean;
 }
 
 export interface CommitTransactionStatement {
@@ -2099,19 +2093,19 @@ export type ElementEventHandlers = Partial<
 export interface FloatingOpts {
   anchorEl: SqlExpression;
   placement:
-    | "'top'"
-    | "'top-start'"
-    | "'top-end'"
-    | "'right'"
-    | "'right-start'"
-    | "'right-end'"
-    | "'bottom'"
-    | "'bottom-start'"
-    | "'bottom-end'"
-    | "'left'"
-    | "'left-start'"
-    | "'left-end'"
-    | SqlExpression;
+  | "'top'"
+  | "'top-start'"
+  | "'top-end'"
+  | "'right'"
+  | "'right-start'"
+  | "'right-end'"
+  | "'bottom'"
+  | "'bottom-start'"
+  | "'bottom-end'"
+  | "'left'"
+  | "'left-start'"
+  | "'left-end'"
+  | SqlExpression;
   strategy: "'absolute'" | "'fixed'" | SqlExpression;
   offset?: {
     mainAxis: SqlExpression;
@@ -2383,6 +2377,7 @@ export interface PushStatement {
 
 export interface AddUsersStatement {
   t: "AddUsers";
+  app: string
   /**
    * Query for the users that should be added to yolm's authentication system.
    *
@@ -2406,11 +2401,13 @@ export interface AddUsersStatement {
 
 export interface UpdateUsersStatement {
   t: "UpdateUsers";
+  app: string
   query: SqlQuery;
 }
 
 export interface RemoveUsersStatement {
   t: "RemoveUsers";
+  app: string
   query: SqlQuery;
 }
 

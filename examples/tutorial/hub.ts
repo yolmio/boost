@@ -2,7 +2,7 @@ import { hub } from "@yolm/boost";
 const { db } = hub;
 
 hub.name = "tutorial";
-hub.dbExecutionConfig = { type: "Server", cpu: "1/2" };
+hub.region = "us-miami"
 
 db.addTable("contact", (table) => {
   table.string("first_name", 50).notNull();
