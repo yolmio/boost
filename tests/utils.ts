@@ -45,7 +45,7 @@ async function loginToE2E(page: Page) {
   for (let i = 0; i < 8; i++) {
     await page.keyboard.type(accessCode[i]);
   }
-  await expect(page.getByText("Select an application")).toBeVisible();
+  await expect(page.getByText("Select an app")).toBeVisible();
 }
 
 export async function testSetup() {
