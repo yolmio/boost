@@ -4,13 +4,11 @@ import {
   fetchWithTimeout,
   getScriptModel,
   runScript,
-  sleep,
-  writeHubModelToDisk,
+  writeModelToDisk,
   yolmPath,
   createProfiles,
-} from "./utils.js";
+} from "./utils";
 import * as fs from "fs";
-import { TextDecoderStream } from "stream/web";
 
 const hasProfilesFile = fs.existsSync(path.join(process.cwd(), "profiles.ts"));
 let profiles = createProfiles({});
@@ -45,7 +43,7 @@ if (!fs.existsSync(dbPath)) {
     );
     if (initScript) {
       console.log(`About to run script "${initScriptName}"`);
-      writeHubModelToDisk(scriptModel);
+      writeModelToDisk(scriptModel);
       runScript(initScriptName);
       console.log(`Successfully ran script "${initScriptName}"`);
     }
@@ -92,7 +90,7 @@ for (let i = 0; i < 50; i++) {
       }
     }
   } catch {}
-  await sleep(50);
+  await Bun.sleep(50);
 }
 
 if (!found) {
@@ -103,7 +101,7 @@ if (!found) {
 
 const sendModelPath = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
-  "sendModel.js",
+  "sendModel.ts",
 );
 
 Bun.spawn(["bun", "--watch", sendModelPath], {

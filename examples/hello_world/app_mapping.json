@@ -1,1 +1,0 @@
-{"appDb":{"version":0,"tables":{"user":{"id":0,"fields":{"disabled":{"id":1,"type":{"type":"Bool"},"notNull":true},"email":{"id":2,"type":{"type":"String","maxLen":320,"minLen":0,"maxBytesPerChar":4},"notNull":false},"global_id":{"id":0,"type":{"type":"Uuid"},"notNull":true}}}},"enums":{}},"deviceDb":{"version":0,"tables":{},"enums":{}}}

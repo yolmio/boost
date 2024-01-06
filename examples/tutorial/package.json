@@ -7,11 +7,11 @@
     "@yolm/boost": "file:../../"
   },
   "scripts": {
-    "start": "bun node_modules/@yolm/boost/scripts/start.js",
-    "save": "bun node_modules/@yolm/boost/scripts/save.js",
-    "save-script": "bun node_modules/@yolm/boost/scripts/saveScript.js",
-    "script": "bun node_modules/@yolm/boost/scripts/script.js",
-    "test": "bun node_modules/@yolm/boost/scripts/test.js",
-    "deploy": "bun node_modules/@yolm/boost/scripts/deploy.js"
+    "start": "bun node_modules/@yolm/boost/scripts/start.ts",
+    "save": "bun node_modules/@yolm/boost/scripts/save.ts",
+    "save-script": "bun node_modules/@yolm/boost/scripts/saveScript.ts",
+    "script": "bun node_modules/@yolm/boost/scripts/script.ts",
+    "deploy": "bun node_modules/@yolm/boost/scripts/deploy.ts",
+    "test": "bun node_modules/@yolm/boost/scripts/test.ts"
   }
 }

@@ -8,7 +8,7 @@ node_modules
 .DS_Store
 
 # Always generated, no need to keep in version control
-app.json
+system.json
 
 # databases
 # 

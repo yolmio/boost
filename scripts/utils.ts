@@ -1,7 +1,5 @@
 import { homedir } from "os";
 import * as path from "path";
-import * as fs from "fs";
-import { spawn, spawnSync } from "child_process";
 
 export function yolmPath() {
   if (process.env.YOLM_EXECUTABLE_PATH) {
@@ -10,20 +8,7 @@ export function yolmPath() {
   return path.join(homedir(), ".yolm", "bin", "yolm");
 }
 
-/**
- * @param {number} ms
- */
-export async function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-/**
- *
- * @param {Request} request
- * @param {number} timeOutMs
- * @returns
- */
-export function fetchWithTimeout(request, timeOutMs) {
+export function fetchWithTimeout(request: Request, timeOutMs: number) {
   const controller = new AbortController();
   const config = { signal: controller.signal };
   const timeoutId = setTimeout(() => {
@@ -45,21 +30,9 @@ export function fetchWithTimeout(request, timeOutMs) {
     });
 }
 
-export async function runHubFile() {
-  const tsPath = path.join(process.cwd(), "system.ts");
-  const jsPath = path.join(process.cwd(), "system.js");
-  if (fs.existsSync(tsPath)) {
-    await import("file:///" + tsPath);
-  } else if (fs.existsSync(jsPath)) {
-    await import("file:///" + jsPath);
-  } else {
-    throw new Error("No system.ts or system.js file found");
-  }
-}
-
-export async function getAppModel() {
+export async function getModel() {
   const start = performance.now();
-  await runHubFile();
+  await runTsOrJsFile(path.join(process.cwd(), "system.ts"));
   const { system } = await import("../dist/index");
   const yom = system.generateYom();
   console.log(
@@ -69,21 +42,22 @@ export async function getAppModel() {
   return yom;
 }
 
-export async function runScriptsFile() {
-  const tsPath = path.join(process.cwd(), "scripts.ts");
-  const jsPath = path.join(process.cwd(), "scripts.js");
-  if (fs.existsSync(tsPath)) {
-    await import("file:///" + tsPath);
-  } else if (fs.existsSync(jsPath)) {
-    await import("file:///" + jsPath);
-  } else {
-    throw new Error("No scripts.ts or scripts.js file found");
+async function runTsOrJsFile(path: string) {
+  if (await Bun.file(path).exists()) {
+    await import("file:///" + path);
+    return;
   }
+  const jsPath = path.replace(".ts", ".js");
+  if (await Bun.file(jsPath).exists()) {
+    await import("file:///" + jsPath);
+    return;
+  }
+  throw new Error("No scripts.ts or scripts.js file found");
 }
 
 export async function getScriptModel() {
   const start = performance.now();
-  await runScriptsFile();
+  await runTsOrJsFile(path.join(process.cwd(), "script.ts"));
   const { system } = await import("../dist/index");
   const yom = system.generateYom();
   console.log(
@@ -91,23 +65,11 @@ export async function getScriptModel() {
     (performance.now() - start).toFixed(2) + "ms",
   );
   return yom;
-}
-
-export async function runTestTs() {
-  const tsPath = path.join(process.cwd(), "test.ts");
-  const jsPath = path.join(process.cwd(), "test.js");
-  if (fs.existsSync(tsPath)) {
-    await import("file:///" + tsPath);
-  } else if (fs.existsSync(jsPath)) {
-    await import("file:///" + jsPath);
-  } else {
-    throw new Error("No test.ts or test.js file found");
-  }
 }
 
 export async function getTestModel() {
   const start = performance.now();
-  await runTestTs();
+  await runTsOrJsFile(path.join(process.cwd(), "test.ts"));
   const { system } = await import("../dist/index");
   const yom = system.generateYom();
   console.log(
@@ -117,27 +79,27 @@ export async function getTestModel() {
   return yom;
 }
 
-export function writeHubModelToDisk(model) {
-  fs.writeFileSync(
+export async function writeModelToDisk(model: any) {
+  await Bun.write(
     path.join(process.cwd(), "system.json"),
-    // JSON.stringify(model, undefined, 2)
     JSON.stringify(model),
   );
 }
 
-export function runScript(name) {
-  spawnSync(yolmPath(), ["script", name], {
-    stdio: "inherit",
-    env: {
-      ...process.env,
-      RUST_BACKTRACE: "1",
-    },
+export async function runScript(name: string) {
+  const child = Bun.spawn([yolmPath(), "script", name], {
+    stdout: "inherit",
+    env: process.env,
   });
+  const exitCode = await child.exited;
+  if (exitCode !== 0) {
+    process.exit(exitCode);
+  }
 }
 
-export function getAppYolmConfig() {
+export async function getAppYolmConfig() {
   const packageJsonPath = path.join(process.cwd(), "package.json");
-  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
+  const packageJson = JSON.parse(await Bun.file(packageJsonPath).text());
   if (packageJson.yolm === undefined) {
     return {
       deployed: false,
@@ -153,11 +115,11 @@ export function getAppYolmConfig() {
   };
 }
 
-export async function deploy(majorDbVersion) {
+export async function deploy(majorDbVersion: boolean) {
   process.env.YOLM_BOOST_ENV = "deploy";
   const appModel = await getScriptModel();
-  writeHubModelToDisk(appModel);
-  const config = getAppYolmConfig();
+  writeModelToDisk(appModel);
+  const config = await getAppYolmConfig();
   const cmd = [yolmPath(), "deploy"];
   if (config.deployed) {
     cmd.push("-f");
@@ -175,12 +137,12 @@ export async function deploy(majorDbVersion) {
     cmd,
     stdout: "inherit",
     env: process.env,
-  })
-  const exitCode = await proc.exited
-  process.exit(exitCode)
+  });
+  const exitCode = await proc.exited;
+  process.exit(exitCode);
 }
 
-export function createProfiles(profiles) {
+export function createProfiles(profiles: Record<string, any>) {
   const computedProfile = {
     default: {
       db: "data/dev",

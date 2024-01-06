@@ -33,7 +33,7 @@ async function getAccessCode() {
 async function loginToE2E(page: Page) {
   await page.context().clearCookies();
   await page.context().clearPermissions();
-  await page.goto("http://localhost:4044");
+  await page.goto("https://localyolmdev.com");
   await page.locator("#login-email").click();
   await page.locator("#login-email").fill(email);
   await page.getByRole("button").click();
@@ -67,7 +67,6 @@ export function exampleE2EConfig(app: string) {
     use: {
       actionTimeout: 0,
       trace: "on-first-retry",
-      baseURL: `http://localhost:4044/testyolm/${app}/`,
     },
 
     projects: [

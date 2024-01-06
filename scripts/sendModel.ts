@@ -1,6 +1,6 @@
-import { getAppModel } from "./utils.js";
+import { getModel } from "./utils";
 
-const model = await getAppModel();
+const model = await getModel();
 
 try {
   const res = await fetch(
