@@ -1,7 +1,7 @@
-import "./hub.ts";
-import { hub } from "@yolm/boost";
+import "./system.ts";
+import { system } from "@yolm/boost";
 
-hub.addScript("init-dev-db", (s) =>
+system.addScript("init-dev-db", (s) =>
   s
     .startTransaction("db")
     .modify(
@@ -12,7 +12,7 @@ hub.addScript("init-dev-db", (s) =>
     .saveDbToDir("data/dev"),
 );
 
-hub.addScript("init-db", (s) =>
+system.addScript("init-db", (s) =>
   s
     .addUsers({
       app: "tutorial",

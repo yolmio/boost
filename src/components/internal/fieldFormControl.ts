@@ -1,5 +1,5 @@
 import { FormStateFieldHelper } from "../../formState";
-import { Field } from "../../hub";
+import { Field } from "../../system";
 import { Node } from "../../nodeTypes";
 import { durationInput } from "../durationInput";
 import { enumLikeSelect, enumSelect } from "../enumSelect";

@@ -2,7 +2,7 @@ import { alert } from "../components/alert";
 import { circularProgress } from "../components/circularProgress";
 import { nodes } from "../nodeHelpers";
 import { Node } from "../nodeTypes";
-import { Table, hub } from "../hub";
+import { Table, system } from "../system";
 import { Style } from "../styleTypes";
 import { baseGridStyles, containerStyles, createStyles } from "../styleUtils";
 import { pluralize } from "../utils/inflectors";
@@ -38,7 +38,7 @@ export class RecordGridBuilder {
   #children: Node[] = [];
 
   constructor(table: string) {
-    const tableModel = hub.db.tables[table];
+    const tableModel = system.db.tables[table];
     this.pathBase = pluralize(table.split("_").join(" ")).split(" ").join("-");
     this.recordId = "ui.record_id";
     this.refreshKey = "ui.record_grid_refresh_key";
@@ -242,5 +242,5 @@ export function recordGridPage(
 ) {
   const builder = new RecordGridBuilder(table);
   fn(builder);
-  hub.currentApp!.pages.push(builder.createPage());
+  system.currentApp!.pages.push(builder.createPage());
 }

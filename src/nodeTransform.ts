@@ -13,7 +13,7 @@ import type {
   TypographyKeys,
 } from "./theme";
 import { cssVar, darkSchemeSelector, lightSchemeSelector } from "./styleUtils";
-import { App, hub } from "./hub";
+import { App, system } from "./system";
 import type { Node } from "./nodeTypes";
 import type * as yom from "./yom";
 import { rootStyles } from "./rootStyles";
@@ -537,8 +537,8 @@ function prepStyle(style: Style, theme: Theme) {
  */
 export interface KeyFrames {
   [
-    /** stuff like `from`, `to` or `10%` etc*/
-    key: string
+  /** stuff like `from`, `to` or `10%` etc*/
+  key: string
   ]: Style | undefined;
 }
 

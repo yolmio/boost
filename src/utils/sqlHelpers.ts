@@ -1,4 +1,4 @@
-import { hub } from "../hub";
+import { system } from "../system";
 
 export function escapeStringLiteral(s: string) {
   return s.replace(/[\0\x08\x09\x1a\n\r"'\\\%]/g, function (char: string) {
@@ -29,7 +29,7 @@ export function ident(s: string): string {
 }
 
 export function recordDisplayNameExpr(table: string, recordName?: string) {
-  const displayNameFn = hub.db.tables[table].recordDisplayName;
+  const displayNameFn = system.db.tables[table].recordDisplayName;
   if (!displayNameFn) {
     throw new Error("table " + table + " has no recordDisplayName");
   }
@@ -39,7 +39,7 @@ export function recordDisplayNameExpr(table: string, recordName?: string) {
 }
 
 export function tableFieldSql(tableName: string, field: string) {
-  const table = hub.db.tables[tableName];
+  const table = system.db.tables[tableName];
   if (!table) {
     throw new Error(
       `Tried to create sql for table ${tableName} but table does not exist`,
@@ -61,7 +61,7 @@ export function tableFieldSql(tableName: string, field: string) {
 }
 
 export function tableIdSql(tableName: string) {
-  const table = hub.db.tables[tableName];
+  const table = system.db.tables[tableName];
   if (!table) {
     throw new Error(
       `Tried to create sql for table ${tableName} but table does not exist`,

@@ -1,5 +1,5 @@
 import { FormState, UpdateFormField, UpdateFormState } from "../../formState";
-import { Table } from "../../hub";
+import { Table } from "../../system";
 import { nodes } from "../../nodeHelpers";
 import { Node } from "../../nodeTypes";
 import { Style } from "../../styleTypes";
@@ -76,11 +76,11 @@ export interface UpdateFormContentOpts {
   table: Table;
   formState: UpdateFormState;
   cancel:
-    | { type: "Href"; href: string }
-    | {
-        type: "Proc";
-        proc: DomStatementsOrFn;
-      };
+  | { type: "Href"; href: string }
+  | {
+    type: "Proc";
+    proc: DomStatementsOrFn;
+  };
 }
 
 export function getFieldsFromUpdateFormContent(
@@ -234,9 +234,9 @@ function twoColumnSectionedUpdateFormContent(
               }),
               section.description
                 ? nodes.element("p", {
-                    styles: twoColumnFormStyles.description,
-                    children: stringLiteral(section.description),
-                  })
+                  styles: twoColumnFormStyles.description,
+                  children: stringLiteral(section.description),
+                })
                 : undefined,
             ],
           }),

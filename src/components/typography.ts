@@ -1,5 +1,5 @@
 import { Node } from "../nodeTypes";
-import { hub } from "../hub";
+import { system } from "../system";
 import { StyleObject } from "../styleTypes";
 import { createStyles, cssVar, getVariantStyle } from "../styleUtils";
 import { TypographyKeys, Variant } from "../theme";
@@ -39,12 +39,12 @@ export const styles = createStyles({
       margin: 0,
       ...(inline
         ? {
-            display: "inline",
-          }
+          display: "inline",
+        }
         : {
-            fontFamily: cssVar(`font-family-body`), // for nested typography, the font family will be inherited.
-            display: "block",
-          }),
+          fontFamily: cssVar(`font-family-body`), // for nested typography, the font family will be inherited.
+          display: "block",
+        }),
       ...((hasEndDecorator || hasStartDecorator) && {
         display: "flex",
         alignItems: "center",
@@ -66,18 +66,18 @@ export const styles = createStyles({
       }),
       ...(color &&
         color !== "harmonize" && {
-          color: `rgba(${cssVar(`palette-${color}-main-channel`)} / 1)`,
-        }),
+        color: `rgba(${cssVar(`palette-${color}-main-channel`)} / 1)`,
+      }),
       ...(variant &&
         color && {
-          borderRadius: cssVar(`radius-xs`),
-          paddingY: "min(0.15em, 4px)",
-          paddingX: "0.375em", // better than left, right because it also works with writing mode.
-          ...(!inline && {
-            marginX: "-0.375em",
-          }),
-          ...getVariantStyle(variant, color),
+        borderRadius: cssVar(`radius-xs`),
+        paddingY: "min(0.15em, 4px)",
+        paddingX: "0.375em", // better than left, right because it also works with writing mode.
+        ...(!inline && {
+          marginX: "-0.375em",
         }),
+        ...getVariantStyle(variant, color),
+      }),
     };
   },
   startDecorator: {

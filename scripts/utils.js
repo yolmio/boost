@@ -46,22 +46,22 @@ export function fetchWithTimeout(request, timeOutMs) {
 }
 
 export async function runHubFile() {
-  const tsPath = path.join(process.cwd(), "hub.ts");
-  const jsPath = path.join(process.cwd(), "hub.js");
+  const tsPath = path.join(process.cwd(), "system.ts");
+  const jsPath = path.join(process.cwd(), "system.js");
   if (fs.existsSync(tsPath)) {
     await import("file:///" + tsPath);
   } else if (fs.existsSync(jsPath)) {
     await import("file:///" + jsPath);
   } else {
-    throw new Error("No hub.ts or hub.js file found");
+    throw new Error("No system.ts or system.js file found");
   }
 }
 
 export async function getAppModel() {
   const start = performance.now();
   await runHubFile();
-  const { hub } = await import("../dist/index");
-  const yom = hub.generateYom();
+  const { system } = await import("../dist/index");
+  const yom = system.generateYom();
   console.log(
     "generating yom took",
     (performance.now() - start).toFixed(2) + "ms",
@@ -84,8 +84,8 @@ export async function runScriptsFile() {
 export async function getScriptModel() {
   const start = performance.now();
   await runScriptsFile();
-  const { hub } = await import("../dist/index");
-  const yom = hub.generateYom();
+  const { system } = await import("../dist/index");
+  const yom = system.generateYom();
   console.log(
     "generating yom took",
     (performance.now() - start).toFixed(2) + "ms",
@@ -108,8 +108,8 @@ export async function runTestTs() {
 export async function getTestModel() {
   const start = performance.now();
   await runTestTs();
-  const { hub } = await import("../dist/index");
-  const yom = hub.generateYom();
+  const { system } = await import("../dist/index");
+  const yom = system.generateYom();
   console.log(
     "generating yom took",
     (performance.now() - start).toFixed(2) + "ms",
@@ -119,7 +119,7 @@ export async function getTestModel() {
 
 export function writeHubModelToDisk(model) {
   fs.writeFileSync(
-    path.join(process.cwd(), "hub.json"),
+    path.join(process.cwd(), "system.json"),
     // JSON.stringify(model, undefined, 2)
     JSON.stringify(model),
   );

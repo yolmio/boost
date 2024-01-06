@@ -1,4 +1,4 @@
-import { ImageSetFieldGroup, ImageUsage } from "../hub";
+import { ImageSetFieldGroup, ImageUsage } from "../system";
 import { DomStatements, ServiceStatements } from "../statements";
 import { ident } from "./sqlHelpers";
 

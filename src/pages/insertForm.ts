@@ -2,7 +2,7 @@ import {
   FormStateProcedureExtensions,
   withInsertFormState,
 } from "../formState";
-import { hub } from "../hub";
+import { system } from "../system";
 import { nodes } from "../nodeHelpers";
 import { Node } from "../nodeTypes";
 import { containerStyles, createStyles } from "../styleUtils";
@@ -35,7 +35,7 @@ const styles = createStyles({
 });
 
 export function insertFormPage(opts: InsertFormPageOpts) {
-  const table = hub.db.tables[opts.table];
+  const table = system.db.tables[opts.table];
   const pathBase = getTableBaseUrl(opts.table);
   const path = opts.path ?? pathBase + `/add`;
   const { fields, relations } = getFieldsAndRelationsFromInsertFormContent(
@@ -64,5 +64,5 @@ export function insertFormPage(opts: InsertFormPageOpts) {
     styles: styles.root(),
     children: content,
   });
-  hub.currentApp!.pages.push({ path, content });
+  system.currentApp!.pages.push({ path, content });
 }

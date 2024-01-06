@@ -17,8 +17,8 @@ import {
   StringField,
   TimestampField,
   UuidField,
-  hub,
-} from "../../hub";
+  system,
+} from "../../system";
 import { nodes } from "../../nodeHelpers";
 import { createStyles, visuallyHiddenStyles } from "../../styleUtils";
 import { enumLikeDisplayName } from "../../utils/enumLike";
@@ -108,7 +108,7 @@ function foreignKeyCell(
   opts: BaseFieldCellOpts,
   field: ForeignKeyField,
 ): CellNode {
-  const toTable = hub.db.tables[field.table];
+  const toTable = system.db.tables[field.table];
   const nameExpr = toTable.recordDisplayName!.expr(
     ...toTable.recordDisplayName!.fields.map((f) => `r.${f}`),
   );
@@ -135,12 +135,12 @@ function foreignKeyCell(
     if (!toTable.searchConfig) {
       throw new Error(
         "No search config for table " +
-          toTable.name +
-          " in trying to make datagrid cell for foreign key field " +
-          opts.tableName +
-          "." +
-          field.name +
-          ".",
+        toTable.name +
+        " in trying to make datagrid cell for foreign key field " +
+        opts.tableName +
+        "." +
+        field.name +
+        ".",
       );
     }
     const shouldUseEditedText = `did_edit and ((edited_id is null and ${cell.value} is null) or edited_id = try_cast(${cell.value} as bigint))`;
@@ -159,36 +159,36 @@ function foreignKeyCell(
         field.notNull
           ? text
           : nodes.element("div", {
-              styles: styles.nullableForeignKeyWrapper,
-              children: [
-                text,
-                nodes.if(
-                  andNotImmutable(opts.immutable, `text is not null`),
-                  iconButton({
-                    size: "sm",
-                    variant: "plain",
-                    color: "neutral",
-                    children: materialIcon("Close"),
-                    ariaLabel: `'Remove field value'`,
-                    on: {
-                      click: {
-                        detachedFromNode: true,
-                        procedure: (s) =>
-                          s.scalar(`prev_id`, cell.value).statements(
-                            cell.setValue(`null`),
-                            cell.updateFieldValueInDb({
-                              ...opts,
-                              dbValue: `null`,
-                              fieldName: field.name,
-                              resetValue: cell.setValue(`prev_id`),
-                            }),
-                          ),
-                      },
+            styles: styles.nullableForeignKeyWrapper,
+            children: [
+              text,
+              nodes.if(
+                andNotImmutable(opts.immutable, `text is not null`),
+                iconButton({
+                  size: "sm",
+                  variant: "plain",
+                  color: "neutral",
+                  children: materialIcon("Close"),
+                  ariaLabel: `'Remove field value'`,
+                  on: {
+                    click: {
+                      detachedFromNode: true,
+                      procedure: (s) =>
+                        s.scalar(`prev_id`, cell.value).statements(
+                          cell.setValue(`null`),
+                          cell.updateFieldValueInDb({
+                            ...opts,
+                            dbValue: `null`,
+                            fieldName: field.name,
+                            resetValue: cell.setValue(`prev_id`),
+                          }),
+                        ),
                     },
-                  }),
-                ),
-              ],
-            }),
+                  },
+                }),
+              ),
+            ],
+          }),
         nodes.if(
           andNotImmutable(opts.immutable, cell.editing),
           recordSelectDialog({
@@ -223,7 +223,7 @@ function foreignKeyCell(
 
 function enumCell(opts: BaseFieldCellOpts, field: EnumField): CellNode {
   return (cell) => {
-    const enumModel = hub.enums[field.enum];
+    const enumModel = system.enums[field.enum];
     const display = nodes.element("span", {
       styles: sharedStyles.ellipsisSpan,
       children: enumModel.getDisplayName!(
@@ -613,11 +613,11 @@ function boolCell(opts: BaseFieldCellOpts, field: BoolField): CellNode {
                   }),
                   !field.notNull
                     ? nodes.element("option", {
-                        children: stringLiteral(enumLike.null ?? "Unspecified"),
-                        props: {
-                          value: "''",
-                        },
-                      })
+                      children: stringLiteral(enumLike.null ?? "Unspecified"),
+                      props: {
+                        value: "''",
+                      },
+                    })
                     : null,
                 ],
                 on: {
@@ -650,8 +650,8 @@ function boolCell(opts: BaseFieldCellOpts, field: BoolField): CellNode {
               typeof opts.immutable === "string"
                 ? opts.immutable
                 : opts.immutable
-                ? "true"
-                : undefined,
+                  ? "true"
+                  : undefined,
           },
         },
       },
@@ -660,33 +660,33 @@ function boolCell(opts: BaseFieldCellOpts, field: BoolField): CellNode {
           opts.immutable === true
             ? (s) => s.preventDefault()
             : {
-                detachedFromNode: true,
-                procedure: (s) =>
-                  s
-                    .conditionalStatements(
-                      typeof opts.immutable === "string",
-                      (s) =>
-                        s.if(opts.immutable as string, (s) =>
-                          s.preventDefault().return(),
-                        ),
-                    )
-                    .scalar(`prev_value`, cell.value)
-                    .statements(
-                      cell.setValue(
-                        opts.stringified
-                          ? `cast(target_checked as string)`
-                          : `target_checked`,
+              detachedFromNode: true,
+              procedure: (s) =>
+                s
+                  .conditionalStatements(
+                    typeof opts.immutable === "string",
+                    (s) =>
+                      s.if(opts.immutable as string, (s) =>
+                        s.preventDefault().return(),
                       ),
-                      cell.updateFieldValueInDb({
-                        ...opts,
-                        fieldName: field.name,
-                        dbValue: opts.stringified
-                          ? `cast(${cell.value} as bool)`
-                          : cell.value,
-                        resetValue: cell.setValue(`prev_value`),
-                      }),
+                  )
+                  .scalar(`prev_value`, cell.value)
+                  .statements(
+                    cell.setValue(
+                      opts.stringified
+                        ? `cast(target_checked as string)`
+                        : `target_checked`,
                     ),
-              },
+                    cell.updateFieldValueInDb({
+                      ...opts,
+                      fieldName: field.name,
+                      dbValue: opts.stringified
+                        ? `cast(${cell.value} as bool)`
+                        : cell.value,
+                      resetValue: cell.setValue(`prev_value`),
+                    }),
+                  ),
+            },
       },
     });
 }
@@ -905,7 +905,7 @@ export function fieldCell(opts: FieldCellOpts): CellNode {
       return numericField(opts, opts.field);
     case "Uuid":
       if (opts.field.group) {
-        const table = hub.db.tables[opts.tableName];
+        const table = system.db.tables[opts.tableName];
         const group = table.fieldGroups[opts.field.group];
         if (group.type === "Image") {
           return imageCell(opts, group);

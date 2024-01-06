@@ -1,4 +1,4 @@
-import { App, hub } from "../hub";
+import { App, system } from "../system";
 import { nodes } from "../nodeHelpers";
 import type { Node } from "../nodeTypes";
 import { StyleObject } from "../styleTypes";
@@ -15,9 +15,9 @@ import * as yom from "../yom";
 
 export interface ButtonOpts
   extends SlottedComponentWithSlotNames<
-      "startDecorator" | "endDecorator" | "loadingIndicatorCenter"
-    >,
-    ComponentOpts {
+    "startDecorator" | "endDecorator" | "loadingIndicatorCenter"
+  >,
+  ComponentOpts {
   fullWidth?: boolean;
   loadingPosition?: "start" | "center" | "end";
 

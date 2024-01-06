@@ -1,5 +1,5 @@
 import { lazyPerApp } from "../utils/memoize";
-import { hub } from "../hub";
+import { system } from "../system";
 import { nodes } from "../nodeHelpers";
 import type { Node } from "../nodeTypes";
 import { StyleObject } from "../styleTypes";
@@ -26,9 +26,9 @@ export interface SelectedVariationBase {
 
 export interface ChipOpts
   extends ComponentOpts,
-    SlottedComponentWithSlotNames<
-      "startDecorator" | "endDecorator" | "action" | "label"
-    > {
+  SlottedComponentWithSlotNames<
+    "startDecorator" | "endDecorator" | "action" | "label"
+  > {
   clickable?: boolean;
 
   selected?: SelectedVariation;
@@ -325,7 +325,7 @@ export function chip(opts: ChipOpts) {
 
 export interface ChipDeleteOpts
   extends ComponentOpts,
-    SingleElementComponentOpts {
+  SingleElementComponentOpts {
   selected?: SelectedVariationBase;
 }
 

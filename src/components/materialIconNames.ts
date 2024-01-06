@@ -4484,7 +4484,7 @@ export type IconName =
   | "HttpsRounded"
   | "HttpsSharp"
   | "HttpsTwoTone"
-  | "Hub"
+  | "System"
   | "HubOutlined"
   | "HubRounded"
   | "HubSharp"

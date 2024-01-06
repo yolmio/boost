@@ -7,7 +7,7 @@ import {
 } from "../formState";
 import { nodes } from "../nodeHelpers";
 import { Node } from "../nodeTypes";
-import { hub } from "../hub";
+import { system } from "../system";
 import { downcaseFirst, pluralize } from "../utils/inflectors";
 import { stringLiteral } from "../utils/sqlHelpers";
 import { button } from "../components/button";
@@ -144,7 +144,7 @@ const styles = createStyles({
 });
 
 export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
-  const table = hub.db.tables[opts.table];
+  const table = system.db.tables[opts.table];
   const formStateFields = opts.cardFields.slice();
   if (opts.cardFooterFields) {
     formStateFields.push(...opts.cardFooterFields);
@@ -174,42 +174,42 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
         children: [
           opts.sharedSection
             ? [
-                typography({
-                  level: "h4",
-                  children: opts.sharedSection.header,
+              typography({
+                level: "h4",
+                children: opts.sharedSection.header,
+              }),
+              nodes.element("div", {
+                styles: styles.sharedFields,
+                children: opts.sharedSection.fields.map((f) => {
+                  const field = table.fields[f.field];
+                  const fieldHelper = formState.field(f.field);
+                  const control = fieldFormControl({
+                    field,
+                    id: stringLiteral(getUniqueUiId()),
+                    fieldHelper,
+                  });
+                  if (!control) {
+                    throw new Error(
+                      "multiCardInsert does not handle field of type " +
+                      field.type +
+                      "for shared fields",
+                    );
+                  }
+                  return formControl({
+                    error: fieldHelper.hasError,
+                    children: [
+                      control,
+                      nodes.if(
+                        fieldHelper.hasError,
+                        formHelperText({
+                          children: fieldHelper.error,
+                        }),
+                      ),
+                    ],
+                  });
                 }),
-                nodes.element("div", {
-                  styles: styles.sharedFields,
-                  children: opts.sharedSection.fields.map((f) => {
-                    const field = table.fields[f.field];
-                    const fieldHelper = formState.field(f.field);
-                    const control = fieldFormControl({
-                      field,
-                      id: stringLiteral(getUniqueUiId()),
-                      fieldHelper,
-                    });
-                    if (!control) {
-                      throw new Error(
-                        "multiCardInsert does not handle field of type " +
-                          field.type +
-                          "for shared fields",
-                      );
-                    }
-                    return formControl({
-                      error: fieldHelper.hasError,
-                      children: [
-                        control,
-                        nodes.if(
-                          fieldHelper.hasError,
-                          formHelperText({
-                            children: fieldHelper.error,
-                          }),
-                        ),
-                      ],
-                    });
-                  }),
-                }),
-              ]
+              }),
+            ]
             : null,
           typography({
             level: "h4",
@@ -244,27 +244,27 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
                       styles: styles.cardFooterFields,
                       children: [
                         opts.cardFooterFields &&
-                          opts.cardFooterFields.map((f) => {
-                            const field = table.fields[f.field];
-                            const fieldHelper = cursor.field(f.field);
-                            if (field.type === "Bool" && !field.enumLike) {
-                              return checkbox({
-                                variant: "outlined",
-                                checked: fieldHelper.value,
-                                on: {
-                                  checkboxChange: fieldHelper.setValue(
-                                    `not ${fieldHelper.value}`,
-                                  ),
-                                },
-                                label: stringLiteral(field.displayName),
-                              });
-                            }
-                            throw new Error(
-                              "multiCardInsert does not handle field of type " +
-                                field.type +
-                                "for card footer fields",
-                            );
-                          }),
+                        opts.cardFooterFields.map((f) => {
+                          const field = table.fields[f.field];
+                          const fieldHelper = cursor.field(f.field);
+                          if (field.type === "Bool" && !field.enumLike) {
+                            return checkbox({
+                              variant: "outlined",
+                              checked: fieldHelper.value,
+                              on: {
+                                checkboxChange: fieldHelper.setValue(
+                                  `not ${fieldHelper.value}`,
+                                ),
+                              },
+                              label: stringLiteral(field.displayName),
+                            });
+                          }
+                          throw new Error(
+                            "multiCardInsert does not handle field of type " +
+                            field.type +
+                            "for card footer fields",
+                          );
+                        }),
                         nodes.element("div", { styles: flexGrowStyles }),
                         iconButton({
                           color: "danger",
@@ -339,7 +339,7 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
       }),
     });
   }
-  hub.currentApp!.pages.push({
+  system.currentApp!.pages.push({
     path: opts.path ?? "/" + getTableBaseUrl(table.name) + "/add",
     content,
   });

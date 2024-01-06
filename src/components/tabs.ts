@@ -1,4 +1,4 @@
-import { hub } from "../hub";
+import { system } from "../system";
 import { nodes } from "../nodeHelpers";
 import type { Node } from "../nodeTypes";
 import { Style, StyleObject } from "../styleTypes";
@@ -206,8 +206,7 @@ export function tabs(opts: BetterTabsOpts) {
             keydown: (s) =>
               s
                 .if(
-                  `event.key = ${
-                    orientation === "horizontal" ? "'ArrowLeft'" : "'ArrowUp'"
+                  `event.key = ${orientation === "horizontal" ? "'ArrowLeft'" : "'ArrowUp'"
                   }`,
 
                   (s) =>
@@ -219,10 +218,9 @@ export function tabs(opts: BetterTabsOpts) {
                       .focusEl(getTabId(`ui.focus_tab`)),
                 )
                 .if(
-                  `event.key = ${
-                    orientation === "horizontal"
-                      ? "'ArrowRight'"
-                      : "'ArrowDown'"
+                  `event.key = ${orientation === "horizontal"
+                    ? "'ArrowRight'"
+                    : "'ArrowDown'"
                   }`,
                   (s) =>
                     s

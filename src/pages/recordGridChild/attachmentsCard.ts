@@ -1,5 +1,5 @@
 import { nodes } from "../../nodeHelpers";
-import { hub } from "../../hub";
+import { system } from "../../system";
 import {
   createStyles,
   flexGrowStyles,
@@ -66,7 +66,7 @@ const styles = createStyles({
 
 export function content(opts: Opts, ctx: RecordGridBuilder) {
   const attachmentTableName = opts.table ?? ctx.table.name + "_attachment";
-  const attachmentTable = hub.db.tables[attachmentTableName];
+  const attachmentTable = system.db.tables[attachmentTableName];
   if (!attachmentTable) {
     throw new Error(`Table ${attachmentTableName} does not exist`);
   }
@@ -117,10 +117,8 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                                   .modify(
                                     `insert into db.${ident(
                                       attachmentTable.name,
-                                    )} (name, file, ${
-                                      ctx.table.name
-                                    }) values ((select name from file), added_file.uuid, ${
-                                      ctx.recordId
+                                    )} (name, file, ${ctx.table.name
+                                    }) values ((select name from file), added_file.uuid, ${ctx.recordId
                                     })`,
                                   )
                                   .commitTransaction()

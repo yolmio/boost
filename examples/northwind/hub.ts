@@ -1,7 +1,7 @@
-import { hub, components } from "@yolm/boost";
-const { db } = hub;
+import { system, components } from "@yolm/boost";
+const { db } = system;
 
-hub.name = "northwind";
+system.name = "northwind";
 
 //
 // DATABASE
@@ -146,7 +146,7 @@ db.addTable("order_detail", (table) => {
 // UI
 //
 
-const app = hub.addApp("northwind", "Northwind Traders");
+const app = system.addApp("northwind", "Northwind Traders");
 
 const isSysAdmin = `(select is_sys_admin from db.user from where id = current_user())`;
 const isAdmin = `(select is_admin from db.user from where id = current_user())`;
@@ -437,14 +437,12 @@ app.addSimpleDatagridPage("employee", (page) => {
           beforeTransactionCommit: (state, s) =>
             s
               .addUsers(
-                `select ${
-                  state.field("email").value
+                `select ${state.field("email").value
                 } as email, next_record_id(db.user) as db_id, 'none' as notification_type`,
                 "added_user",
               )
               .modify(
-                `insert into db.user (global_id, is_sys_admin, is_admin, disabled, email, employee) values ((select global_id from added_user), false, false, false, ${
-                  state.field("email").value
+                `insert into db.user (global_id, is_sys_admin, is_admin, disabled, email, employee) values ((select global_id from added_user), false, false, false, ${state.field("email").value
                 }, last_record_id(db.employee))`,
               ),
         }),
@@ -505,8 +503,7 @@ app.addSimpleDatagridPage("user", (page) => {
         beforeTransactionStart: (state, s) =>
           s
             .addUsers(
-              `select next_record_id(db.user) as db_id, 'none' as notification_type, ${
-                state.field("email").value
+              `select next_record_id(db.user) as db_id, 'none' as notification_type, ${state.field("email").value
               } as email`,
             )
             .scalar(`new_global_id`, `(select global_id from added_user)`),
@@ -606,8 +603,7 @@ app.addInsertFormPage({
                     ])
                     .serviceProc((s) =>
                       s.modify(
-                        `insert into customer select company_name as name, * from db.customer where id = ${
-                          state.field("customer").value
+                        `insert into customer select company_name as name, * from db.customer where id = ${state.field("customer").value
                         }`,
                       ),
                     )
@@ -685,14 +681,13 @@ app.addInsertFormPage({
                         .serviceProc((s) =>
                           s.setScalar(
                             "product_unit_price",
-                            `(select unit_price from db.product where id = ${
-                              cursor.field("product").value
+                            `(select unit_price from db.product where id = ${cursor.field("product").value
                             })`,
                           ),
                         )
                         .if(
                           `product_unit_price is not null and not ` +
-                            cursor.field("unit_price").touched,
+                          cursor.field("unit_price").touched,
                           (s) =>
                             s
                               .statements(
@@ -784,14 +779,13 @@ app.addRecordGridPage("order", (page) => {
                       .serviceProc((s) =>
                         s.setScalar(
                           "product_unit_price",
-                          `(select unit_price from db.product where id = ${
-                            state.field("product").value
+                          `(select unit_price from db.product where id = ${state.field("product").value
                           })`,
                         ),
                       )
                       .if(
                         `product_unit_price is not null and not ` +
-                          state.field("unit_price").touched,
+                        state.field("unit_price").touched,
                         (s) =>
                           s
                             .statements(

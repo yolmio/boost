@@ -3,7 +3,7 @@ import { InsertDialogOpts } from "../../components/insertDialog";
 import { list, listItem, listItemButton } from "../../components/list";
 import { materialIcon } from "../../components/materialIcon";
 import { getUniqueUiId } from "../../components/utils";
-import { hub, BoolEnumLikeConfig, DurationSize, Table } from "../../hub";
+import { system, BoolEnumLikeConfig, DurationSize, Table } from "../../system";
 import { nodes } from "../../nodeHelpers";
 import { Node } from "../../nodeTypes";
 import { createStyles } from "../../styleUtils";
@@ -33,20 +33,20 @@ export interface ToolbarConfig {
   export: boolean;
   quickSearch?: (quickSearch: yom.SqlExpression) => yom.SqlExpression;
   add?:
-    | { type: "dialog"; opts?: Partial<InsertDialogOpts> }
-    | { type: "href"; href: string };
+  | { type: "dialog"; opts?: Partial<InsertDialogOpts> }
+  | { type: "href"; href: string };
 }
 
 export type SortConfig =
   | { type: "string" | "numeric" | "checkbox"; displayName: string }
   | {
-      type: "custom";
-      displayName: string;
-      ascNode: Node;
-      descNode: Node;
-      ascText: string;
-      descText: string;
-    };
+    type: "custom";
+    displayName: string;
+    ascNode: Node;
+    descNode: Node;
+    ascText: string;
+    descText: string;
+  };
 
 const stringSortAscNode = `'A → Z'`;
 const stringSortDescNode = `'Z → A'`;
@@ -148,34 +148,34 @@ export interface SuperGridColumn extends BaseColumn {
 
 export type FilterType =
   | {
-      type:
-        | "string"
-        | "number"
-        | "date"
-        | "bool"
-        | "timestamp"
-        | "minutes_duration";
-      notNull: boolean;
-    }
+    type:
+    | "string"
+    | "number"
+    | "date"
+    | "bool"
+    | "timestamp"
+    | "minutes_duration";
+    notNull: boolean;
+  }
   | {
-      type: "table";
-      table: string;
-      notNull: boolean;
-    }
+    type: "table";
+    table: string;
+    notNull: boolean;
+  }
   | {
-      type: "enum";
-      enum: string;
-      notNull: boolean;
-    }
+    type: "enum";
+    enum: string;
+    notNull: boolean;
+  }
   | {
-      type: "enum_like_bool";
-      config: BoolEnumLikeConfig;
-      notNull: boolean;
-    }
+    type: "enum_like_bool";
+    config: BoolEnumLikeConfig;
+    notNull: boolean;
+  }
   | {
-      type: "custom";
-      node?: (helpers: FilterTermHelper, state: DgStateHelpers) => Node;
-    };
+    type: "custom";
+    node?: (helpers: FilterTermHelper, state: DgStateHelpers) => Node;
+  };
 
 export function eqFilterType(l: FilterType, r: FilterType) {
   if (l.type !== r.type) {
@@ -374,29 +374,29 @@ export function columnPopover(
         children: [
           sort
             ? [
-                listItem({
-                  on: {
-                    click: (s) =>
-                      s.statements(setColumnSort(true), state.triggerRefresh),
-                  },
-                  children: listItemButton({
-                    variant: "plain",
-                    color: "neutral",
-                    children: ["'Sort '", getSortAscNode(sort)],
-                  }),
+              listItem({
+                on: {
+                  click: (s) =>
+                    s.statements(setColumnSort(true), state.triggerRefresh),
+                },
+                children: listItemButton({
+                  variant: "plain",
+                  color: "neutral",
+                  children: ["'Sort '", getSortAscNode(sort)],
                 }),
-                listItem({
-                  on: {
-                    click: (s) =>
-                      s.statements(setColumnSort(false), state.triggerRefresh),
-                  },
-                  children: listItemButton({
-                    variant: "plain",
-                    color: "neutral",
-                    children: ["'Sort '", getSortDescNode(sort)],
-                  }),
+              }),
+              listItem({
+                on: {
+                  click: (s) =>
+                    s.statements(setColumnSort(false), state.triggerRefresh),
+                },
+                children: listItemButton({
+                  variant: "plain",
+                  color: "neutral",
+                  children: ["'Sort '", getSortDescNode(sort)],
                 }),
-              ]
+              }),
+            ]
             : undefined,
           listItem({
             on: {
@@ -446,8 +446,7 @@ export function columnPopover(
                     `(select max(ordering) from ui.column where ordering < current_col)`,
                   )
                   .if(
-                    `prev_col is null or (select count(*) from column where ordering < current_col) <= ${
-                      startFixedColumns + 1
+                    `prev_col is null or (select count(*) from column where ordering < current_col) <= ${startFixedColumns + 1
                     }`,
                     (s) => s.return(),
                   )
@@ -540,7 +539,7 @@ function addSupergridDatagridDts(
     }
   }
   const idToColumnsDisplayName = `${datagridName}_dg_col_id_to_columns_display_name`;
-  hub.addRuleFunction({
+  system.addRuleFunction({
     parameters: [{ name: "id", type: "SmallUint" }],
     header: ["input.id", "display_name"],
     rules: columnsDisplayName,
@@ -548,7 +547,7 @@ function addSupergridDatagridDts(
     returnType: "String",
   });
   const idToDefaultOp = `${datagridName}_dg_col_id_to_op`;
-  hub.addRuleFunction({
+  system.addRuleFunction({
     parameters: [{ name: "id", type: "SmallUint" }],
     header: ["input.id", "op"],
     rules: defaultOps,
@@ -556,7 +555,7 @@ function addSupergridDatagridDts(
     returnType: { type: "Enum", enum: "dg_filter_op" },
   });
   const idToSortDisplayName = `${datagridName}_dg_col_id_to_sort_display_name`;
-  hub.addRuleFunction({
+  system.addRuleFunction({
     parameters: [{ name: "id", type: "SmallUint" }],
     header: ["input.id", "display_name"],
     rules: sortDisplayName,
@@ -564,7 +563,7 @@ function addSupergridDatagridDts(
     returnType: "String",
   });
   const idToFilterDisplayName = `${datagridName}_dg_col_id_to_filter_display_name`;
-  hub.addRuleFunction({
+  system.addRuleFunction({
     parameters: [{ name: "id", type: "SmallUint" }],
     header: ["input.id", "display_name"],
     rules: filterDisplayName,

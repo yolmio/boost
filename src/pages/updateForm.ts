@@ -2,7 +2,7 @@ import {
   FormStateProcedureExtensions,
   withUpdateFormState,
 } from "../formState";
-import { hub } from "../hub";
+import { system } from "../system";
 import { nodes } from "../nodeHelpers";
 import { Node } from "../nodeTypes";
 import { containerStyles, createStyles } from "../styleUtils";
@@ -42,7 +42,7 @@ const styles = createStyles({
 });
 
 export function updateFormPage(opts: UpdateFormPage) {
-  const table = hub.db.tables[opts.table];
+  const table = system.db.tables[opts.table];
   const pathBase = getTableBaseUrl(opts.table);
   const path = opts.path ?? pathBase + `/{record_id:id}/edit`;
   let content: Node = withUpdateFormState({
@@ -69,7 +69,7 @@ export function updateFormPage(opts: UpdateFormPage) {
     styles: styles.root(),
     children: content,
   });
-  hub.currentApp!.pages.push({
+  system.currentApp!.pages.push({
     path,
     content: nodes.sourceMap(
       `updateForm(table: ${opts.table})`,

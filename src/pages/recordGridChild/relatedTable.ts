@@ -11,7 +11,7 @@ import { button } from "../../components/button";
 import { insertDialog } from "../../components/insertDialog";
 import { AutoLabelOnLeftInsertFormContent } from "../../components/internal/insertFormShared";
 import { deepmerge } from "../../utils/deepmerge";
-import { hub } from "../../hub";
+import { system } from "../../system";
 import { RecordGridBuilder } from "../recordGrid";
 
 export interface Opts {
@@ -19,10 +19,10 @@ export interface Opts {
   fields: (
     | string
     | {
-        expr: (record: string) => string;
-        display?: (e: string) => Node;
-        label: string;
-      }
+      expr: (record: string) => string;
+      display?: (e: string) => Node;
+      label: string;
+    }
   )[];
   addButtonText?: string;
   insertDialog?: Omit<AutoLabelOnLeftInsertFormContent, "type">;
@@ -56,7 +56,7 @@ const styles = createStyles({
 });
 
 export function content(opts: Opts, ctx: RecordGridBuilder) {
-  const tableModel = hub.db.tables[opts.table];
+  const tableModel = system.db.tables[opts.table];
   const foreignKeyField = Object.values(tableModel.fields).find(
     (f) => f.type === "ForeignKey" && f.table === ctx.table.name,
   );

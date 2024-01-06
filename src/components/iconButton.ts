@@ -1,4 +1,4 @@
-import { hub } from "../hub";
+import { system } from "../system";
 import type { ElementNode, Node } from "../nodeTypes";
 import type { Style, StyleObject } from "../styleTypes";
 import { Variant } from "../theme";
@@ -8,7 +8,7 @@ import { mergeEls, SingleElementComponentOpts } from "./utils";
 
 export interface IconButtonOpts
   extends ComponentOpts,
-    SingleElementComponentOpts {
+  SingleElementComponentOpts {
   /** expression for if the button is disabled */
   disabled?: string;
   /** expression for href, will make button into an anchor tag and add this prop */

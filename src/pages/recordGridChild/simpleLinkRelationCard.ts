@@ -1,5 +1,5 @@
 import { nodes } from "../../nodeHelpers";
-import { hub } from "../../hub";
+import { system } from "../../system";
 import { createStyles, flexGrowStyles } from "../../styleUtils";
 import { ident, stringLiteral } from "../../utils/sqlHelpers";
 import { divider } from "../../components/divider";
@@ -18,10 +18,10 @@ import { RecordGridBuilder } from "../recordGrid";
 export type TableDisplayValue =
   | string
   | {
-      expr: SqlExpression;
-      label: string;
-      display: (e: SqlExpression) => Node;
-    };
+    expr: SqlExpression;
+    label: string;
+    display: (e: SqlExpression) => Node;
+  };
 
 export interface Opts {
   table: string;
@@ -80,7 +80,7 @@ const styles = createStyles({
 });
 
 export function content(opts: Opts, ctx: RecordGridBuilder) {
-  const otherTable = hub.db.tables[opts.table];
+  const otherTable = system.db.tables[opts.table];
   const listScrollId = stringLiteral(getUniqueUiId());
   if (!otherTable) {
     throw new Error(`Table ${opts.table} not found`);
@@ -142,8 +142,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                   "related",
                   `select id${selectFields} from db.${ident(
                     opts.table,
-                  )} where ${foreignKeyField.name} = ${
-                    ctx.recordId
+                  )} where ${foreignKeyField.name} = ${ctx.recordId
                   } order by id desc limit row_count`,
                 )
                 .scalar(`service_row_count`, `row_count`),
@@ -178,18 +177,18 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                   children: [
                     recordDisplayName
                       ? nodes.element("a", {
-                          props: {
-                            href: otherTable.getHrefToRecord("record.id"),
-                          },
-                          styles: styles.link,
-                          children: `record.display_name`,
-                        })
-                      : button({
-                          variant: "soft",
-                          children: `'View'`,
+                        props: {
                           href: otherTable.getHrefToRecord("record.id"),
-                          size: "sm",
-                        }),
+                        },
+                        styles: styles.link,
+                        children: `record.display_name`,
+                      })
+                      : button({
+                        variant: "soft",
+                        children: `'View'`,
+                        href: otherTable.getHrefToRecord("record.id"),
+                        size: "sm",
+                      }),
                     nodes.element("div", { styles: flexGrowStyles }),
                     displayValues.map((displayValue, i) => {
                       if (typeof displayValue === "string") {

@@ -1,5 +1,5 @@
 import { typography } from "../../components/typography";
-import { AddressFieldGroup } from "../../hub";
+import { AddressFieldGroup } from "../../system";
 import { nodes } from "../../nodeHelpers";
 import { createStyles } from "../../styleUtils";
 import { ident } from "../../utils/sqlHelpers";
@@ -30,10 +30,10 @@ export function displayAddressText(
     else: [
       group.fields.name
         ? typography({
-            level: "body-md",
-            styles: styles.addressName,
-            children: `record.${ident(group.fields.name)}`,
-          })
+          level: "body-md",
+          styles: styles.addressName,
+          children: `record.${ident(group.fields.name)}`,
+        })
         : undefined,
       typography({
         level: "body-md",
@@ -42,10 +42,10 @@ export function displayAddressText(
       }),
       group.fields.street2
         ? typography({
-            level: "body-md",
-            styles: styles.addressLine,
-            children: `record.${ident(group.fields.street2)}`,
-          })
+          level: "body-md",
+          styles: styles.addressLine,
+          children: `record.${ident(group.fields.street2)}`,
+        })
         : undefined,
       typography({
         level: "body-md",

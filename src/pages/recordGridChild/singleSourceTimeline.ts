@@ -6,7 +6,7 @@ import { materialIcon } from "../../components/materialIcon";
 import { typography } from "../../components/typography";
 import { nodes } from "../../nodeHelpers";
 import { Node } from "../../nodeTypes";
-import { hub } from "../../hub";
+import { system } from "../../system";
 import { Style } from "../../styleTypes";
 import { ident } from "../../utils/sqlHelpers";
 import { recordDefaultItemContent, styles } from "./timelineShared";
@@ -17,10 +17,10 @@ import { RecordGridBuilder } from "../recordGrid";
 export type TableDisplayValue =
   | string
   | {
-      expr: yom.SqlExpression;
-      display: (e: yom.SqlExpression) => Node;
-      label: string;
-    };
+    expr: yom.SqlExpression;
+    display: (e: yom.SqlExpression) => Node;
+    label: string;
+  };
 
 type TableValue = string | { expr: yom.SqlExpression };
 
@@ -74,7 +74,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
       });
     }
   }
-  const tableModel = hub.db.tables[opts.table];
+  const tableModel = system.db.tables[opts.table];
   const itemContent = opts.itemContent;
   const insertDialogOpts = opts.insertDialogOpts;
   const withValues: Record<string, string> = insertDialogOpts?.withValues ?? {};
@@ -187,9 +187,8 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
       itemRight,
     ],
   });
-  let fullQuery = `select ${ident(tableModel.primaryKeyFieldName)} as id, ${
-    opts.dateExpr
-  } as date `;
+  let fullQuery = `select ${ident(tableModel.primaryKeyFieldName)} as id, ${opts.dateExpr
+    } as date `;
   for (const field of fields) {
     fullQuery += `, ${ident(field)}`;
   }

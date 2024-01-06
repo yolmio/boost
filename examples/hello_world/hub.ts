@@ -1,11 +1,11 @@
-import { hub } from "@yolm/boost";
+import { system } from "@yolm/boost";
 
-hub.name = "hello_world";
-hub.region = "us-miami"
+system.name = "hello_world";
+system.region = "us-miami"
 
 // ui
 
-const app = hub.addApp("hello_world", "Hello World");
+const app = system.addApp("hello_world", "Hello World");
 
 app.useNavbarShell({
   color: "primary",

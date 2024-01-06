@@ -1,6 +1,6 @@
-import { TableControlOpts } from "../hub";
+import { TableControlOpts } from "../system";
 import { nodes } from "../nodeHelpers";
-import { hub } from "../hub";
+import { system } from "../system";
 import { circularProgress } from "./circularProgress";
 import { queryCombobox } from "./searchSelect";
 import { select } from "./select";
@@ -10,7 +10,7 @@ export function getTableRecordSelect(
   tableName: string,
   opts: TableControlOpts,
 ) {
-  const tableModel = hub.db.tables[tableName];
+  const tableModel = system.db.tables[tableName];
   let selectInfo = tableModel.control ?? { type: "Combobox" };
   switch (selectInfo.type) {
     case "Combobox": {
@@ -60,7 +60,7 @@ export function getTableRecordSelect(
                       },
                       style: {
                         type: "Fuzzy",
-                        ...hub.searchConfig.defaultFuzzyConfig,
+                        ...system.searchConfig.defaultFuzzyConfig,
                       },
                       tables: [searchConfig],
                     },
@@ -76,7 +76,7 @@ export function getTableRecordSelect(
             : opts.onSelectValue(`null`),
           onSelect: opts.onComboboxSelectValue
             ? (result) =>
-                opts.onComboboxSelectValue!(`${result}.id`, `${result}.label`)
+              opts.onComboboxSelectValue!(`${result}.id`, `${result}.label`)
             : (result) => opts.onSelectValue(`${result}.id`),
           size: opts.size,
           color: opts.color,

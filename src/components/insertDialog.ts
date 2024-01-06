@@ -3,7 +3,7 @@ import {
   withInsertFormState,
 } from "../formState";
 import { nodes } from "../nodeHelpers";
-import { hub } from "../hub";
+import { system } from "../system";
 import { createStyles } from "../styleUtils";
 import { stringLiteral } from "../utils/sqlHelpers";
 import { divider } from "./divider";
@@ -43,7 +43,7 @@ const styles = createStyles({
 const titleId = stringLiteral(getUniqueUiId());
 
 export function insertDialog(opts: InsertDialogOpts) {
-  const tableModel = hub.db.tables[opts.table];
+  const tableModel = system.db.tables[opts.table];
   const { fields, relations } = getFieldsAndRelationsFromInsertFormContent(
     opts.content,
     tableModel,

@@ -1,10 +1,10 @@
-import { hub } from "./hub";
+import { system } from "./system";
 import * as path from "path";
 import toposort from "toposort";
 import { ScriptStatements, ScriptStatementsOrFn } from "./statements";
 
 function isTableReferencedByOthers(t: string) {
-  for (const otherTable of Object.values(hub.db.tables)) {
+  for (const otherTable of Object.values(system.db.tables)) {
     for (const field of Object.values(otherTable.fields)) {
       if (field.type === "ForeignKey" && field.table === t) {
         return true;
@@ -36,7 +36,7 @@ export interface MigrationScriptOpts {
 export function addMigrationScript(opts: MigrationScriptOpts) {
   const scriptName = opts.scriptName ?? "migrate";
   const scriptDbName = opts.scriptDbName ?? scriptName;
-  hub.scriptDbs.push({
+  system.scriptDbs.push({
     name: scriptDbName,
     definition: {
       type: "MappingFile",
@@ -45,7 +45,7 @@ export function addMigrationScript(opts: MigrationScriptOpts) {
   });
   const tableImports = new ScriptStatements();
   const graph: [string, string][] = [];
-  for (const t of Object.values(hub.db.tables)) {
+  for (const t of Object.values(system.db.tables)) {
     if (opts.ignoreTables?.includes(t.name)) {
       continue;
     }
@@ -58,7 +58,7 @@ export function addMigrationScript(opts: MigrationScriptOpts) {
   const sortedTables = toposort(graph);
   sortedTables.reverse();
   for (const tableName of sortedTables) {
-    const t = hub.db.tables[tableName];
+    const t = system.db.tables[tableName];
     const tableOpts = opts.tables?.[t.name] ?? {};
     const scriptDbTableName = opts.transformTableName?.(t.name) ?? t.name;
     const fields = Object.values(t.fields)
@@ -103,7 +103,7 @@ export function addMigrationScript(opts: MigrationScriptOpts) {
       );
     }
   }
-  hub.addScript(scriptName, (s) =>
+  system.addScript(scriptName, (s) =>
     s
       .loadDbFromDir(opts.inputDir, scriptDbName)
       .startTransaction("db")

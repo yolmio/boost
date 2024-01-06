@@ -2,7 +2,7 @@ import {
   FormStateProcedureExtensions,
   withUpdateFormState,
 } from "../formState";
-import { hub } from "../hub";
+import { system } from "../system";
 import { createStyles } from "../styleUtils";
 import { ident, stringLiteral } from "../utils/sqlHelpers";
 import { divider } from "./divider";
@@ -45,7 +45,7 @@ const styles = createStyles({
 });
 
 export function updateDialog(opts: UpdateDialogOpts) {
-  const tableModel = hub.db.tables[opts.table];
+  const tableModel = system.db.tables[opts.table];
   return nodes.sourceMap(
     `updateDialog(${opts.table})`,
     modal({
@@ -74,8 +74,7 @@ export function updateDialog(opts: UpdateDialogOpts) {
               procedure: (s) =>
                 s.record(
                   `update_dialog_record`,
-                  `select * from db.${ident(opts.table)} where id = ${
-                    opts.recordId
+                  `select * from db.${ident(opts.table)} where id = ${opts.recordId
                   }`,
                 ),
               statusScalar: `update_dialog_status`,

@@ -1,7 +1,7 @@
-import { hub, components } from "@yolm/boost";
-const { db } = hub;
+import { system, components } from "@yolm/boost";
+const { db } = system;
 
-hub.name = "chinook";
+system.name = "chinook";
 
 //
 // DATABASE
@@ -73,7 +73,7 @@ db.addTable("invoice_line", (table) => {
   table.smallUint("quantity").notNull();
 });
 
-hub.addEnum({
+system.addEnum({
   name: "media_type",
   values: [
     { name: "mpeg", displayName: "MPEG audio file" },
@@ -110,7 +110,7 @@ db.addTable("track", (table) => {
 // UI
 //
 
-const app = hub.addApp("chinook", "Chinook");
+const app = system.addApp("chinook", "Chinook");
 
 const isSysAdmin = `(select is_sys_admin from db.user from where id = current_user())`;
 const isAdmin = `(select is_admin from db.user from where id = current_user())`;

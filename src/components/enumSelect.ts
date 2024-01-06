@@ -1,8 +1,8 @@
 import { nodes } from "../nodeHelpers";
-import { hub } from "../hub";
+import { system } from "../system";
 import { select, SelectOpts } from "./select";
 import { stringLiteral } from "../utils/sqlHelpers";
-import { BoolEnumLikeConfig } from "../hub";
+import { BoolEnumLikeConfig } from "../system";
 import { memoize } from "../utils/memoize";
 
 export type EnumSelectOpts = Omit<SelectOpts, "children"> & {
@@ -11,7 +11,7 @@ export type EnumSelectOpts = Omit<SelectOpts, "children"> & {
 };
 
 const getEnumOptions = memoize((enumName: string, emptyOption?: string) => {
-  const enum_ = hub.enums[enumName];
+  const enum_ = system.enums[enumName];
   const options = Object.values(enum_.values).map((v) =>
     nodes.element("option", {
       children: stringLiteral(v.displayName),
@@ -47,11 +47,11 @@ export function enumLikeSelect(opts: EnumLikeSelectOpts) {
     children: [
       !opts.notNull
         ? nodes.element("option", {
-            props: { value: `''` },
-            children: opts.enumLike.null
-              ? stringLiteral(opts.enumLike.null)
-              : `'Unspecified'`,
-          })
+          props: { value: `''` },
+          children: opts.enumLike.null
+            ? stringLiteral(opts.enumLike.null)
+            : `'Unspecified'`,
+        })
         : null,
       nodes.element("option", {
         props: { value: `'true'` },

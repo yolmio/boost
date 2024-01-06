@@ -1,4 +1,4 @@
-import { App } from "./hub";
+import { App } from "./system";
 import type { Style, StyleObject } from "./styleTypes";
 import type { ColorPaletteProp, CssVar, Variant } from "./theme";
 import {
@@ -505,8 +505,8 @@ export type Styles = Record<
 
 type WithoutApp<T> = {
   [K in keyof T]: T[K] extends AppFunc
-    ? (...args: RestOfAppFuncArgs<T[K]>) => ReturnType<T[K]>
-    : T[K];
+  ? (...args: RestOfAppFuncArgs<T[K]>) => ReturnType<T[K]>
+  : T[K];
 };
 
 export function createStyles<T extends Styles>(styles: T): WithoutApp<T> {

@@ -1,4 +1,4 @@
-import { Field, hub } from "../hub";
+import { Field, system } from "../system";
 import { SequentialIDGenerator } from "../utils/SequentialIdGenerator";
 import * as yom from "../yom";
 import { tableFieldSql } from "./sqlHelpers";
@@ -145,7 +145,7 @@ export function createUnionQuery(opts: UnionOpts): Union {
   for (let i = 0; i < opts.sources.length; i++) {
     const source = opts.sources[i];
     if (source.type === "Table") {
-      const table = hub.db.tables[source.table];
+      const table = system.db.tables[source.table];
       if (source.fields) {
         for (const f of source.fields) {
           let typeKey: string;

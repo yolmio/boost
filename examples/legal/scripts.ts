@@ -1,5 +1,5 @@
-import "./hub";
-import { hub } from "@yolm/boost";
+import "./system";
+import { system } from "@yolm/boost";
 import { faker } from "@faker-js/faker";
 import { createObjectCsvWriter } from "csv-writer";
 import * as fs from "fs";
@@ -117,7 +117,7 @@ if (true) {
       }
       const startDate = new Date(
         lastMatterDate.getTime() +
-          faker.number.int({ min: 1, max: 5 }) * 1000 * 60 * 60 * 24,
+        faker.number.int({ min: 1, max: 5 }) * 1000 * 60 * 60 * 24,
       );
       if (startDate > new Date()) {
         continue;
@@ -278,7 +278,7 @@ if (true) {
   await entriesWriter.writeRecords(entries);
 }
 
-hub.addScript("init-dev-db", (s) =>
+system.addScript("init-dev-db", (s) =>
   s
     .importCsv("db", "data/csv")
     .startTransaction("db")

@@ -1,5 +1,5 @@
 import { nodes } from "../nodeHelpers";
-import { hub } from "../hub";
+import { system } from "../system";
 import { createStyles, visuallyHiddenStyles } from "../styleUtils";
 import { getUploadStatements, getVariantFromImageSet } from "../utils/image";
 import { ident } from "../utils/sqlHelpers";
@@ -67,7 +67,7 @@ const styles = createStyles({
 });
 
 export function imageDialog(opts: ImageDialogOptions) {
-  const table = hub.db.tables[opts.tableName];
+  const table = system.db.tables[opts.tableName];
   const fieldGroup = table.fieldGroups[opts.group];
   if (fieldGroup.type !== "Image") {
     throw new Error("Invalid field group type for image dialog");
@@ -192,8 +192,7 @@ export function imageDialog(opts: ImageDialogOptions) {
                                   .modify(
                                     `update db.${ident(
                                       table.name,
-                                    )} set ${setFieldsToNull} where id = ${
-                                      opts.recordId
+                                    )} set ${setFieldsToNull} where id = ${opts.recordId
                                     }`,
                                   )
                                   .commitTransaction()

@@ -1,8 +1,8 @@
-import "./hub.ts";
+import "./system.ts";
 import "./csvScriptDb.ts";
-import { hub } from "@yolm/boost";
+import { system } from "@yolm/boost";
 
-hub.addScript("init-dev-db", (s) =>
+system.addScript("init-dev-db", (s) =>
   s
     .importCsv(`csv`, `data/csv`)
     .modify(

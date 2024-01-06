@@ -1,5 +1,5 @@
 import { nodes } from "../../nodeHelpers";
-import { hub, Field } from "../../hub";
+import { system, Field } from "../../system";
 import { createStyles } from "../../styleUtils";
 import { stringLiteral } from "../../utils/sqlHelpers";
 
@@ -18,7 +18,7 @@ export function inlineFieldDisplay(field: Field, expr: string) {
       return `format.date(${expr}, ${formatString})`;
     }
     case "ForeignKey": {
-      const toTable = hub.db.tables[field.table];
+      const toTable = system.db.tables[field.table];
       if (toTable.inlineRecordDisplay) {
         return toTable.inlineRecordDisplay(expr);
       }

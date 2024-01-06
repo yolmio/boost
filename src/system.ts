@@ -58,7 +58,7 @@ import { nodes } from "./nodeHelpers";
  *
  * This is where everything about the app is configured, the database, the ui, the api, everything.
  */
-export class Hub {
+export class System {
   /**
    * The name of the application it will show up at: yolm.app/{YOUR_ACCOUNT_NAME}/{APP_NAME}
    *
@@ -128,13 +128,13 @@ export class Hub {
   }
 
   addEnum(enum_: HelperEnum) {
-    const displayName = hub.displayNameConfig.enum(enum_.name);
+    const displayName = system.displayNameConfig.enum(enum_.name);
     const values = enum_.values.map((v) => {
       if (typeof v === "string") {
-        return { name: v, displayName: hub.displayNameConfig.enumValue(v) };
+        return { name: v, displayName: system.displayNameConfig.enumValue(v) };
       }
       return {
-        displayName: hub.displayNameConfig.enumValue(v.name),
+        displayName: system.displayNameConfig.enumValue(v.name),
         ...v,
       };
     });
@@ -193,7 +193,7 @@ export class Hub {
       description: enum_.description,
       values: valuesObject,
     };
-    hub.enums[enum_.name] = modelEnum;
+    system.enums[enum_.name] = modelEnum;
     if (!enum_.disableDisplayRfn) {
       modelEnum.getDisplayName = (v) => `rfn.display_${enum_.name}(${v})`;
     }
@@ -223,19 +223,19 @@ export class Hub {
   }
 
   generateYom(): yom.Model {
-    if (!hub.db.tables[hub.db.userTableName]) {
-      hub.db.addTable(hub.db.userTableName, (t) => {
+    if (!system.db.tables[system.db.userTableName]) {
+      system.db.addTable(system.db.userTableName, (t) => {
         t.catalog.addRequiredUserFields();
       });
     }
     const apps = Object.values(this.apps).map((app) => app.generateYom());
-    if (hub.name === "please-rename") {
+    if (system.name === "please-rename") {
       console.log();
       console.warn(
-        "You should rename your hub from 'please-rename' to something else.",
+        "You should rename your system from 'please-rename' to something else.",
       );
       console.warn(
-        "Unless you really want to use the name 'please-rename' for your hub.",
+        "Unless you really want to use the name 'please-rename' for your system.",
       );
       console.log();
     }
@@ -681,19 +681,19 @@ export class Db {
 
   generateYom(): yom.Database {
     return {
-      userTableName: hub.db.userTableName,
-      collation: hub.db.collation,
-      autoTrim: hub.db.autoTrim,
-      enableTransactionQueries: hub.db.enableTransactionQueries,
-      recordRuleFunctions: Object.values(hub.db.recordRuleFunctions).map(
+      userTableName: system.db.userTableName,
+      collation: system.db.collation,
+      autoTrim: system.db.autoTrim,
+      enableTransactionQueries: system.db.enableTransactionQueries,
+      recordRuleFunctions: Object.values(system.db.recordRuleFunctions).map(
         generateRecordRuleFn,
       ),
-      ruleFunctions: Object.values(hub.db.ruleFunctions).map(generateRuleFn),
-      scalarFunctions: Object.values(hub.db.scalarFunctions).map(
+      ruleFunctions: Object.values(system.db.ruleFunctions).map(generateRuleFn),
+      scalarFunctions: Object.values(system.db.scalarFunctions).map(
         generateScalarFunction,
       ),
-      tables: Object.values(hub.db.tables).map((t) => t.generateYom()),
-      searchMatches: Object.values(hub.db.searchMatches),
+      tables: Object.values(system.db.tables).map((t) => t.generateYom()),
+      searchMatches: Object.values(system.db.searchMatches),
     };
   }
 }
@@ -1616,7 +1616,7 @@ export class TableBuilder {
   #primaryKeyFieldName?: string;
 
   constructor(private name: string) {
-    this.#displayName = hub.displayNameConfig.table(name);
+    this.#displayName = system.displayNameConfig.table(name);
   }
 
   /**
@@ -2057,12 +2057,12 @@ export class TableBuilder {
         );
       }
       const name = tableName + "_name";
-      hub.db.searchMatches[name] = {
+      system.db.searchMatches[name] = {
         name: tableName + "_name",
         table: tableName,
-        tokenizer: hub.searchConfig.defaultTokenizer,
+        tokenizer: system.searchConfig.defaultTokenizer,
         style: {
-          ...hub.searchConfig.defaultFuzzyConfig,
+          ...system.searchConfig.defaultFuzzyConfig,
           type: "Fuzzy",
         },
         fieldGroups:
@@ -2293,7 +2293,7 @@ export interface ImageSetOpts {
 }
 
 function addMinuteDurationFns() {
-  hub.addScalarFunction({
+  system.addScalarFunction({
     name: `parse_minutes_duration`,
     parameters: [
       {
@@ -2323,7 +2323,7 @@ function addMinuteDurationFns() {
         catch: (s) => s.return(),
       }),
   });
-  hub.addScalarFunction({
+  system.addScalarFunction({
     name: `display_minutes_duration`,
     parameters: [{ name: "value", type: { type: "BigInt" } }],
     returnType: { type: "String" },
@@ -2349,7 +2349,7 @@ abstract class BaseFieldBuilder {
 
   constructor(name: string) {
     this._name = name;
-    this._displayName = hub.displayNameConfig.field(name);
+    this._displayName = system.displayNameConfig.field(name);
   }
 
   displayName(name: string) {
@@ -3080,4 +3080,4 @@ function generateScalarFunction(f: ScalarFunction): yom.ScalarFunction {
 /**
  * The total model of the database, applications, apis, etc.
  */
-export const hub = new Hub();
+export const system = new System();

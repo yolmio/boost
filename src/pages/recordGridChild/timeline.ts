@@ -1,5 +1,5 @@
 import { nodes } from "../../nodeHelpers";
-import { hub } from "../../hub";
+import { system } from "../../system";
 import { Style } from "../../styleTypes";
 import { ident, stringLiteral } from "../../utils/sqlHelpers";
 import { UnionExpr, createUnionQuery, UnionExprType } from "../../utils/union";
@@ -21,11 +21,11 @@ import { RecordGridBuilder } from "../recordGrid";
 export type TableDisplayValue =
   | string
   | {
-      expr: yom.SqlExpression;
-      label: string;
-      type: UnionExprType;
-      display: (e: yom.SqlExpression) => Node;
-    };
+    expr: yom.SqlExpression;
+    label: string;
+    type: UnionExprType;
+    display: (e: yom.SqlExpression) => Node;
+  };
 
 interface ValueExpr {
   expr: yom.SqlExpression;
@@ -88,7 +88,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
     limit: `row_count`,
     orderByFields: ["date", "id"],
     sources: sources.map((source) => {
-      const tableModel = hub.db.tables[source.table];
+      const tableModel = system.db.tables[source.table];
       let customFrom = source.customFrom;
       if (!customFrom) {
         let foreignKeyExpr = source.foreignKeyExpr;
@@ -243,7 +243,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                   ),
                 ) ?? []),
               ),
-              tableModel: hub.db.tables[tableName],
+              tableModel: system.db.tables[tableName],
               customAction: itemContent.customAction?.node(
                 ...itemContent.customAction.values.map((v, valueIdx) => {
                   if (typeof v === "string") {
@@ -355,7 +355,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                           .map((t, i) => ({
                             children:
                               `'Add ' || ` +
-                              stringLiteral(hub.db.tables[t.table].displayName),
+                              stringLiteral(system.db.tables[t.table].displayName),
                             onClick: (s) =>
                               s.setScalar(`ui.adding_${i}`, `true`),
                           })),
@@ -364,7 +364,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                     sources
                       .filter((t) => !t.disableInsert)
                       .map((t, i) => {
-                        const tableModel = hub.db.tables[t.table];
+                        const tableModel = system.db.tables[t.table];
                         const opts = t.insertDialogOpts ?? {};
                         const withValues: Record<string, string> =
                           opts.withValues ?? {};

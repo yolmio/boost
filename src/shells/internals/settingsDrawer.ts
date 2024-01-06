@@ -9,7 +9,7 @@ import { iconButton } from "../../components/iconButton";
 import { materialIcon } from "../../components/materialIcon";
 import { typography } from "../../components/typography";
 import { nodes } from "../../nodeHelpers";
-import { hub } from "../../hub";
+import { system } from "../../system";
 import { createStyles, cssVar } from "../../styleUtils";
 import { DomStatementsOrFn } from "../../statements";
 
@@ -197,7 +197,7 @@ export function settingsDrawer(opts: SettingsDrawerOpts) {
         procedure: (s) =>
           s.scalar(
             `email`,
-            `(select email from db.${hub.db.userTableName} where id = current_user())`,
+            `(select email from db.${system.db.userTableName} where id = current_user())`,
           ),
         statusScalar: `status`,
         children: nodes.switch(

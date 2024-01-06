@@ -1,8 +1,8 @@
-import { hub } from "@yolm/boost";
-const { db } = hub;
+import { system } from "@yolm/boost";
+const { db } = system;
 
-hub.name = "tutorial";
-hub.region = "us-miami"
+system.name = "tutorial";
+system.region = "us-miami"
 
 db.addTable("contact", (table) => {
   table.string("first_name", 50).notNull();
@@ -15,7 +15,7 @@ db.addTable("contact", (table) => {
 db.catalog.addNotesTable("contact");
 db.catalog.addAttachmentsTable("contact");
 
-const app = hub.addApp("tutorial", "Tutorial");
+const app = system.addApp("tutorial", "Tutorial");
 
 app.title = "Tutorial";
 

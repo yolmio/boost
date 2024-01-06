@@ -1,8 +1,8 @@
-import { hub, colors, colorUtils, components, nodes } from "@yolm/boost";
+import { system, colors, colorUtils, components, nodes } from "@yolm/boost";
 
-const { db } = hub;
+const { db } = system;
 
-hub.name = "legal";
+system.name = "legal";
 
 //
 // DATABASE
@@ -21,7 +21,7 @@ db.addTable("employee", (table) => {
   table.email("email").notNull();
 });
 
-hub.addEnum({
+system.addEnum({
   name: "contact_type",
   values: ["prospect", "client", "lead", "other"],
 });
@@ -42,12 +42,12 @@ db.addTable("contact", (table) => {
 db.catalog.addNotesTable("contact");
 db.catalog.addAttachmentsTable("contact");
 
-hub.addEnum({
+system.addEnum({
   name: "matter_type",
   values: ["civil", "corporate", "criminal", "family", "other"],
 });
 
-hub.addEnum({
+system.addEnum({
   name: "client_position",
   values: [
     "plaintiff",
@@ -112,7 +112,7 @@ db.addScalarFunction({
 // UI
 //
 
-const app = hub.addApp("legal", "Legal");
+const app = system.addApp("legal", "Legal");
 
 // generated the woff files with:
 // https://gwfh.mranftl.com/fonts
@@ -582,14 +582,12 @@ app.addSimpleDatagridPage("employee", (page) => {
         beforeTransactionCommit: (state, s) =>
           s
             .addUsers(
-              `select ${
-                state.field("email").value
+              `select ${state.field("email").value
               } as email, next_record_id(db.user) as db_id, 'none' as notification_type`,
               "added_user",
             )
             .modify(
-              `insert into db.user (global_id, is_sys_admin, is_admin, disabled, email, employee) values ((select global_id from added_user), false, false, false, ${
-                state.field("email").value
+              `insert into db.user (global_id, is_sys_admin, is_admin, disabled, email, employee) values ((select global_id from added_user), false, false, false, ${state.field("email").value
               }, last_record_id(db.employee))`,
             ),
       }),
@@ -624,8 +622,7 @@ app.addSimpleDatagridPage("user", (page) => {
         beforeTransactionStart: (state, s) =>
           s
             .addUsers(
-              `select next_record_id(db.user) as db_id, 'none' as notification_type, ${
-                state.field("email").value
+              `select next_record_id(db.user) as db_id, 'none' as notification_type, ${state.field("email").value
               } as email`,
             )
             .scalar(`new_global_id`, `(select global_id from added_user)`),
@@ -846,7 +843,7 @@ app.addSimpleReportsPage((page) => {
   );
 
   const timeEntryStats = `
-select 
+select
   first_name || ' ' || last_name as employee,
   billable_minutes,
   non_billable_minutes,
@@ -901,7 +898,7 @@ order by total_minutes desc`;
   });
 
   const mattersStartedQuery = `
-select 
+select
   first_name || ' ' || last_name as employee,
   (select count(*) from db.matter where employee = employee.id and date between start_date and end_date) as matters_started,
   (select count(*) from db.matter where employee = employee.id and close_date between start_date and end_date) as matters_closed,
@@ -964,7 +961,7 @@ select
   (select minutes from minutes_by_client where contact = contact.id) as total_minutes
 from db.contact
 where type = 'client'
-order by total_paid desc nulls last 
+order by total_paid desc nulls last
 limit 10`;
 
   page.table({

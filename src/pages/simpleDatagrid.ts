@@ -1,5 +1,5 @@
 import { InsertDialogOpts } from "../components/insertDialog";
-import { HelperFieldType, Table, hub, fieldTypeFromHelper } from "../hub";
+import { HelperFieldType, Table, system, fieldTypeFromHelper } from "../system";
 import { pluralize, upcaseFirst } from "../utils/inflectors";
 import { stringLiteral } from "../utils/sqlHelpers";
 import * as yom from "../yom";
@@ -56,7 +56,7 @@ export class DatagridToolbarBuilder {
     | { type: "dialog"; opts?: Partial<InsertDialogOpts> }
     | { type: "href"; href?: string };
 
-  constructor(private table: Table) {}
+  constructor(private table: Table) { }
 
   header(header: Node) {
     this.#header = header;
@@ -116,7 +116,7 @@ export class SimpleDatagridPageBuilder {
   #rowHeight?: RowHeight;
 
   constructor(table: string) {
-    this.#table = hub.db.tables[table];
+    this.#table = system.db.tables[table];
     if (!this.#table) {
       throw new Error(`No table ${table} found`);
     }
@@ -153,7 +153,7 @@ export class SimpleDatagridPageBuilder {
       if (!this.#table.getHrefToRecord) {
         throw new Error(
           "viewButton is true but table has no getHrefToRecord, on datagrid for table " +
-            this.#table.name,
+          this.#table.name,
         );
       }
       this.#viewButtonUrl = (id) => this.#table.getHrefToRecord!(id);
@@ -201,10 +201,10 @@ export class SimpleDatagridPageBuilder {
   }) {
     const header = stringLiteral(
       column.headerText ??
-        column.name
-          .split("_")
-          .map((v, i) => (i === 0 ? upcaseFirst(v) : v))
-          .join(" "),
+      column.name
+        .split("_")
+        .map((v, i) => (i === 0 ? upcaseFirst(v) : v))
+        .join(" "),
     );
     this.#extraColumns.push(({ columnIndex }) => {
       const toggleColumnSort = simpleToggleColumnSort(columnIndex);
@@ -382,7 +382,7 @@ export class SimpleDatagridPageBuilder {
         rowHeight: this.#rowHeight,
       }),
     );
-    hub.currentApp!.pages.push({
+    system.currentApp!.pages.push({
       path,
       content,
     });

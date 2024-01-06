@@ -1,4 +1,4 @@
-import { Field, Table, hub } from "./hub";
+import { Field, Table, system } from "./system";
 import type * as yom from "./yom";
 import { EachNode, Node, StateNode } from "./nodeTypes";
 import { nodes } from "./nodeHelpers";
@@ -259,13 +259,13 @@ export class FormState {
       ` or ${FORM_ERROR_SCALAR} is not null` +
       (this.#tables.length !== 0
         ? " or " +
-          this.#tables
-            .map((t) => {
-              return `(select bool_or(${FORM_STATE_TABLE_ERR} is not null or ${t.fields
-                .map((f) => f.name + ERROR_SUFFIX + " is not null")
-                .join(` or `)}) from ui.${t.name})`;
-            })
-            .join(` or `)
+        this.#tables
+          .map((t) => {
+            return `(select bool_or(${FORM_STATE_TABLE_ERR} is not null or ${t.fields
+              .map((f) => f.name + ERROR_SUFFIX + " is not null")
+              .join(` or `)}) from ui.${t.name})`;
+          })
+          .join(` or `)
         : ``)
     );
   }
@@ -342,8 +342,7 @@ export class FormStateTableCursor {
 
   get delete() {
     return new BasicStatements().modify(
-      `delete from ui.${this.#tableName} where ${FORM_STATE_TABLE_ID} = ${
-        this.idField
+      `delete from ui.${this.#tableName} where ${FORM_STATE_TABLE_ID} = ${this.idField
       }`,
     );
   }
@@ -358,10 +357,8 @@ export class FormStateTableCursor {
 
   setRecordError(error: yom.SqlExpression) {
     return new BasicStatements().modify(
-      `update ui.${
-        this.#tableName
-      } set ${FORM_STATE_TABLE_ERR} = ${error} where ${FORM_STATE_TABLE_ID} = ${
-        this.idField
+      `update ui.${this.#tableName
+      } set ${FORM_STATE_TABLE_ERR} = ${error} where ${FORM_STATE_TABLE_ID} = ${this.idField
       }`,
     );
   }
@@ -396,8 +393,7 @@ export class FormStateFieldHelper {
 
   setError = (error: yom.SqlExpression) => {
     return new BasicStatements().modify(
-      `update ${this.#recordName} set ${
-        this.#field.name
+      `update ${this.#recordName} set ${this.#field.name
       }${ERROR_SUFFIX} = ${error}`,
     );
   };
@@ -408,8 +404,7 @@ export class FormStateFieldHelper {
 
   setTouched = (touched: yom.SqlExpression) => {
     return new BasicStatements().modify(
-      `update ${this.#recordName} set ${
-        this.#field.name
+      `update ${this.#recordName} set ${this.#field.name
       }${TOUCHED_SUFFIX} = ${touched}`,
     );
   };
@@ -559,7 +554,7 @@ export class MultiInsertFormState extends FormState {
   #formStateExtensions?: FormStateProcedureExtensions;
 
   constructor(opts: MultiInsertFormOpts) {
-    const table = hub.db.tables[opts.table];
+    const table = system.db.tables[opts.table];
     if (!table) {
       throw new Error("Table " + opts.table + " does not exist in app db");
     }
@@ -577,12 +572,12 @@ export class MultiInsertFormState extends FormState {
     });
     const sharedFields = opts.sharedFields
       ? opts.sharedFields.map((f) => {
-          const fieldSchema = table.fields[f.field];
-          return {
-            field: fieldSchema,
-            initialValue: f.initialValue ?? defaultInitialValue(fieldSchema),
-          };
-        })
+        const fieldSchema = table.fields[f.field];
+        return {
+          field: fieldSchema,
+          initialValue: f.initialValue ?? defaultInitialValue(fieldSchema),
+        };
+      })
       : [];
     super({
       tables: [
@@ -670,8 +665,7 @@ export class MultiInsertFormState extends FormState {
               ...Object.values(this.#sharedStaticValues ?? {}),
             ].join(",");
             s.modify(
-              `insert into db.${
-                this.#table.name
+              `insert into db.${this.#table.name
               } (${insertFields}) values (${insertValues})`,
             );
           });
@@ -740,7 +734,7 @@ export class InsertFormState extends FormState {
   #formStateExtensions?: FormStateProcedureExtensions;
 
   constructor(opts: InsertFormStateOpts) {
-    const table = hub.db.tables[opts.table];
+    const table = system.db.tables[opts.table];
     const formFields: FormStateField[] = [];
     interface ComputedField {
       formStateName: string;
@@ -774,7 +768,7 @@ export class InsertFormState extends FormState {
     }[] = [];
     if (opts.relations) {
       for (const relation of opts.relations) {
-        const relationTable = hub.db.tables[relation.table];
+        const relationTable = system.db.tables[relation.table];
         const sharedFields: ComputedField[] = [];
         if (relation.sharedFields) {
           for (const fieldConfig of relation.sharedFields) {
@@ -916,8 +910,7 @@ export class InsertFormState extends FormState {
               s.modify(
                 `insert into db.${ident(
                   relation.tableModel.name,
-                )} (${insertFields}, ${
-                  relation.foreignKeyField
+                )} (${insertFields}, ${relation.foreignKeyField
                 }) values (${insertValues}, last_record_id(db.${ident(
                   this.#table.name,
                 )}))`,
@@ -988,7 +981,7 @@ export function defaultInitialValue(field: Field): string {
       return `''`;
     case "Enum":
       if (field.notNull) {
-        const enum_ = hub.enums[field.enum];
+        const enum_ = system.enums[field.enum];
         const firstValue = Object.values(enum_.values)[0];
         return `cast(${stringLiteral(firstValue.name)} as enums.${enum_.name})`;
       }
@@ -1241,7 +1234,7 @@ export class UpdateFormState extends FormState {
   #recordId?: string;
 
   constructor(opts: UpdateFormStateOpts) {
-    const table = hub.db.tables[opts.table];
+    const table = system.db.tables[opts.table];
     const fields = opts.fields.map((f) => {
       const fieldSchema = table.fields[f.field];
       if (!fieldSchema) {
@@ -1336,8 +1329,7 @@ export class UpdateFormState extends FormState {
             }
           }
           s.modify(
-            `update db.${
-              this.#table.name
+            `update db.${this.#table.name
             } set ${setValues} where id = ${recordId}`,
           );
           this.#formStateExtensions?.beforeTransactionCommit?.(this, s);

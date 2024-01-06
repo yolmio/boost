@@ -1,4 +1,4 @@
-import { App, hub } from "../../hub";
+import { App, system } from "../../system";
 import { nodes } from "../../nodeHelpers";
 import { Node } from "../../nodeTypes";
 import { createStyles } from "../../styleUtils";

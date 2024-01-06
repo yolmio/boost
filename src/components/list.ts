@@ -1,4 +1,4 @@
-import { hub } from "../hub";
+import { system } from "../system";
 import type { Node } from "../nodeTypes";
 import { StyleObject } from "../styleTypes";
 import { Variant } from "../theme";

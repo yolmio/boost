@@ -1,5 +1,5 @@
 import { stringLiteral } from "../utils/sqlHelpers";
-import { hub } from "../hub";
+import { system } from "../system";
 import type { ElementNode, Node } from "../nodeTypes";
 import { Style } from "../styleTypes";
 import { createStyles, cssVar } from "../styleUtils";

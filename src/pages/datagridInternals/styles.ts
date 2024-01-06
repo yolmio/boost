@@ -1,4 +1,4 @@
-import { hub } from "../../hub";
+import { system } from "../../system";
 import { createStyles } from "../../styleUtils";
 
 export const styles = createStyles({
@@ -9,29 +9,29 @@ export const styles = createStyles({
         animationTimingFunction: app.theme.transitionEasing.drawer,
       },
       'html[data-yolm-transition-type="open-view-drawer"]::view-transition-old(dg-body)':
-        {
-          position: "absolute",
-          width: "100vw",
-          overflow: "hidden",
-          height: "100%",
-          animationName: "none",
-        },
+      {
+        position: "absolute",
+        width: "100vw",
+        overflow: "hidden",
+        height: "100%",
+        animationName: "none",
+      },
       'html[data-yolm-transition-type~="open-view-drawer"]::view-transition-new(dg-body)':
-        {
-          display: "none",
-        },
+      {
+        display: "none",
+      },
       'html[data-yolm-transition-type="close-view-drawer"]::view-transition-new(dg-body)':
-        {
-          position: "absolute",
-          width: "100vw",
-          overflow: "hidden",
-          height: "100%",
-          animationName: "none",
-        },
+      {
+        position: "absolute",
+        width: "100vw",
+        overflow: "hidden",
+        height: "100%",
+        animationName: "none",
+      },
       'html[data-yolm-transition-type~="close-view-drawer"]::view-transition-old(dg-body)':
-        {
-          display: "none",
-        },
+      {
+        display: "none",
+      },
     });
     return {
       position: "relative",

@@ -1,5 +1,5 @@
 /**
- * The complete model of a yolm hub
+ * The complete model of a yolm system
  */
 export interface Model {
   locale: Locale;

@@ -1,8 +1,8 @@
 import { button } from "../components/button";
 import { InsertDialogOpts } from "../components/insertDialog";
-import { Table } from "../hub";
+import { Table } from "../system";
 import { nodes } from "../nodeHelpers";
-import { hub } from "../hub";
+import { system } from "../system";
 import { upcaseFirst } from "../utils/inflectors";
 import { stringLiteral } from "../utils/sqlHelpers";
 import { columnFromField } from "./datagridInternals/fromModel";
@@ -183,7 +183,7 @@ export class DatagridPageBuilder {
   #pageSize = 100;
 
   constructor(table: string) {
-    this.#table = hub.db.tables[table];
+    this.#table = system.db.tables[table];
     if (!this.#table) {
       throw new Error(`No table ${table} found`);
     }
@@ -209,7 +209,7 @@ export class DatagridPageBuilder {
       if (!this.#table.getHrefToRecord) {
         throw new Error(
           "viewButton is true but table has no getHrefToRecord, on datagrid for table " +
-            this.#table.name,
+          this.#table.name,
         );
       }
       this.#viewButtonUrl = (id) => this.#table.getHrefToRecord!(id);
@@ -540,7 +540,7 @@ export class DatagridPageBuilder {
   private _finish() {
     const path = this.#path ?? this.#table.baseUrl;
     const content = this._createNode();
-    hub.currentApp!.pages.push({
+    system.currentApp!.pages.push({
       path,
       content,
     });

@@ -1,7 +1,7 @@
-import { TableBuilder } from "../hub";
+import { TableBuilder } from "../system";
 import { nodes } from "../nodeHelpers";
 import { Node } from "../nodeTypes";
-import { hub, Table } from "../hub";
+import { system, Table } from "../system";
 import { DomStatements, DomStatementsOrFn } from "../statements";
 import { createStyles, cssVar } from "../styleUtils";
 import { SequentialIDGenerator } from "../utils/SequentialIdGenerator";
@@ -192,7 +192,7 @@ function prepareDisplayValue(
       throw new Error(`Field ${value} does not exist on table ${table.name}`);
     }
     if (field.type === "ForeignKey") {
-      const toTable = hub.db.tables[field.table];
+      const toTable = system.db.tables[field.table];
       if (toTable.recordDisplayName) {
         const nameExpr = toTable.recordDisplayName.expr(
           ...toTable.recordDisplayName.fields.map((f) => `other.${f}`),
@@ -316,7 +316,7 @@ function addDisplayValueToTable(
 }
 
 export function tableSearchDialog(opts: TableSearchDialogOpts) {
-  const tableModel = hub.db.tables[opts.table];
+  const tableModel = system.db.tables[opts.table];
   if (!tableModel.recordDisplayName) {
     throw new Error("tableSearchDialog expects recordDisplayName to exist");
   }
@@ -326,7 +326,7 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
   const displayValues = opts.displayValues?.map((value) =>
     prepareDisplayValue(tableModel, value),
   );
-  hub.currentApp!.deviceDb.addTable(`recent_${opts.table}_search`, (table) => {
+  system.currentApp!.deviceDb.addTable(`recent_${opts.table}_search`, (table) => {
     table.bigUint("recent_search_id").notNull();
     table.string("recent_search_label", 500).notNull();
     table.timestamp("recent_search_timestamp").notNull();
@@ -469,13 +469,13 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
                           },
                           style: {
                             type: "Fuzzy",
-                            ...hub.searchConfig.defaultFuzzyConfig,
+                            ...system.searchConfig.defaultFuzzyConfig,
                           },
                           tables: [searchConfig],
                         },
                       }).modify(`insert into result
                 select
-                  ${nameExpr} as label, 
+                  ${nameExpr} as label,
                   rank() over () = 1 as active,
                   rank() over () as index,
                   false as is_recent,
@@ -669,30 +669,30 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
                                 }),
                                 displayValues
                                   ? nodes.element("div", {
-                                      styles: styles.displayValues,
-                                      children: displayValues.map((v, i) => {
-                                        const value =
-                                          `record.` + extraValuesIds[i];
-                                        return nodes.if(
-                                          value + ` is not null`,
-                                          nodes.element("div", {
-                                            styles: styles.optionExtraData,
-                                            children: [
-                                              nodes.element("p", {
-                                                styles:
-                                                  styles.optionExtraDataLabel,
-                                                children: `${stringLiteral(
-                                                  v.label,
-                                                )} || ':'`,
-                                              }),
-                                              nodes.element("span", {
-                                                children: v.display(value),
-                                              }),
-                                            ],
-                                          }),
-                                        );
-                                      }),
-                                    })
+                                    styles: styles.displayValues,
+                                    children: displayValues.map((v, i) => {
+                                      const value =
+                                        `record.` + extraValuesIds[i];
+                                      return nodes.if(
+                                        value + ` is not null`,
+                                        nodes.element("div", {
+                                          styles: styles.optionExtraData,
+                                          children: [
+                                            nodes.element("p", {
+                                              styles:
+                                                styles.optionExtraDataLabel,
+                                              children: `${stringLiteral(
+                                                v.label,
+                                              )} || ':'`,
+                                            }),
+                                            nodes.element("span", {
+                                              children: v.display(value),
+                                            }),
+                                          ],
+                                        }),
+                                      );
+                                    }),
+                                  })
                                   : undefined,
                               ],
                             }),
@@ -755,7 +755,7 @@ function calcMultiTable(tables: PreparedMultiTableSearchDialogTable[]) {
   let labelExpr = "case ";
   let urlExpr = "case ";
   for (const table of tables) {
-    const tableModel = hub.db.tables[table.name];
+    const tableModel = system.db.tables[table.name];
     if (!tableModel.recordDisplayName) {
       throw new Error(
         "multiTableSearchDialog expects recordDisplayName to exist",
@@ -764,7 +764,7 @@ function calcMultiTable(tables: PreparedMultiTableSearchDialogTable[]) {
     if (!tableModel.getHrefToRecord) {
       throw new Error(
         "multiTableSearchDialog expects getHrefToRecord to exist, missing on " +
-          tableModel.name,
+        tableModel.name,
       );
     }
     if (!tableModel.searchConfig) {
@@ -826,7 +826,7 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
   const optionId = (id: yom.SqlExpression): yom.SqlExpression =>
     `${inputId} || '-' || ${id}`;
   const tables = opts.tables.map((t): PreparedMultiTableSearchDialogTable => {
-    const tableModel = hub.db.tables[t.name];
+    const tableModel = system.db.tables[t.name];
     if (!tableModel) {
       throw new Error(`Table ${t.name} does not exist`);
     }
@@ -839,7 +839,7 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
       ),
     };
   });
-  hub.currentApp!.deviceDb.addTable("recent_multi_table_search", (table) => {
+  system.currentApp!.deviceDb.addTable("recent_multi_table_search", (table) => {
     table.bigUint("recent_search_id").notNull();
     table.string("recent_search_table", 200).notNull();
     table.string("recent_search_label", 500).notNull();
@@ -940,7 +940,7 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
                 size: "sm",
                 checked: `not ${t.name}_disabled`,
                 label: stringLiteral(
-                  pluralize(hub.db.tables[t.name].displayName),
+                  pluralize(system.db.tables[t.name].displayName),
                 ),
                 color: "neutral",
                 variant: "outlined",
@@ -1029,7 +1029,7 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
                           },
                           style: {
                             type: "Fuzzy",
-                            ...hub.searchConfig.defaultFuzzyConfig,
+                            ...system.searchConfig.defaultFuzzyConfig,
                           },
                           tables: tableConfigs,
                         },
@@ -1335,7 +1335,7 @@ export interface RecordSelectDialog {
 }
 
 export function recordSelectDialog(opts: RecordSelectDialog) {
-  const tableModel = hub.db.tables[opts.table];
+  const tableModel = system.db.tables[opts.table];
   if (!tableModel.recordDisplayName) {
     throw new Error("tableSearchDialog expects recordDisplayName to exist");
   }
@@ -1434,7 +1434,7 @@ export function recordSelectDialog(opts: RecordSelectDialog) {
                         },
                         style: {
                           type: "Fuzzy",
-                          ...hub.searchConfig.defaultFuzzyConfig,
+                          ...system.searchConfig.defaultFuzzyConfig,
                         },
                         tables: [searchConfig],
                       },
@@ -1619,29 +1619,29 @@ export function recordSelectDialog(opts: RecordSelectDialog) {
                       }),
                       displayValues
                         ? nodes.element("div", {
-                            styles: { display: "flex", gap: 1 },
-                            children: displayValues.map((v, i) => {
-                              const value =
-                                `search_record.` + extraValuesIds[i];
-                              return nodes.if(
-                                value + ` is not null`,
-                                nodes.element("div", {
-                                  styles: styles.optionExtraData,
-                                  children: [
-                                    nodes.element("p", {
-                                      styles: styles.optionExtraDataLabel,
-                                      children: `${stringLiteral(
-                                        v.label,
-                                      )} || ':'`,
-                                    }),
-                                    nodes.element("span", {
-                                      children: value,
-                                    }),
-                                  ],
-                                }),
-                              );
-                            }),
-                          })
+                          styles: { display: "flex", gap: 1 },
+                          children: displayValues.map((v, i) => {
+                            const value =
+                              `search_record.` + extraValuesIds[i];
+                            return nodes.if(
+                              value + ` is not null`,
+                              nodes.element("div", {
+                                styles: styles.optionExtraData,
+                                children: [
+                                  nodes.element("p", {
+                                    styles: styles.optionExtraDataLabel,
+                                    children: `${stringLiteral(
+                                      v.label,
+                                    )} || ':'`,
+                                  }),
+                                  nodes.element("span", {
+                                    children: value,
+                                  }),
+                                ],
+                              }),
+                            );
+                          }),
+                        })
                         : undefined,
                     ],
                   }),

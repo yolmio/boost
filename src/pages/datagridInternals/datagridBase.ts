@@ -1,6 +1,6 @@
 import { nodes } from "../../nodeHelpers";
 import { DataGridStyles, Node } from "../../nodeTypes";
-import { hub } from "../../hub";
+import { system } from "../../system";
 import { ident, stringLiteral } from "../../utils/sqlHelpers";
 import {
   CellHelpers,
@@ -67,9 +67,9 @@ export function datagridBase(opts: DatagridBaseOpts) {
   const { columns, datagridStyles, dts } = opts;
   if (opts.enableViews) {
     addViewTables();
-    hub.enums.datagrid_view_name.values[opts.datagridName] = {
+    system.enums.datagrid_view_name.values[opts.datagridName] = {
       name: opts.datagridName,
-      displayName: hub.displayNameConfig.default(opts.datagridName),
+      displayName: system.displayNameConfig.default(opts.datagridName),
     };
   }
   addDgFilterOp();
@@ -125,8 +125,8 @@ export function datagridBase(opts: DatagridBaseOpts) {
         fetchMore:
           typeof opts.pageSize === "number"
             ? new DomStatements()
-                .setScalar(`ui.row_count`, `ui.row_count + ${opts.pageSize}`)
-                .statements(dgState.triggerRefresh)
+              .setScalar(`ui.row_count`, `ui.row_count + ${opts.pageSize}`)
+              .statements(dgState.triggerRefresh)
             : undefined,
       },
       columns: columns
@@ -438,7 +438,7 @@ export function addDatagridRfns(
     }
   }
   const storageNameToIdDt = `${datagridName}_dg_col_storage_name_to_id`;
-  hub.addRuleFunction({
+  system.addRuleFunction({
     parameters: [
       {
         name: "sql_name",
@@ -451,7 +451,7 @@ export function addDatagridRfns(
     returnType: "Int",
   });
   const idToStorageName = `${datagridName}_dg_col_id_to_storage_name`;
-  hub.addRuleFunction({
+  system.addRuleFunction({
     parameters: [{ name: "id", type: "SmallUint" }],
     header: ["input.id", "storage_name"],
     rules: idsToStorageNames,
@@ -459,7 +459,7 @@ export function addDatagridRfns(
     returnType: "String",
   });
   const idToSqlExprDt = `${datagridName}_dg_col_id_to_sql_expr`;
-  hub.addRuleFunction({
+  system.addRuleFunction({
     parameters: [{ name: "id", type: "SmallUint", notNull: true }],
     header: ["input.id", "sql_expr"],
     rules: sqlExprs,
@@ -469,7 +469,7 @@ export function addDatagridRfns(
   let idToFilterExpr;
   if (idsToFilterExpr.length > 0) {
     idToFilterExpr = `${datagridName}_dg_col_id_to_filter_expr`;
-    hub.addRuleFunction({
+    system.addRuleFunction({
       parameters: [
         { name: "id", type: "SmallUint", notNull: true },
         {
@@ -632,7 +632,7 @@ export function duplicateView(viewId: string) {
                 min(ordering)
               from db.datagrid_view
                 where ordering > original.ordering and
-                  datagrid_name = original.datagrid_name and 
+                  datagrid_name = original.datagrid_name and
                   ${sameUserAsOldView}
             )
           ) as ordering,
@@ -719,7 +719,7 @@ function filterExpr(dts: DatagridRfns) {
     case
       when is_any is null then ${serializeFilter("root")}
       else (
-        select 
+        select
           string_agg(
             case
               when is_any is null then ${serializeFilter("subroot")}
@@ -838,17 +838,17 @@ export function makeIdsQuery(
 }
 
 function addViewTables() {
-  if ("datagrid_view" in hub.db.tables) {
+  if ("datagrid_view" in system.db.tables) {
     return;
   }
-  hub.addEnum({
+  system.addEnum({
     name: "datagrid_view_name",
     values: [],
   });
-  hub.db.addTable("datagrid_view", (t) => {
+  system.db.addTable("datagrid_view", (t) => {
     t.string("name", 200).notNull();
     t.enum("datagrid_name", "datagrid_view_name").notNull();
-    t.fk("user", hub.db.userTableName);
+    t.fk("user", system.db.userTableName);
     t.bool("root_filter_is_any").notNull();
     t.smallUint("row_height").notNull();
     t.ordering("ordering").notNull();
@@ -858,7 +858,7 @@ function addViewTables() {
       "datagrid_name",
     ]);
   });
-  hub.db.addTable("datagrid_view_column", (t) => {
+  system.db.addTable("datagrid_view_column", (t) => {
     t.fk("view", "datagrid_view").notNull();
     t.string("name", 200).notNull();
     t.bool("displaying").notNull();
@@ -866,7 +866,7 @@ function addViewTables() {
     t.tinyUint("sort_index");
     t.bool("sort_asc");
   });
-  hub.db.addTable("datagrid_view_filter_term", (t) => {
+  system.db.addTable("datagrid_view_filter_term", (t) => {
     t.fk("view", "datagrid_view").notNull();
     t.fk("group", "datagrid_view_filter_term");
     t.ordering("ordering").notNull();
@@ -880,8 +880,8 @@ function addViewTables() {
 }
 
 function addDgFilterOp() {
-  if (!hub.enums.dg_filter_op) {
-    hub.addEnum({
+  if (!system.enums.dg_filter_op) {
+    system.addEnum({
       name: "dg_filter_op",
       values: [
         "empty",
@@ -974,7 +974,7 @@ function addDgFilterOp() {
         },
       ],
     });
-    hub.addRuleFunction({
+    system.addRuleFunction({
       name: "encode_date_dg_filter_param",
       parameters: [
         {
@@ -1011,7 +1011,7 @@ function addDgFilterOp() {
       ],
       returnType: "String",
     });
-    hub.addRuleFunction({
+    system.addRuleFunction({
       name: "encode_dg_filter_op",
       parameters: [
         {

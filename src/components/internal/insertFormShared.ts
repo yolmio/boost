@@ -5,7 +5,7 @@ import {
   InsertFormRelation,
   InsertFormState,
 } from "../../formState";
-import { Table, hub } from "../../hub";
+import { Table, system } from "../../system";
 import { nodes } from "../../nodeHelpers";
 import { Node } from "../../nodeTypes";
 import { Style } from "../../styleTypes";
@@ -47,13 +47,13 @@ export type InsertRelationFormPart = {
   fields: (
     | string
     | {
-        field: string;
-        onChange?: (
-          formState: FormState,
-          cursor: FormStateTableCursor,
-          s: DomStatements,
-        ) => unknown;
-      }
+      field: string;
+      onChange?: (
+        formState: FormState,
+        cursor: FormStateTableCursor,
+        s: DomStatements,
+      ) => unknown;
+    }
   )[];
 };
 
@@ -113,11 +113,11 @@ export interface InsertFormContentOpts {
   table: Table;
   formState: InsertFormState;
   cancel:
-    | { type: "Href"; href: string }
-    | {
-        type: "Proc";
-        proc: DomStatementsOrFn;
-      };
+  | { type: "Href"; href: string }
+  | {
+    type: "Proc";
+    proc: DomStatementsOrFn;
+  };
 }
 
 export function getFieldsAndRelationsFromInsertFormContent(
@@ -272,7 +272,7 @@ function twoColumnSectionedInsertFormContent(
     sections.push(divider());
     let sectionBody: Node;
     if (section.relation) {
-      const relationTable = hub.db.tables[section.relation.table];
+      const relationTable = system.db.tables[section.relation.table];
       sectionBody = nodes.element("div", {
         styles: twoColumnFormStyles.cardRelation,
         children: [
@@ -351,9 +351,9 @@ function twoColumnSectionedInsertFormContent(
               }),
               section.description
                 ? nodes.element("p", {
-                    styles: twoColumnFormStyles.description,
-                    children: stringLiteral(section.description),
-                  })
+                  styles: twoColumnFormStyles.description,
+                  children: stringLiteral(section.description),
+                })
                 : undefined,
             ],
           }),

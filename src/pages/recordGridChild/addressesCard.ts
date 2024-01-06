@@ -1,4 +1,4 @@
-import { AddressFieldGroup } from "../../hub";
+import { AddressFieldGroup } from "../../system";
 import { nodes } from "../../nodeHelpers";
 import { createStyles } from "../../styleUtils";
 import { ident } from "../../utils/sqlHelpers";

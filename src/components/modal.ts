@@ -1,6 +1,6 @@
 import { nodes } from "../nodeHelpers";
 import { Node } from "../nodeTypes";
-import { hub } from "../hub";
+import { system } from "../system";
 import { createStyles, cssVar, fadeIn, fadeOut } from "../styleUtils";
 import { Variant } from "../theme";
 import {

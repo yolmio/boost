@@ -1,6 +1,6 @@
-import { Field } from "../../hub";
+import { Field } from "../../system";
 import { nodes } from "../../nodeHelpers";
-import { hub } from "../../hub";
+import { system } from "../../system";
 import { ident, stringLiteral } from "../../utils/sqlHelpers";
 import * as yom from "../../yom";
 import { fieldCell } from "./cells";
@@ -54,10 +54,10 @@ function filterTypeFromField(field: Field): FilterType {
     case "Bool":
       return field.enumLike
         ? {
-            type: "enum_like_bool",
-            config: field.enumLike,
-            notNull: field.notNull,
-          }
+          type: "enum_like_bool",
+          config: field.enumLike,
+          notNull: field.notNull,
+        }
         : { type: "bool", notNull: field.notNull };
     case "Time":
     case "Ordering":
@@ -110,7 +110,7 @@ function getFieldCellWidth(
   const cellBuffer = 20;
   const headerLength = field.displayName.length * charSize + headerBuffer;
   if (field.type === "Uuid" && field.group) {
-    const tableModel = hub.db.tables[table];
+    const tableModel = system.db.tables[table];
     const group = tableModel.fieldGroups[field.group];
     if (group.type === "Image") {
       return 138;
@@ -129,7 +129,7 @@ function getFieldCellWidth(
     return headerLength;
   }
   if (field.type === "Enum") {
-    const enum_ = hub.enums[field.enum];
+    const enum_ = system.enums[field.enum];
     const maxVariant = Math.max(
       ...Object.values(enum_.values).map((v) => v.displayName.length),
     );
@@ -263,7 +263,7 @@ export function columnFromField({
         break;
       case "Uuid":
         if (field.group) {
-          const tableModel = hub.db.tables[table];
+          const tableModel = system.db.tables[table];
           const group = tableModel.fieldGroups[field.group];
           if (group.type === "Image") {
             if (group.variants[field.name].usage !== "square_thumbnail") {
@@ -463,7 +463,7 @@ export function simpleColumnFromField({
         break;
       case "Uuid":
         if (field.group) {
-          const tableModel = hub.db.tables[table];
+          const tableModel = system.db.tables[table];
           const group = tableModel.fieldGroups[field.group];
           if (group.type === "Image") {
             if (group.variants[field.name].usage !== "square_thumbnail") {

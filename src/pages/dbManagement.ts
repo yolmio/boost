@@ -8,7 +8,7 @@ import { textarea } from "../components/textarea";
 import { typography } from "../components/typography";
 import * as yom from "../yom";
 import { input } from "../components/input";
-import { hub } from "../hub";
+import { system } from "../system";
 import { Node } from "../nodeTypes";
 import { stringLiteral } from "../utils/sqlHelpers";
 import { createStyles, flexGrowStyles } from "../styleUtils";
@@ -471,26 +471,26 @@ function displayField({ name, notNull, type }: FieldDisplayOpts) {
     children: [
       notNull
         ? nodes.element("div", {
-            styles: styles.notNullFieldName,
-            children: [
-              nodes.element("span", {
-                styles: styles.fieldName,
-                children: stringLiteral(name),
-              }),
-              notNull
-                ? chip({
-                    color: "neutral",
-                    variant: "soft",
-                    children: `'not null'`,
-                    size: "sm",
-                  })
-                : undefined,
-            ],
-          })
+          styles: styles.notNullFieldName,
+          children: [
+            nodes.element("span", {
+              styles: styles.fieldName,
+              children: stringLiteral(name),
+            }),
+            notNull
+              ? chip({
+                color: "neutral",
+                variant: "soft",
+                children: `'not null'`,
+                size: "sm",
+              })
+              : undefined,
+          ],
+        })
         : nodes.element("span", {
-            styles: styles.fieldName,
-            children: stringLiteral(name),
-          }),
+          styles: styles.fieldName,
+          children: stringLiteral(name),
+        }),
       nodes.element("span", {
         styles: styles.fieldType,
         children: stringLiteral(type),
@@ -530,7 +530,7 @@ function collapse(label: Node, node: Node) {
 }
 
 function transactionQueryReference(): Node[] {
-  const userFk = hub.db.userTableName;
+  const userFk = system.db.userTableName;
   return [
     typography({ level: "h4", children: "'Transaction Queries'" }),
     divider(),
@@ -721,7 +721,7 @@ function transactionQueryReference(): Node[] {
       "'sys_db_table'",
       nodes.element("div", {
         styles: styles.enumValues,
-        children: Object.keys(hub.db.tables).map((name) =>
+        children: Object.keys(system.db.tables).map((name) =>
           nodes.element("div", {
             styles: styles.enumValue,
             children: stringLiteral(name),
@@ -740,7 +740,7 @@ function schemaReference() {
       children: [
         typography({ level: "h4", children: "'Tables'" }),
         divider(),
-        Object.values(hub.db.tables).map((table) => {
+        Object.values(system.db.tables).map((table) => {
           const fields = Object.values(table.fields).map((field) => {
             let typeString = field.type.toLowerCase();
             if (field.type === "ForeignKey") {
@@ -756,7 +756,7 @@ function schemaReference() {
               type: typeString,
             });
           });
-          if (hub.db.enableTransactionQueries) {
+          if (system.db.enableTransactionQueries) {
             fields.unshift(
               displayField({
                 name: "last_modified_by_tx",
@@ -802,31 +802,31 @@ function schemaReference() {
         }),
         typography({ level: "h4", children: "'Enums'" }),
         divider(),
-        Object.values(hub.enums).length !== 0
-          ? Object.values(hub.enums)
-              .filter((enum_) =>
-                Object.values(hub.db.tables).some((t) =>
-                  Object.values(t.fields).some(
-                    (f) => f.type === "Enum" && f.enum === enum_.name,
-                  ),
+        Object.values(system.enums).length !== 0
+          ? Object.values(system.enums)
+            .filter((enum_) =>
+              Object.values(system.db.tables).some((t) =>
+                Object.values(t.fields).some(
+                  (f) => f.type === "Enum" && f.enum === enum_.name,
                 ),
-              )
-              .map((enum_) => {
-                return collapse(
-                  stringLiteral(enum_.name),
-                  nodes.element("div", {
-                    styles: styles.enumValues,
-                    children: Object.values(enum_.values).map((v) =>
-                      nodes.element("div", {
-                        styles: styles.enumValue,
-                        children: stringLiteral(v.name),
-                      }),
-                    ),
-                  }),
-                );
-              })
+              ),
+            )
+            .map((enum_) => {
+              return collapse(
+                stringLiteral(enum_.name),
+                nodes.element("div", {
+                  styles: styles.enumValues,
+                  children: Object.values(enum_.values).map((v) =>
+                    nodes.element("div", {
+                      styles: styles.enumValue,
+                      children: stringLiteral(v.name),
+                    }),
+                  ),
+                }),
+              );
+            })
           : undefined,
-        ...(hub.db.enableTransactionQueries ? transactionQueryReference() : []),
+        ...(system.db.enableTransactionQueries ? transactionQueryReference() : []),
       ],
     }),
   });
@@ -897,7 +897,7 @@ export function dbManagementPage(opts: DbManagmentPageOpts = {}) {
       ),
     });
   }
-  hub.currentApp!.pages.push({
+  system.currentApp!.pages.push({
     path: opts.path ?? `/db-management`,
     content,
   });

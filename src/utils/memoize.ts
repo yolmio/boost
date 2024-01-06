@@ -1,4 +1,4 @@
-import { App, hub } from "../hub";
+import { App, system } from "../system";
 
 export type AppFunc = (app: App, ...args: any[]) => any;
 export type RestOfAppFuncArgs<T extends AppFunc> = T extends (
@@ -31,23 +31,23 @@ export function memoizePerApp(
   const perAppCache = new Map<string, Map<string, any>>();
 
   const memoized = function () {
-    if (!hub.currentAppName) {
+    if (!system.currentAppName) {
       throw new Error("No current app");
     }
-    let cache = perAppCache.get(hub.currentAppName);
+    let cache = perAppCache.get(system.currentAppName);
     if (!cache) {
       cache = new Map<string, any>();
-      perAppCache.set(hub.currentAppName, cache);
+      perAppCache.set(system.currentAppName, cache);
     }
     const args = Array.prototype.slice.call(arguments); // to simplify JSON.stringify
     const key = resolver
       ? // @ts-ignore
-        resolver.apply(this, args)
+      resolver.apply(this, args)
       : JSON.stringify(args);
 
     if (!cache.has(key)) {
       // @ts-ignore
-      cache.set(key, callback.call(this, hub.currentApp, ...args));
+      cache.set(key, callback.call(this, system.currentApp, ...args));
     }
 
     return cache.get(key);
@@ -60,13 +60,13 @@ export function lazyPerApp<T extends (app: App) => any>(
 ): () => ReturnType<T> {
   const results: Record<string, ReturnType<T>> = {};
   return () => {
-    if (!hub.currentAppName) {
+    if (!system.currentAppName) {
       throw new Error("No current app");
     }
-    if (!results[hub.currentAppName]) {
-      results[hub.currentAppName] = f(hub.currentApp!);
+    if (!results[system.currentAppName]) {
+      results[system.currentAppName] = f(system.currentApp!);
     }
-    return results[hub.currentAppName];
+    return results[system.currentAppName];
   };
 }
 
@@ -94,7 +94,7 @@ export function memoize(callback: func, resolver?: (...args: any[]) => string) {
     const args = Array.prototype.slice.call(arguments); // to simplify JSON.stringify
     const key = resolver
       ? // @ts-ignore
-        resolver.apply(this, args)
+      resolver.apply(this, args)
       : JSON.stringify(args);
 
     if (!cache.has(key)) {

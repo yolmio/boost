@@ -1,4 +1,4 @@
-import { hub } from "../hub";
+import { system } from "../system";
 import { nodes } from "../nodeHelpers";
 import { Variant } from "../theme";
 import { createStyles, cssVar, getVariantStyle } from "../styleUtils";
@@ -16,7 +16,7 @@ export interface CheckedVariation {
 
 export interface CheckboxOpts
   extends ComponentOpts,
-    SlottedComponentWithSlotNames<"checkbox" | "action" | "input" | "label"> {
+  SlottedComponentWithSlotNames<"checkbox" | "action" | "input" | "label"> {
   fullWidth?: boolean;
   overlay?: boolean;
   disableIcon?: boolean;
@@ -112,9 +112,8 @@ const styles = createStyles({
     checkedVariation?: CheckedVariation,
   ) => {
     const styles: StyleObject = {
-      borderRadius: `var(--checkbox-action-radius, ${
-        overlay ? "var(--action-radius, inherit)" : "inherit"
-      })`,
+      borderRadius: `var(--checkbox-action-radius, ${overlay ? "var(--action-radius, inherit)" : "inherit"
+        })`,
       position: "absolute",
       top: 0,
       left: 0,
@@ -263,10 +262,10 @@ export function checkbox(opts: CheckboxOpts) {
         ],
       }),
       opts.label &&
-        nodes.element("label", {
-          styles: styles.label(disableIcon),
-          children: opts.label,
-        }),
+      nodes.element("label", {
+        styles: styles.label(disableIcon),
+        children: opts.label,
+      }),
     ],
   });
 }

@@ -1,6 +1,6 @@
 import { nodes } from "../../nodeHelpers";
 import { Node } from "../../nodeTypes";
-import { hub } from "../../hub";
+import { system } from "../../system";
 import { stringLiteral } from "../../utils/sqlHelpers";
 import { button } from "../../components/button";
 import { iconButton } from "../../components/iconButton";
@@ -771,9 +771,9 @@ function enumLikeBoolSelect(columns: SuperGridColumn[]) {
             }),
             col.filter!.config.null
               ? nodes.element("option", {
-                  props: { value: `''` },
-                  children: stringLiteral(col.filter!.config.null),
-                })
+                props: { value: `''` },
+                children: stringLiteral(col.filter!.config.null),
+              })
               : null,
           ],
         };
@@ -812,7 +812,7 @@ function enumSelect(columns: SuperGridColumn[]) {
     slots: { select: { props: { value: filterTermHelper.value1 } } },
     children: nodes.switch(
       ...Object.entries(columnsByEnum).map(([enumName, columns]) => {
-        const opts = Object.values(hub.enums[enumName].values).map((v) =>
+        const opts = Object.values(system.enums[enumName].values).map((v) =>
           nodes.element("option", {
             children: stringLiteral(v.displayName),
             props: { value: stringLiteral(v.name) },
@@ -1085,9 +1085,8 @@ export function filterPopover(columns: SuperGridColumn[], dts: SuperGridDts) {
 }
 
 function insertFilter(columns: SuperGridColumn[], parentGroup?: string) {
-  const ordering = `(select ordering.new(max(ordering)) from ui.filter_term where ${
-    parentGroup ? `group = ${parentGroup}` : "group is null"
-  })`;
+  const ordering = `(select ordering.new(max(ordering)) from ui.filter_term where ${parentGroup ? `group = ${parentGroup}` : "group is null"
+    })`;
   return new DomStatements()
     .modify(
       `insert into ui.filter_term (
@@ -1104,17 +1103,16 @@ function insertFilter(columns: SuperGridColumn[], parentGroup?: string) {
         ${parentGroup ? parentGroup + "," : ""}
         ${ordering},
         ${stringLiteral(
-          defaultOpForFieldType(columns.find((col) => col.filter)!.filter!),
-        )}
+        defaultOpForFieldType(columns.find((col) => col.filter)!.filter!),
+      )}
       )`,
     )
     .setScalar(`ui.next_filter_id`, `ui.next_filter_id + 1`);
 }
 
 function insertFilterGroup(columns: SuperGridColumn[], parentGroup?: string) {
-  const groupOrdering = `(select ordering.new(max(ordering)) from ui.filter_term where ${
-    parentGroup ? `group = ${parentGroup}` : "group is null"
-  })`;
+  const groupOrdering = `(select ordering.new(max(ordering)) from ui.filter_term where ${parentGroup ? `group = ${parentGroup}` : "group is null"
+    })`;
   return new DomStatements()
     .modify(
       `insert into ui.filter_term (

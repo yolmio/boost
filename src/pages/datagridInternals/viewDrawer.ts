@@ -20,7 +20,7 @@ import {
 } from "./datagridBase";
 import { alert } from "../../components/alert";
 import { checkbox } from "../../components/checkbox";
-import { hub } from "../../hub";
+import { system } from "../../system";
 
 function withViewDrawerState(datagridName: string, children: Node) {
   return nodes.state({

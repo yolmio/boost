@@ -1,4 +1,4 @@
-import { hub } from "../hub";
+import { system } from "../system";
 import { DomStatementsOrFn, ServiceStatementsOrFn } from "../statements";
 import { confirmDangerDialog } from "./confirmDangerDialog";
 
@@ -20,7 +20,7 @@ export interface DeleteExtensions {
 }
 
 export function deleteRecordDialog(opts: DeleteRecordDialog) {
-  const table = hub.db.tables[opts.table];
+  const table = system.db.tables[opts.table];
   return confirmDangerDialog({
     open: opts.open,
     onClose: opts.onClose,

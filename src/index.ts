@@ -1,4 +1,4 @@
-export * from "./hub";
+export * from "./system";
 export * as components from "./components";
 export { colors } from "./colors";
 export * as colorUtils from "./colorManipulator";
