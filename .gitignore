@@ -7,3 +7,4 @@ dist
 .cache
 .turbo
 material-icons-input
+examples/*/mapping.json
