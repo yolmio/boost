@@ -1,23 +1,16 @@
-import * as path from "path";
-import * as fs from "fs";
-import { fileURLToPath } from "url";
 import test, { defineConfig, expect, devices, Page } from "@playwright/test";
-
-export async function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+import * as fs from "fs/promises";
 
 const email = "test@yolm.io";
 
-async function getAccessCode() {
+async function getAccessCode(email: string) {
   if (!process.env.TMP_ACCESS_CODE_FILE) {
     throw new Error("TMP_ACCESS_CODE_FILE not set");
   }
-  await sleep(100);
-  const file: string = fs.readFileSync(
-    process.env.TMP_ACCESS_CODE_FILE,
-    "utf-8",
-  );
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  const file = await fs.readFile(process.env.TMP_ACCESS_CODE_FILE, "utf-8");
+  // await Bun.sleep(100);
+  // const file = await Bun.file(process.env.TMP_ACCESS_CODE_FILE).text();
   const lines = file
     .split("\n")
     .filter((l) => l.trim().length > 0 && l.includes(","))
@@ -28,6 +21,7 @@ async function getAccessCode() {
       return fields[1];
     }
   }
+  throw new Error(`could not find access code for ${email}`);
 }
 
 async function loginToE2E(page: Page) {
@@ -37,10 +31,7 @@ async function loginToE2E(page: Page) {
   await page.locator("#login-email").click();
   await page.locator("#login-email").fill(email);
   await page.getByRole("button").click();
-  const accessCode = await getAccessCode();
-  if (!accessCode) {
-    throw new Error(`could not find access code for ${email}`);
-  }
+  const accessCode = await getAccessCode(email);
   await page.locator("#code-input-0").click();
   for (let i = 0; i < 8; i++) {
     await page.keyboard.type(accessCode[i]);
@@ -53,6 +44,14 @@ export async function testSetup() {
     test.beforeEach(async ({ page }) => {
       await loginToE2E(page);
     });
+  }
+}
+
+export async function gotoHomePage(page: Page, appDisplayName: string) {
+  if (process.env.YOLM_E2E_TEST) {
+    await page.getByText(appDisplayName).click();
+  } else {
+    await page.goto(".");
   }
 }
 

@@ -22,34 +22,136 @@ export interface Model {
 }
 
 export type VCpus =
-  0.125 | 0.25 | 0.375 | 0.5 | 0.625 |
-  0.75 | 0.875 | 1.0 | 1.125 | 1.25 |
-  1.375 | 1.5 | 1.625 | 1.75 | 1.875 |
-  2.0 | 2.125 | 2.25 | 2.375 | 2.5 |
-  2.625 | 2.75 | 2.875 | 3.0 | 3.125 |
-  3.25 | 3.375 | 3.5 | 3.625 | 3.75 |
-  3.875 | 4.0 | 4.125 | 4.25 | 4.375 |
-  4.5 | 4.625 | 4.75 | 4.875 | 5.0 |
-  5.125 | 5.25 | 5.375 | 5.5 | 5.625 |
-  5.75 | 5.875 | 6.0 | 6.125 | 6.25 |
-  6.375 | 6.5 | 6.625 | 6.75 | 6.875 |
-  7.0 | 7.125 | 7.25 | 7.375 | 7.5 |
-  7.625 | 7.75 | 7.875 | 8.0 | 8.125 |
-  8.25 | 8.375 | 8.5 | 8.625 | 8.75 |
-  8.875 | 9.0 | 9.125 | 9.25 | 9.375 |
-  9.5 | 9.625 | 9.75 | 9.875 | 10.0 |
-  10.125 | 10.25 | 10.375 | 10.5 | 10.625 |
-  10.75 | 10.875 | 11.0 | 11.125 | 11.25 |
-  11.375 | 11.5 | 11.625 | 11.75 | 11.875 |
-  12.0 | 12.125 | 12.25 | 12.375 | 12.5 |
-  12.625 | 12.75 | 12.875 | 13.0 | 13.125 |
-  13.25 | 13.375 | 13.5 | 13.625 | 13.75 |
-  13.875 | 14.0 | 14.125 | 14.25 | 14.375 |
-  14.5 | 14.625 | 14.75 | 14.875 | 15.0 |
-  15.125 | 15.25 | 15.375 | 15.5 | 15.625 |
-  15.75 | 15.875 | 16.0;
+  | 0.125
+  | 0.25
+  | 0.375
+  | 0.5
+  | 0.625
+  | 0.75
+  | 0.875
+  | 1.0
+  | 1.125
+  | 1.25
+  | 1.375
+  | 1.5
+  | 1.625
+  | 1.75
+  | 1.875
+  | 2.0
+  | 2.125
+  | 2.25
+  | 2.375
+  | 2.5
+  | 2.625
+  | 2.75
+  | 2.875
+  | 3.0
+  | 3.125
+  | 3.25
+  | 3.375
+  | 3.5
+  | 3.625
+  | 3.75
+  | 3.875
+  | 4.0
+  | 4.125
+  | 4.25
+  | 4.375
+  | 4.5
+  | 4.625
+  | 4.75
+  | 4.875
+  | 5.0
+  | 5.125
+  | 5.25
+  | 5.375
+  | 5.5
+  | 5.625
+  | 5.75
+  | 5.875
+  | 6.0
+  | 6.125
+  | 6.25
+  | 6.375
+  | 6.5
+  | 6.625
+  | 6.75
+  | 6.875
+  | 7.0
+  | 7.125
+  | 7.25
+  | 7.375
+  | 7.5
+  | 7.625
+  | 7.75
+  | 7.875
+  | 8.0
+  | 8.125
+  | 8.25
+  | 8.375
+  | 8.5
+  | 8.625
+  | 8.75
+  | 8.875
+  | 9.0
+  | 9.125
+  | 9.25
+  | 9.375
+  | 9.5
+  | 9.625
+  | 9.75
+  | 9.875
+  | 10.0
+  | 10.125
+  | 10.25
+  | 10.375
+  | 10.5
+  | 10.625
+  | 10.75
+  | 10.875
+  | 11.0
+  | 11.125
+  | 11.25
+  | 11.375
+  | 11.5
+  | 11.625
+  | 11.75
+  | 11.875
+  | 12.0
+  | 12.125
+  | 12.25
+  | 12.375
+  | 12.5
+  | 12.625
+  | 12.75
+  | 12.875
+  | 13.0
+  | 13.125
+  | 13.25
+  | 13.375
+  | 13.5
+  | 13.625
+  | 13.75
+  | 13.875
+  | 14.0
+  | 14.125
+  | 14.25
+  | 14.375
+  | 14.5
+  | 14.625
+  | 14.75
+  | 14.875
+  | 15.0
+  | 15.125
+  | 15.25
+  | 15.375
+  | 15.5
+  | 15.625
+  | 15.75
+  | 15.875
+  | 16.0;
 
-export type VCpusString = `${VCpus}`
+export type VCpusString = `${VCpus}`;
 
 export type Region =
   | "us-new-york"
@@ -61,7 +163,7 @@ export type Region =
 
 export interface Replica {
   region: Region;
-  vcpus: VCpusString
+  vcpus: VCpusString;
 }
 
 export interface AppDbExecutionConfig {
@@ -426,7 +528,8 @@ export type SimpleScalarTypes =
   | "Date"
   | "Time"
   | "Bool"
-  | "Uuid";
+  | "Uuid"
+  | "Json";
 
 export type ScalarIntegerTypes = "SmallInt" | "Int" | "BigInt";
 
@@ -464,9 +567,9 @@ export interface Table {
 export type UniqueConstraintField =
   | string
   | {
-    field: string;
-    distinctNulls?: boolean;
-  };
+      field: string;
+      distinctNulls?: boolean;
+    };
 
 export interface UniqueConstraint {
   fields: UniqueConstraintField[];
@@ -2093,19 +2196,19 @@ export type ElementEventHandlers = Partial<
 export interface FloatingOpts {
   anchorEl: SqlExpression;
   placement:
-  | "'top'"
-  | "'top-start'"
-  | "'top-end'"
-  | "'right'"
-  | "'right-start'"
-  | "'right-end'"
-  | "'bottom'"
-  | "'bottom-start'"
-  | "'bottom-end'"
-  | "'left'"
-  | "'left-start'"
-  | "'left-end'"
-  | SqlExpression;
+    | "'top'"
+    | "'top-start'"
+    | "'top-end'"
+    | "'right'"
+    | "'right-start'"
+    | "'right-end'"
+    | "'bottom'"
+    | "'bottom-start'"
+    | "'bottom-end'"
+    | "'left'"
+    | "'left-start'"
+    | "'left-end'"
+    | SqlExpression;
   strategy: "'absolute'" | "'fixed'" | SqlExpression;
   offset?: {
     mainAxis: SqlExpression;
@@ -2156,69 +2259,6 @@ export interface EventHandlersNode {
 }
 
 //
-// Hierarchy
-//
-
-export type ToJSON =
-  | ToHierarchyScalar
-  | ToHierarchyObject
-  | ToHierarchyEach
-  | ToHierarchyState
-  | ToHierarchyConditional;
-
-export interface ToHierarchyScalar {
-  type: "Scalar";
-  expr: SqlExpression;
-}
-
-export interface ToHierarchyObject {
-  type: "Object";
-  fields: ToHierarchyField[];
-}
-
-export interface ToHierarchyField {
-  name: string;
-  value: ToJSON;
-}
-
-export interface ToHierarchyEach {
-  type: "Each";
-  table: string;
-  recordName: string;
-  children: ToJSON;
-}
-
-export interface ToHierarchyState {
-  type: "State";
-  procedure: BasicStatement[];
-  children: ToJSON;
-}
-
-export interface ToHierarchyConditional {
-  type: "If";
-  condition: SqlExpression;
-  then: ToJSON;
-  else?: ToJSON;
-}
-
-export interface JSONToTable {
-  path?: string[];
-  parent?: string;
-  scalarField?: string;
-  primaryKeyFieldName?: string;
-  name: string;
-  fields: HierarchyToSqlField[];
-  singleRecord?: boolean;
-}
-
-export interface HierarchyToSqlField {
-  name: string;
-  path: string[];
-  type: FieldType;
-  notNull?: boolean;
-}
-
-//
 // Request
 //
 
@@ -2250,11 +2290,11 @@ export interface RequestStatement {
 
 export type SendBody =
   | { type: "Text"; expr: SqlExpression }
-  | { type: "Json"; hierarchy: ToJSON };
+  | { type: "Json"; expr: SqlExpression };
 
 export type ReceiveBody =
-  | { type: "Text"; scalarName: string }
-  | { type: "Json"; tables: JSONToTable[] };
+  | { type: "Text"; scalar: string }
+  | { type: "Json"; scalar: string };
 
 //
 // API
@@ -2270,18 +2310,13 @@ export interface ApiEndpoint {
     default?: SqlExpression;
     type: FieldType;
   }[];
-  body?: JSONToTable[];
+  body?: ReceiveBody;
   procedure?: ApiEndpointStatement[];
 }
 
 export interface SetHttpStatusStatement {
   t: "SetHttpStatus";
   status: SqlExpression;
-}
-
-export interface ReturnJSONStatement {
-  t: "ReturnJSON";
-  json: ToJSON;
 }
 
 export interface GetHeaderStatement {
@@ -2306,7 +2341,6 @@ export type ApiEndpointStatement =
   | TryStatement<StateStatement>
   | BaseStatement
   | SetHttpStatusStatement
-  | ReturnJSONStatement
   | DynamicModifyStatement
   | DynamicQueryStatement
   | DynamicQueryToCsv
@@ -2377,7 +2411,7 @@ export interface PushStatement {
 
 export interface AddUsersStatement {
   t: "AddUsers";
-  app: string
+  app: string;
   /**
    * Query for the users that should be added to yolm's authentication system.
    *
@@ -2401,13 +2435,13 @@ export interface AddUsersStatement {
 
 export interface UpdateUsersStatement {
   t: "UpdateUsers";
-  app: string
+  app: string;
   query: SqlQuery;
 }
 
 export interface RemoveUsersStatement {
   t: "RemoveUsers";
-  app: string
+  app: string;
   query: SqlQuery;
 }
 
@@ -2528,14 +2562,18 @@ export interface TestDataProcedure extends BaseTestData {
 
 export type TestData = TestDataPath | TestDataProcedure;
 
+export type Body =
+  | { type: "Text"; text: string }
+  | { type: "Json"; value: any };
+
 export interface AssertApi {
   t: "AssertApi";
   path: string;
   method: EndpointMethod;
   requestHeaders?: { name: string; value: string }[];
   status: number;
-  response: any;
-  body?: any;
+  response?: Body;
+  body?: Body;
   responseHeaders?: { name: string; value: string }[];
 }
 

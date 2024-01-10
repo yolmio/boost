@@ -342,7 +342,7 @@ export class App {
   #keyFrames: Map<KeyFrames, string> = new Map();
   #crosspageSnackbars: CrossPageSnackbar[] = [];
 
-  constructor(public name: string, public displayName: string) { }
+  constructor(public name: string, public displayName: string) {}
 
   //
   // Helper methods
@@ -393,14 +393,14 @@ export class App {
     const delayedClose =
       typeof opts.autoHideDuration === "number"
         ? new DomStatements().spawn({
-          detached: true,
-          procedure: (s) =>
-            s
-              .delay(opts.autoHideDuration!.toString())
-              .if(`crosspage_snackbar_open = ${i}`, (s) =>
-                s.statements(closeSnackbar).commitUiTreeChanges(),
-              ),
-        })
+            detached: true,
+            procedure: (s) =>
+              s
+                .delay(opts.autoHideDuration!.toString())
+                .if(`crosspage_snackbar_open = ${i}`, (s) =>
+                  s.statements(closeSnackbar).commitUiTreeChanges(),
+                ),
+          })
         : new DomStatements().statements(closeSnackbar);
     return {
       openSnackbar: new DomStatements()
@@ -484,21 +484,21 @@ export class App {
       .filter((p) => !p.ignoreShell)
       .map(
         (p) =>
-        ({
-          t: "Route",
-          path: p.path,
-          children: p.content,
-        } as RouteNode),
+          ({
+            t: "Route",
+            path: p.path,
+            children: p.content,
+          } as RouteNode),
       );
     const pagesWithoutShell = this.pages
       .filter((p) => p.ignoreShell)
       .map(
         (p) =>
-        ({
-          t: "Route",
-          path: p.path,
-          children: p.content,
-        } as RouteNode),
+          ({
+            t: "Route",
+            path: p.path,
+            children: p.content,
+          } as RouteNode),
       );
     let rootNode: Node;
     if (this.shell) {
@@ -510,12 +510,12 @@ export class App {
         pagesWithoutShell.length === 0
           ? shell
           : ({
-            t: "Routes",
-            children: [
-              ...pagesWithoutShell,
-              { t: "Route", path: "*", children: shell },
-            ],
-          } as RoutesNode);
+              t: "Routes",
+              children: [
+                ...pagesWithoutShell,
+                { t: "Route", path: "*", children: shell },
+              ],
+            } as RoutesNode);
     } else {
       rootNode = {
         t: "Routes",
@@ -619,20 +619,20 @@ export interface WebAppConfig {
   viewport?: string;
   manifest: WebAppManifest;
   logoGeneration:
-  | {
-    type: "App";
-    safariPinnedTabColor: string;
-    msTileColor: string;
-    themeColor: string;
-  }
-  | {
-    type: "Account";
-    safariPinnedTabColor: string;
-    msTileColor: string;
-    themeColor: string;
-  }
-  | { type: "Default" }
-  | { type: "Custom" };
+    | {
+        type: "App";
+        safariPinnedTabColor: string;
+        msTileColor: string;
+        themeColor: string;
+      }
+    | {
+        type: "Account";
+        safariPinnedTabColor: string;
+        msTileColor: string;
+        themeColor: string;
+      }
+    | { type: "Default" }
+    | { type: "Custom" };
 }
 
 export interface Page {
@@ -760,7 +760,11 @@ export class Api {
     this.#endpoints.push({
       method,
       path,
-      body: createFromJSONTables(helper.bodyToTables),
+      body: helper.jsonBodyScalar
+        ? { type: "Json", scalar: helper.jsonBodyScalar }
+        : helper.textBodyScalar
+        ? { type: "Text", scalar: helper.textBodyScalar }
+        : undefined,
       procedure: EndpointStatements.normalizeToArray(helper.procedure),
       query: helper.query,
     });
@@ -794,210 +798,9 @@ export interface GetEndpointHelper {
 
 export interface EndpointHelper {
   query?: yom.QueryParam[];
-  bodyToTables?: (helper: FromJSONHelper) => void;
+  jsonBodyScalar?: string;
+  textBodyScalar?: string;
   procedure: EndpointStatementsOrFn;
-}
-
-function createFromJSONTables(
-  f?: (helper: FromJSONHelper) => void,
-): yom.JSONToTable[] {
-  if (!f) {
-    return [];
-  }
-  const helper = new FromJSONHelper();
-  f(helper);
-  return helper.finish();
-}
-
-export class FromJSONHelper {
-  #tables: yom.JSONToTable[] = [];
-
-  table(name: string, f: (helper: FromJSONTableHelper) => void) {
-    const builder = new FromJSONTableHelper(this.#tables, name);
-    f(builder);
-    builder.finish();
-  }
-
-  record(name: string, f: (helper: FromJSONTableHelper) => void) {
-    const builder = new FromJSONTableHelper(
-      this.#tables,
-      name,
-      undefined,
-      true,
-    );
-    f(builder);
-    builder.finish();
-  }
-
-  finish() {
-    return this.#tables;
-  }
-}
-
-export class FromJSONTableHelper {
-  #fields: FromJSONExtension[] = [];
-  #path?: string[];
-  #scalarField?: string;
-  #primaryKeyFieldName?: string;
-
-  constructor(
-    private outputTables: yom.JSONToTable[],
-    private name: string,
-    private parent?: string,
-    private singleRecord?: boolean,
-  ) { }
-
-  path(...path: string[]) {
-    this.#path = path;
-    return this;
-  }
-
-  bool(name: string) {
-    const field = new FromJSONBoolFieldBuilder(name);
-    this.#fields.push(field);
-    return field;
-  }
-
-  date(name: string) {
-    const field = new FromJSONDateFieldBuilder(name);
-    this.#fields.push(field);
-    return field;
-  }
-
-  time(name: string) {
-    const field = new FromJSONTimeFieldBuilder(name);
-    this.#fields.push(field);
-    return field;
-  }
-
-  timestamp(name: string) {
-    const field = new FromJSONTimestampFieldBuilder(name);
-    this.#fields.push(field);
-    return field;
-  }
-
-  tinyInt(name: string) {
-    const field = new FromJSONTinyIntFieldBuilder(name);
-    this.#fields.push(field);
-    return field;
-  }
-
-  smallInt(name: string) {
-    const field = new FromJSONSmallIntFieldBuilder(name);
-    this.#fields.push(field);
-    return field;
-  }
-
-  int(name: string) {
-    const field = new FromJSONIntFieldBuilder(name);
-    this.#fields.push(field);
-    return field;
-  }
-
-  bigInt(name: string) {
-    const field = new FromJSONBigIntFieldBuilder(name);
-    this.#fields.push(field);
-    return field;
-  }
-
-  tinyUint(name: string) {
-    const field = new FromJSONTinyUintFieldBuilder(name);
-    this.#fields.push(field);
-    return field;
-  }
-
-  smallUint(name: string) {
-    const field = new FromJSONSmallUintFieldBuilder(name);
-    this.#fields.push(field);
-    return field;
-  }
-
-  uint(name: string) {
-    const field = new FromJSONUintFieldBuilder(name);
-    this.#fields.push(field);
-    return field;
-  }
-
-  bigUint(name: string) {
-    const field = new FromJSONBigUintFieldBuilder(name);
-    this.#fields.push(field);
-    return field;
-  }
-
-  real(name: string) {
-    const field = new FromJSONRealFieldBuilder(name);
-    this.#fields.push(field);
-    return field;
-  }
-
-  double(name: string) {
-    const field = new FromJSONDoubleFieldBuilder(name);
-    this.#fields.push(field);
-    return field;
-  }
-
-  uuid(name: string) {
-    const field = new FromJSONUuidFieldBuilder(name);
-    this.#fields.push(field);
-    return field;
-  }
-
-  decimal(
-    name: string,
-    opts: {
-      precision: number;
-      scale: number;
-      signed?: boolean;
-    },
-  ) {
-    const field = new FromJSONDecimalFieldBuilder(
-      name,
-      opts.precision,
-      opts.scale,
-      opts.signed ?? true,
-      undefined,
-    );
-    this.#fields.push(field);
-    return field;
-  }
-
-  string(name: string, maxLength: number) {
-    const field = new FromJSONStringFieldBuilder(name, maxLength);
-    this.#fields.push(field);
-    return field;
-  }
-
-  enum(name: string, enumName?: string) {
-    const field = new FromJSONEnumFieldBuilder(name, enumName ?? name);
-    this.#fields.push(field);
-    return field;
-  }
-
-  child(name: string, f: (builder: FromJSONTableHelper) => void) {
-    const builder = new FromJSONTableHelper(this.outputTables, name, this.name);
-    f(builder);
-    builder.finish();
-  }
-
-  scalarField(field: string) {
-    this.#scalarField = field;
-  }
-
-  primaryKeyFieldName(field: string) {
-    this.#primaryKeyFieldName = field;
-  }
-
-  finish() {
-    this.outputTables.push({
-      name: this.name,
-      fields: this.#fields.map((f) => f.toJSONToTableField()),
-      parent: this.parent,
-      singleRecord: this.singleRecord,
-      scalarField: this.#scalarField,
-      path: this.#path,
-      primaryKeyFieldName: this.#primaryKeyFieldName,
-    });
-  }
 }
 
 export class Test {
@@ -1067,7 +870,7 @@ export interface ScriptDb {
 export class ScriptDbDefinition {
   tables: Record<string, Table> = {};
 
-  constructor(public name: string) { }
+  constructor(public name: string) {}
 
   addTable(name: string, f: (builder: TableBuilder) => void) {
     const builder = new TableBuilder(name);
@@ -1172,7 +975,7 @@ export class Table {
     public primaryKeyFieldName: string,
     public name: string,
     public displayName: string,
-  ) { }
+  ) {}
 
   get identName() {
     return ident(this.name);
@@ -1255,7 +1058,7 @@ abstract class FieldBase {
   indexed = false;
   ext: Record<string, any> = {};
 
-  constructor(public name: string, public displayName: string) { }
+  constructor(public name: string, public displayName: string) {}
 
   /** Name of field escaped as sql identifier */
   get identName() {
@@ -1781,10 +1584,10 @@ export class TableBuilder {
     name: string,
     opts?:
       | {
-        precision: number;
-        scale: number;
-        signed?: boolean;
-      }
+          precision: number;
+          scale: number;
+          signed?: boolean;
+        }
       | yom.FieldIntegerTypes,
   ) {
     const usage = { type: "Money", currency: "USD" } as const;
@@ -2413,44 +2216,6 @@ abstract class BaseFieldBuilder {
   abstract finish(): Field;
 }
 
-interface FromJSONExtension {
-  path(...path: string[]): this;
-  toJSONToTableField(): yom.HierarchyToSqlField;
-}
-
-type BaseFieldBuilderConstructor<T extends BaseFieldBuilder> = new (
-  ...args: any[]
-) => T;
-
-function createFromJSONFieldBuilder<
-  T extends BaseFieldBuilder,
-  U extends BaseFieldBuilderConstructor<T>,
->(clazz: U): U & BaseFieldBuilderConstructor<T & FromJSONExtension> {
-  // @ts-ignore
-  return class extends clazz {
-    #path?: string[];
-
-    constructor(...args: any) {
-      super(...args);
-    }
-
-    path(...path: string[]): this {
-      this.#path = path;
-      return this;
-    }
-
-    toJSONToTableField(): yom.HierarchyToSqlField {
-      const field = this.finish();
-      return {
-        type: field.generateYomFieldType(),
-        name: field.name,
-        notNull: field.notNull,
-        path: this.#path ?? [camelize(field.name)],
-      };
-    }
-  };
-}
-
 abstract class BaseNumericBuilder extends BaseFieldBuilder {
   #max?: string;
   #min?: string;
@@ -2491,7 +2256,7 @@ abstract class BaseIntegerBuilder extends BaseNumericBuilder {
 }
 
 interface IntegerFieldBuilder {
-  new(name: string, usage?: IntegerUsage): BaseNumericBuilder;
+  new (name: string, usage?: IntegerUsage): BaseNumericBuilder;
 }
 
 function createIntegerBuilder(
@@ -2507,28 +2272,13 @@ function createIntegerBuilder(
 }
 
 const TinyUintFieldBuilder = createIntegerBuilder(TinyUintField);
-const FromJSONTinyUintFieldBuilder =
-  createFromJSONFieldBuilder(TinyUintFieldBuilder);
 const TinyIntFieldBuilder = createIntegerBuilder(TinyIntField);
-const FromJSONTinyIntFieldBuilder =
-  createFromJSONFieldBuilder(TinyIntFieldBuilder);
 const SmallUintFieldBuilder = createIntegerBuilder(SmallUintField);
-const FromJSONSmallUintFieldBuilder = createFromJSONFieldBuilder(
-  SmallUintFieldBuilder,
-);
 const SmallIntFieldBuilder = createIntegerBuilder(SmallIntField);
-const FromJSONSmallIntFieldBuilder =
-  createFromJSONFieldBuilder(SmallIntFieldBuilder);
 const UintFieldBuilder = createIntegerBuilder(UintField);
-const FromJSONUintFieldBuilder = createFromJSONFieldBuilder(UintFieldBuilder);
 const IntFieldBuilder = createIntegerBuilder(IntField);
-const FromJSONIntFieldBuilder = createFromJSONFieldBuilder(IntFieldBuilder);
 const BigUintFieldBuilder = createIntegerBuilder(BigUintField);
-const FromJSONBigUintFieldBuilder =
-  createFromJSONFieldBuilder(BigUintFieldBuilder);
 const BigIntFieldBuilder = createIntegerBuilder(BigIntField);
-const FromJSONBigIntFieldBuilder =
-  createFromJSONFieldBuilder(BigIntFieldBuilder);
 
 class RealFieldBuilder extends BaseNumericBuilder {
   finish(): Field {
@@ -2537,7 +2287,6 @@ class RealFieldBuilder extends BaseNumericBuilder {
     return field;
   }
 }
-const FromJSONRealFieldBuilder = createFromJSONFieldBuilder(RealFieldBuilder);
 class DoubleFieldBuilder extends BaseNumericBuilder {
   finish(): Field {
     const field = new DoubleField(this._name, this._displayName);
@@ -2545,8 +2294,6 @@ class DoubleFieldBuilder extends BaseNumericBuilder {
     return field;
   }
 }
-const FromJSONDoubleFieldBuilder =
-  createFromJSONFieldBuilder(DoubleFieldBuilder);
 
 class DecimalFieldBuilder extends BaseNumericBuilder {
   #precision: number;
@@ -2583,9 +2330,6 @@ class DecimalFieldBuilder extends BaseNumericBuilder {
   }
 }
 
-const FromJSONDecimalFieldBuilder =
-  createFromJSONFieldBuilder(DecimalFieldBuilder);
-
 class UuidFieldBuilder extends BaseFieldBuilder {
   finish(): Field {
     const field = new UuidField(this._name, this._displayName);
@@ -2593,8 +2337,6 @@ class UuidFieldBuilder extends BaseFieldBuilder {
     return field;
   }
 }
-
-const FromJSONUuidFieldBuilder = createFromJSONFieldBuilder(UuidFieldBuilder);
 
 class BoolFieldBuilder extends BaseFieldBuilder {
   #enumLike?: BoolEnumLikeConfig;
@@ -2612,8 +2354,6 @@ class BoolFieldBuilder extends BaseFieldBuilder {
   }
 }
 
-const FromJSONBoolFieldBuilder = createFromJSONFieldBuilder(BoolFieldBuilder);
-
 class OrderingFieldBuilder extends BaseFieldBuilder {
   finish(): Field {
     const field = new OrderingField(this._name, this._displayName);
@@ -2621,9 +2361,6 @@ class OrderingFieldBuilder extends BaseFieldBuilder {
     return field;
   }
 }
-
-const FromJSONOrderingFieldBuilder =
-  createFromJSONFieldBuilder(OrderingFieldBuilder);
 
 class DateFieldBuilder extends BaseFieldBuilder {
   finish(): Field {
@@ -2633,8 +2370,6 @@ class DateFieldBuilder extends BaseFieldBuilder {
   }
 }
 
-const FromJSONDateFieldBuilder = createFromJSONFieldBuilder(DateFieldBuilder);
-
 class TimeFieldBuilder extends BaseFieldBuilder {
   finish(): Field {
     const field = new TimeField(this._name, this._displayName);
@@ -2643,8 +2378,6 @@ class TimeFieldBuilder extends BaseFieldBuilder {
   }
 }
 
-const FromJSONTimeFieldBuilder = createFromJSONFieldBuilder(TimeFieldBuilder);
-
 class TimestampFieldBuilder extends BaseFieldBuilder {
   finish(): Field {
     const field = new TimestampField(this._name, this._displayName);
@@ -2652,10 +2385,6 @@ class TimestampFieldBuilder extends BaseFieldBuilder {
     return field;
   }
 }
-
-const FromJSONTimestampFieldBuilder = createFromJSONFieldBuilder(
-  TimestampFieldBuilder,
-);
 
 class TxFieldBuilder extends BaseFieldBuilder {
   finish(): Field {
@@ -2732,9 +2461,6 @@ class StringFieldBuilder extends BaseFieldBuilder {
   }
 }
 
-const FromJSONStringFieldBuilder =
-  createFromJSONFieldBuilder(StringFieldBuilder);
-
 class ForeignKeyFieldBuilder extends BaseFieldBuilder {
   #table: string;
   #onDelete: yom.OnDeleteBehavior = "Cascade";
@@ -2776,8 +2502,6 @@ class EnumFieldBuilder extends BaseFieldBuilder {
   }
 }
 
-const FromJSONEnumFieldBuilder = createFromJSONFieldBuilder(EnumFieldBuilder);
-
 export type HelperScalarType =
   | yom.ScalarType
   | yom.SimpleScalarTypes
@@ -2814,7 +2538,7 @@ export interface ScalarFunction {
   returnType: yom.ScalarType;
 }
 
-export interface TableFunction { }
+export interface TableFunction {}
 
 export interface EnumValue {
   name: string;
@@ -2913,13 +2637,13 @@ export interface SimpleRfn {
 
 export type BoolRfn =
   | {
-    name: string;
-    trues: string[];
-  }
+      name: string;
+      trues: string[];
+    }
   | {
-    name: string;
-    falses: string[];
-  };
+      name: string;
+      falses: string[];
+    };
 
 export interface HelperEnum {
   name: string;
@@ -2929,11 +2653,11 @@ export interface HelperEnum {
   values: (
     | string
     | {
-      name: string;
-      displayName?: string;
-      renameFrom?: string;
-      description?: string;
-    }
+        name: string;
+        displayName?: string;
+        renameFrom?: string;
+        description?: string;
+      }
   )[];
   withSimpleRfns?: SimpleRfn[];
   withBoolRfns?: BoolRfn[];

@@ -1,15 +1,16 @@
 import { test, expect } from "@playwright/test";
-import { testSetup } from "../utils";
+import { gotoHomePage, testSetup } from "../utils";
 
 testSetup();
 
 test("renders home page", async ({ page }) => {
-  await page.goto(".");
+  await gotoHomePage(page, "Tutorial");
   await expect(page.getByText("hello world!")).toBeVisible();
 });
 
 test("add contact", async ({ page }) => {
-  await page.goto("./contacts");
+  await gotoHomePage(page, "Tutorial");
+  await page.getByText("Contacts").click();
   await page.getByLabel("Add").click();
   await page.getByLabel("First Name").fill("Justin");
   await page.getByLabel("Last Name").fill("Haug");

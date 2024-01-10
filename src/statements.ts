@@ -61,8 +61,8 @@ export abstract class StatementsBase<Statement extends object> {
         typeof queryOrFields === "string"
           ? queryOrFields
           : typeof query === "string"
-            ? query
-            : undefined,
+          ? query
+          : undefined,
       fields: Array.isArray(queryOrFields) ? queryOrFields : undefined,
     } as yom.TableDeclaration as any);
     return this;
@@ -172,9 +172,9 @@ export abstract class StatementsBase<Statement extends object> {
     } else if (s === this) {
       throw new Error(
         "Cannot call any helper functions with itself, i.e. \n" +
-        " const statements = new BasicStatements();\n" +
-        "statements.statements(statements); statements.if('true', statements);\n" +
-        "You did something like the above",
+          " const statements = new BasicStatements();\n" +
+          "statements.statements(statements); statements.if('true', statements);\n" +
+          "You did something like the above",
       );
     } else if (s) {
       return s[BACKING_ARRAY] as any;
@@ -309,7 +309,7 @@ export abstract class StatementsBase<Statement extends object> {
   }
 
   forEachQuery(
-    table: string,
+    query: yom.SqlQuery,
     cursorName: string,
     body: StatementsOrFn<this>,
   ): this;
@@ -593,7 +593,7 @@ interface AddUsersOpts {
    *
    * notification_type: string (either "none" or "new_app" or "user")
    */
-  query: yom.SqlQuery
+  query: yom.SqlQuery;
   /**
    * @default "added_user"
    *
@@ -605,7 +605,7 @@ interface AddUsersOpts {
    *
    * global_id: uuid (id of the user in yolm's authentication system)
    */
-  outputTable?: string
+  outputTable?: string;
 }
 
 export type ServiceStatementsOrFn = StatementsOrFn<ServiceStatements>;
@@ -834,14 +834,6 @@ export class EndpointStatements extends StatementsBase<yom.ApiEndpointStatement>
     return this;
   }
 
-  returnJSON(f: (helper: ToJSONHelper) => yom.ToJSON) {
-    this.pushToBacking({
-      t: "ReturnJSON",
-      json: f(new ToJSONHelper()),
-    });
-    return this;
-  }
-
   setHttpStatus(status: yom.SqlExpression) {
     this.pushToBacking({ t: "SetHttpStatus", status });
     return this;
@@ -855,39 +847,6 @@ export class EndpointStatements extends StatementsBase<yom.ApiEndpointStatement>
   setHeader(name: yom.SqlExpression, value: yom.SqlExpression) {
     this.pushToBacking({ t: "SetHeader", name, value });
     return this;
-  }
-}
-
-export class ToJSONHelper {
-  scalar(expr: yom.SqlExpression): yom.ToHierarchyScalar {
-    return { type: "Scalar", expr };
-  }
-
-  object(fields: yom.ToHierarchyField[]): yom.ToHierarchyObject {
-    return { type: "Object", fields };
-  }
-
-  if(
-    condition: yom.SqlExpression,
-    then: yom.ToJSON,
-  ): yom.ToHierarchyConditional {
-    return { type: "If", condition, then };
-  }
-
-  each(
-    table: string,
-    recordName: string,
-    children: yom.ToJSON,
-  ): yom.ToHierarchyEach {
-    return { type: "Each", table, recordName, children };
-  }
-
-  state(s: BasicStatementsOrFn, children: yom.ToJSON): yom.ToHierarchyState {
-    return {
-      type: "State",
-      procedure: BasicStatements.normalizeToArray(s),
-      children,
-    };
   }
 }
 

@@ -32,7 +32,7 @@ export function fetchWithTimeout(request: Request, timeOutMs: number) {
 
 export async function getModel() {
   const start = performance.now();
-  await runTsOrJsFile(path.join(process.cwd(), "system.ts"));
+  await runTsOrJsFile("system");
   const { system } = await import("../dist/index");
   const yom = system.generateYom();
   console.log(
@@ -42,22 +42,23 @@ export async function getModel() {
   return yom;
 }
 
-async function runTsOrJsFile(path: string) {
-  if (await Bun.file(path).exists()) {
-    await import("file:///" + path);
+async function runTsOrJsFile(fileBase: string) {
+  const tsPath = path.join(process.cwd(), fileBase + ".ts");
+  if (await Bun.file(tsPath).exists()) {
+    await import("file:///" + tsPath);
     return;
   }
-  const jsPath = path.replace(".ts", ".js");
+  const jsPath = path.join(process.cwd(), fileBase + ".js");
   if (await Bun.file(jsPath).exists()) {
     await import("file:///" + jsPath);
     return;
   }
-  throw new Error("No scripts.ts or scripts.js file found");
+  throw new Error("No file find at " + tsPath + " or " + jsPath);
 }
 
 export async function getScriptModel() {
   const start = performance.now();
-  await runTsOrJsFile(path.join(process.cwd(), "script.ts"));
+  await runTsOrJsFile("scripts");
   const { system } = await import("../dist/index");
   const yom = system.generateYom();
   console.log(
@@ -69,7 +70,7 @@ export async function getScriptModel() {
 
 export async function getTestModel() {
   const start = performance.now();
-  await runTsOrJsFile(path.join(process.cwd(), "test.ts"));
+  await runTsOrJsFile("test");
   const { system } = await import("../dist/index");
   const yom = system.generateYom();
   console.log(
