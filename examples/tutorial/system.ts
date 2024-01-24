@@ -2,7 +2,8 @@ import { system } from "@yolm/boost";
 const { db } = system;
 
 system.name = "tutorial";
-system.region = "us-miami"
+system.region = "us-miami";
+system.replicas = [{ region: "us-dallas", vcpus: 1 }];
 
 db.addTable("contact", (table) => {
   table.string("first_name", 50).notNull();
