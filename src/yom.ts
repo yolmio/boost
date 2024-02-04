@@ -22,6 +22,7 @@ export interface Model {
   scriptDbs?: ScriptDb[];
   test?: TestModel;
   api?: AppApi;
+  migration?: Migration;
 }
 
 export type VCpus = 1 | 2 | 4 | 8 | 16;
@@ -2302,7 +2303,6 @@ export interface AddUsersStatement {
    *
    * Expects a query with the folloiwng fields:
    *
-   * db_id: biguint (id of the user in the database)
    * eamil: string (email of the user, will be sent an email and invited to yolm)
    * notification_type: string (either "none" or "new_app" or "user")
    */
@@ -2312,7 +2312,6 @@ export interface AddUsersStatement {
    *
    * It has the following fields:
    *
-   * db_id: biguint (id of the user in the database)
    * global_id: uuid (id of the user in yolm's authentication system)
    */
   outputTable?: string;
@@ -2425,6 +2424,12 @@ export type ScriptStatement =
   | ScriptCommitTransactionStatement
   | ScriptStartTransactionDbStatement
   | ScriptRollbackTransactionStatement;
+
+export interface Migration {
+  previousDbName: string;
+  previousDbDir: string;
+  procedure: ScriptStatement[];
+}
 
 ///
 /// TEST

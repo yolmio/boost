@@ -16,7 +16,7 @@ system.addScript("init-db", (s) =>
   s
     .addUsers({
       app: "tutorial",
-      query: `select * from (values(next_record_id(db.user), 'none', 'test@yolm.io')) as user(db_id, notification_type, email)`
+      query: `select * from (values('none', 'test@yolm.io')) as user(notification_type, email)`,
     })
     .startTransaction("db")
     .modify(

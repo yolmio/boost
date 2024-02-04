@@ -17,6 +17,7 @@ db.catalog.addNotesTable("contact");
 db.catalog.addAttachmentsTable("contact");
 
 const app = system.addApp("tutorial", "Tutorial");
+app.executionConfig = { canDownload: true };
 
 app.title = "Tutorial";
 

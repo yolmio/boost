@@ -581,13 +581,16 @@ app.addSimpleDatagridPage("employee", (page) => {
       t.insertDialog({
         beforeTransactionCommit: (state, s) =>
           s
-            .addUsers(
-              `select ${state.field("email").value
-              } as email, next_record_id(db.user) as db_id, 'none' as notification_type`,
-              "added_user",
-            )
+            .addUsers({
+              app: "legal",
+              query: `select ${
+                state.field("email").value
+              } as email, 'none' as notification_type`,
+              outputTable: "added_user",
+            })
             .modify(
-              `insert into db.user (global_id, is_sys_admin, is_admin, disabled, email, employee) values ((select global_id from added_user), false, false, false, ${state.field("email").value
+              `insert into db.user (global_id, is_sys_admin, is_admin, disabled, email, employee) values ((select global_id from added_user), false, false, false, ${
+                state.field("email").value
               }, last_record_id(db.employee))`,
             ),
       }),
@@ -622,7 +625,8 @@ app.addSimpleDatagridPage("user", (page) => {
         beforeTransactionStart: (state, s) =>
           s
             .addUsers(
-              `select next_record_id(db.user) as db_id, 'none' as notification_type, ${state.field("email").value
+              `select 'none' as notification_type, ${
+                state.field("email").value
               } as email`,
             )
             .scalar(`new_global_id`, `(select global_id from added_user)`),

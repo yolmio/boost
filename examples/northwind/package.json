@@ -12,6 +12,7 @@
     "save-script": "bun node_modules/@yolm/boost/scripts/saveScript.ts",
     "script": "bun node_modules/@yolm/boost/scripts/script.ts",
     "deploy": "bun node_modules/@yolm/boost/scripts/deploy.ts",
+    "migrate": "bun node_modules/@yolm/boost/scripts/migrate.ts",
     "test": "bun node_modules/@yolm/boost/scripts/test.ts"
   }
 }

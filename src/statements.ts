@@ -587,8 +587,6 @@ interface AddUsersOpts {
   /**
    * Expects a sql query with the following fields:
    *
-   * db_id: biguint (id of the user in the database)
-   *
    * eamil: string (email of the user, will be sent an email and invited to yolm)
    *
    * notification_type: string (either "none" or "new_app" or "user")
@@ -600,8 +598,6 @@ interface AddUsersOpts {
    * The name of the table that should be created to store the users that have been added.
    *
    * It has the following fields:
-   *
-   * db_id: biguint (id of the user in the database)
    *
    * global_id: uuid (id of the user in yolm's authentication system)
    */

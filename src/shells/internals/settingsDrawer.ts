@@ -180,19 +180,19 @@ export function settingsDrawer(opts: SettingsDrawerOpts) {
           }),
         ],
       }),
-      // nodes.element("p", {
-      //   children: `'Prefer db download: ' || coalesce(cast(ui.prefer_db_download as string), 'not set')`,
-      // }),
-      // button({
-      //   children: `'Toggle db download'`,
-      //   on: {
-      //     click: (s) =>
-      //       s.setScalar(
-      //         `ui.prefer_db_download`,
-      //         `case when ui.prefer_db_download then false when not ui.prefer_db_download then null else true end`
-      //       ),
-      //   },
-      // }),
+      nodes.element("p", {
+        children: `'Prefer db download: ' || coalesce(cast(ui.prefer_db_download as string), 'not set')`,
+      }),
+      button({
+        children: `'Toggle db download'`,
+        on: {
+          click: (s) =>
+            s.setScalar(
+              `ui.prefer_db_download`,
+              `case when ui.prefer_db_download then false when not ui.prefer_db_download then null else true end`,
+            ),
+        },
+      }),
       nodes.state({
         procedure: (s) =>
           s.scalar(

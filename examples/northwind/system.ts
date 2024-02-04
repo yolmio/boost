@@ -437,12 +437,14 @@ app.addSimpleDatagridPage("employee", (page) => {
           beforeTransactionCommit: (state, s) =>
             s
               .addUsers(
-                `select ${state.field("email").value
-                } as email, next_record_id(db.user) as db_id, 'none' as notification_type`,
+                `select ${
+                  state.field("email").value
+                } as email, 'none' as notification_type`,
                 "added_user",
               )
               .modify(
-                `insert into db.user (global_id, is_sys_admin, is_admin, disabled, email, employee) values ((select global_id from added_user), false, false, false, ${state.field("email").value
+                `insert into db.user (global_id, is_sys_admin, is_admin, disabled, email, employee) values ((select global_id from added_user), false, false, false, ${
+                  state.field("email").value
                 }, last_record_id(db.employee))`,
               ),
         }),
@@ -459,7 +461,7 @@ app.addSimpleDatagridPage("employee", (page) => {
             s
               .removeUsers(`select global_id from db.user where id = user_id`)
               .addUsers(
-                `select ${newValue} as email, user_id as db_id, 'none' as notification_type`,
+                `select ${newValue} as email, 'none' as notification_type`,
                 `added_user`,
               )
               .modify(
@@ -503,7 +505,8 @@ app.addSimpleDatagridPage("user", (page) => {
         beforeTransactionStart: (state, s) =>
           s
             .addUsers(
-              `select next_record_id(db.user) as db_id, 'none' as notification_type, ${state.field("email").value
+              `select 'none' as notification_type, ${
+                state.field("email").value
               } as email`,
             )
             .scalar(`new_global_id`, `(select global_id from added_user)`),
@@ -520,7 +523,7 @@ app.addSimpleDatagridPage("user", (page) => {
           else: (s) =>
             s
               .addUsers(
-                `select email, id as db_id, 'none' as notification_type from db.user where id = ${recordId}`,
+                `select email, 'none' as notification_type from db.user where id = ${recordId}`,
                 `added_user`,
               )
               .modify(
@@ -540,7 +543,7 @@ app.addSimpleDatagridPage("user", (page) => {
           )
           .removeUsers(`select global_id from db.user where id = ${recordId}`)
           .addUsers(
-            `select ${newValue} as email, ${recordId} as db_id, 'none' as notification_type`,
+            `select ${newValue} as email, 'none' as notification_type`,
             `added_user`,
           )
           .modify(
@@ -603,7 +606,8 @@ app.addInsertFormPage({
                     ])
                     .serviceProc((s) =>
                       s.modify(
-                        `insert into customer select company_name as name, * from db.customer where id = ${state.field("customer").value
+                        `insert into customer select company_name as name, * from db.customer where id = ${
+                          state.field("customer").value
                         }`,
                       ),
                     )
@@ -681,13 +685,14 @@ app.addInsertFormPage({
                         .serviceProc((s) =>
                           s.setScalar(
                             "product_unit_price",
-                            `(select unit_price from db.product where id = ${cursor.field("product").value
+                            `(select unit_price from db.product where id = ${
+                              cursor.field("product").value
                             })`,
                           ),
                         )
                         .if(
                           `product_unit_price is not null and not ` +
-                          cursor.field("unit_price").touched,
+                            cursor.field("unit_price").touched,
                           (s) =>
                             s
                               .statements(
@@ -779,13 +784,14 @@ app.addRecordGridPage("order", (page) => {
                       .serviceProc((s) =>
                         s.setScalar(
                           "product_unit_price",
-                          `(select unit_price from db.product where id = ${state.field("product").value
+                          `(select unit_price from db.product where id = ${
+                            state.field("product").value
                           })`,
                         ),
                       )
                       .if(
                         `product_unit_price is not null and not ` +
-                        state.field("unit_price").touched,
+                          state.field("unit_price").touched,
                         (s) =>
                           s
                             .statements(

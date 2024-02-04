@@ -106,6 +106,7 @@ export class System {
   scripts: yom.Script[] = [];
   scriptDbs: ScriptDb[] = [];
   currentAppName?: string;
+  migration?: yom.Migration;
 
   get currentApp() {
     return this.currentAppName ? this.apps[this.currentAppName] : undefined;
@@ -220,8 +221,12 @@ export class System {
     });
   }
 
-  addMigrationScript(opts: MigrationScriptOpts) {
-    addMigrationScript(opts);
+  setMigration(previousDbDir: string, procedure: ScriptStatementsOrFn) {
+    this.migration = {
+      previousDbDir,
+      previousDbName: "prev",
+      procedure: ScriptStatements.normalizeToArray(procedure),
+    };
   }
 
   generateYom(): yom.Model {
@@ -291,6 +296,7 @@ export class System {
           };
         }
       }),
+      migration: this.migration,
     };
   }
 }
