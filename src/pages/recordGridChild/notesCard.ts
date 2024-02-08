@@ -63,7 +63,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
               iconButton({
                 variant: "plain",
                 size: "sm",
-                ariaLabel: `case editing: 'Cancel edit' else 'Edit note' end`,
+                ariaLabel: `case when editing then 'Cancel edit' else 'Edit note' end`,
                 children: nodes.if({
                   condition: `editing`,
                   then: materialIcon("Close"),
@@ -79,8 +79,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
             procedure: (s) =>
               s.scalar(
                 `note`,
-                `(select notes from db.${ident(ctx.table.name)} where id = ${
-                  ctx.recordId
+                `(select notes from db.${ident(ctx.table.name)} where id = ${ctx.recordId
                 })`,
               ),
             children: nodes.if({
@@ -139,8 +138,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                                         .modify(
                                           `update db.${ident(
                                             ctx.table.name,
-                                          )} set notes = ui.editing_note where id = ${
-                                            ctx.recordId
+                                          )} set notes = ui.editing_note where id = ${ctx.recordId
                                           }`,
                                         )
                                         .commitTransaction()

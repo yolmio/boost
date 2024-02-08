@@ -61,8 +61,8 @@ export abstract class StatementsBase<Statement extends object> {
         typeof queryOrFields === "string"
           ? queryOrFields
           : typeof query === "string"
-          ? query
-          : undefined,
+            ? query
+            : undefined,
       fields: Array.isArray(queryOrFields) ? queryOrFields : undefined,
     } as yom.TableDeclaration as any);
     return this;
@@ -172,9 +172,9 @@ export abstract class StatementsBase<Statement extends object> {
     } else if (s === this) {
       throw new Error(
         "Cannot call any helper functions with itself, i.e. \n" +
-          " const statements = new BasicStatements();\n" +
-          "statements.statements(statements); statements.if('true', statements);\n" +
-          "You did something like the above",
+        " const statements = new BasicStatements();\n" +
+        "statements.statements(statements); statements.if('true', statements);\n" +
+        "You did something like the above",
       );
     } else if (s) {
       return s[BACKING_ARRAY] as any;
@@ -662,6 +662,11 @@ export class ServiceStatements extends StatementsBase<yom.ServiceProcStatement> 
    */
   addUsers(opts: AddUsersOpts) {
     this.pushToBacking({ t: "AddUsers", ...opts });
+    return this;
+  }
+
+  removeUsers(app: string, userIds: yom.SqlQuery) {
+    this.pushToBacking({ t: "RemoveUsers", app, query: userIds });
     return this;
   }
 

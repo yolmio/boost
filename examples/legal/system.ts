@@ -3,6 +3,7 @@ import { system, colors, colorUtils, components, nodes } from "@yolm/boost";
 const { db } = system;
 
 system.name = "legal";
+system.region = "us-miami"
 
 //
 // DATABASE
@@ -412,7 +413,7 @@ app.addUpdateFormPage({
     type: "TwoColumnSectioned",
     sections: contactFormSections,
   },
-  afterTransactionCommit: (_, s) => s.navigate(`'/contacts/' || app.record_id`),
+  afterTransactionCommit: (_, s) => s.navigate(`'/contacts/' || ui.record_id`),
 });
 
 const contactDatagridPage = app.createDatagridPageNode("contact", (page) => {
@@ -488,7 +489,7 @@ app.addRecordGridPage("contact", (page) =>
       dateField: "date",
       timelineHeader: `'Timeline'`,
       additionalState: (s) =>
-        s.scalar(`remaining_minutes`, `sfn.remaining_minutes(app.record_id)`),
+        s.scalar(`remaining_minutes`, `sfn.remaining_minutes(ui.record_id)`),
       afterHeaderNode: nodes.element("div", {
         styles: { display: "flex", gap: 2, pt: 1, px: 1 },
         children: [
@@ -583,14 +584,12 @@ app.addSimpleDatagridPage("employee", (page) => {
           s
             .addUsers({
               app: "legal",
-              query: `select ${
-                state.field("email").value
-              } as email, 'none' as notification_type`,
+              query: `select ${state.field("email").value
+                } as email, 'none' as notification_type`,
               outputTable: "added_user",
             })
             .modify(
-              `insert into db.user (global_id, is_sys_admin, is_admin, disabled, email, employee) values ((select global_id from added_user), false, false, false, ${
-                state.field("email").value
+              `insert into db.user (global_id, is_sys_admin, is_admin, disabled, email, employee) values ((select global_id from added_user), false, false, false, ${state.field("email").value
               }, last_record_id(db.employee))`,
             ),
       }),
@@ -605,10 +604,11 @@ app.addSimpleDatagridPage("employee", (page) => {
           .modify(`update db.user set email = ${newValue} where id = user_id`)
           .if(`not (select disabled from db.user where id = user_id)`, (s) =>
             s
-              .removeUsers(`select global_id from db.user where id = user_id`)
-              .addUsers(
-                `select ${newValue} as email, user_id as db_id, 'none' as notification_type`,
-                `added_user`,
+              .removeUsers("legal", `select global_id from db.user where id = user_id`)
+              .addUsers({
+                app: "legal",
+                query: `select ${newValue} as email, user_id as db_id, 'none' as notification_type`,
+              }
               )
               .modify(
                 `update db.user set global_id = (select global_id from added_user) where id = user_id`,
@@ -625,9 +625,11 @@ app.addSimpleDatagridPage("user", (page) => {
         beforeTransactionStart: (state, s) =>
           s
             .addUsers(
-              `select 'none' as notification_type, ${
-                state.field("email").value
-              } as email`,
+              {
+                app: "legal",
+                query: `select 'none' as notification_type, ${state.field("email").value} as email`
+              }
+              ,
             )
             .scalar(`new_global_id`, `(select global_id from added_user)`),
       }),
@@ -638,13 +640,15 @@ app.addSimpleDatagridPage("user", (page) => {
           condition: newValue,
           then: (s) =>
             s.removeUsers(
+              "legal",
               `select global_id from db.user where id = ${recordId}`,
             ),
           else: (s) =>
             s
-              .addUsers(
-                `select email, id as db_id, 'none' as notification_type from db.user where id = ${recordId}`,
-                `added_user`,
+              .addUsers({
+                app: "legal",
+                query: `select email, id as db_id, 'none' as notification_type from db.user where id = ${recordId}`
+              }
               )
               .modify(
                 `update db.user set global_id = (select global_id from added_user) where id = ${recordId}`,
@@ -661,10 +665,12 @@ app.addSimpleDatagridPage("user", (page) => {
           .modify(
             `update db.employee set email = ${newValue} where id = employee`,
           )
-          .removeUsers(`select global_id from db.user where id = ${recordId}`)
-          .addUsers(
-            `select ${newValue} as email, ${recordId} as db_id, 'none' as notification_type`,
-            `added_user`,
+          .removeUsers("legal", `select global_id from db.user where id = ${recordId}`)
+          .addUsers({
+            app: "legal",
+            query: `select ${newValue} as email, ${recordId} as db_id, 'none' as notification_type`,
+          }
+            ,
           )
           .modify(
             `update db.user set global_id = (select global_id from added_user) where id = ${recordId}`,
@@ -812,7 +818,7 @@ app.addMultiCardInsert({
           variant: "soft",
           color: "success",
           children: `'Click here to add more'`,
-          on: { click: (s) => s.setScalar(`app.added`, `false`) },
+          on: { click: (s) => s.setScalar(`ui.added`, `false`) },
         }),
       ],
     }),
@@ -824,10 +830,10 @@ app.addMultiCardInsert({
   afterSubmitClient: (_, s) =>
     s
       .setScalar(
-        `app.added_minutes`,
-        `(select sum(sfn.parse_minutes_duration(minutes)) from app.time_entry)`,
+        `ui.added_minutes`,
+        `(select sum(sfn.parse_minutes_duration(minutes)) from ui.time_entry)`,
       )
-      .setScalar(`app.added_entries`, `(select count(*) from app.time_entry)`),
+      .setScalar(`ui.added_entries`, `(select count(*) from ui.time_entry)`),
 });
 
 app.addSimpleReportsPage((page) => {
