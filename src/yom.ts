@@ -7,7 +7,7 @@ export interface Model {
   region: Region;
   replicas: Replica[];
   vcpus: VCpus;
-  memoryMb: MemoryMb;
+  memoryGb: MemoryGb;
   /** Must be either 1 or divisible by 100 */
   fileSizeGb: number;
   collation: Collation;
@@ -26,16 +26,7 @@ export interface Model {
 }
 
 export type VCpus = 1 | 2 | 4 | 8 | 16;
-export type MemoryMb =
-  | 512
-  | 1_024
-  | 2_048
-  | 4_096
-  | 8_192
-  | 16_384
-  | 32_768
-  | 65_536
-  | 131_072;
+export type MemoryGb = 1 | 2 | 4 | 8 | 16 | 32 | 64 | 128;
 
 export type Region =
   | "us-new-york"

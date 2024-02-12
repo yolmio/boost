@@ -3,7 +3,7 @@ import { system, colors, colorUtils, components, nodes } from "@yolm/boost";
 const { db } = system;
 
 system.name = "legal";
-system.region = "us-miami"
+system.region = "us-miami";
 
 //
 // DATABASE
@@ -11,6 +11,7 @@ system.region = "us-miami"
 
 db.addTable("user", (table) => {
   table.catalog.addRequiredUserFields();
+  table.bool("disabled").notNull().default("false");
   table.bool("is_sys_admin").notNull().default("false");
   table.bool("is_admin").notNull().default("false");
   table.fk("employee");
@@ -584,12 +585,14 @@ app.addSimpleDatagridPage("employee", (page) => {
           s
             .addUsers({
               app: "legal",
-              query: `select ${state.field("email").value
-                } as email, 'none' as notification_type`,
+              query: `select ${
+                state.field("email").value
+              } as email, 'none' as notification_type`,
               outputTable: "added_user",
             })
             .modify(
-              `insert into db.user (global_id, is_sys_admin, is_admin, disabled, email, employee) values ((select global_id from added_user), false, false, false, ${state.field("email").value
+              `insert into db.user (global_id, is_sys_admin, is_admin, disabled, email, employee) values ((select global_id from added_user), false, false, false, ${
+                state.field("email").value
               }, last_record_id(db.employee))`,
             ),
       }),
@@ -604,12 +607,14 @@ app.addSimpleDatagridPage("employee", (page) => {
           .modify(`update db.user set email = ${newValue} where id = user_id`)
           .if(`not (select disabled from db.user where id = user_id)`, (s) =>
             s
-              .removeUsers("legal", `select global_id from db.user where id = user_id`)
+              .removeUsers(
+                "legal",
+                `select global_id from db.user where id = user_id`,
+              )
               .addUsers({
                 app: "legal",
                 query: `select ${newValue} as email, user_id as db_id, 'none' as notification_type`,
-              }
-              )
+              })
               .modify(
                 `update db.user set global_id = (select global_id from added_user) where id = user_id`,
               ),
@@ -624,13 +629,12 @@ app.addSimpleDatagridPage("user", (page) => {
         withValues: { global_id: "new_global_id", disabled: "false" },
         beforeTransactionStart: (state, s) =>
           s
-            .addUsers(
-              {
-                app: "legal",
-                query: `select 'none' as notification_type, ${state.field("email").value} as email`
-              }
-              ,
-            )
+            .addUsers({
+              app: "legal",
+              query: `select 'none' as notification_type, ${
+                state.field("email").value
+              } as email`,
+            })
             .scalar(`new_global_id`, `(select global_id from added_user)`),
       }),
     )
@@ -647,9 +651,8 @@ app.addSimpleDatagridPage("user", (page) => {
             s
               .addUsers({
                 app: "legal",
-                query: `select email, id as db_id, 'none' as notification_type from db.user where id = ${recordId}`
-              }
-              )
+                query: `select email, id as db_id, 'none' as notification_type from db.user where id = ${recordId}`,
+              })
               .modify(
                 `update db.user set global_id = (select global_id from added_user) where id = ${recordId}`,
               ),
@@ -665,13 +668,14 @@ app.addSimpleDatagridPage("user", (page) => {
           .modify(
             `update db.employee set email = ${newValue} where id = employee`,
           )
-          .removeUsers("legal", `select global_id from db.user where id = ${recordId}`)
+          .removeUsers(
+            "legal",
+            `select global_id from db.user where id = ${recordId}`,
+          )
           .addUsers({
             app: "legal",
             query: `select ${newValue} as email, ${recordId} as db_id, 'none' as notification_type`,
-          }
-            ,
-          )
+          })
           .modify(
             `update db.user set global_id = (select global_id from added_user) where id = ${recordId}`,
           ),

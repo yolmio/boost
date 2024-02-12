@@ -92,7 +92,7 @@ export class System {
   collation = "NoCase" as yom.Collation;
   autoTrim = "None" as yom.AutoTrim;
   vcpus: yom.VCpus = 1;
-  memoryMb: yom.MemoryMb = 1024;
+  memoryGb: yom.MemoryGb = 1;
   fileSizeGb: number = 1;
   db: Db = new Db();
   apps: Record<string, App> = {};
@@ -253,7 +253,7 @@ export class System {
       replicas: this.replicas,
       name: this.name,
       vcpus: this.vcpus,
-      memoryMb: this.memoryMb,
+      memoryGb: this.memoryGb,
       fileSizeGb: this.fileSizeGb,
       collation: this.collation,
       db: this.db.generateYom(),
@@ -1932,7 +1932,6 @@ export class TableCatalog {
    */
   addRequiredUserFields() {
     this.#table.uuid(`global_id`).notNull().unique();
-    this.#table.bool("disabled").notNull().default("false");
     this.#table.string("email", 320).unique();
   }
 
