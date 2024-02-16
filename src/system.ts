@@ -1,12 +1,7 @@
 import * as yom from "./yom";
 import { Theme } from "./theme";
 import { createTheme, ThemeOpts } from "./createTheme";
-import {
-  camelize,
-  normalizeCase,
-  pluralize,
-  upcaseFirst,
-} from "./utils/inflectors";
+import { normalizeCase, pluralize, upcaseFirst } from "./utils/inflectors";
 import {
   ApiTestStatements,
   ApiTestStatementsOrFn,
@@ -45,13 +40,13 @@ import {
   MultiCardInsertPageOpts,
 } from "./pages/multiCardInsert";
 import { ComponentOpts } from "./components/types";
-import { addMigrationScript, MigrationScriptOpts } from "./migrate";
 import { KeyFrames, NodeTransformer } from "./nodeTransform";
 import { SequentialIDGenerator } from "./utils/SequentialIdGenerator";
 import { escapeHtml } from "./utils/escapeHtml";
 import { default404Page } from "./pages/default404";
 import { snackbar, SnackbarOpts } from "./components";
 import { nodes } from "./nodeHelpers";
+import { createLogin } from "./login";
 
 /**
  * The app singleton.
@@ -346,6 +341,9 @@ export class App {
   theme: Theme = createTheme();
   shell?: (pages: Node) => Node;
   pages: Page[] = [];
+  domain?: string;
+  loginHtml?: string;
+  loginCss?: string;
 
   #globalStyles: StyleObject[] = [];
   #keyframeIdGen = new SequentialIDGenerator();
@@ -608,6 +606,11 @@ export class App {
     if (!this.webAppConfig.manifest.name) {
       this.webAppConfig.manifest.name = this.displayName;
     }
+    if (this.domain && !(this.loginHtml && this.loginCss)) {
+      const login = createLogin({});
+      this.loginHtml = login.html;
+      this.loginCss = login.css;
+    }
     return {
       name: this.name,
       displayName: this.displayName,
@@ -615,6 +618,9 @@ export class App {
       pollingPullConfig: this.pollingPullConfig,
       executionConfig: this.executionConfig,
       htmlHead: htmlHead,
+      domain: this.domain,
+      loginHtml: this.loginHtml,
+      loginCss: this.loginCss,
       tree,
       css: transformer.getCss(),
       deviceDb: {

@@ -1552,7 +1552,9 @@ export interface AppModel {
   displayName: string;
   pollingPullConfig?: PollingPullConfig;
   executionConfig?: AppDbExecutionConfig;
-  appDomain?: string;
+  domain?: string;
+  loginHtml?: string;
+  loginCss?: string;
   htmlHead: string;
   pwaManifest: object;
   css: string;
@@ -2394,6 +2396,12 @@ export interface ScriptRollbackTransactionStatement {
   db: string;
 }
 
+export interface ExportQueryToCsvStatement {
+  t: "ExportQueryToCsv";
+  query: SqlQuery;
+  file: string;
+}
+
 export type ScriptStatement =
   | BaseStatement
   | IfStatement<ScriptStatement>
@@ -2414,7 +2422,8 @@ export type ScriptStatement =
   | CompactStatement
   | ScriptCommitTransactionStatement
   | ScriptStartTransactionDbStatement
-  | ScriptRollbackTransactionStatement;
+  | ScriptRollbackTransactionStatement
+  | ExportQueryToCsvStatement;
 
 export interface Migration {
   previousDbName: string;

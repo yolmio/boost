@@ -61,8 +61,8 @@ export abstract class StatementsBase<Statement extends object> {
         typeof queryOrFields === "string"
           ? queryOrFields
           : typeof query === "string"
-            ? query
-            : undefined,
+          ? query
+          : undefined,
       fields: Array.isArray(queryOrFields) ? queryOrFields : undefined,
     } as yom.TableDeclaration as any);
     return this;
@@ -172,9 +172,9 @@ export abstract class StatementsBase<Statement extends object> {
     } else if (s === this) {
       throw new Error(
         "Cannot call any helper functions with itself, i.e. \n" +
-        " const statements = new BasicStatements();\n" +
-        "statements.statements(statements); statements.if('true', statements);\n" +
-        "You did something like the above",
+          " const statements = new BasicStatements();\n" +
+          "statements.statements(statements); statements.if('true', statements);\n" +
+          "You did something like the above",
       );
     } else if (s) {
       return s[BACKING_ARRAY] as any;
@@ -576,6 +576,37 @@ export class DomStatements extends StatementsBase<yom.DomProcStatement> {
   }
 }
 
+export interface RequestOpts {
+  uri: yom.SqlExpression;
+  method?:
+    | "'GET'"
+    | "'POST'"
+    | "'DELETE'"
+    | "'PUT'"
+    | "'PATCH'"
+    | yom.SqlExpression;
+  headers?: { name: yom.SqlExpression; value: yom.SqlExpression }[];
+  sendBody?: yom.SendBody;
+  receiveBody?: yom.ReceiveBody;
+  /**
+   * The name of the record for the response information.
+   *
+   * It has the following fields:
+   *
+   * status: number (the status code)
+   */
+  responseRecord?: string;
+  /**
+   * The name of the table for the response headers.
+   *
+   * It has the following fields:
+   *
+   * name: string
+   * value: string
+   */
+  responseHeadersTable?: string;
+}
+
 interface SpawnOpts<T> {
   procedure: StatementsOrFn<T>;
   detached?: boolean;
@@ -679,6 +710,15 @@ export class ServiceStatements extends StatementsBase<yom.ServiceProcStatement> 
     this.pushToBacking({ t: "SetQueryParam", param, value, replace });
     return this;
   }
+
+  request(info: RequestOpts) {
+    this.pushToBacking({
+      t: "Request",
+      ...info,
+      method: info.method ?? "'GET'",
+    });
+    return this;
+  }
 }
 
 export type StateStatementsOrFn = StatementsOrFn<StateStatements>;
@@ -692,6 +732,15 @@ export class StateStatements extends StatementsBase<yom.StateStatement> {
 
   static normalizeToArray(p: StateStatementsOrFn | undefined | null | false) {
     return StateStatements.normalize(p)[BACKING_ARRAY];
+  }
+
+  request(info: RequestOpts) {
+    this.pushToBacking({
+      t: "Request",
+      ...info,
+      method: info.method ?? "'GET'",
+    });
+    return this;
   }
 
   search(opts: Omit<yom.SearchStatement, "t">) {
@@ -770,6 +819,11 @@ export class ScriptStatements extends StatementsBase<yom.ScriptStatement> {
     this.pushToBacking({ t: "RollbackTransaction", db });
     return this;
   }
+
+  exportQueryToCsv(query: yom.SqlQuery, file: string) {
+    this.pushToBacking({ t: "ExportQueryToCsv", query, file });
+    return this;
+  }
 }
 
 export type EndpointStatementsOrFn = StatementsOrFn<EndpointStatements>;
@@ -819,6 +873,15 @@ export class EndpointStatements extends StatementsBase<yom.ApiEndpointStatement>
 
   search(opts: Omit<yom.SearchStatement, "t">) {
     this.pushToBacking({ t: "Search", ...opts });
+    return this;
+  }
+
+  request(info: RequestOpts) {
+    this.pushToBacking({
+      t: "Request",
+      ...info,
+      method: info.method ?? "'GET'",
+    });
     return this;
   }
 
