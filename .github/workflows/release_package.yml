@@ -13,6 +13,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
       # Once https://github.com/oven-sh/setup-bun/pull/16 is merged we should use it instead
       - name: Setup Node.js
         uses: actions/setup-node@v3
