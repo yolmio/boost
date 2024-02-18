@@ -778,7 +778,7 @@ export class ScriptStatements extends StatementsBase<yom.ScriptStatement> {
   }
 
   loadDbFromDir(dir: string, db?: string) {
-    this.pushToBacking({ t: "LoadDb", dir, db });
+    this.pushToBacking({ t: "LoadDbFromDir", dir, db });
     return this;
   }
 
@@ -822,6 +822,11 @@ export class ScriptStatements extends StatementsBase<yom.ScriptStatement> {
 
   exportQueryToCsv(query: yom.SqlQuery, file: string) {
     this.pushToBacking({ t: "ExportQueryToCsv", query, file });
+    return this;
+  }
+
+  downloadBackup(dir: string, version?: yom.SqlExpression) {
+    this.pushToBacking({ t: "DownloadBackup", dir, version });
     return this;
   }
 }

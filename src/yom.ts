@@ -2267,14 +2267,14 @@ export interface ImportCsvStatement {
   dir: string;
 }
 
-export interface SaveDbStatement {
+export interface SaveDbToDirStatement {
   t: "SaveDbToDir";
   db?: string;
   dir: string;
 }
 
-export interface LoadDbStatement {
-  t: "LoadDb";
+export interface LoadDbFromDirStatement {
+  t: "LoadDbFromDir";
   db?: string;
   dir: string;
 }
@@ -2402,6 +2402,12 @@ export interface ExportQueryToCsvStatement {
   file: string;
 }
 
+export interface DownloadBackupStatement {
+  t: "DownloadBackup";
+  version?: SqlExpression;
+  dir: string;
+}
+
 export type ScriptStatement =
   | BaseStatement
   | IfStatement<ScriptStatement>
@@ -2413,9 +2419,9 @@ export type ScriptStatement =
   | TryStatement<ScriptStatement>
   | RemoveFilesStatement
   | UserStatement
-  | SaveDbStatement
+  | SaveDbToDirStatement
   | UploadDbStatement
-  | LoadDbStatement
+  | LoadDbFromDirStatement
   | ImportCsvStatement
   | PullStatement
   | PushStatement
@@ -2423,7 +2429,8 @@ export type ScriptStatement =
   | ScriptCommitTransactionStatement
   | ScriptStartTransactionDbStatement
   | ScriptRollbackTransactionStatement
-  | ExportQueryToCsvStatement;
+  | ExportQueryToCsvStatement
+  | DownloadBackupStatement;
 
 export interface Migration {
   previousDbName: string;
