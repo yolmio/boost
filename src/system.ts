@@ -328,7 +328,7 @@ export class App {
   /**
    * The title of the html document for this application
    */
-  title = "please-rename";
+  title: string;
   webAppConfig: WebAppConfig = {
     htmlHead: "",
     viewport: `width=device-width, initial-scale=1`,
@@ -350,7 +350,9 @@ export class App {
   #keyFrames: Map<KeyFrames, string> = new Map();
   #crosspageSnackbars: CrossPageSnackbar[] = [];
 
-  constructor(public name: string, public displayName: string) {}
+  constructor(public name: string, public displayName: string) {
+    this.title = displayName;
+  }
 
   //
   // Helper methods
