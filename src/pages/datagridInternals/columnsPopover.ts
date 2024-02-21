@@ -49,6 +49,7 @@ export function columnsPopover(state: DgStateHelpers, dts: SuperGridDts) {
             size: "sm",
             color: "primary",
             checked: `column_record.displaying`,
+            slots: { input: { props: { id: `column_record.id` } } },
             label: `rfn.${dts.idToColumnsDisplayName}(column_record.id)`,
             on: {
               click: (s) =>

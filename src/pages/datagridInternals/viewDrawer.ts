@@ -189,6 +189,9 @@ export function viewDrawer(datagridName: string, dts: DatagridRfns) {
                   color: "primary",
                   label: `'Personal'`,
                   size: "sm",
+                  slots: {
+                    input: { props: { id: `${viewIdBase} || '-personal'` } },
+                  },
                   on: {
                     checkboxChange: (s) =>
                       s.setScalar(`personal`, `target_checked`),

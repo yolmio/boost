@@ -326,16 +326,19 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
   const displayValues = opts.displayValues?.map((value) =>
     prepareDisplayValue(tableModel, value),
   );
-  system.currentApp!.deviceDb.addTable(`recent_${opts.table}_search`, (table) => {
-    table.bigUint("recent_search_id").notNull();
-    table.string("recent_search_label", 500).notNull();
-    table.timestamp("recent_search_timestamp").notNull();
-    if (displayValues) {
-      for (const v of displayValues) {
-        addDisplayValueToTable(table, v, v.name);
+  system.currentApp!.deviceDb.addTable(
+    `recent_${opts.table}_search`,
+    (table) => {
+      table.bigUint("recent_search_id").notNull();
+      table.string("recent_search_label", 500).notNull();
+      table.timestamp("recent_search_timestamp").notNull();
+      if (displayValues) {
+        for (const v of displayValues) {
+          addDisplayValueToTable(table, v, v.name);
+        }
       }
-    }
-  });
+    },
+  );
   const nameExpr = tableModel.recordDisplayName.expr(
     ...tableModel.recordDisplayName.fields.map((f) => `record.${f}`),
   );
@@ -669,30 +672,30 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
                                 }),
                                 displayValues
                                   ? nodes.element("div", {
-                                    styles: styles.displayValues,
-                                    children: displayValues.map((v, i) => {
-                                      const value =
-                                        `record.` + extraValuesIds[i];
-                                      return nodes.if(
-                                        value + ` is not null`,
-                                        nodes.element("div", {
-                                          styles: styles.optionExtraData,
-                                          children: [
-                                            nodes.element("p", {
-                                              styles:
-                                                styles.optionExtraDataLabel,
-                                              children: `${stringLiteral(
-                                                v.label,
-                                              )} || ':'`,
-                                            }),
-                                            nodes.element("span", {
-                                              children: v.display(value),
-                                            }),
-                                          ],
-                                        }),
-                                      );
-                                    }),
-                                  })
+                                      styles: styles.displayValues,
+                                      children: displayValues.map((v, i) => {
+                                        const value =
+                                          `record.` + extraValuesIds[i];
+                                        return nodes.if(
+                                          value + ` is not null`,
+                                          nodes.element("div", {
+                                            styles: styles.optionExtraData,
+                                            children: [
+                                              nodes.element("p", {
+                                                styles:
+                                                  styles.optionExtraDataLabel,
+                                                children: `${stringLiteral(
+                                                  v.label,
+                                                )} || ':'`,
+                                              }),
+                                              nodes.element("span", {
+                                                children: v.display(value),
+                                              }),
+                                            ],
+                                          }),
+                                        );
+                                      }),
+                                    })
                                   : undefined,
                               ],
                             }),
@@ -764,7 +767,7 @@ function calcMultiTable(tables: PreparedMultiTableSearchDialogTable[]) {
     if (!tableModel.getHrefToRecord) {
       throw new Error(
         "multiTableSearchDialog expects getHrefToRecord to exist, missing on " +
-        tableModel.name,
+          tableModel.name,
       );
     }
     if (!tableModel.searchConfig) {
@@ -942,6 +945,7 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
                 label: stringLiteral(
                   pluralize(system.db.tables[t.name].displayName),
                 ),
+                slots: { input: { props: { id: `'${t.name}_disabled'` } } },
                 color: "neutral",
                 variant: "outlined",
                 checkedVariation: {
@@ -1619,29 +1623,29 @@ export function recordSelectDialog(opts: RecordSelectDialog) {
                       }),
                       displayValues
                         ? nodes.element("div", {
-                          styles: { display: "flex", gap: 1 },
-                          children: displayValues.map((v, i) => {
-                            const value =
-                              `search_record.` + extraValuesIds[i];
-                            return nodes.if(
-                              value + ` is not null`,
-                              nodes.element("div", {
-                                styles: styles.optionExtraData,
-                                children: [
-                                  nodes.element("p", {
-                                    styles: styles.optionExtraDataLabel,
-                                    children: `${stringLiteral(
-                                      v.label,
-                                    )} || ':'`,
-                                  }),
-                                  nodes.element("span", {
-                                    children: value,
-                                  }),
-                                ],
-                              }),
-                            );
-                          }),
-                        })
+                            styles: { display: "flex", gap: 1 },
+                            children: displayValues.map((v, i) => {
+                              const value =
+                                `search_record.` + extraValuesIds[i];
+                              return nodes.if(
+                                value + ` is not null`,
+                                nodes.element("div", {
+                                  styles: styles.optionExtraData,
+                                  children: [
+                                    nodes.element("p", {
+                                      styles: styles.optionExtraDataLabel,
+                                      children: `${stringLiteral(
+                                        v.label,
+                                      )} || ':'`,
+                                    }),
+                                    nodes.element("span", {
+                                      children: value,
+                                    }),
+                                  ],
+                                }),
+                              );
+                            }),
+                          })
                         : undefined,
                     ],
                   }),

@@ -12,6 +12,7 @@ import { nodes } from "../../nodeHelpers";
 import { system } from "../../system";
 import { createStyles, cssVar } from "../../styleUtils";
 import { DomStatementsOrFn } from "../../statements";
+import { checkbox } from "../../components";
 
 export interface SettingsDrawerOpts {
   open: string;
@@ -180,19 +181,25 @@ export function settingsDrawer(opts: SettingsDrawerOpts) {
           }),
         ],
       }),
-      nodes.element("p", {
-        children: `'Prefer db download: ' || coalesce(cast(ui.prefer_db_download as string), 'not set')`,
-      }),
-      button({
-        children: `'Toggle db download'`,
-        on: {
-          click: (s) =>
-            s.setScalar(
-              `ui.prefer_db_download`,
-              `case when ui.prefer_db_download then false when not ui.prefer_db_download then null else true end`,
-            ),
-        },
-      }),
+      nodes.if(
+        `sys.can_download`,
+        checkbox({
+          label: "'Download database'",
+          size: "lg",
+          variant: "outlined",
+          styles: { mb: 2 },
+          slots: { input: { props: { id: "'download-database'" } } },
+          checked:
+            "case when device_prefer_db_download is not null then device_prefer_db_download else sys.prefer_download end",
+          on: {
+            checkboxChange: (s) =>
+              s.setScalar(
+                `device_prefer_db_download`,
+                `case when device_prefer_db_download is not null then not device_prefer_db_download else not sys.prefer_download end`,
+              ),
+          },
+        }),
+      ),
       nodes.state({
         procedure: (s) =>
           s.scalar(

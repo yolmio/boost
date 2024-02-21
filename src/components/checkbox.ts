@@ -16,7 +16,7 @@ export interface CheckedVariation {
 
 export interface CheckboxOpts
   extends ComponentOpts,
-  SlottedComponentWithSlotNames<"checkbox" | "action" | "input" | "label"> {
+    SlottedComponentWithSlotNames<"checkbox" | "action" | "input" | "label"> {
   fullWidth?: boolean;
   overlay?: boolean;
   disableIcon?: boolean;
@@ -112,8 +112,9 @@ const styles = createStyles({
     checkedVariation?: CheckedVariation,
   ) => {
     const styles: StyleObject = {
-      borderRadius: `var(--checkbox-action-radius, ${overlay ? "var(--action-radius, inherit)" : "inherit"
-        })`,
+      borderRadius: `var(--checkbox-action-radius, ${
+        overlay ? "var(--action-radius, inherit)" : "inherit"
+      })`,
       position: "absolute",
       top: 0,
       left: 0,
@@ -219,6 +220,11 @@ export function checkbox(opts: CheckboxOpts) {
   if (opts.error) {
     dynamicClasses.push({ classes: "error", condition: opts.error });
   }
+  if (opts.label && !(opts.slots?.input?.props?.id ?? false)) {
+    throw new Error(
+      "Spcify an id for the input of a checkbox if you have a label",
+    );
+  }
   return slot("root", {
     tag: "span",
     styles: styles.root(
@@ -262,10 +268,11 @@ export function checkbox(opts: CheckboxOpts) {
         ],
       }),
       opts.label &&
-      nodes.element("label", {
-        styles: styles.label(disableIcon),
-        children: opts.label,
-      }),
+        nodes.element("label", {
+          styles: styles.label(disableIcon),
+          props: { htmlFor: opts.slots?.input?.props?.id },
+          children: opts.label,
+        }),
     ],
   });
 }

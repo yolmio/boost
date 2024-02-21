@@ -47,13 +47,13 @@ export type InsertRelationFormPart = {
   fields: (
     | string
     | {
-      field: string;
-      onChange?: (
-        formState: FormState,
-        cursor: FormStateTableCursor,
-        s: DomStatements,
-      ) => unknown;
-    }
+        field: string;
+        onChange?: (
+          formState: FormState,
+          cursor: FormStateTableCursor,
+          s: DomStatements,
+        ) => unknown;
+      }
   )[];
 };
 
@@ -113,11 +113,11 @@ export interface InsertFormContentOpts {
   table: Table;
   formState: InsertFormState;
   cancel:
-  | { type: "Href"; href: string }
-  | {
-    type: "Proc";
-    proc: DomStatementsOrFn;
-  };
+    | { type: "Href"; href: string }
+    | {
+        type: "Proc";
+        proc: DomStatementsOrFn;
+      };
 }
 
 export function getFieldsAndRelationsFromInsertFormContent(
@@ -210,7 +210,7 @@ function gridPart(
           label: stringLiteral(field.displayName),
           variant: "outlined",
           checked: fieldHelper.value,
-          props: { id },
+          slots: { input: { props: { id } } },
           on: {
             checkboxChange: fieldHelper.setValue(
               `coalesce(not ` + fieldHelper.value + `, true)`,
@@ -351,9 +351,9 @@ function twoColumnSectionedInsertFormContent(
               }),
               section.description
                 ? nodes.element("p", {
-                  styles: twoColumnFormStyles.description,
-                  children: stringLiteral(section.description),
-                })
+                    styles: twoColumnFormStyles.description,
+                    children: stringLiteral(section.description),
+                  })
                 : undefined,
             ],
           }),

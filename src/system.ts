@@ -330,10 +330,12 @@ export class App {
    */
   title: string;
   webAppConfig: WebAppConfig = {
-    htmlHead: "",
+    htmlHead: `<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default">`,
     viewport: `width=device-width, initial-scale=1`,
     logoGeneration: { type: "Default" },
-    manifest: {},
+    manifest: {
+      display: "standalone",
+    },
   };
   deviceDb = new DeviceDb();
   pollingPullConfig?: yom.PollingPullConfig;
