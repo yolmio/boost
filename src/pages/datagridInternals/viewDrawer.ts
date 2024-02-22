@@ -126,6 +126,7 @@ const styles = createStyles({
   },
   menu: {
     width: 180,
+    zIndex: "popover",
   },
 });
 
@@ -403,7 +404,9 @@ export function viewDrawer(datagridName: string, dts: DatagridRfns) {
                         id: `${viewIdBase} || '-' || view_record.id`,
                         menuListOpts: {
                           styles: styles.menu,
+                          variant: "outlined",
                         },
+                        usePortal: true,
                         button: ({ buttonProps, onButtonClick }) =>
                           iconButton({
                             variant: "plain",

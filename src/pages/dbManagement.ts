@@ -248,6 +248,10 @@ function modifyTab() {
               value: `statement`,
               rows: `10`,
               placeholder: `'delete from problem where is_easy'`,
+              autoComplete: "'off'",
+              autoCorrect: "'off'",
+              autoCapitalize: "'off'",
+              spellCheck: "'false'",
             },
             on: {
               input: (s) => s.setScalar(`ui.statement`, `target_value`),
@@ -333,13 +337,18 @@ function queryTab() {
               value: `query`,
               rows: `10`,
               placeholder: `'select id, creator, timestamp\nfrom tx\norder by id desc\nlimit 5'`,
+              autoComplete: "'off'",
+              autoCorrect: "'off'",
+              autoCapitalize: "'off'",
+              spellCheck: "'false'",
             },
             on: {
               input: (s) => s.setScalar(`ui.query`, `target_value`),
               keydown: (s) =>
                 s.if(
-                  `event.key = 'Enter' and (event.ctrl_key or event.meta_key)`,
-                  (s) => s.setScalar(`ui.query_to_run`, `ui.query`),
+                  `(event.key = 'Enter' and (event.ctrl_key or event.meta_key)) or event.key = 'F5'`,
+                  (s) =>
+                    s.preventDefault().setScalar(`ui.query_to_run`, `ui.query`),
                 ),
             },
           },
@@ -378,7 +387,7 @@ function queryTab() {
             .dynamicQuery({
               resultTable: "dyn_result",
               query: `query_to_run`,
-              columnCount: 20,
+              columnCount: 30,
               columnMetaTable: `meta`,
             }),
         errorRecord: `error`,
@@ -471,26 +480,26 @@ function displayField({ name, notNull, type }: FieldDisplayOpts) {
     children: [
       notNull
         ? nodes.element("div", {
-          styles: styles.notNullFieldName,
-          children: [
-            nodes.element("span", {
-              styles: styles.fieldName,
-              children: stringLiteral(name),
-            }),
-            notNull
-              ? chip({
-                color: "neutral",
-                variant: "soft",
-                children: `'not null'`,
-                size: "sm",
-              })
-              : undefined,
-          ],
-        })
+            styles: styles.notNullFieldName,
+            children: [
+              nodes.element("span", {
+                styles: styles.fieldName,
+                children: stringLiteral(name),
+              }),
+              notNull
+                ? chip({
+                    color: "neutral",
+                    variant: "soft",
+                    children: `'not null'`,
+                    size: "sm",
+                  })
+                : undefined,
+            ],
+          })
         : nodes.element("span", {
-          styles: styles.fieldName,
-          children: stringLiteral(name),
-        }),
+            styles: styles.fieldName,
+            children: stringLiteral(name),
+          }),
       nodes.element("span", {
         styles: styles.fieldType,
         children: stringLiteral(type),
@@ -804,29 +813,31 @@ function schemaReference() {
         divider(),
         Object.values(system.enums).length !== 0
           ? Object.values(system.enums)
-            .filter((enum_) =>
-              Object.values(system.db.tables).some((t) =>
-                Object.values(t.fields).some(
-                  (f) => f.type === "Enum" && f.enum === enum_.name,
-                ),
-              ),
-            )
-            .map((enum_) => {
-              return collapse(
-                stringLiteral(enum_.name),
-                nodes.element("div", {
-                  styles: styles.enumValues,
-                  children: Object.values(enum_.values).map((v) =>
-                    nodes.element("div", {
-                      styles: styles.enumValue,
-                      children: stringLiteral(v.name),
-                    }),
+              .filter((enum_) =>
+                Object.values(system.db.tables).some((t) =>
+                  Object.values(t.fields).some(
+                    (f) => f.type === "Enum" && f.enum === enum_.name,
                   ),
-                }),
-              );
-            })
+                ),
+              )
+              .map((enum_) => {
+                return collapse(
+                  stringLiteral(enum_.name),
+                  nodes.element("div", {
+                    styles: styles.enumValues,
+                    children: Object.values(enum_.values).map((v) =>
+                      nodes.element("div", {
+                        styles: styles.enumValue,
+                        children: stringLiteral(v.name),
+                      }),
+                    ),
+                  }),
+                );
+              })
           : undefined,
-        ...(system.db.enableTransactionQueries ? transactionQueryReference() : []),
+        ...(system.db.enableTransactionQueries
+          ? transactionQueryReference()
+          : []),
       ],
     }),
   });

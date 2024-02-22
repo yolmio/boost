@@ -38,6 +38,7 @@ export function globalSearchDialog(
         keydown: (s) =>
           s.if(`event.key = 'k' and (event.ctrl_key or event.meta_key)`, (s) =>
             s
+              .preventDefault()
               .statements(toggleOpen)
               .triggerViewTransition("all", "'open-dialog'"),
           ),

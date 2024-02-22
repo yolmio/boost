@@ -68,6 +68,12 @@ mappers.lineHeight = (v, theme) => {
 mappers.typography = (v, theme) => {
   return theme.typography[v as TypographyKeys] as any;
 };
+mappers.zIndex = (v, theme) => {
+  if (v in theme.zIndex) {
+    return theme.zIndex[v as keyof Theme["zIndex"]];
+  }
+  return v;
+};
 
 // pallete
 
@@ -537,8 +543,8 @@ function prepStyle(style: Style, theme: Theme) {
  */
 export interface KeyFrames {
   [
-  /** stuff like `from`, `to` or `10%` etc*/
-  key: string
+    /** stuff like `from`, `to` or `10%` etc*/
+    key: string
   ]: Style | undefined;
 }
 

@@ -65,13 +65,6 @@ export interface DatagridBaseOpts {
  */
 export function datagridBase(opts: DatagridBaseOpts) {
   const { columns, datagridStyles, dts } = opts;
-  if (opts.enableViews) {
-    addViewTables();
-    system.enums.datagrid_view_name.values[opts.datagridName] = {
-      name: opts.datagridName,
-      displayName: system.displayNameConfig.default(opts.datagridName),
-    };
-  }
   addDgFilterOp();
   const columnToResultField = new Map<number, string>();
   for (let i = 0; i < columns.length; i++) {
@@ -125,8 +118,8 @@ export function datagridBase(opts: DatagridBaseOpts) {
         fetchMore:
           typeof opts.pageSize === "number"
             ? new DomStatements()
-              .setScalar(`ui.row_count`, `ui.row_count + ${opts.pageSize}`)
-              .statements(dgState.triggerRefresh)
+                .setScalar(`ui.row_count`, `ui.row_count + ${opts.pageSize}`)
+                .statements(dgState.triggerRefresh)
             : undefined,
       },
       columns: columns
@@ -837,17 +830,14 @@ export function makeIdsQuery(
   ].join("||");
 }
 
-function addViewTables() {
-  if ("datagrid_view" in system.db.tables) {
-    return;
-  }
+export function addViewTables(datagridNames: string[]) {
   system.addEnum({
-    name: "datagrid_view_name",
-    values: [],
+    name: "datagrid_name",
+    values: datagridNames,
   });
   system.db.addTable("datagrid_view", (t) => {
     t.string("name", 200).notNull();
-    t.enum("datagrid_name", "datagrid_view_name").notNull();
+    t.enum("datagrid_name").notNull();
     t.fk("user", system.db.userTableName);
     t.bool("root_filter_is_any").notNull();
     t.smallUint("row_height").notNull();
@@ -877,6 +867,7 @@ function addViewTables() {
     t.string("value_2", 2000);
     t.string("value_3", 2000);
   });
+  addDgFilterOp();
 }
 
 function addDgFilterOp() {

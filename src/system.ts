@@ -47,6 +47,7 @@ import { default404Page } from "./pages/default404";
 import { snackbar, SnackbarOpts } from "./components";
 import { nodes } from "./nodeHelpers";
 import { createLogin } from "./login";
+import { addViewTables } from "./pages/datagridInternals/datagridBase";
 
 /**
  * The app singleton.
@@ -222,6 +223,10 @@ export class System {
       previousDbName: "prev",
       procedure: ScriptStatements.normalizeToArray(procedure),
     };
+  }
+
+  addDatagridViewTables(datagrids: string[]) {
+    addViewTables(datagrids);
   }
 
   generateYom(): yom.Model {

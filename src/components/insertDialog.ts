@@ -54,46 +54,54 @@ export function insertDialog(opts: InsertDialogOpts) {
       onClose: opts.onClose,
       open: opts.open,
       children: (closeModal) =>
-        modalDialog({
-          size: "lg",
-          styles: styles.modalDialog,
-          props: {
-            role: "'dialog'",
-            "aria-labelledby": titleId,
+        withInsertFormState({
+          table: opts.table,
+          fields,
+          relations,
+          withValues: opts.withValues,
+          afterSubmitClient: (state, s) => {
+            opts.afterSubmitClient?.(state, s);
+            s.statements(closeModal);
           },
-          children: [
-            typography({
-              tag: "h2",
-              level: "inherit",
-              styles: styles.header,
+          beforeSubmitClient: opts.beforeSubmitClient,
+          afterTransactionStart: opts.afterTransactionStart,
+          afterTransactionCommit: opts.afterTransactionCommit,
+          beforeTransactionCommit: opts.beforeTransactionCommit,
+          beforeTransactionStart: opts.beforeTransactionStart,
+          children: (formState) =>
+            modalDialog({
+              size: "lg",
+              styles: styles.modalDialog,
               props: {
-                id: titleId,
+                role: "'dialog'",
+                "aria-labelledby": titleId,
               },
-              children: opts.title ?? `'Add a new ${tableModel.displayName}'`,
-            }),
-            divider({ styles: styles.divider }),
-            withInsertFormState({
-              table: opts.table,
-              fields,
-              relations,
-              withValues: opts.withValues,
-              afterSubmitClient: (state, s) => {
-                opts.afterSubmitClient?.(state, s);
-                s.statements(closeModal);
+              on: {
+                keydown: (s) =>
+                  s.if(
+                    `event.key = 'Enter' and (event.ctrl_key or event.meta_key)`,
+                    formState.onSubmit,
+                  ),
               },
-              beforeSubmitClient: opts.beforeSubmitClient,
-              afterTransactionStart: opts.afterTransactionStart,
-              afterTransactionCommit: opts.afterTransactionCommit,
-              beforeTransactionCommit: opts.beforeTransactionCommit,
-              beforeTransactionStart: opts.beforeTransactionStart,
-              children: (formState) =>
+              children: [
+                typography({
+                  tag: "h2",
+                  level: "inherit",
+                  styles: styles.header,
+                  props: {
+                    id: titleId,
+                  },
+                  children:
+                    opts.title ?? `'Add a new ${tableModel.displayName}'`,
+                }),
+                divider({ styles: styles.divider }),
                 insertFormContent(opts.content, {
                   formState,
                   table: tableModel,
                   cancel: { type: "Proc", proc: closeModal },
                 }),
+              ],
             }),
-          ],
         }),
     }),
   );
