@@ -54,10 +54,10 @@ function filterTypeFromField(field: Field): FilterType {
     case "Bool":
       return field.enumLike
         ? {
-          type: "enum_like_bool",
-          config: field.enumLike,
-          notNull: field.notNull,
-        }
+            type: "enum_like_bool",
+            config: field.enumLike,
+            notNull: field.notNull,
+          }
         : { type: "bool", notNull: field.notNull };
     case "Time":
     case "Ordering":
@@ -154,17 +154,20 @@ export const editWithCharCellKeydownHandler = new DomStatements()
       .modify(
         `update ui.editing_state set column = cell.column, row = cell.row, is_editing = true`,
       )
-      .setScalar(`ui.start_edit_with_char`, `null`),
+      .setScalar(`ui.start_edit_empty`, `false`),
   )
-  .if(`char_length(event.key) = 1`, (s) =>
-    s
-      .modify(
-        `update ui.focus_state set column = cell.column, row = cell.row, should_focus = false`,
-      )
-      .modify(
-        `update ui.editing_state set column = cell.column, row = cell.row, is_editing = true`,
-      )
-      .setScalar(`ui.start_edit_with_char`, `event.key`),
+  .if(
+    `(char_length(event.key) = 1 and not event.ctrl_key and not event.meta_key and not event.alt_key) or
+    (event.key = 'v' and (event.ctrl_key or event.meta_key))`,
+    (s) =>
+      s
+        .modify(
+          `update ui.focus_state set column = cell.column, row = cell.row, should_focus = false`,
+        )
+        .modify(
+          `update ui.editing_state set column = cell.column, row = cell.row, is_editing = true`,
+        )
+        .setScalar(`ui.start_edit_empty`, `true`),
   );
 
 export const opaqueCellKeydownHandler = new DomStatements().if(
@@ -177,7 +180,7 @@ export const opaqueCellKeydownHandler = new DomStatements().if(
       .modify(
         `update ui.editing_state set column = cell.column, row = cell.row, is_editing = true`,
       )
-      .setScalar(`ui.start_edit_with_char`, `null`),
+      .setScalar(`ui.start_edit_empty`, `false`),
 );
 
 export const dynamicBooleanCellKeydownHandler = (

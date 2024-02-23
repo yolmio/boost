@@ -43,7 +43,7 @@ export function editFocusState() {
       "editing_state",
       "select 0 as column, 0 as row, false as is_editing",
     )
-    .scalar(`start_edit_with_char`, { type: "String", maxLength: 1 })
+    .scalar(`start_edit_empty`, `false`)
     .scalar("saving_edit", "false")
     .scalar(`display_error_message`, { type: "String", maxLength: 2000 });
 }
@@ -67,7 +67,7 @@ export class DgStateHelpers {
     row: "editing_state.row" as yom.SqlExpression,
     isEditing: "editing_state.is_editing" as yom.SqlExpression,
   };
-  startEditWithChar = "start_edit_with_char" as yom.SqlExpression;
+  startEditEmpty = "start_edit_empty" as yom.SqlExpression;
   savingEdit = "saving_edit" as yom.SqlExpression;
   displayErrorMessage = "display_error_message" as yom.SqlExpression;
   refreshKey = "ui.dg_refresh_key" as yom.SqlExpression;
@@ -87,8 +87,8 @@ export class DgStateHelpers {
     return new BasicStatements().setScalar(this.savingEdit, saving);
   }
 
-  setStartEditWithChar(char: yom.SqlExpression) {
-    return new BasicStatements().setScalar(this.startEditWithChar, char);
+  setStartEditEmpty(char: yom.SqlExpression) {
+    return new BasicStatements().setScalar(this.startEditEmpty, char);
   }
 
   displayEditErrorAndRemoveAfter(

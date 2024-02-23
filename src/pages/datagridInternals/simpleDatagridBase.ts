@@ -95,7 +95,7 @@ export function simpleDatagridBase(opts: SimpleDatagridBaseOpts) {
             .modify(
               `update ui.editing_state set column = cell.column, row = cell.row, is_editing = true`,
             )
-            .setScalar(`ui.start_edit_with_char`, `null`),
+            .setScalar(`ui.start_edit_empty`, `false`),
         cellKeydown: colKeydownHandlers(columns),
         fetchMore:
           typeof opts.pageSize === "number"

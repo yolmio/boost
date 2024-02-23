@@ -33,20 +33,20 @@ export interface ToolbarConfig {
   export: boolean;
   quickSearch?: (quickSearch: yom.SqlExpression) => yom.SqlExpression;
   add?:
-  | { type: "dialog"; opts?: Partial<InsertDialogOpts> }
-  | { type: "href"; href: string };
+    | { type: "dialog"; opts?: Partial<InsertDialogOpts> }
+    | { type: "href"; href: string };
 }
 
 export type SortConfig =
   | { type: "string" | "numeric" | "checkbox"; displayName: string }
   | {
-    type: "custom";
-    displayName: string;
-    ascNode: Node;
-    descNode: Node;
-    ascText: string;
-    descText: string;
-  };
+      type: "custom";
+      displayName: string;
+      ascNode: Node;
+      descNode: Node;
+      ascText: string;
+      descText: string;
+    };
 
 const stringSortAscNode = `'A → Z'`;
 const stringSortDescNode = `'Z → A'`;
@@ -148,34 +148,34 @@ export interface SuperGridColumn extends BaseColumn {
 
 export type FilterType =
   | {
-    type:
-    | "string"
-    | "number"
-    | "date"
-    | "bool"
-    | "timestamp"
-    | "minutes_duration";
-    notNull: boolean;
-  }
+      type:
+        | "string"
+        | "number"
+        | "date"
+        | "bool"
+        | "timestamp"
+        | "minutes_duration";
+      notNull: boolean;
+    }
   | {
-    type: "table";
-    table: string;
-    notNull: boolean;
-  }
+      type: "table";
+      table: string;
+      notNull: boolean;
+    }
   | {
-    type: "enum";
-    enum: string;
-    notNull: boolean;
-  }
+      type: "enum";
+      enum: string;
+      notNull: boolean;
+    }
   | {
-    type: "enum_like_bool";
-    config: BoolEnumLikeConfig;
-    notNull: boolean;
-  }
+      type: "enum_like_bool";
+      config: BoolEnumLikeConfig;
+      notNull: boolean;
+    }
   | {
-    type: "custom";
-    node?: (helpers: FilterTermHelper, state: DgStateHelpers) => Node;
-  };
+      type: "custom";
+      node?: (helpers: FilterTermHelper, state: DgStateHelpers) => Node;
+    };
 
 export function eqFilterType(l: FilterType, r: FilterType) {
   if (l.type !== r.type) {
@@ -374,29 +374,29 @@ export function columnPopover(
         children: [
           sort
             ? [
-              listItem({
-                on: {
-                  click: (s) =>
-                    s.statements(setColumnSort(true), state.triggerRefresh),
-                },
-                children: listItemButton({
-                  variant: "plain",
-                  color: "neutral",
-                  children: ["'Sort '", getSortAscNode(sort)],
+                listItem({
+                  on: {
+                    click: (s) =>
+                      s.statements(setColumnSort(true), state.triggerRefresh),
+                  },
+                  children: listItemButton({
+                    variant: "plain",
+                    color: "neutral",
+                    children: ["'Sort '", getSortAscNode(sort)],
+                  }),
                 }),
-              }),
-              listItem({
-                on: {
-                  click: (s) =>
-                    s.statements(setColumnSort(false), state.triggerRefresh),
-                },
-                children: listItemButton({
-                  variant: "plain",
-                  color: "neutral",
-                  children: ["'Sort '", getSortDescNode(sort)],
+                listItem({
+                  on: {
+                    click: (s) =>
+                      s.statements(setColumnSort(false), state.triggerRefresh),
+                  },
+                  children: listItemButton({
+                    variant: "plain",
+                    color: "neutral",
+                    children: ["'Sort '", getSortDescNode(sort)],
+                  }),
                 }),
-              }),
-            ]
+              ]
             : undefined,
           listItem({
             on: {
@@ -446,7 +446,8 @@ export function columnPopover(
                     `(select max(ordering) from ui.column where ordering < current_col)`,
                   )
                   .if(
-                    `prev_col is null or (select count(*) from column where ordering < current_col) <= ${startFixedColumns + 1
+                    `prev_col is null or (select count(*) from column where ordering < current_col) <= ${
+                      startFixedColumns + 1
                     }`,
                     (s) => s.return(),
                   )
@@ -612,8 +613,9 @@ export function styledDatagrid(config: StyledDatagridConfig) {
           nodes.eventHandlers({
             document: {
               keydown: (s) =>
-                s.if(`event.meta_key and event.key = 'v'`, (s) =>
-                  s.setScalar(`show_query_err`, `not show_query_err`),
+                s.if(
+                  `event.meta_key and event.shift_key and event.key = 'v'`,
+                  (s) => s.setScalar(`show_query_err`, `not show_query_err`),
                 ),
             },
           }),
