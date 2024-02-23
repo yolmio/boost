@@ -110,11 +110,11 @@ export const styles = createStyles({
 type GenericDisplayValue =
   | { type: "field"; field: string; exprValue: yom.SqlExpression }
   | {
-    type: "expr";
-    exprValue: yom.SqlExpression;
-    display: (expr: yom.SqlExpression) => Node;
-    label: string;
-  };
+      type: "expr";
+      exprValue: yom.SqlExpression;
+      display: (expr: yom.SqlExpression) => Node;
+      label: string;
+    };
 
 interface RecordDefaultTableItemContentOpts {
   tableModel: Table;
@@ -194,7 +194,7 @@ export function recordDefaultItemContent(
               type: "AutoLabelOnLeft",
               ignoreFields: editIgnoreFields,
             },
-            afterTransactionCommit: () => [ctx.triggerRefresh],
+            afterTransactionCommit: (_, s) => s.statements(ctx.triggerRefresh),
           }),
         ),
         confirmDangerDialog({
@@ -246,56 +246,56 @@ export function recordDefaultItemContent(
           }),
           displayValues
             ? nodes.element("div", {
-              styles: styles.itemValues,
-              children: displayValues.map((value) => {
-                if (value.type === "field") {
-                  const field = tableModel.fields[value.field];
-                  if (!field) {
-                    throw new Error(
-                      `Field ${value} does not exist in table ${tableModel.name}}`,
-                    );
+                styles: styles.itemValues,
+                children: displayValues.map((value) => {
+                  if (value.type === "field") {
+                    const field = tableModel.fields[value.field];
+                    if (!field) {
+                      throw new Error(
+                        `Field ${value} does not exist in table ${tableModel.name}}`,
+                      );
+                    }
+                    if (field.type === "Bool") {
+                      return nodes.if(
+                        value.exprValue,
+                        chip({
+                          variant: "soft",
+                          color: "neutral",
+                          size: "sm",
+                          children: stringLiteral(field.displayName),
+                        }),
+                      );
+                    }
+                    const content = nodes.element("div", {
+                      styles: styles.itemValueWrapper,
+                      children: [
+                        nodes.element("p", {
+                          styles: styles.itemValue,
+                          children: `${stringLiteral(
+                            field.displayName,
+                          )} || ':'`,
+                        }),
+                        inlineFieldDisplay(field, value.exprValue),
+                      ],
+                    });
+                    if (field.notNull) {
+                      return content;
+                    }
+                    return nodes.if(value.exprValue + ` is not null`, content);
+                  } else {
+                    return nodes.element("div", {
+                      styles: styles.itemValueWrapper,
+                      children: [
+                        nodes.element("p", {
+                          styles: styles.itemValue,
+                          children: `${stringLiteral(value.label)} || ':'`,
+                        }),
+                        value.display(value.exprValue),
+                      ],
+                    });
                   }
-                  if (field.type === "Bool") {
-                    return nodes.if(
-                      value.exprValue,
-                      chip({
-                        variant: "soft",
-                        color: "neutral",
-                        size: "sm",
-                        children: stringLiteral(field.displayName),
-                      }),
-                    );
-                  }
-                  const content = nodes.element("div", {
-                    styles: styles.itemValueWrapper,
-                    children: [
-                      nodes.element("p", {
-                        styles: styles.itemValue,
-                        children: `${stringLiteral(
-                          field.displayName,
-                        )} || ':'`,
-                      }),
-                      inlineFieldDisplay(field, value.exprValue),
-                    ],
-                  });
-                  if (field.notNull) {
-                    return content;
-                  }
-                  return nodes.if(value.exprValue + ` is not null`, content);
-                } else {
-                  return nodes.element("div", {
-                    styles: styles.itemValueWrapper,
-                    children: [
-                      nodes.element("p", {
-                        styles: styles.itemValue,
-                        children: `${stringLiteral(value.label)} || ':'`,
-                      }),
-                      value.display(value.exprValue),
-                    ],
-                  });
-                }
-              }),
-            })
+                }),
+              })
             : undefined,
         ],
       }),

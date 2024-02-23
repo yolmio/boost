@@ -10,6 +10,7 @@ export interface DurationInputOpts extends InputOpts {
   onChange: (value: yom.SqlExpression) => DomStatementsOrFn;
 }
 
+// todo this doesn't work well with cmd+enter on forms, fix it
 export function durationInput(opts: DurationInputOpts) {
   return input({
     ...opts,

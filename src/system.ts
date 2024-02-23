@@ -225,10 +225,6 @@ export class System {
     };
   }
 
-  addDatagridViewTables(datagrids: string[]) {
-    addViewTables(datagrids);
-  }
-
   generateYom(): yom.Model {
     if (!system.db.tables[system.db.userTableName]) {
       system.db.addTable(system.db.userTableName, (t) => {
@@ -762,6 +758,15 @@ export class DbCatalog {
       table.string("name", 100).notNull();
       table.uuid("file").notNull();
     });
+  }
+
+  /**
+   * Adds tables that allow views to be stored and reused for various datagrids
+   *
+   * @param datagrids
+   */
+  addDatagridViewTables(datagrids: string[]) {
+    addViewTables(datagrids);
   }
 }
 

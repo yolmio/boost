@@ -18,7 +18,8 @@ import { nodes } from "../nodeHelpers";
 import { alert } from "./alert";
 import { circularProgress } from "./circularProgress";
 import { materialIcon } from "./materialIcon";
-import { DomStatementsOrFn } from "../statements";
+import { DomStatements, DomStatementsOrFn } from "../statements";
+import { Node } from "../nodeTypes";
 
 export interface UpdateDialogOpts extends FormStateProcedureExtensions {
   open: string;
@@ -46,84 +47,100 @@ const styles = createStyles({
 
 export function updateDialog(opts: UpdateDialogOpts) {
   const tableModel = system.db.tables[opts.table];
+  function withDialog(children: Node, keydown?: DomStatementsOrFn) {
+    return modalDialog({
+      size: "lg",
+      styles: styles.modalDialog,
+      props: {
+        role: "'dialog'",
+        "aria-labelledby": titleId,
+      },
+      on: { keydown },
+      children: [
+        typography({
+          tag: "h2",
+          level: "inherit",
+          styles: styles.title,
+          props: {
+            id: titleId,
+          },
+          children: `'Update ' || ${stringLiteral(tableModel.displayName)}`,
+        }),
+        divider({ styles: styles.divider }),
+        children,
+      ],
+    });
+  }
   return nodes.sourceMap(
     `updateDialog(${opts.table})`,
     modal({
       onClose: opts.onClose,
       open: opts.open,
       children: (closeModal) =>
-        modalDialog({
-          size: "lg",
-          styles: styles.modalDialog,
-          props: {
-            role: "'dialog'",
-            "aria-labelledby": titleId,
-          },
-          children: [
-            typography({
-              tag: "h2",
-              level: "inherit",
-              styles: styles.title,
-              props: {
-                id: titleId,
-              },
-              children: `'Update ' || ${stringLiteral(tableModel.displayName)}`,
-            }),
-            divider({ styles: styles.divider }),
-            nodes.state({
-              procedure: (s) =>
-                s.record(
-                  `update_dialog_record`,
-                  `select * from db.${ident(opts.table)} where id = ${opts.recordId
-                  }`,
+        nodes.state({
+          procedure: (s) =>
+            s.record(
+              `update_dialog_record`,
+              `select * from db.${ident(opts.table)} where id = ${
+                opts.recordId
+              }`,
+            ),
+          statusScalar: `update_dialog_status`,
+          children: nodes.switch(
+            {
+              condition: `update_dialog_status = 'received' and update_dialog_record.id is not null`,
+              node: withUpdateFormState({
+                table: opts.table,
+                recordId: opts.recordId,
+                fields: getFieldsFromUpdateFormContent(
+                  opts.content,
+                  tableModel,
                 ),
-              statusScalar: `update_dialog_status`,
-              children: nodes.switch(
-                {
-                  condition: `update_dialog_status = 'received' and update_dialog_record.id is not null`,
-                  node: withUpdateFormState({
-                    table: opts.table,
-                    recordId: opts.recordId,
-                    fields: getFieldsFromUpdateFormContent(
-                      opts.content,
-                      tableModel,
-                    ),
-                    initialRecord: `update_dialog_record`,
-                    beforeSubmitClient: opts.beforeSubmitClient,
-                    beforeTransactionStart: opts.beforeTransactionStart,
-                    afterTransactionStart: opts.afterTransactionStart,
-                    beforeTransactionCommit: opts.beforeTransactionCommit,
-                    afterTransactionCommit: opts.afterTransactionCommit,
-                    afterSubmitClient: (state, s) => {
-                      opts.afterSubmitClient?.(state, s);
-                      s.statements(closeModal);
-                    },
-                    children: (formState) =>
-                      updateFormContent(opts.content, {
-                        formState,
-                        table: tableModel,
-                        cancel: { type: "Proc", proc: closeModal },
-                      }),
-                  }),
+                initialRecord: `update_dialog_record`,
+                beforeSubmitClient: opts.beforeSubmitClient,
+                beforeTransactionStart: opts.beforeTransactionStart,
+                afterTransactionStart: opts.afterTransactionStart,
+                beforeTransactionCommit: opts.beforeTransactionCommit,
+                afterTransactionCommit: opts.afterTransactionCommit,
+                afterSubmitClient: (state, s) => {
+                  opts.afterSubmitClient?.(state, s);
+                  s.statements(closeModal);
                 },
-                {
-                  condition: `update_dialog_status = 'requested' or update_dialog_status = 'fallback_triggered'`,
-                  node: nodes.element("div", {
-                    children: circularProgress({ size: "lg" }),
-                  }),
-                },
-                {
-                  condition: `true`,
-                  node: alert({
-                    color: "danger",
-                    startDecorator: materialIcon("Report"),
-                    size: "lg",
-                    children: `'Unable to load page'`,
-                  }),
-                },
+                children: (formState) =>
+                  withDialog(
+                    updateFormContent(opts.content, {
+                      formState,
+                      table: tableModel,
+                      cancel: { type: "Proc", proc: closeModal },
+                    }),
+                    (s) =>
+                      s.if(
+                        `event.key = 'Enter' and (event.ctrl_key or event.meta_key)`,
+                        formState.onSubmit,
+                      ),
+                  ),
+              }),
+            },
+            {
+              condition: `update_dialog_status = 'requested' or update_dialog_status = 'fallback_triggered'`,
+              node: withDialog(
+                nodes.element("div", {
+                  children: circularProgress({ size: "lg" }),
+                }),
               ),
-            }),
-          ],
+            },
+            {
+              condition: `true`,
+              node: withDialog(
+                alert({
+                  color: "danger",
+                  startDecorator: materialIcon("Report"),
+                  size: "lg",
+                  children: `'Unable to load page'`,
+                }),
+              ),
+            },
+          ),
         }),
     }),
   );

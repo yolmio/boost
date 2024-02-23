@@ -110,6 +110,13 @@ db.addScalarFunction({
     ),
 });
 
+db.catalog.addDatagridViewTables([
+  "contact",
+  "matter",
+  "time_entry",
+  "payment",
+]);
+
 //
 // UI
 //

@@ -143,6 +143,9 @@ function normalizeEventHandlers(
   }
   const result: yom.ElementEventHandlers = {};
   for (const [k, v] of Object.entries(helper)) {
+    if (!v) {
+      continue;
+    }
     result[k as yom.EventHandlerName] = normalizeEventHandler(v);
   }
   return result;
