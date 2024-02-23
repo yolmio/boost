@@ -322,7 +322,7 @@ function modifyTab() {
   });
 }
 
-function queryTab() {
+function queryTab(columnCount: number) {
   return nodes.state({
     procedure: (s) =>
       s
@@ -387,7 +387,7 @@ function queryTab() {
             .dynamicQuery({
               resultTable: "dyn_result",
               query: `query_to_run`,
-              columnCount: 30,
+              columnCount,
               columnMetaTable: `meta`,
             }),
         errorRecord: `error`,
@@ -418,48 +418,63 @@ function queryTab() {
           },
           {
             condition: `status = 'received'`,
-            node: nodes.element("table", {
-              children: [
-                nodes.element("thead", {
-                  children: nodes.element("tr", {
-                    children: nodes.each({
-                      table: `meta`,
-                      recordName: `column`,
-                      children: nodes.element("th", {
-                        styles: {
-                          textAlign: "left",
-                          px: "10px",
-                          borderBottom: "1px solid",
-                          borderColor: "divider",
-                          typography: "body1",
-                        },
-                        children: `column.name`,
-                      }),
-                    }),
-                  }),
-                }),
-                nodes.element("tbody", {
-                  children: nodes.each({
-                    table: `dyn_result`,
-                    recordName: `record`,
+            node: nodes.element("div", {
+              styles: {
+                mt: 2,
+                width: "100%",
+                height: "100%",
+                overflow: "auto",
+                position: "relative",
+              },
+              children: nodes.element("table", {
+                styles: {
+                  position: "absolute",
+                  inset: 0,
+                  width: "100%",
+                  height: "100%",
+                },
+                children: [
+                  nodes.element("thead", {
                     children: nodes.element("tr", {
                       children: nodes.each({
                         table: `meta`,
                         recordName: `column`,
-                        children: nodes.element("td", {
+                        children: nodes.element("th", {
                           styles: {
+                            textAlign: "left",
                             px: "10px",
                             borderBottom: "1px solid",
                             borderColor: "divider",
                             typography: "body1",
                           },
-                          children: `dynamic_field(record, column.index)`,
+                          children: `column.name`,
                         }),
                       }),
                     }),
                   }),
-                }),
-              ],
+                  nodes.element("tbody", {
+                    children: nodes.each({
+                      table: `dyn_result`,
+                      recordName: `record`,
+                      children: nodes.element("tr", {
+                        children: nodes.each({
+                          table: `meta`,
+                          recordName: `column`,
+                          children: nodes.element("td", {
+                            styles: {
+                              px: "10px",
+                              borderBottom: "1px solid",
+                              borderColor: "divider",
+                              typography: "body1",
+                            },
+                            children: `dynamic_field(record, column.index)`,
+                          }),
+                        }),
+                      }),
+                    }),
+                  }),
+                ],
+              }),
             }),
           },
         ),
@@ -847,6 +862,7 @@ export interface DbManagmentPageOpts {
   path?: string;
   allow?: yom.SqlExpression;
   doNotDeploy?: boolean;
+  queryColumnCount?: number;
 }
 
 export function dbManagementPage(opts: DbManagmentPageOpts = {}) {
@@ -862,7 +878,7 @@ export function dbManagementPage(opts: DbManagmentPageOpts = {}) {
         idBase: `'tabs'`,
         tabs: [
           {
-            content: queryTab(),
+            content: queryTab(opts.queryColumnCount ?? 35),
             tabButton: `'Query'`,
           },
           {

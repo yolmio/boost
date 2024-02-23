@@ -110,6 +110,8 @@ const styles = createStyles({
     const styles: StyleObject = {
       flexGrow: 1,
       fontFamily: cssVar(`font-family-body`),
+      display: "flex",
+      flexDirection: "column",
     };
     if (orientation === "horizontal") {
       styles.paddingTop = `var(--tabs-gap)`;
@@ -206,7 +208,8 @@ export function tabs(opts: BetterTabsOpts) {
             keydown: (s) =>
               s
                 .if(
-                  `event.key = ${orientation === "horizontal" ? "'ArrowLeft'" : "'ArrowUp'"
+                  `event.key = ${
+                    orientation === "horizontal" ? "'ArrowLeft'" : "'ArrowUp'"
                   }`,
 
                   (s) =>
@@ -218,9 +221,10 @@ export function tabs(opts: BetterTabsOpts) {
                       .focusEl(getTabId(`ui.focus_tab`)),
                 )
                 .if(
-                  `event.key = ${orientation === "horizontal"
-                    ? "'ArrowRight'"
-                    : "'ArrowDown'"
+                  `event.key = ${
+                    orientation === "horizontal"
+                      ? "'ArrowRight'"
+                      : "'ArrowDown'"
                   }`,
                   (s) =>
                     s
