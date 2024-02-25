@@ -16,6 +16,8 @@ db.addTable("contact", (table) => {
 db.catalog.addNotesTable("contact");
 db.catalog.addAttachmentsTable("contact");
 
+db.catalog.addDatagridViewTables(["contact"]);
+
 const app = system.addApp("tutorial", "Tutorial");
 app.executionConfig = { canDownload: true };
 

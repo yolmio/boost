@@ -656,7 +656,6 @@ export class NodeTransformer {
           scrollLock: node.scrollLock,
           on: node.on,
           props: node.props,
-          testId: node.testId,
           classes,
           style: node.style,
           dynamicClasses: node.dynamicClasses,

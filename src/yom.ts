@@ -2128,7 +2128,6 @@ export interface ElementNode {
   classes?: string;
   dynamicClasses?: DynamicClass[];
   style?: Record<string, SqlExpression>;
-  testId?: SqlExpression;
   props?: ElementProps;
   on?: ElementEventHandlers;
   children?: Node;
@@ -2215,13 +2214,13 @@ export interface SetHeaderStatement {
 }
 
 export type ApiEndpointStatement =
-  | IfStatement<StateStatement>
-  | WhileStatement<StateStatement>
-  | BlockStatement<StateStatement>
-  | ForEachCursorStatement<StateStatement>
-  | ForEachQueryStatement<StateStatement>
-  | ForEachTableStatement<StateStatement>
-  | TryStatement<StateStatement>
+  | IfStatement<ApiEndpointStatement>
+  | WhileStatement<ApiEndpointStatement>
+  | BlockStatement<ApiEndpointStatement>
+  | ForEachCursorStatement<ApiEndpointStatement>
+  | ForEachQueryStatement<ApiEndpointStatement>
+  | ForEachTableStatement<ApiEndpointStatement>
+  | TryStatement<ApiEndpointStatement>
   | BaseStatement
   | SetHttpStatusStatement
   | DynamicModifyStatement
