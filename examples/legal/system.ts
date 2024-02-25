@@ -4,6 +4,8 @@ const { db } = system;
 
 system.name = "legal";
 system.region = "us-miami";
+system.memoryGb = 8;
+system.vcpus = 2;
 
 //
 // DATABASE
@@ -122,6 +124,7 @@ db.catalog.addDatagridViewTables([
 //
 
 const app = system.addApp("legal", "Legal");
+app.executionConfig = { canDownload: true, preferDownload: true };
 
 // generated the woff files with:
 // https://gwfh.mranftl.com/fonts

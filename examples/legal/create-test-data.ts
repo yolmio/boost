@@ -50,7 +50,7 @@ const contacts: {
   mailingList: boolean;
 }[] = [];
 
-for (let i = 0; i < 100_000; i++) {
+for (let i = 0; i < 500_000; i++) {
   const firstName = faker.person.firstName();
   const lastName = faker.person.lastName();
   contacts.push({

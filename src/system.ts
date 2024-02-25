@@ -225,7 +225,7 @@ export class System {
     };
   }
 
-  generateYom(): yom.Model {
+  generateYom(): yom.System {
     if (!system.db.tables[system.db.userTableName]) {
       system.db.addTable(system.db.userTableName, (t) => {
         t.catalog.addRequiredUserFields();
@@ -486,7 +486,7 @@ export class App {
     return createDatagridPageNode(table, f);
   }
 
-  generateYom(): yom.AppModel {
+  generateYom(): yom.App {
     if (!this.pages.some((p) => p.path === "/*" || p.path === "*")) {
       this.pages.push({
         path: "*",

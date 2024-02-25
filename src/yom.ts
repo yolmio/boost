@@ -1,7 +1,7 @@
 /**
  * The complete model of a yolm system
  */
-export interface Model {
+export interface System {
   locale: Locale;
   name: string;
   region: Region;
@@ -12,7 +12,7 @@ export interface Model {
   fileSizeGb: number;
   collation: Collation;
   db: Database;
-  apps: AppModel[];
+  apps: App[];
   enums?: Enum[];
   recordRuleFunctions?: RecordRuleFunction[];
   ruleFunctions?: RuleFunction[];
@@ -26,7 +26,7 @@ export interface Model {
 }
 
 export type VCpus = 1 | 2 | 4 | 8 | 16;
-export type MemoryGb = 1 | 2 | 4 | 8 | 16 | 32 | 64 | 128;
+export type MemoryGb = 1 | 2 | 4 | 8 | 16 | 32 | 64;
 
 export type Region =
   | "us-new-york"
@@ -47,15 +47,11 @@ export interface AppDbExecutionConfig {
   /**
    * By default can the database be downloaded to the client.
    *
-   * Only relevant if `hasServer` is true.
-   *
    * Can be overridden by the user, by having a `can_download_db` field in the user table.
    */
   canDownload?: boolean;
   /**
    * Should we by default download the database to the client.
-   *
-   * Only relevant if `hasServer` is true.
    *
    * This is just a default preference, it can be overridden for each user by specifying a `prefer_download_db` field in the user table.
    *
@@ -69,12 +65,20 @@ export interface PollingPullConfig {
    * Stop pulling after this many ms since last interaction.
    *
    * default is 90,000 (1.5 minutes)
+   *
+   * minimum is 60,000 (1 minute)
+   *
+   * maximum is 600,000 (10 minutes)
    */
   stopPullsAfter?: number;
   /**
    * Pull every this many ms.
    *
    * default is 10,000 (10 seconds)
+   *
+   * minimum is 1,000 (1 second)
+   *
+   * maxium is 300,000 (5 minutes)
    */
   pullEvery?: number;
   /**
@@ -511,13 +515,13 @@ export interface ReturnQueryStatement {
 }
 
 export type TableFunctionStatement =
-  | IfStatement<ApiTestStatment>
-  | WhileStatement<ApiTestStatment>
-  | BlockStatement<ApiTestStatment>
-  | ForEachCursorStatement<ApiTestStatment>
-  | ForEachQueryStatement<ApiTestStatment>
-  | ForEachTableStatement<ApiTestStatment>
-  | TryStatement<ApiTestStatment>
+  | IfStatement<TableFunctionStatement>
+  | WhileStatement<TableFunctionStatement>
+  | BlockStatement<TableFunctionStatement>
+  | ForEachCursorStatement<TableFunctionStatement>
+  | ForEachQueryStatement<TableFunctionStatement>
+  | ForEachTableStatement<TableFunctionStatement>
+  | TryStatement<TableFunctionStatement>
   | BaseStatement
   | ReturnTableStatement
   | ReturnQueryStatement;
@@ -606,9 +610,9 @@ export interface SearchStatement {
   t: "Search";
   resultTable: string;
   config: RankedSearchConfig;
-  query: string;
-  offset?: string;
-  limit: string;
+  query: SqlExpression;
+  offset?: SqlExpression;
+  limit: SqlExpression;
 }
 
 //
@@ -1324,8 +1328,8 @@ export interface SelectTasksStatement {
   tasks: SqlQuery | SqlExpression[];
 }
 
-export interface AbortStatement {
-  t: "Abort";
+export interface AbortTaskStatement {
+  t: "AbortTask";
   handle: SqlExpression;
 }
 
@@ -1458,7 +1462,7 @@ export type DomProcStatement =
   | WaitOnTaskStatement
   | JoinTasksStatement
   | SelectTasksStatement
-  | AbortStatement
+  | AbortTaskStatement
   | FocusElStatement
   | ScrollIntoViewStatement
   | RequestStatement
@@ -1547,7 +1551,7 @@ export interface DynamicQueryToCsv {
   scalar: string;
 }
 
-export interface AppModel {
+export interface App {
   name: string;
   displayName: string;
   pollingPullConfig?: PollingPullConfig;
@@ -1570,7 +1574,7 @@ export interface AppModel {
 }
 
 export type Node =
-  | string
+  | SqlExpression
   | (Node | null | undefined)[]
   | EachNode
   | IfNode
@@ -1664,7 +1668,7 @@ export interface StateNode {
    * Expression that will be executed on the service determining if the current user is allowed to execute this
    * state node or any below.
    */
-  allow?: string;
+  allow?: SqlExpression;
   /**
    * Don't execute ancestor allows for this state node. Useful for an unauthorized branch below a state node with an allow
    */
