@@ -259,13 +259,13 @@ export class FormState {
       ` or ${FORM_ERROR_SCALAR} is not null` +
       (this.#tables.length !== 0
         ? " or " +
-        this.#tables
-          .map((t) => {
-            return `(select bool_or(${FORM_STATE_TABLE_ERR} is not null or ${t.fields
-              .map((f) => f.name + ERROR_SUFFIX + " is not null")
-              .join(` or `)}) from ui.${t.name})`;
-          })
-          .join(` or `)
+          this.#tables
+            .map((t) => {
+              return `(select bool_or(${FORM_STATE_TABLE_ERR} is not null or ${t.fields
+                .map((f) => f.name + ERROR_SUFFIX + " is not null")
+                .join(` or `)}) from ui.${t.name})`;
+            })
+            .join(` or `)
         : ``)
     );
   }
@@ -342,7 +342,8 @@ export class FormStateTableCursor {
 
   get delete() {
     return new BasicStatements().modify(
-      `delete from ui.${this.#tableName} where ${FORM_STATE_TABLE_ID} = ${this.idField
+      `delete from ui.${this.#tableName} where ${FORM_STATE_TABLE_ID} = ${
+        this.idField
       }`,
     );
   }
@@ -357,8 +358,10 @@ export class FormStateTableCursor {
 
   setRecordError(error: yom.SqlExpression) {
     return new BasicStatements().modify(
-      `update ui.${this.#tableName
-      } set ${FORM_STATE_TABLE_ERR} = ${error} where ${FORM_STATE_TABLE_ID} = ${this.idField
+      `update ui.${
+        this.#tableName
+      } set ${FORM_STATE_TABLE_ERR} = ${error} where ${FORM_STATE_TABLE_ID} = ${
+        this.idField
       }`,
     );
   }
@@ -393,7 +396,8 @@ export class FormStateFieldHelper {
 
   setError = (error: yom.SqlExpression) => {
     return new BasicStatements().modify(
-      `update ${this.#recordName} set ${this.#field.name
+      `update ${this.#recordName} set ${
+        this.#field.name
       }${ERROR_SUFFIX} = ${error}`,
     );
   };
@@ -404,7 +408,8 @@ export class FormStateFieldHelper {
 
   setTouched = (touched: yom.SqlExpression) => {
     return new BasicStatements().modify(
-      `update ${this.#recordName} set ${this.#field.name
+      `update ${this.#recordName} set ${
+        this.#field.name
       }${TOUCHED_SUFFIX} = ${touched}`,
     );
   };
@@ -428,7 +433,7 @@ export function getNormalizedValue(field: Field, valueExpr: string): string {
       if (field.usage?.size !== "minutes") {
         throw new Error("Only minutes duration is supported");
       }
-      return `sfn.parse_minutes_duration(${valueExpr})`;
+      return `fn.parse_minutes_duration(${valueExpr})`;
     }
   }
   switch (field.type) {
@@ -572,12 +577,12 @@ export class MultiInsertFormState extends FormState {
     });
     const sharedFields = opts.sharedFields
       ? opts.sharedFields.map((f) => {
-        const fieldSchema = table.fields[f.field];
-        return {
-          field: fieldSchema,
-          initialValue: f.initialValue ?? defaultInitialValue(fieldSchema),
-        };
-      })
+          const fieldSchema = table.fields[f.field];
+          return {
+            field: fieldSchema,
+            initialValue: f.initialValue ?? defaultInitialValue(fieldSchema),
+          };
+        })
       : [];
     super({
       tables: [
@@ -665,7 +670,8 @@ export class MultiInsertFormState extends FormState {
               ...Object.values(this.#sharedStaticValues ?? {}),
             ].join(",");
             s.modify(
-              `insert into db.${this.#table.name
+              `insert into db.${
+                this.#table.name
               } (${insertFields}) values (${insertValues})`,
             );
           });
@@ -910,7 +916,8 @@ export class InsertFormState extends FormState {
               s.modify(
                 `insert into db.${ident(
                   relation.tableModel.name,
-                )} (${insertFields}, ${relation.foreignKeyField
+                )} (${insertFields}, ${
+                  relation.foreignKeyField
                 }) values (${insertValues}, last_record_id(db.${ident(
                   this.#table.name,
                 )}))`,
@@ -1204,7 +1211,7 @@ function getUpdateFormStateValueFromRecordValue(
       if (field.usage?.size !== "minutes") {
         throw new Error("Only minutes duration is supported");
       }
-      return `sfn.display_minutes_duration(${value})`;
+      return `fn.display_minutes_duration(${value})`;
     }
   }
   return value;
@@ -1329,7 +1336,8 @@ export class UpdateFormState extends FormState {
             }
           }
           s.modify(
-            `update db.${this.#table.name
+            `update db.${
+              this.#table.name
             } set ${setValues} where id = ${recordId}`,
           );
           this.#formStateExtensions?.beforeTransactionCommit?.(this, s);

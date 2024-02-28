@@ -366,7 +366,7 @@ function columnFilter(columns: SuperGridColumn[], dts: SuperGridDts) {
   const switchCases: { condition: string; node: Node }[] = [];
   if (columns.some((col) => col.filter?.type === "string")) {
     switchCases.push({
-      condition: `rfn.is_string_filter_op(${filterTermHelper.op})`,
+      condition: `fn.is_string_filter_op(${filterTermHelper.op})`,
       node: filterTermHelper.debounceState(
         input({
           size: "sm",
@@ -391,7 +391,7 @@ function columnFilter(columns: SuperGridColumn[], dts: SuperGridDts) {
   }
   if (columns.some((col) => col.filter?.type === "number")) {
     switchCases.push({
-      condition: `rfn.is_number_filter_op(${filterTermHelper.op})`,
+      condition: `fn.is_number_filter_op(${filterTermHelper.op})`,
       node: filterTermHelper.debounceState(
         input({
           size: "sm",
@@ -416,7 +416,7 @@ function columnFilter(columns: SuperGridColumn[], dts: SuperGridDts) {
   }
   if (columns.some((col) => col.filter?.type === "date")) {
     switchCases.push({
-      condition: `rfn.is_date_filter_op(${filterTermHelper.op})`,
+      condition: `fn.is_date_filter_op(${filterTermHelper.op})`,
       node: [
         select({
           size: "sm",
@@ -497,7 +497,7 @@ function columnFilter(columns: SuperGridColumn[], dts: SuperGridDts) {
   }
   if (columns.some((col) => col.filter?.type === "timestamp")) {
     switchCases.push({
-      condition: `rfn.is_timestamp_filter_op(${filterTermHelper.op})`,
+      condition: `fn.is_timestamp_filter_op(${filterTermHelper.op})`,
       node: [
         select({
           size: "sm",
@@ -581,13 +581,13 @@ function columnFilter(columns: SuperGridColumn[], dts: SuperGridDts) {
   }
   if (columns.some((col) => col.filter?.type === "enum")) {
     switchCases.push({
-      condition: `rfn.is_enum_filter_op(${filterTermHelper.op})`,
+      condition: `fn.is_enum_filter_op(${filterTermHelper.op})`,
       node: enumSelect(columns),
     });
   }
   if (columns.some((col) => col.filter?.type === "table")) {
     switchCases.push({
-      condition: `rfn.is_fk_filter_op(${filterTermHelper.op})`,
+      condition: `fn.is_fk_filter_op(${filterTermHelper.op})`,
       node: tableInput(columns),
     });
   }
@@ -619,13 +619,13 @@ function columnFilter(columns: SuperGridColumn[], dts: SuperGridDts) {
   }
   if (columns.some((col) => col.filter?.type === "minutes_duration")) {
     switchCases.push({
-      condition: `rfn.is_minute_duration_filter_op(${filterTermHelper.op})`,
+      condition: `fn.is_minute_duration_filter_op(${filterTermHelper.op})`,
       node: nodes.state({
         watch: [`coalesce(try_cast(${filterTermHelper.value1} as bigint), 0)`],
         procedure: (s) =>
           s.scalar(
             `value`,
-            `coalesce(sfn.display_minutes_duration(try_cast(${filterTermHelper.value1} as bigint)), '')`,
+            `coalesce(fn.display_minutes_duration(try_cast(${filterTermHelper.value1} as bigint)), '')`,
           ),
         children: durationInput({
           durationSize: "minutes",
@@ -636,7 +636,7 @@ function columnFilter(columns: SuperGridColumn[], dts: SuperGridDts) {
               .setScalar(`value`, value)
               .statements(
                 filterTermHelper.setValue1(
-                  `sfn.parse_minutes_duration(${value})`,
+                  `fn.parse_minutes_duration(${value})`,
                 ),
                 dgState.triggerRefresh,
               ),
@@ -682,7 +682,7 @@ function columnFilter(columns: SuperGridColumn[], dts: SuperGridDts) {
             .if(`${filterTermHelper.columnId} != new_id`, (s) =>
               s
                 .modify(
-                  `update filter_term_record set column_id = new_id, op = rfn.${dts.idToDefaultOp}(new_id), value_1 = null, value_2 = null, value_3 = null`,
+                  `update filter_term_record set column_id = new_id, op = fn.${dts.idToDefaultOp}(new_id), value_1 = null, value_2 = null, value_3 = null`,
                 )
                 .statements(dgState.triggerRefresh),
             ),
@@ -771,9 +771,9 @@ function enumLikeBoolSelect(columns: SuperGridColumn[]) {
             }),
             col.filter!.config.null
               ? nodes.element("option", {
-                props: { value: `''` },
-                children: stringLiteral(col.filter!.config.null),
-              })
+                  props: { value: `''` },
+                  children: stringLiteral(col.filter!.config.null),
+                })
               : null,
           ],
         };
@@ -1085,8 +1085,9 @@ export function filterPopover(columns: SuperGridColumn[], dts: SuperGridDts) {
 }
 
 function insertFilter(columns: SuperGridColumn[], parentGroup?: string) {
-  const ordering = `(select ordering.new(max(ordering)) from ui.filter_term where ${parentGroup ? `group = ${parentGroup}` : "group is null"
-    })`;
+  const ordering = `(select ordering.new(max(ordering)) from ui.filter_term where ${
+    parentGroup ? `group = ${parentGroup}` : "group is null"
+  })`;
   return new DomStatements()
     .modify(
       `insert into ui.filter_term (
@@ -1103,16 +1104,17 @@ function insertFilter(columns: SuperGridColumn[], parentGroup?: string) {
         ${parentGroup ? parentGroup + "," : ""}
         ${ordering},
         ${stringLiteral(
-        defaultOpForFieldType(columns.find((col) => col.filter)!.filter!),
-      )}
+          defaultOpForFieldType(columns.find((col) => col.filter)!.filter!),
+        )}
       )`,
     )
     .setScalar(`ui.next_filter_id`, `ui.next_filter_id + 1`);
 }
 
 function insertFilterGroup(columns: SuperGridColumn[], parentGroup?: string) {
-  const groupOrdering = `(select ordering.new(max(ordering)) from ui.filter_term where ${parentGroup ? `group = ${parentGroup}` : "group is null"
-    })`;
+  const groupOrdering = `(select ordering.new(max(ordering)) from ui.filter_term where ${
+    parentGroup ? `group = ${parentGroup}` : "group is null"
+  })`;
   return new DomStatements()
     .modify(
       `insert into ui.filter_term (

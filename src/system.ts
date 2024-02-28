@@ -94,8 +94,6 @@ export class System {
   apps: Record<string, App> = {};
   api: Api = new Api();
   enums: Record<string, Enum> = {};
-  recordRuleFunctions: Record<string, RecordRuleFn> = {};
-  ruleFunctions: Record<string, RuleFunction> = {};
   scalarFunctions: Record<string, ScalarFunction> = {};
   tableFunctions: Record<string, TableFunction> = {};
   test = new Test();
@@ -118,12 +116,20 @@ export class System {
     this.scalarFunctions[f.name] = scalarFunctionFromHelper(f);
   }
 
-  addRecordRuleFunction(rrfn: HelperRecordRuleFn) {
-    this.recordRuleFunctions[rrfn.name] = rrfnFromHelper(rrfn);
-  }
-
-  addRuleFunction(rfn: HelperRuleFunction) {
-    this.ruleFunctions[rfn.name] = ruleFunctionFromHelper(rfn);
+  addRulesFunction(f: RulesFunction) {
+    const firstRow = f.rules[0];
+    firstRow[firstRow.length - 1] = "output";
+    this.addScalarFunction({
+      name: f.name,
+      description: f.description,
+      parameters: f.parameters,
+      returnType: f.returnType,
+      procedure: (s) =>
+        s
+          .statements(f.setup)
+          .evalRules(...f.rules)
+          .return("output"),
+    });
   }
 
   addEnum(enum_: HelperEnum) {
@@ -137,18 +143,18 @@ export class System {
         ...v,
       };
     });
-    if (!enum_.disableDisplayRfn) {
-      enum_.withSimpleRfns = enum_.withSimpleRfns ?? [];
-      enum_.withSimpleRfns.push({
+    if (!enum_.disableDisplayFn) {
+      enum_.withRulesFn = enum_.withRulesFn ?? [];
+      enum_.withRulesFn.push({
         name: "display_" + enum_.name,
         outputType: "String",
         fields: values.map((n) => [n.name, stringLiteral(n.displayName)]),
       });
     }
-    if (Array.isArray(enum_.withBoolRfns)) {
-      enum_.withSimpleRfns = enum_.withSimpleRfns ?? [];
-      for (const e of enum_.withBoolRfns) {
-        enum_.withSimpleRfns.push({
+    if (Array.isArray(enum_.withBoolRulesFn)) {
+      enum_.withRulesFn = enum_.withRulesFn ?? [];
+      for (const e of enum_.withBoolRulesFn) {
+        enum_.withRulesFn.push({
           name: e.name,
           outputType: "Bool",
           fields:
@@ -159,9 +165,9 @@ export class System {
         });
       }
     }
-    if (Array.isArray(enum_.withSimpleRfns)) {
-      for (const rfn of enum_.withSimpleRfns) {
-        this.addRuleFunction({
+    if (Array.isArray(enum_.withRulesFn)) {
+      for (const rfn of enum_.withRulesFn) {
+        this.addRulesFunction({
           name: rfn.name,
           parameters: [
             {
@@ -170,8 +176,8 @@ export class System {
             },
           ],
           returnType: rfn.outputType,
-          header: ["input.value", "output"],
           rules: [
+            ["input.value", "output"],
             ...rfn.fields.map(([field, value]) => [
               stringLiteral(field),
               value,
@@ -193,8 +199,8 @@ export class System {
       values: valuesObject,
     };
     system.enums[enum_.name] = modelEnum;
-    if (!enum_.disableDisplayRfn) {
-      modelEnum.getDisplayName = (v) => `rfn.display_${enum_.name}(${v})`;
+    if (!enum_.disableDisplayFn) {
+      modelEnum.getDisplayName = (v) => `fn.display_${enum_.name}(${v})`;
     }
   }
 
@@ -253,10 +259,6 @@ export class System {
       fileSizeGb: this.fileSizeGb,
       collation: this.collation,
       db: this.db.generateYom(),
-      recordRuleFunctions: Object.values(this.recordRuleFunctions).map(
-        generateRecordRuleFn,
-      ),
-      ruleFunctions: Object.values(this.ruleFunctions).map(generateRuleFn),
       scalarFunctions: Object.values(this.scalarFunctions).map(
         generateScalarFunction,
       ),
@@ -667,8 +669,6 @@ export class Db {
   collation = "NoCase" as yom.Collation;
   autoTrim = "Both" as yom.AutoTrim;
   enableTransactionQueries = true;
-  recordRuleFunctions: Record<string, RecordRuleFn> = {};
-  ruleFunctions: Record<string, RuleFunction> = {};
   scalarFunctions: Record<string, ScalarFunction> = {};
   tables: Record<string, Table> = {};
   searchMatches: Record<string, yom.SearchMatchConfig> = {};
@@ -692,12 +692,20 @@ export class Db {
     this.scalarFunctions[f.name] = scalarFunctionFromHelper(f);
   }
 
-  addRecordRuleFunction(rrfn: HelperRecordRuleFn) {
-    this.recordRuleFunctions[rrfn.name] = rrfnFromHelper(rrfn);
-  }
-
-  addRuleFunction(rfn: HelperRuleFunction) {
-    this.ruleFunctions[rfn.name] = ruleFunctionFromHelper(rfn);
+  addRulesFunction(f: RulesFunction) {
+    const firstRow = f.rules[0];
+    firstRow[firstRow.length - 1] = "output";
+    this.addScalarFunction({
+      name: f.name,
+      description: f.description,
+      parameters: f.parameters,
+      returnType: f.returnType,
+      procedure: (s) =>
+        s
+          .statements(f.setup)
+          .evalRules(...f.rules)
+          .return("output"),
+    });
   }
 
   generateYom(): yom.Database {
@@ -706,10 +714,6 @@ export class Db {
       collation: system.db.collation,
       autoTrim: system.db.autoTrim,
       enableTransactionQueries: system.db.enableTransactionQueries,
-      recordRuleFunctions: Object.values(system.db.recordRuleFunctions).map(
-        generateRecordRuleFn,
-      ),
-      ruleFunctions: Object.values(system.db.ruleFunctions).map(generateRuleFn),
       scalarFunctions: Object.values(system.db.scalarFunctions).map(
         generateScalarFunction,
       ),
@@ -2543,22 +2547,6 @@ export interface Parameter {
   type: yom.FieldType;
 }
 
-export interface RecordRuleFnOutput {
-  name: string;
-  collation?: yom.Collation;
-  type: yom.ScalarType;
-}
-
-export interface RecordRuleFn {
-  name: string;
-  description?: string;
-  header: string[];
-  rules: string[][];
-  setup?: yom.BasicStatement[];
-  parameters: { [name: string]: Parameter };
-  outputs: { [name: string]: RecordRuleFnOutput };
-}
-
 export interface ScalarFunction {
   name: string;
   description?: string;
@@ -2688,133 +2676,18 @@ export interface HelperEnum {
         description?: string;
       }
   )[];
-  withSimpleRfns?: SimpleRfn[];
-  withBoolRfns?: BoolRfn[];
-  disableDisplayRfn?: boolean;
+  withRulesFn?: SimpleRfn[];
+  withBoolRulesFn?: BoolRfn[];
+  disableDisplayFn?: boolean;
 }
 
-interface HelperRecordRuleFnOutput {
-  name: string;
-  collation?: yom.Collation;
-  type: HelperScalarType;
-}
-
-interface HelperRecordRuleFn {
-  name: string;
-  description?: string;
-  setup?: BasicStatementsOrFn;
-  parameters?: HelperFunctionParam[];
-  outputs: HelperRecordRuleFnOutput[];
-  header: string[];
-  rules: string[][];
-}
-
-function rrfnFromHelper(rrfn: HelperRecordRuleFn): RecordRuleFn {
-  const inputs: { [name: string]: Parameter } = {};
-  const outputs: { [name: string]: RecordRuleFnOutput } = {};
-  if (rrfn.outputs) {
-    for (const output of rrfn.outputs) {
-      outputs[output.name] = {
-        name: output.name,
-        type:
-          typeof output.type === "string" ? { type: output.type } : output.type,
-        collation: output.collation,
-      };
-    }
-  }
-  if (rrfn.parameters) {
-    for (const input of rrfn.parameters) {
-      inputs[input.name] = {
-        name: input.name,
-        type: fieldTypeFromHelper(input.type),
-        notNull: input.notNull,
-      };
-    }
-  }
-  return {
-    name: rrfn.name,
-    description: rrfn.description,
-    outputs,
-    parameters: inputs,
-    setup: BasicStatements.normalizeToArray(rrfn.setup),
-    header: rrfn.header,
-    rules: rrfn.rules,
-  };
-}
-
-export interface RuleFunction {
-  name: string;
-  description?: string;
-  setup?: yom.BasicStatement[];
-  parameters: { [name: string]: Parameter };
-  header: string[];
-  rules: string[][];
-  returnType: yom.ScalarType;
-}
-
-interface HelperRuleFunction {
+export interface RulesFunction {
   name: string;
   description?: string;
   parameters: HelperFunctionParam[];
   setup?: BasicStatementsOrFn;
   returnType: HelperScalarType;
-  header: string[];
   rules: string[][];
-}
-
-function ruleFunctionFromHelper(f: HelperRuleFunction): RuleFunction {
-  const inputs: { [name: string]: Parameter } = {};
-  for (const input of f.parameters) {
-    inputs[input.name] = {
-      name: input.name,
-      type: typeof input.type === "string" ? { type: input.type } : input.type,
-      notNull: input.notNull,
-    };
-  }
-  return {
-    name: f.name,
-    description: f.description,
-    parameters: inputs,
-    setup: BasicStatements.normalizeToArray(f.setup),
-    header: f.header,
-    rules: f.rules,
-    returnType:
-      typeof f.returnType === "string" ? { type: f.returnType } : f.returnType,
-  };
-}
-
-function generateRecordRuleFn(rfn: RecordRuleFn): yom.RecordRuleFunction {
-  return {
-    name: rfn.name,
-    outputs: Object.values(rfn.outputs).map((o) => ({
-      name: o.name,
-      type: o.type,
-      collation: o.collation,
-    })),
-    parameters: Object.values(rfn.parameters).map((i) => ({
-      name: i.name,
-      type: i.type,
-      notNull: i.notNull,
-    })),
-    setup: rfn.setup,
-    header: rfn.header,
-    rules: rfn.rules,
-  };
-}
-
-function generateRuleFn(rfn: RuleFunction): yom.RuleFunction {
-  return {
-    name: rfn.name,
-    parameters: Object.values(rfn.parameters).map((i) => ({
-      name: i.name,
-      type: i.type,
-      notNull: i.notNull,
-    })),
-    setup: rfn.setup,
-    header: rfn.header,
-    rules: rfn.rules,
-    returnType: rfn.returnType,
-  };
 }
 
 function generateScalarFunction(f: ScalarFunction): yom.ScalarFunction {

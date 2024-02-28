@@ -80,7 +80,7 @@ export function inlineFieldDisplay(field: Field, expr: string) {
           }
           case "Duration": {
             if (field.usage.size === "minutes") {
-              return `sfn.display_minutes_duration(${expr})`;
+              return `fn.display_minutes_duration(${expr})`;
             }
             throw new Error("Only minutes duration is supported");
           }
@@ -90,7 +90,7 @@ export function inlineFieldDisplay(field: Field, expr: string) {
       break;
     }
     case "Enum": {
-      expr = `rfn.display_${field.enum}(${expr})`;
+      expr = `fn.display_${field.enum}(${expr})`;
       break;
     }
     case "Bool": {

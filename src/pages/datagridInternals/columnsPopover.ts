@@ -41,7 +41,7 @@ export function columnsPopover(state: DgStateHelpers, dts: SuperGridDts) {
         children: nodes.each({
           table: "column",
           orderBy: "ordering",
-          where: `rfn.${dts.idToColumnsDisplayName}(id) is not null and (trim(filter_text) = '' or rfn.${dts.idToColumnsDisplayName}(id) like '%' || filter_text || '%')`,
+          where: `fn.${dts.idToColumnsDisplayName}(id) is not null and (trim(filter_text) = '' or fn.${dts.idToColumnsDisplayName}(id) like '%' || filter_text || '%')`,
           key: "id",
           recordName: "column_record",
           children: checkbox({
@@ -50,7 +50,7 @@ export function columnsPopover(state: DgStateHelpers, dts: SuperGridDts) {
             color: "primary",
             checked: `column_record.displaying`,
             slots: { input: { props: { id: `column_record.id` } } },
-            label: `rfn.${dts.idToColumnsDisplayName}(column_record.id)`,
+            label: `fn.${dts.idToColumnsDisplayName}(column_record.id)`,
             on: {
               click: (s) =>
                 s

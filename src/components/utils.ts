@@ -23,7 +23,6 @@ export interface SingleElementComponentOpts {
   tag?: yom.AllHtmlTags;
   props?: yom.ElementProps;
   styles?: Style;
-  testId?: string;
   dynamicClasses?: yom.DynamicClass[];
   floating?: yom.FloatingOpts;
   focusLock?: {};
@@ -80,7 +79,6 @@ export function mergeEls(
           ...(opts.dynamicClasses ?? []),
         ]
       : opts.dynamicClasses,
-    testId: overwriteOpts.testId ?? opts.testId,
     floating: overwriteOpts.floating ?? opts.floating,
     focusLock: overwriteOpts.focusLock ?? opts.focusLock,
     scrollLock: overwriteOpts.scrollLock

@@ -292,8 +292,8 @@ app.addDashboardGridPage((page) =>
                 `previous_num`,
                 `(select sum(minutes) from db.time_entry where billable and date between date.add(day, -60, today()) and date.add(day, -30, today()))`,
               ),
-          value: `sfn.display_minutes_duration(value_num)`,
-          previous: `sfn.display_minutes_duration(previous_num)`,
+          value: `fn.display_minutes_duration(value_num)`,
+          previous: `fn.display_minutes_duration(previous_num)`,
           trend: `cast((value_num - previous_num) as decimal(10, 2)) / cast(previous_num as decimal(10, 2))`,
         },
         {
@@ -434,10 +434,10 @@ const contactDatagridPage = app.createDatagridPageNode("contact", (page) => {
     .toolbar((t) => t.insertPage().export().delete())
     .virtualColumn({
       storageName: "remaining_minutes",
-      expr: `sfn.remaining_minutes(id)`,
+      expr: `fn.remaining_minutes(id)`,
       filter: { type: "minutes_duration", notNull: true },
       cell: (cell) =>
-        `sfn.display_minutes_duration(try_cast(${cell.value} as bigint))`,
+        `fn.display_minutes_duration(try_cast(${cell.value} as bigint))`,
       sort: { type: "numeric" },
     });
 });
@@ -465,7 +465,7 @@ function remainingHoursDisplay(label: string, value: string) {
             condition: `${value} < 0`,
           },
         ],
-        children: `sfn.display_minutes_duration(${value})`,
+        children: `fn.display_minutes_duration(${value})`,
       }),
     ],
   });
@@ -481,7 +481,7 @@ app.addRecordGridPage("contact", (page) =>
   page
     .namedPageHeader({
       chips: ["mailing_list"],
-      subHeader: "rfn.display_contact_type(type)",
+      subHeader: "fn.display_contact_type(type)",
     })
     .twoColumnDisplayCard({
       styles: { gridColumnSpan: 12, lg: { gridColumnSpan: 8 } },
@@ -500,7 +500,7 @@ app.addRecordGridPage("contact", (page) =>
       dateField: "date",
       timelineHeader: `'Timeline'`,
       additionalState: (s) =>
-        s.scalar(`remaining_minutes`, `sfn.remaining_minutes(ui.record_id)`),
+        s.scalar(`remaining_minutes`, `fn.remaining_minutes(ui.record_id)`),
       afterHeaderNode: nodes.element("div", {
         styles: { display: "flex", gap: 2, pt: 1, px: 1 },
         children: [
@@ -695,7 +695,7 @@ app.addSimpleDatagridPage("user", (page) => {
 app.addRecordGridPage("matter", (page) =>
   page
     .namedPageHeader({
-      subHeader: "rfn.display_matter_type(type)",
+      subHeader: "fn.display_matter_type(type)",
       chips: [
         {
           fields: ["close_date"],
@@ -716,7 +716,7 @@ app.addRecordGridPage("matter", (page) =>
         "close_date",
         {
           label: "'Total time spent'",
-          expr: `(select sfn.display_minutes_duration(sum(minutes)) from db.time_entry where matter = ${page.recordId})`,
+          expr: `(select fn.display_minutes_duration(sum(minutes)) from db.time_entry where matter = ${page.recordId})`,
         },
         {
           label: "'Time entry count'",
@@ -826,7 +826,7 @@ app.addMultiCardInsert({
         }),
         nodes.element("p", {
           styles: { mt: 2, mb: 4 },
-          children: `'For a total of ' || sfn.display_minutes_duration(added_minutes) || ' minutes'`,
+          children: `'For a total of ' || fn.display_minutes_duration(added_minutes) || ' minutes'`,
         }),
         components.button({
           variant: "soft",
@@ -845,7 +845,7 @@ app.addMultiCardInsert({
     s
       .setScalar(
         `ui.added_minutes`,
-        `(select sum(sfn.parse_minutes_duration(minutes)) from ui.time_entry)`,
+        `(select sum(fn.parse_minutes_duration(minutes)) from ui.time_entry)`,
       )
       .setScalar(`ui.added_entries`, `(select count(*) from ui.time_entry)`),
 });
@@ -896,15 +896,15 @@ order by total_minutes desc`;
       { header: "Employee", cell: (r) => `${r}.employee` },
       {
         header: "Total Hours",
-        cell: (r) => `sfn.display_minutes_duration(${r}.total_minutes)`,
+        cell: (r) => `fn.display_minutes_duration(${r}.total_minutes)`,
       },
       {
         header: "Billable Hours",
-        cell: (r) => `sfn.display_minutes_duration(${r}.billable_minutes)`,
+        cell: (r) => `fn.display_minutes_duration(${r}.billable_minutes)`,
       },
       {
         header: "Non Billable Hours",
-        cell: (r) => `sfn.display_minutes_duration(${r}.non_billable_minutes)`,
+        cell: (r) => `fn.display_minutes_duration(${r}.non_billable_minutes)`,
       },
       {
         header: "Total Entry Count",
@@ -1007,7 +1007,7 @@ limit 10`;
       },
       {
         header: "Total Hours",
-        cell: (r) => `sfn.display_minutes_duration(${r}.total_minutes)`,
+        cell: (r) => `fn.display_minutes_duration(${r}.total_minutes)`,
       },
     ],
   });

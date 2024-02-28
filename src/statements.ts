@@ -145,6 +145,14 @@ export abstract class StatementsBase<Statement extends object> {
     return this;
   }
 
+  evalRules(...rules: string[][]) {
+    this.pushToBacking({
+      t: "EvalRules",
+      rules,
+    } as yom.EvalRulesStatement as any);
+    return this;
+  }
+
   protected addGenericStatements(
     statements: StatementsOrFn<this> | undefined | null | false,
   ) {
@@ -502,7 +510,7 @@ export class DomStatements extends StatementsBase<yom.DomProcStatement> {
   }
 
   abortTask(handle: string) {
-    this.pushToBacking({ t: "Abort", handle });
+    this.pushToBacking({ t: "AbortTask", handle });
     return this;
   }
 

@@ -31,7 +31,7 @@ export function durationInput(opts: DurationInputOpts) {
                 (s) => s.preventDefault(),
               ),
             change: opts.onChange(
-              `sfn.display_minutes_duration(sfn.parse_minutes_duration(target_value))`,
+              `fn.display_minutes_duration(fn.parse_minutes_duration(target_value))`,
             ),
           },
           opts.slots?.input?.on ?? {},

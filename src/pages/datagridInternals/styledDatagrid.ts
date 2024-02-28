@@ -540,34 +540,30 @@ function addSupergridDatagridDts(
     }
   }
   const idToColumnsDisplayName = `${datagridName}_dg_col_id_to_columns_display_name`;
-  system.addRuleFunction({
+  system.addRulesFunction({
     parameters: [{ name: "id", type: "SmallUint" }],
-    header: ["input.id", "display_name"],
-    rules: columnsDisplayName,
+    rules: [["input.id", "output"], ...columnsDisplayName],
     name: idToColumnsDisplayName,
     returnType: "String",
   });
   const idToDefaultOp = `${datagridName}_dg_col_id_to_op`;
-  system.addRuleFunction({
+  system.addRulesFunction({
     parameters: [{ name: "id", type: "SmallUint" }],
-    header: ["input.id", "op"],
-    rules: defaultOps,
+    rules: [["input.id", "output"], ...defaultOps],
     name: idToDefaultOp,
     returnType: { type: "Enum", enum: "dg_filter_op" },
   });
   const idToSortDisplayName = `${datagridName}_dg_col_id_to_sort_display_name`;
-  system.addRuleFunction({
+  system.addRulesFunction({
     parameters: [{ name: "id", type: "SmallUint" }],
-    header: ["input.id", "display_name"],
-    rules: sortDisplayName,
+    rules: [["input.id", "output"], ...sortDisplayName],
     name: idToSortDisplayName,
     returnType: "String",
   });
   const idToFilterDisplayName = `${datagridName}_dg_col_id_to_filter_display_name`;
-  system.addRuleFunction({
+  system.addRulesFunction({
     parameters: [{ name: "id", type: "SmallUint" }],
-    header: ["input.id", "display_name"],
-    rules: filterDisplayName,
+    rules: [["input.id", "output"], ...filterDisplayName],
     name: idToFilterDisplayName,
     returnType: "String",
   });

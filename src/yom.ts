@@ -14,8 +14,6 @@ export interface System {
   db: Database;
   apps: App[];
   enums?: Enum[];
-  recordRuleFunctions?: RecordRuleFunction[];
-  ruleFunctions?: RuleFunction[];
   scalarFunctions?: ScalarFunction[];
   tableFunctions?: TableFunction[];
   scripts?: Script[];
@@ -258,6 +256,11 @@ export interface PopSourceStatement {
   t: "PopSource";
 }
 
+export interface EvalRulesStatement {
+  t: "EvalRules";
+  rules: string[][];
+}
+
 export type BaseStatement =
   | ModifyStatement
   | ThrowStatement
@@ -275,7 +278,8 @@ export type BaseStatement =
   | QueryToCsvStatement
   | AdvanceCursorStatement
   | PushSourceStatement
-  | PopSourceStatement;
+  | PopSourceStatement
+  | EvalRulesStatement;
 
 export interface IfStatement<T> {
   t: "If";
@@ -464,8 +468,6 @@ export interface Database {
   enableTransactionQueries: boolean;
   defaultUniqueDistinctNulls?: boolean;
   tables: Table[];
-  recordRuleFunctions?: RecordRuleFunction[];
-  ruleFunctions?: RuleFunction[];
   scalarFunctions?: ScalarFunction[];
   tableFunctions?: TableFunction[];
   searchMatches?: SearchMatchConfig[];
@@ -478,30 +480,6 @@ export interface ScalarFunction {
   parameters?: Parameter[];
   procedure: BasicStatement[];
   returnType: ScalarType;
-}
-
-export interface RecordRuleFunctionOutput {
-  name: string;
-  collation?: Collation;
-  type: ScalarType;
-}
-
-export interface RuleFunction {
-  name: string;
-  parameters?: Parameter[];
-  setup?: BasicStatement[];
-  returnType: ScalarType;
-  header: string[];
-  rules: string[][];
-}
-
-export interface RecordRuleFunction {
-  name: string;
-  parameters?: Parameter[];
-  setup?: BasicStatement[];
-  outputs: RecordRuleFunctionOutput[];
-  header: string[];
-  rules: string[][];
 }
 
 export interface ReturnTableStatement {

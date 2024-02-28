@@ -230,7 +230,7 @@ export function datagridBase(opts: DatagridBaseOpts) {
         .modify(
           `insert into filter_term
             select id,
-              rfn.${dts.storageNameToId}(column_name) as column_id,
+              fn.${dts.storageNameToId}(column_name) as column_id,
               group,
               ordering,
               is_any,
@@ -334,11 +334,11 @@ export function datagridBase(opts: DatagridBaseOpts) {
                   sort_asc = view_column.sort_asc,
                   sort_index = view_column.sort_index,
                   displaying = view_column.displaying
-                where id = rfn.${dts.storageNameToId}(view_column.name)`,
+                where id = fn.${dts.storageNameToId}(view_column.name)`,
                     ),
                 )
                 .forEachQuery(
-                  `select id from column where id not in (select rfn.${dts.storageNameToId}(name) from db.datagrid_view_column where view = view_record.id)`,
+                  `select id from column where id not in (select fn.${dts.storageNameToId}(name) from db.datagrid_view_column where view = view_record.id)`,
                   `column_record`,
                   (s) =>
                     s.modify(
@@ -431,38 +431,35 @@ export function addDatagridRfns(
     }
   }
   const storageNameToIdDt = `${datagridName}_dg_col_storage_name_to_id`;
-  system.addRuleFunction({
+  system.addRulesFunction({
     parameters: [
       {
         name: "sql_name",
         type: { type: "String", maxLength: 2000 },
       },
     ],
-    header: ["input.sql_name", "id"],
-    rules: storageNamesToIds,
+    rules: [["input.sql_name", "id"], ...storageNamesToIds],
     name: storageNameToIdDt,
     returnType: "Int",
   });
   const idToStorageName = `${datagridName}_dg_col_id_to_storage_name`;
-  system.addRuleFunction({
+  system.addRulesFunction({
     parameters: [{ name: "id", type: "SmallUint" }],
-    header: ["input.id", "storage_name"],
-    rules: idsToStorageNames,
+    rules: [["input.id", "storage_name"], ...idsToStorageNames],
     name: idToStorageName,
     returnType: "String",
   });
   const idToSqlExprDt = `${datagridName}_dg_col_id_to_sql_expr`;
-  system.addRuleFunction({
+  system.addRulesFunction({
     parameters: [{ name: "id", type: "SmallUint", notNull: true }],
-    header: ["input.id", "sql_expr"],
-    rules: sqlExprs,
+    rules: [["input.id", "sql_expr"], ...sqlExprs],
     name: idToSqlExprDt,
     returnType: "String",
   });
   let idToFilterExpr;
   if (idsToFilterExpr.length > 0) {
     idToFilterExpr = `${datagridName}_dg_col_id_to_filter_expr`;
-    system.addRuleFunction({
+    system.addRulesFunction({
       parameters: [
         { name: "id", type: "SmallUint", notNull: true },
         {
@@ -481,8 +478,7 @@ export function addDatagridRfns(
           notNull: false,
         },
       ],
-      header: ["input.id", "sql_expr"],
-      rules: idsToFilterExpr,
+      rules: [["input.id", "sql_expr"], ...idsToFilterExpr],
       returnType: "String",
       name: idToFilterExpr,
     });
@@ -499,9 +495,9 @@ function insertViewColumnsAndFilters(dts: DatagridRfns, viewId: string) {
   return new ServiceStatements()
     .modify(
       `insert into db.datagrid_view_column
-          select ${viewId} as view, displaying, ordering, sort_asc, sort_index, rfn.${dts.idToStorageName}(id) as name
+          select ${viewId} as view, displaying, ordering, sort_asc, sort_index, fn.${dts.idToStorageName}(id) as name
           from ui.column
-          where rfn.${dts.idToStorageName}(id) is not null`,
+          where fn.${dts.idToStorageName}(id) is not null`,
     )
     .table("filter_mapping", [
       { name: "ui_id", type: { type: "BigUint" } },
@@ -516,7 +512,7 @@ function insertViewColumnsAndFilters(dts: DatagridRfns, viewId: string) {
       (s) =>
         s
           .modify(
-            `insert into db.datagrid_view_filter_term select *, ${viewId} as view, rfn.${dts.idToStorageName}(column_id) as column_name from ui.filter_term where id = filter_term_record.id`,
+            `insert into db.datagrid_view_filter_term select *, ${viewId} as view, fn.${dts.idToStorageName}(column_id) as column_name from ui.filter_term where id = filter_term_record.id`,
           )
           .modify(
             `insert into filter_mapping (ui_id, db_id) values (filter_term_record.id, (select max(id) from db.datagrid_view_filter_term))`,
@@ -530,7 +526,7 @@ function insertViewColumnsAndFilters(dts: DatagridRfns, viewId: string) {
       s
         .modify(
           `insert into db.datagrid_view_filter_term
-              select *, db_id as group, ${viewId} as view, rfn.${dts.idToStorageName}(column_id) as column_name
+              select *, db_id as group, ${viewId} as view, fn.${dts.idToStorageName}(column_id) as column_name
                 from ui.filter_term
                   join filter_mapping on ui_id = group
                 where id = filter_term_record.id`,
@@ -545,7 +541,7 @@ function insertViewColumnsAndFilters(dts: DatagridRfns, viewId: string) {
       (s) =>
         s.modify(
           `insert into db.datagrid_view_filter_term
-              select *, db_id as group, ${viewId} as view, rfn.${dts.idToStorageName}(column_id) as column_name
+              select *, db_id as group, ${viewId} as view, fn.${dts.idToStorageName}(column_id) as column_name
                 from ui.filter_term
                   join filter_mapping on ui_id = group
                 where id = filter_term_record.id`,
@@ -689,9 +685,9 @@ export function duplicateView(viewId: string) {
 
 function filterExpr(dts: DatagridRfns) {
   function serializeFilter(filter: string) {
-    const encodeFilterOp = `rfn.encode_dg_filter_op(
+    const encodeFilterOp = `fn.encode_dg_filter_op(
       op => ${filter}.op,
-      expr => rfn.${dts.idToSqlExpr}(${filter}.column_id),
+      expr => fn.${dts.idToSqlExpr}(${filter}.column_id),
       value_1 => ${filter}.value_1,
       value_2 => ${filter}.value_2,
       value_3 => ${filter}.value_3
@@ -699,7 +695,7 @@ function filterExpr(dts: DatagridRfns) {
     if (dts.idToFilterExpr) {
       return `case
         when ${filter}.op = 'custom' then
-          rfn.${dts.idToFilterExpr}(${filter}.column_id, ${filter}.value_1, ${filter}.value_2, ${filter}.value_3)
+          fn.${dts.idToFilterExpr}(${filter}.column_id, ${filter}.value_1, ${filter}.value_2, ${filter}.value_3)
         else ${encodeFilterOp}
       end`;
     } else {
@@ -773,7 +769,7 @@ export function makeDynamicQuery(
     `(select string_agg(
         case
           when not has_query_generation then null
-          when ${shouldGenerateColumn} then rfn.${dts.idToSqlExpr}(id) || ' as col_' || id
+          when ${shouldGenerateColumn} then fn.${dts.idToSqlExpr}(id) || ' as col_' || id
           else 'null'
         end, ',')
       from ui.column
@@ -797,7 +793,7 @@ export function makeDownloadQuery(
     `'select ' `,
     `(select string_agg(
         case
-          when ${shouldGenerateColumn} then rfn.${dts.idToSqlExpr}(id) || ' as ' || rfn.${dts.idToDownloadName}(id)
+          when ${shouldGenerateColumn} then fn.${dts.idToSqlExpr}(id) || ' as ' || fn.${dts.idToDownloadName}(id)
         end
       from ui.column
     )`,
@@ -913,7 +909,7 @@ function addDgFilterOp() {
         "minute_duration_gte",
         "custom",
       ],
-      withBoolRfns: [
+      withBoolRulesFn: [
         {
           name: "is_string_filter_op",
           trues: ["str_eq", "str_ne", "str_contains", "str_not_contains"],
@@ -965,7 +961,7 @@ function addDgFilterOp() {
         },
       ],
     });
-    system.addRuleFunction({
+    system.addRulesFunction({
       name: "encode_date_dg_filter_param",
       parameters: [
         {
@@ -979,8 +975,8 @@ function addDgFilterOp() {
           notNull: false,
         },
       ],
-      header: ["input.value_1", "input.value_2", "output"],
       rules: [
+        ["input.value_1", "input.value_2", "output"],
         ["'today'", "any", "'today()'"],
         ["'tomorrow'", "any", "'tomorrow()'"],
         ["'yesterday'", "any", "'yesterday()'"],
@@ -1002,7 +998,7 @@ function addDgFilterOp() {
       ],
       returnType: "String",
     });
-    system.addRuleFunction({
+    system.addRulesFunction({
       name: "encode_dg_filter_op",
       parameters: [
         {
@@ -1031,8 +1027,8 @@ function addDgFilterOp() {
           notNull: false,
         },
       ],
-      header: ["input.op", "sql"],
       rules: [
+        ["input.op", "output"],
         ["'empty'", "input.expr || ' is null'"],
         ["'not_empty'", "input.expr || ' is not null'"],
         // string
@@ -1080,52 +1076,52 @@ function addDgFilterOp() {
         // date
         [
           "'date_eq'",
-          `coalesce(input.expr || '=' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
+          `coalesce(input.expr || '=' || fn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         [
           "'date_ne'",
-          `coalesce(input.expr || '!=' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
+          `coalesce(input.expr || '!=' || fn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         [
           "'date_lt'",
-          `coalesce(input.expr || '<' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
+          `coalesce(input.expr || '<' || fn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         [
           "'date_lte'",
-          `coalesce(input.expr || '<=' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
+          `coalesce(input.expr || '<=' || fn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         [
           "'date_gt'",
-          `coalesce(input.expr || '>' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
+          `coalesce(input.expr || '>' || fn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         [
           "'date_gte'",
-          `coalesce(input.expr || '>=' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
+          `coalesce(input.expr || '>=' || fn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         // timestamp
         [
           "'timestamp_eq'",
-          `coalesce('cast(' || input.expr || ' as date) =' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
+          `coalesce('cast(' || input.expr || ' as date) =' || fn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         [
           "'timestamp_ne'",
-          `coalesce('cast(' || input.expr || ' as date) !=' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
+          `coalesce('cast(' || input.expr || ' as date) !=' || fn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         [
           "'timestamp_lt'",
-          `coalesce('cast(' || input.expr || ' as date) <' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
+          `coalesce('cast(' || input.expr || ' as date) <' || fn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         [
           "'timestamp_lte'",
-          `coalesce('cast(' || input.expr || ' as date) <=' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
+          `coalesce('cast(' || input.expr || ' as date) <=' || fn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         [
           "'timestamp_gt'",
-          `coalesce('cast(' || input.expr || ' as date) >' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
+          `coalesce('cast(' || input.expr || ' as date) >' || fn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         [
           "'timestamp_gte'",
-          `coalesce('cast(' || input.expr || ' as date) >=' || rfn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
+          `coalesce('cast(' || input.expr || ' as date) >=' || fn.encode_date_dg_filter_param(input.value_1, input.value_2), 'true')`,
         ],
         // enum
         [

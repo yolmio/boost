@@ -703,7 +703,7 @@ function durationCell(
     return (cell) => {
       const display = nodes.element("span", {
         styles: sharedStyles.ellipsisSpan,
-        children: `sfn.display_minutes_duration(try_cast(${cell.value} as bigint))`,
+        children: `fn.display_minutes_duration(try_cast(${cell.value} as bigint))`,
       });
       if (opts.immutable === true) {
         return display;
@@ -714,16 +714,16 @@ function durationCell(
       const handlers = cell.fieldEditorEventHandlers({
         ...opts,
         fieldName: field.name,
-        dbValue: `sfn.parse_minutes_duration(ui.input_value)`,
+        dbValue: `fn.parse_minutes_duration(ui.input_value)`,
         validUiValue: field.notNull
-          ? `sfn.parse_minutes_duration(input_value) is not null`
-          : `input_value = '' or sfn.parse_minutes_duration(input_value) is not null`,
+          ? `fn.parse_minutes_duration(input_value) is not null`
+          : `input_value = '' or fn.parse_minutes_duration(input_value) is not null`,
         changedUiValue: field.notNull
-          ? `${bigintValue} != sfn.parse_minutes_duration(input_value)`
-          : `(input_value = '' and ${cell.value} is not null) or (input_value != '' and ${cell.value} is null) or ${bigintValue} != sfn.parse_minutes_duration(input_value)`,
+          ? `${bigintValue} != fn.parse_minutes_duration(input_value)`
+          : `(input_value = '' and ${cell.value} is not null) or (input_value != '' and ${cell.value} is null) or ${bigintValue} != fn.parse_minutes_duration(input_value)`,
         newUiValue: opts.stringified
-          ? `cast(sfn.parse_minutes_duration(input_value) as string)`
-          : `sfn.parse_minutes_duration(input_value)`,
+          ? `cast(fn.parse_minutes_duration(input_value) as string)`
+          : `fn.parse_minutes_duration(input_value)`,
       });
       return nodes.if({
         condition: andNotImmutable(opts.immutable, cell.editing),
@@ -734,7 +734,7 @@ function durationCell(
                 `value`,
                 `case when
                   start_edit_empty then ''
-                  else sfn.display_minutes_duration(try_cast(${cell.value} as bigint))
+                  else fn.display_minutes_duration(try_cast(${cell.value} as bigint))
                 end`,
               )
               .scalar(`input_value`, `value`),
@@ -755,7 +755,7 @@ function durationCell(
               change: (s) =>
                 s.setScalar(
                   `value`,
-                  `sfn.display_minutes_duration(sfn.parse_minutes_duration(target_value))`,
+                  `fn.display_minutes_duration(fn.parse_minutes_duration(target_value))`,
                 ),
             }),
           }),
