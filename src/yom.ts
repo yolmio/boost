@@ -20,7 +20,6 @@ export interface System {
   scriptDbs?: ScriptDb[];
   test?: TestModel;
   api?: AppApi;
-  migration?: Migration;
 }
 
 export type VCpus = 1 | 2 | 4 | 8 | 16;
@@ -89,14 +88,10 @@ export interface PollingPullConfig {
    * Setting to 0 is most useful in apps where you don't expect much change coming from other devices.
    *
    * default is 500 (0.5 seconds)
-   */
-  preReadAfterInactivePullTimeout?: number;
-  /**
-   * Same behavior as `preReadAfterInactivePullTimeout` except this timeout applies to procs that have a possible app db write.
    *
-   * default is 1000 (1 second)
+   * Max is 10,000 (10 seconds)
    */
-  prePossibleWriteAfterInactivePullTimeout?: number;
+  pullTimeoutAfterStop?: number;
 }
 
 export type Locale = "en_us";
@@ -2222,19 +2217,10 @@ export interface AppApi {
 /// SCRIPT
 ///
 
-export interface ScriptDbModelDefinition {
-  type: "Model";
-  db: Database;
-}
-
-export interface ScriptDbMappingFileDefinition {
-  type: "MappingFile";
-  file: string;
-}
-
 export interface ScriptDb {
   name: string;
-  definition: ScriptDbModelDefinition | ScriptDbMappingFileDefinition;
+  db: Database;
+  mapping?: DatabaseMapping;
 }
 
 export interface Script {
@@ -2258,11 +2244,25 @@ export interface LoadDbFromDirStatement {
   t: "LoadDbFromDir";
   db?: string;
   dir: string;
+  /**
+   * When loading another db, you can choose to load the db with a prefix for the enums as enums
+   * are in a global namespace. This allows you to load a database that has the same enums as your
+   * current database without overwriting them.
+   */
+  prefixEnums?: string;
 }
 
 export interface PullStatement {
   t: "Pull";
   dir?: string;
+  /**
+   * @default true
+   *
+   * Whether or not to load the database into memory after pulling it from the server.
+   * This is useful when you have made backwards incompatible changes to the database and
+   * want to still download the database
+   */
+  loadIntoMemory?: boolean;
 }
 
 export interface PushStatement {
@@ -2318,50 +2318,6 @@ export interface UploadDbStatement {
   allowOverwrite?: boolean;
 }
 
-export interface TableCompactOpts {
-  /** Preserves inserts and updates (according to below options) of deleted records */
-  preserveDeletedTxHistory: boolean;
-  /** Preserve ids of records (if false we can completely throw away all inserts, updates of deleted records without a skip) */
-  preserveIds: boolean;
-  /// Make sure the tx of the insert always has the correct creator
-  preserveInsertCreator: boolean;
-  /// Make sure the tx of the insert always has the correct timestamp
-  preserveInsertTimestamp: boolean;
-  /// Make sure the tx of any update always has the correct creator
-  preserveAllUpdateCreator: boolean;
-  /// Make sure the tx of any update always has the correct timestamp
-  preserveAllUpdateTimestamp: boolean;
-  /// Make sure the tx of any update always has the correct creator
-  preserveLastUpdateCreator: boolean;
-  /// Make sure the tx of any update always has the correct timestamp
-  preserveLastUpdateTimestamp: boolean;
-  /// Make sure the tx of a delete always has the correct creator
-  preserveDeleteCreator: boolean;
-  /// Make sure the tx of a delete always has the correct timestamp
-  preserveDeleteTimestamp: boolean;
-  /// Only valid if `preserve_deleted_tx_history` is true
-  preserveRestores: boolean;
-  /// If a tx contains a delete only apply any logic of the above (replace with skip, nullify, etc.) if the current date is more
-  /// than the `n` hrs after the tx date.
-  ///
-  /// This is a noop if `preserve_deleted_tx_history` is true
-  deleteOnlyAfterNHrs: number;
-  /// Destroy everything from this table
-  obliterate: boolean;
-}
-
-export interface CompactOpts {
-  defaultTableOpts: TableCompactOpts;
-  tableOpts: Record<string, TableCompactOpts>;
-  preserveTxId: boolean;
-}
-
-export interface CompactStatement {
-  t: "Compact";
-  opts: CompactOpts;
-  outDir: string;
-}
-
 export interface ScriptCommitTransactionStatement {
   t: "CommitTransaction";
   db: string;
@@ -2406,18 +2362,11 @@ export type ScriptStatement =
   | ImportCsvStatement
   | PullStatement
   | PushStatement
-  | CompactStatement
   | ScriptCommitTransactionStatement
   | ScriptStartTransactionDbStatement
   | ScriptRollbackTransactionStatement
   | ExportQueryToCsvStatement
   | DownloadBackupStatement;
-
-export interface Migration {
-  previousDbName: string;
-  previousDbDir: string;
-  procedure: ScriptStatement[];
-}
 
 ///
 /// TEST
@@ -2487,3 +2436,58 @@ export interface TestModel {
   data: TestData[];
   api?: ApiTest[];
 }
+
+///
+/// Mapping file
+///
+
+export interface DatabaseMapping {
+  version: number;
+  tables: Record<string, TableMapping>;
+  enums: Record<string, EnumMapping>;
+}
+
+export interface TableMapping {
+  id: number;
+  primaryKeyFieldName: string;
+  fields: Record<string, FieldMapping>;
+}
+
+export interface FieldMapping {
+  id: number;
+  type: MappingFieldType;
+  notNull: boolean;
+}
+
+export interface EnumMapping {
+  values: Record<string, number>;
+}
+
+export type MappingFieldType =
+  | { type: "TinyUint" }
+  | { type: "SmallUint" }
+  | { type: "Uint" }
+  | { type: "BigUint" }
+  | { type: "TinyInt" }
+  | { type: "SmallInt" }
+  | { type: "Int" }
+  | { type: "BigInt" }
+  | { type: "Real" }
+  | { type: "Double" }
+  | { type: "Decimal"; precision: number; scale: number; signed: boolean }
+  | { type: "Ordering" }
+  | {
+      type: "String";
+      maxLength: number;
+      minLength: number;
+      maxBytesPerChar: number;
+    }
+  | { type: "Uuid" }
+  | { type: "Date" }
+  | { type: "Time" }
+  | { type: "Timestamp" }
+  | { type: "ForeignKey"; table: string }
+  | { type: "Tx" }
+  | { type: "Enum"; enum: string }
+  | { type: "Bool" }
+  | { type: "Json" };

@@ -83,7 +83,7 @@ export async function getTestModel() {
 export async function writeModelToDisk(model: any) {
   await Bun.write(
     path.join(process.cwd(), "system.json"),
-    JSON.stringify(model),
+    JSON.stringify(model, null, 2),
   );
 }
 

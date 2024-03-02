@@ -11,4 +11,4 @@ export * from "./nodeTypes";
 export * as styleUtils from "./styleUtils";
 export * as sqlUtils from "./utils/sqlHelpers";
 export * as inflectors from "./utils/inflectors";
-export * as yom from "./yom";
+export * as Types from "./publicTypes";

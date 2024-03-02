@@ -48,6 +48,8 @@ import { snackbar, SnackbarOpts } from "./components";
 import { nodes } from "./nodeHelpers";
 import { createLogin } from "./login";
 import { addViewTables } from "./pages/datagridInternals/datagridBase";
+import { createScriptDbFromDir, ScriptDbFromDirOpts } from "./migrate";
+import * as fs from "fs";
 
 /**
  * The app singleton.
@@ -100,7 +102,6 @@ export class System {
   scripts: yom.Script[] = [];
   scriptDbs: ScriptDb[] = [];
   currentAppName?: string;
-  migration?: yom.Migration;
 
   get currentApp() {
     return this.currentAppName ? this.apps[this.currentAppName] : undefined;
@@ -204,16 +205,10 @@ export class System {
     }
   }
 
-  addScriptDbDefinition(
-    name: string,
-    f: (builder: ScriptDbDefinition) => void,
-  ) {
-    const db = new ScriptDbDefinition(name);
+  addScriptDb(name: string, f: (builder: ScriptDb) => void) {
+    const db = new ScriptDb(name);
     f(db);
-    this.scriptDbs.push({
-      name,
-      definition: { type: "Model", db },
-    });
+    this.scriptDbs.push(db);
   }
 
   addScript(name: string, procedure: ScriptStatementsOrFn) {
@@ -223,12 +218,33 @@ export class System {
     });
   }
 
-  setMigration(previousDbDir: string, procedure: ScriptStatementsOrFn) {
-    this.migration = {
-      previousDbDir,
-      previousDbName: "prev",
-      procedure: ScriptStatements.normalizeToArray(procedure),
-    };
+  addPullMigrateDbScript() {
+    system.addScript("pull-migrate-db", (s) => s.pull("data/migrate", false));
+  }
+
+  addScriptDbFromDir(dirOrOpts: ScriptDbFromDirOpts | string) {
+    createScriptDbFromDir(
+      typeof dirOrOpts === "string" ? { dir: dirOrOpts } : dirOrOpts,
+    );
+  }
+
+  addMigrateScript(procedure: ScriptStatementsOrFn) {
+    if (!fs.existsSync("data/migrate/data.db")) {
+      console.warn(
+        "create migration script called before pulled migration db.",
+      );
+      return;
+    }
+    this.addScriptDbFromDir("data/migrate");
+    this.addScript("migrate", (s) =>
+      s
+        .loadDbFromDir({
+          dir: "data/migrate",
+          db: "migrate",
+          prefixEnums: "db_migrate_",
+        })
+        .statements(procedure),
+    );
   }
 
   generateYom(): yom.System {
@@ -277,24 +293,15 @@ export class System {
       api: this.api.generateYom(),
       test: this.test.generateYom(),
       scriptDbs: this.scriptDbs.map((db) => {
-        if (db.definition.type === "MappingFile") {
-          return { name: db.name, definition: db.definition };
-        } else {
-          return {
-            name: db.name,
-            definition: {
-              type: "Model",
-              db: {
-                enableTransactionQueries: false,
-                tables: Object.values(db.definition.db.tables).map((t) =>
-                  t.generateYom(),
-                ),
-              },
-            },
-          };
-        }
+        return {
+          name: db.name,
+          mapping: db.mapping,
+          db: {
+            enableTransactionQueries: false,
+            tables: Object.values(db.tables).map((t) => t.generateYom()),
+          },
+        };
       }),
-      migration: this.migration,
     };
   }
 }
@@ -886,23 +893,9 @@ export interface ApiTestHelper {
   procedure: ApiTestStatementsOrFn;
 }
 
-export interface ScriptDbModelDefinition {
-  type: "Model";
-  db: ScriptDbDefinition;
-}
-
-export interface ScriptDbMappingFileDefinition {
-  type: "MappingFile";
-  file: string;
-}
-
-export interface ScriptDb {
-  name: string;
-  definition: ScriptDbModelDefinition | ScriptDbMappingFileDefinition;
-}
-
-export class ScriptDbDefinition {
+export class ScriptDb {
   tables: Record<string, Table> = {};
+  mapping?: yom.DatabaseMapping;
 
   constructor(public name: string) {}
 
@@ -1382,6 +1375,14 @@ export class UuidField extends FieldBase {
   }
 }
 
+export class JsonField extends FieldBase {
+  type = "Json" as const;
+
+  generateYomFieldType(): yom.FieldType {
+    return { type: "Json" };
+  }
+}
+
 export class OrderingField extends FieldBase {
   type = "Ordering" as const;
 
@@ -1573,6 +1574,12 @@ export class TableBuilder {
 
   uuid(name: string) {
     const field = new UuidFieldBuilder(name);
+    this.addField(field);
+    return field;
+  }
+
+  json(name: string) {
+    const field = new JsonFieldBuilder(name);
     this.addField(field);
     return field;
   }
@@ -2371,6 +2378,14 @@ class UuidFieldBuilder extends BaseFieldBuilder {
   }
 }
 
+class JsonFieldBuilder extends BaseFieldBuilder {
+  finish(): Field {
+    const field = new UuidField(this._name, this._displayName);
+    this.writeBaseFields(field);
+    return field;
+  }
+}
+
 class BoolFieldBuilder extends BaseFieldBuilder {
   #enumLike?: BoolEnumLikeConfig;
 
@@ -2452,22 +2467,22 @@ class StringFieldBuilder extends BaseFieldBuilder {
     return this;
   }
 
-  collation(collation: yom.Collation) {
+  collation(collation?: yom.Collation) {
     this.#collation = collation;
     return this;
   }
 
-  minLength(minLength: number) {
+  minLength(minLength?: number) {
     this.#minLength = minLength;
     return this;
   }
 
-  maxBytesPerChar(max: number) {
+  maxBytesPerChar(max?: number) {
     this.#maxBytesPerChar = max;
     return this;
   }
 
-  autoTrim(trim: yom.AutoTrim) {
+  autoTrim(trim?: yom.AutoTrim) {
     this.#autoTrim = trim;
     return this;
   }

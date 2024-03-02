@@ -785,13 +785,22 @@ export class ScriptStatements extends StatementsBase<yom.ScriptStatement> {
     return this;
   }
 
-  loadDbFromDir(dir: string, db?: string) {
-    this.pushToBacking({ t: "LoadDbFromDir", dir, db });
+  loadDbFromDir(opts: Omit<yom.LoadDbFromDirStatement, "t">): this;
+  loadDbFromDir(dir: string, db?: string): this;
+  loadDbFromDir(
+    opts: Omit<yom.LoadDbFromDirStatement, "t"> | string,
+    db?: string,
+  ) {
+    if (typeof opts === "string") {
+      this.pushToBacking({ t: "LoadDbFromDir", dir: opts, db });
+    } else {
+      this.pushToBacking({ t: "LoadDbFromDir", ...opts });
+    }
     return this;
   }
 
-  pull(dir?: string) {
-    this.pushToBacking({ t: "Pull", dir });
+  pull(dir?: string, loadIntoMemory?: boolean) {
+    this.pushToBacking({ t: "Pull", dir, loadIntoMemory });
     return this;
   }
 
