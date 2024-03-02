@@ -8,7 +8,7 @@ import { mergeEls, SingleElementComponentOpts } from "./utils";
 
 export interface IconButtonOpts
   extends ComponentOpts,
-  SingleElementComponentOpts {
+    SingleElementComponentOpts {
   /** expression for if the button is disabled */
   disabled?: string;
   /** expression for href, will make button into an anchor tag and add this prop */

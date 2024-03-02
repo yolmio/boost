@@ -57,10 +57,10 @@ export type Row =
   | string
   | { header: string; cell: Node }
   | {
-    header: string;
-    expr: string;
-    cell?: (value: string) => Node;
-  };
+      header: string;
+      expr: string;
+      cell?: (value: string) => Node;
+    };
 
 export interface SingleColumnFixedRowsTableReport extends ReportBase {
   rows: Row[];
@@ -193,12 +193,12 @@ function tableNode(stateTable: string, columns: TableColumn[]) {
                 styles: styles.cell,
                 children: col.href
                   ? nodes.element("a", {
-                    styles: styles.cellLink,
-                    props: {
-                      href: col.href(`each_record`),
-                    },
-                    children: col.cell(`each_record`),
-                  })
+                      styles: styles.cellLink,
+                      props: {
+                        href: col.href(`each_record`),
+                      },
+                      children: col.cell(`each_record`),
+                    })
                   : col.cell(`each_record`),
               }),
             ),
@@ -466,8 +466,8 @@ export class SimpleReportsPageBuilder {
                       children:
                         typeof v === "string"
                           ? stringLiteral(
-                            upcaseFirst(normalizeCase(v).join(" ")),
-                          )
+                              upcaseFirst(normalizeCase(v).join(" ")),
+                            )
                           : stringLiteral(v.header),
                     }),
                     nodes.element("td", {
@@ -502,20 +502,20 @@ export class SimpleReportsPageBuilder {
         children: wrapWithLoadingErrorSwitch([
           opts.download
             ? button({
-              variant: "outlined",
-              color: "primary",
-              size: "sm",
-              styles: styles.downloadButtonWraper,
-              startDecorator: materialIcon("Download"),
-              on: {
-                click: tableDownloadStatements(
-                  stateTableName,
-                  opts.columns,
-                  opts.name,
-                ),
-              },
-              children: `'Download table'`,
-            })
+                variant: "outlined",
+                color: "primary",
+                size: "sm",
+                styles: styles.downloadButtonWraper,
+                startDecorator: materialIcon("Download"),
+                on: {
+                  click: tableDownloadStatements(
+                    stateTableName,
+                    opts.columns,
+                    opts.name,
+                  ),
+                },
+                children: `'Download table'`,
+              })
             : undefined,
           tableNode(opts.stateTable ?? `table_report_query`, opts.columns),
         ]),

@@ -362,7 +362,10 @@ export class App {
   #keyFrames: Map<KeyFrames, string> = new Map();
   #crosspageSnackbars: CrossPageSnackbar[] = [];
 
-  constructor(public name: string, public displayName: string) {
+  constructor(
+    public name: string,
+    public displayName: string,
+  ) {
     this.title = displayName;
   }
 
@@ -510,7 +513,7 @@ export class App {
             t: "Route",
             path: p.path,
             children: p.content,
-          } as RouteNode),
+          }) as RouteNode,
       );
     const pagesWithoutShell = this.pages
       .filter((p) => p.ignoreShell)
@@ -520,7 +523,7 @@ export class App {
             t: "Route",
             path: p.path,
             children: p.content,
-          } as RouteNode),
+          }) as RouteNode,
       );
     let rootNode: Node;
     if (this.shell) {
@@ -804,8 +807,8 @@ export class Api {
       body: helper.jsonBodyScalar
         ? { type: "Json", scalar: helper.jsonBodyScalar }
         : helper.textBodyScalar
-        ? { type: "Text", scalar: helper.textBodyScalar }
-        : undefined,
+          ? { type: "Text", scalar: helper.textBodyScalar }
+          : undefined,
       procedure: EndpointStatements.normalizeToArray(helper.procedure),
       query: helper.query,
     });
@@ -1085,7 +1088,10 @@ abstract class FieldBase {
   indexed = false;
   ext: Record<string, any> = {};
 
-  constructor(public name: string, public displayName: string) {}
+  constructor(
+    public name: string,
+    public displayName: string,
+  ) {}
 
   /** Name of field escaped as sql identifier */
   get identName() {
@@ -1116,7 +1122,11 @@ export class StringField extends FieldBase {
   multiline?: boolean;
   usage?: StringUsage;
 
-  constructor(name: string, displayName: string, public maxLength: number) {
+  constructor(
+    name: string,
+    displayName: string,
+    public maxLength: number,
+  ) {
     super(name, displayName);
   }
 

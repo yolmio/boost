@@ -76,7 +76,7 @@ export function getTableRecordSelect(
             : opts.onSelectValue(`null`),
           onSelect: opts.onComboboxSelectValue
             ? (result) =>
-              opts.onComboboxSelectValue!(`${result}.id`, `${result}.label`)
+                opts.onComboboxSelectValue!(`${result}.id`, `${result}.label`)
             : (result) => opts.onSelectValue(`${result}.id`),
           size: opts.size,
           color: opts.color,

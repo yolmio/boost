@@ -47,11 +47,11 @@ export function enumLikeSelect(opts: EnumLikeSelectOpts) {
     children: [
       !opts.notNull
         ? nodes.element("option", {
-          props: { value: `''` },
-          children: opts.enumLike.null
-            ? stringLiteral(opts.enumLike.null)
-            : `'Unspecified'`,
-        })
+            props: { value: `''` },
+            children: opts.enumLike.null
+              ? stringLiteral(opts.enumLike.null)
+              : `'Unspecified'`,
+          })
         : null,
       nodes.element("option", {
         props: { value: `'true'` },

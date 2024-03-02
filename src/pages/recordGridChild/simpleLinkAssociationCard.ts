@@ -28,10 +28,10 @@ import { RecordGridBuilder } from "../recordGrid";
 export type TableDisplayValue =
   | string
   | {
-    expr: SqlExpression;
-    label: string;
-    display: (e: SqlExpression) => Node;
-  };
+      expr: SqlExpression;
+      label: string;
+      display: (e: SqlExpression) => Node;
+    };
 
 export interface Opts {
   table: string;
@@ -135,18 +135,19 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
   }
   const relatedQuery = `select
     ${ident(otherTable.name)}.${ident(
-    otherTable.primaryKeyFieldName,
-  )} as other_id,
+      otherTable.primaryKeyFieldName,
+    )} as other_id,
     ${ident(assocTable.name)}.${ident(
-    assocTable.primaryKeyFieldName,
-  )} as assoc_id
+      assocTable.primaryKeyFieldName,
+    )} as assoc_id
   ${selectFields}
     from db.${ident(assocTable.name)}
         join db.${ident(otherTable.name)}
             on ${ident(otherTable.name)}.${ident(
-    otherTable.primaryKeyFieldName,
-  )} = ${ident(assocTable.name)}.${ident(toOtherField.name)}
-    where ${ident(assocTable.name)}.${ident(toCurrentField.name)} = ${ctx.recordId
+              otherTable.primaryKeyFieldName,
+            )} = ${ident(assocTable.name)}.${ident(toOtherField.name)}
+    where ${ident(assocTable.name)}.${ident(toCurrentField.name)} = ${
+      ctx.recordId
     } order by ${ident(assocTable.name)}.${ident(
       assocTable.primaryKeyFieldName,
     )} desc
@@ -288,20 +289,20 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                     children: [
                       recordDisplayName
                         ? nodes.element("a", {
-                          props: {
-                            href: otherTable.getHrefToRecord(
-                              "record.other_id",
-                            ),
-                          },
-                          styles: styles.link,
-                          children: `record.display_name`,
-                        })
+                            props: {
+                              href: otherTable.getHrefToRecord(
+                                "record.other_id",
+                              ),
+                            },
+                            styles: styles.link,
+                            children: `record.display_name`,
+                          })
                         : button({
-                          variant: "soft",
-                          children: `'View'`,
-                          href: otherTable.getHrefToRecord("record.other_id"),
-                          size: "sm",
-                        }),
+                            variant: "soft",
+                            children: `'View'`,
+                            href: otherTable.getHrefToRecord("record.other_id"),
+                            size: "sm",
+                          }),
                       nodes.element("div", { styles: flexGrowStyles }),
                       displayValues.map((displayValue, i) => {
                         if (typeof displayValue === "string") {

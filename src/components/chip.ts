@@ -26,9 +26,9 @@ export interface SelectedVariationBase {
 
 export interface ChipOpts
   extends ComponentOpts,
-  SlottedComponentWithSlotNames<
-    "startDecorator" | "endDecorator" | "action" | "label"
-  > {
+    SlottedComponentWithSlotNames<
+      "startDecorator" | "endDecorator" | "action" | "label"
+    > {
   clickable?: boolean;
 
   selected?: SelectedVariation;
@@ -325,7 +325,7 @@ export function chip(opts: ChipOpts) {
 
 export interface ChipDeleteOpts
   extends ComponentOpts,
-  SingleElementComponentOpts {
+    SingleElementComponentOpts {
   selected?: SelectedVariationBase;
 }
 

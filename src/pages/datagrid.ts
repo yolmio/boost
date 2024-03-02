@@ -209,7 +209,7 @@ export class DatagridPageBuilder {
       if (!this.#table.getHrefToRecord) {
         throw new Error(
           "viewButton is true but table has no getHrefToRecord, on datagrid for table " +
-          this.#table.name,
+            this.#table.name,
         );
       }
       this.#viewButtonUrl = (id) => this.#table.getHrefToRecord!(id);

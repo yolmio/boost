@@ -117,8 +117,10 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                                   .modify(
                                     `insert into db.${ident(
                                       attachmentTable.name,
-                                    )} (name, file, ${ctx.table.name
-                                    }) values ((select name from file), added_file.uuid, ${ctx.recordId
+                                    )} (name, file, ${
+                                      ctx.table.name
+                                    }) values ((select name from file), added_file.uuid, ${
+                                      ctx.recordId
                                     })`,
                                   )
                                   .commitTransaction()

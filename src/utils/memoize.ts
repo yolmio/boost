@@ -42,7 +42,7 @@ export function memoizePerApp(
     const args = Array.prototype.slice.call(arguments); // to simplify JSON.stringify
     const key = resolver
       ? // @ts-ignore
-      resolver.apply(this, args)
+        resolver.apply(this, args)
       : JSON.stringify(args);
 
     if (!cache.has(key)) {
@@ -94,7 +94,7 @@ export function memoize(callback: func, resolver?: (...args: any[]) => string) {
     const args = Array.prototype.slice.call(arguments); // to simplify JSON.stringify
     const key = resolver
       ? // @ts-ignore
-      resolver.apply(this, args)
+        resolver.apply(this, args)
       : JSON.stringify(args);
 
     if (!cache.has(key)) {

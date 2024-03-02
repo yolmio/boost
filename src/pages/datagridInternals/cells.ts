@@ -653,8 +653,8 @@ function boolCell(opts: BaseFieldCellOpts, field: BoolField): CellNode {
               typeof opts.immutable === "string"
                 ? opts.immutable
                 : opts.immutable
-                ? "true"
-                : undefined,
+                  ? "true"
+                  : undefined,
           },
         },
       },
