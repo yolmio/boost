@@ -44,7 +44,7 @@ if (!fs.existsSync(dbPath)) {
     if (initScript) {
       console.log(`About to run script "${initScriptName}"`);
       writeModelToDisk(scriptModel);
-      runScript(initScriptName);
+      await runScript(initScriptName);
       console.log(`Successfully ran script "${initScriptName}"`);
     }
   }
