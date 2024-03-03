@@ -19,10 +19,10 @@ export interface Opts {
   fields: (
     | string
     | {
-      expr: (record: string) => string;
-      display?: (e: string) => Node;
-      label: string;
-    }
+        expr: (record: string) => string;
+        display?: (e: string) => Node;
+        label: string;
+      }
   )[];
   addButtonText?: string;
   insertDialog?: Omit<AutoLabelOnLeftInsertFormContent, "type">;

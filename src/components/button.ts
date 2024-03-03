@@ -15,9 +15,9 @@ import * as yom from "../yom";
 
 export interface ButtonOpts
   extends SlottedComponentWithSlotNames<
-    "startDecorator" | "endDecorator" | "loadingIndicatorCenter"
-  >,
-  ComponentOpts {
+      "startDecorator" | "endDecorator" | "loadingIndicatorCenter"
+    >,
+    ComponentOpts {
   fullWidth?: boolean;
   loadingPosition?: "start" | "center" | "end";
 

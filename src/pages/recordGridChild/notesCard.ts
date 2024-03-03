@@ -79,7 +79,8 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
             procedure: (s) =>
               s.scalar(
                 `note`,
-                `(select notes from db.${ident(ctx.table.name)} where id = ${ctx.recordId
+                `(select notes from db.${ident(ctx.table.name)} where id = ${
+                  ctx.recordId
                 })`,
               ),
             children: nodes.if({
@@ -138,7 +139,8 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                                         .modify(
                                           `update db.${ident(
                                             ctx.table.name,
-                                          )} set notes = ui.editing_note where id = ${ctx.recordId
+                                          )} set notes = ui.editing_note where id = ${
+                                            ctx.recordId
                                           }`,
                                         )
                                         .commitTransaction()

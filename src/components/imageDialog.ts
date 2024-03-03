@@ -192,7 +192,8 @@ export function imageDialog(opts: ImageDialogOptions) {
                                   .modify(
                                     `update db.${ident(
                                       table.name,
-                                    )} set ${setFieldsToNull} where id = ${opts.recordId
+                                    )} set ${setFieldsToNull} where id = ${
+                                      opts.recordId
                                     }`,
                                   )
                                   .commitTransaction()

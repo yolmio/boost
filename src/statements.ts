@@ -61,8 +61,8 @@ export abstract class StatementsBase<Statement extends object> {
         typeof queryOrFields === "string"
           ? queryOrFields
           : typeof query === "string"
-          ? query
-          : undefined,
+            ? query
+            : undefined,
       fields: Array.isArray(queryOrFields) ? queryOrFields : undefined,
     } as yom.TableDeclaration as any);
     return this;

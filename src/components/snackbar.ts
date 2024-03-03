@@ -22,7 +22,7 @@ export interface AnchorOrigin {
 
 export interface SnackbarOpts
   extends SlottedComponentWithSlotNames<"startDecorator" | "endDecorator">,
-  ComponentOpts {
+    ComponentOpts {
   anchorOrigin?: AnchorOrigin;
   startDecorator?: Node;
   endDecorator?: Node;
@@ -105,7 +105,7 @@ export const styles = createStyles({
       padding: "var(--snackbar-padding)",
       borderRadius: "var(--snackbar-radius)",
       ...theme.typography[
-      `body-${({ sm: "xs", md: "sm", lg: "md" } as const)[size]}`
+        `body-${({ sm: "xs", md: "sm", lg: "md" } as const)[size]}`
       ],
       ...getVariantStyle(variant, color),
     };

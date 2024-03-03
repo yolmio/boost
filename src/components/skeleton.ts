@@ -119,10 +119,12 @@ const styles = createStyles({
           height: "100%",
           ...(level !== "inherit" && {
             ...theme.typography[level],
-            paddingBlockStart: `calc((${theme.typography[level]?.lineHeight || 1
-              } - 1) * 0.56em)`,
-            paddingBlockEnd: `calc((${theme.typography[level]?.lineHeight || 1
-              } - 1) * 0.44em)`,
+            paddingBlockStart: `calc((${
+              theme.typography[level]?.lineHeight || 1
+            } - 1) * 0.56em)`,
+            paddingBlockEnd: `calc((${
+              theme.typography[level]?.lineHeight || 1
+            } - 1) * 0.44em)`,
             "&::before": {
               height: "1em",
               ...theme.typography[level],
@@ -131,14 +133,15 @@ const styles = createStyles({
               }),
               ...(!animation
                 ? {
-                  backgroundColor: cssVar(`palette-background-level3`),
-                }
+                    backgroundColor: cssVar(`palette-background-level3`),
+                  }
                 : {}),
             },
             "&::after": {
               height: "1em",
-              top: `calc((${theme.typography[level]?.lineHeight || 1
-                } - 1) * 0.56em)`,
+              top: `calc((${
+                theme.typography[level]?.lineHeight || 1
+              } - 1) * 0.56em)`,
               ...theme.typography[level],
             },
           }),

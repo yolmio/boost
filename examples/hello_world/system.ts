@@ -1,7 +1,7 @@
 import { system } from "@yolm/boost";
 
 system.name = "hello_world";
-system.region = "us-miami"
+system.region = "us-miami";
 
 // ui
 

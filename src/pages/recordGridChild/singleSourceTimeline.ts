@@ -17,10 +17,10 @@ import { RecordGridBuilder } from "../recordGrid";
 export type TableDisplayValue =
   | string
   | {
-    expr: yom.SqlExpression;
-    display: (e: yom.SqlExpression) => Node;
-    label: string;
-  };
+      expr: yom.SqlExpression;
+      display: (e: yom.SqlExpression) => Node;
+      label: string;
+    };
 
 type TableValue = string | { expr: yom.SqlExpression };
 
@@ -187,8 +187,9 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
       itemRight,
     ],
   });
-  let fullQuery = `select ${ident(tableModel.primaryKeyFieldName)} as id, ${opts.dateExpr
-    } as date `;
+  let fullQuery = `select ${ident(tableModel.primaryKeyFieldName)} as id, ${
+    opts.dateExpr
+  } as date `;
   for (const field of fields) {
     fullQuery += `, ${ident(field)}`;
   }

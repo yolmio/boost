@@ -27,8 +27,8 @@ export interface ToolbarConfig {
   export: boolean;
   search?: { matchConfig: string };
   add?:
-  | { type: "dialog"; opts?: Partial<InsertDialogOpts> }
-  | { type: "href"; href: string };
+    | { type: "dialog"; opts?: Partial<InsertDialogOpts> }
+    | { type: "href"; href: string };
 }
 
 export interface SimpleColumn extends ColumnEventHandlers {
@@ -174,68 +174,68 @@ export function styledSimpleDatagrid(config: StyledSimpleGridConfig) {
               nodes.element("div", { styles: flexGrowStyles }),
               config.toolbar.delete
                 ? nodes.state({
-                  procedure: (s) => s.scalar(`deleting`, `false`),
-                  children: [
-                    iconButton({
-                      size: "sm",
-                      color: "danger",
-                      variant: "soft",
-                      children: materialIcon("DeleteOutlined"),
-                      on: { click: (s) => s.setScalar(`deleting`, `true`) },
-                      ariaLabel: `'Delete selected records'`,
-                    }),
-                    confirmDangerDialog({
-                      open: `deleting`,
-                      onClose: (s) => s.setScalar(`deleting`, `false`),
-                      description: nodes.element("span", {
-                        children: [
-                          `'Are you sure you want to delete '`,
-                          nodes.if({
-                            condition: `selected_all`,
-                            then: nodes.state({
-                              procedure: (s) =>
-                                s.scalar(
-                                  `count`,
-                                  "(" +
-                                  getCountQuery(
-                                    "db." + config.tableModel.name,
-                                  ) +
-                                  ")",
-                                ),
-                              children: `count`,
-                            }),
-                            else: `(select count(*) from selected_row)`,
-                          }),
-                          `' records?'`,
-                        ],
+                    procedure: (s) => s.scalar(`deleting`, `false`),
+                    children: [
+                      iconButton({
+                        size: "sm",
+                        color: "danger",
+                        variant: "soft",
+                        children: materialIcon("DeleteOutlined"),
+                        on: { click: (s) => s.setScalar(`deleting`, `true`) },
+                        ariaLabel: `'Delete selected records'`,
                       }),
-                      onConfirm: (closeModal) => (s) =>
-                        s
-                          .serviceProc((s) =>
-                            s
-                              .startTransaction()
-                              .if({
-                                condition: `selected_all`,
-                                then: (s) =>
-                                  s.modify(
-                                    `delete from db.${ident(
-                                      config.tableModel.name,
-                                    )}`,
+                      confirmDangerDialog({
+                        open: `deleting`,
+                        onClose: (s) => s.setScalar(`deleting`, `false`),
+                        description: nodes.element("span", {
+                          children: [
+                            `'Are you sure you want to delete '`,
+                            nodes.if({
+                              condition: `selected_all`,
+                              then: nodes.state({
+                                procedure: (s) =>
+                                  s.scalar(
+                                    `count`,
+                                    "(" +
+                                      getCountQuery(
+                                        "db." + config.tableModel.name,
+                                      ) +
+                                      ")",
                                   ),
-                                else: (s) =>
-                                  s.modify(
-                                    `delete from db.${ident(
-                                      config.tableModel.name,
-                                    )} where id in (select id from ui.selected_row)`,
-                                  ),
-                              })
-                              .commitTransaction()
-                              .statements(dgState.triggerRefresh),
-                          )
-                          .statements(closeModal),
-                    }),
-                  ],
-                })
+                                children: `count`,
+                              }),
+                              else: `(select count(*) from selected_row)`,
+                            }),
+                            `' records?'`,
+                          ],
+                        }),
+                        onConfirm: (closeModal) => (s) =>
+                          s
+                            .serviceProc((s) =>
+                              s
+                                .startTransaction()
+                                .if({
+                                  condition: `selected_all`,
+                                  then: (s) =>
+                                    s.modify(
+                                      `delete from db.${ident(
+                                        config.tableModel.name,
+                                      )}`,
+                                    ),
+                                  else: (s) =>
+                                    s.modify(
+                                      `delete from db.${ident(
+                                        config.tableModel.name,
+                                      )} where id in (select id from ui.selected_row)`,
+                                    ),
+                                })
+                                .commitTransaction()
+                                .statements(dgState.triggerRefresh),
+                            )
+                            .statements(closeModal),
+                      }),
+                    ],
+                  })
                 : null,
               addButton,
             ],

@@ -20,20 +20,20 @@ import { iconButton } from "../../components";
 type Chip =
   | string
   | {
-    field: string;
-    color?: Color;
-    size?: Size;
-    variant?: Variant;
-    displayName?: string;
-  }
+      field: string;
+      color?: Color;
+      size?: Size;
+      variant?: Variant;
+      displayName?: string;
+    }
   | {
-    color?: Color;
-    size?: Size;
-    variant?: Variant;
-    displayName: string;
-    fields: string[];
-    condition: (...fields: yom.SqlExpression[]) => yom.SqlExpression;
-  };
+      color?: Color;
+      size?: Size;
+      variant?: Variant;
+      displayName: string;
+      fields: string[];
+      condition: (...fields: yom.SqlExpression[]) => yom.SqlExpression;
+    };
 
 export interface Opts {
   subHeader?: yom.SqlExpression;
@@ -371,17 +371,17 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
   );
   let selectFields = opts.chips
     ? ", " +
-    opts.chips
-      .map((v, i) =>
-        typeof v === "string"
-          ? v
-          : "field" in v
-            ? v.field
-            : v.condition(...v.fields.map((f) => `record.${f}`)) +
-            " as chip_" +
-            i,
-      )
-      .join(", ")
+      opts.chips
+        .map((v, i) =>
+          typeof v === "string"
+            ? v
+            : "field" in v
+              ? v.field
+              : v.condition(...v.fields.map((f) => `record.${f}`)) +
+                " as chip_" +
+                i,
+        )
+        .join(", ")
     : "";
   if (opts.prefix) {
     selectFields += ", " + opts.prefix;
@@ -432,49 +432,49 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
               }),
               opts.subHeader
                 ? nodes.element("h6", {
-                  styles: styles.subHeader,
-                  children: `record.named_page_sub_header`,
-                })
+                    styles: styles.subHeader,
+                    children: `record.named_page_sub_header`,
+                  })
                 : undefined,
               opts.chips
                 ? nodes.element("div", {
-                  styles: styles.chips,
-                  children: opts.chips.map((c, i) => {
-                    if (typeof c === "string") {
-                      const field = tableModel.fields[c];
-                      return nodes.if(
-                        `record.${c}`,
-                        chip({
-                          variant: "soft",
-                          color: "neutral",
-                          size: "sm",
-                          children: stringLiteral(field.displayName),
-                        }),
-                      );
-                    } else if ("field" in c) {
-                      const field = tableModel.fields[c.field];
-                      return nodes.if(
-                        `record.${c.field}`,
-                        chip({
-                          variant: c.variant ?? "soft",
-                          color: c.color ?? "neutral",
-                          size: c.size ?? "sm",
-                          children: stringLiteral(field.displayName),
-                        }),
-                      );
-                    } else {
-                      return nodes.if(
-                        `record.chip_${i}`,
-                        chip({
-                          variant: c.variant ?? "soft",
-                          color: c.color ?? "neutral",
-                          size: c.size ?? "sm",
-                          children: stringLiteral(c.displayName),
-                        }),
-                      );
-                    }
-                  }),
-                })
+                    styles: styles.chips,
+                    children: opts.chips.map((c, i) => {
+                      if (typeof c === "string") {
+                        const field = tableModel.fields[c];
+                        return nodes.if(
+                          `record.${c}`,
+                          chip({
+                            variant: "soft",
+                            color: "neutral",
+                            size: "sm",
+                            children: stringLiteral(field.displayName),
+                          }),
+                        );
+                      } else if ("field" in c) {
+                        const field = tableModel.fields[c.field];
+                        return nodes.if(
+                          `record.${c.field}`,
+                          chip({
+                            variant: c.variant ?? "soft",
+                            color: c.color ?? "neutral",
+                            size: c.size ?? "sm",
+                            children: stringLiteral(field.displayName),
+                          }),
+                        );
+                      } else {
+                        return nodes.if(
+                          `record.chip_${i}`,
+                          chip({
+                            variant: c.variant ?? "soft",
+                            color: c.color ?? "neutral",
+                            size: c.size ?? "sm",
+                            children: stringLiteral(c.displayName),
+                          }),
+                        );
+                      }
+                    }),
+                  })
                 : undefined,
             ],
           }),

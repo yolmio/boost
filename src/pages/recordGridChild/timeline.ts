@@ -21,11 +21,11 @@ import { RecordGridBuilder } from "../recordGrid";
 export type TableDisplayValue =
   | string
   | {
-    expr: yom.SqlExpression;
-    label: string;
-    type: UnionExprType;
-    display: (e: yom.SqlExpression) => Node;
-  };
+      expr: yom.SqlExpression;
+      label: string;
+      type: UnionExprType;
+      display: (e: yom.SqlExpression) => Node;
+    };
 
 interface ValueExpr {
   expr: yom.SqlExpression;
@@ -355,7 +355,9 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                           .map((t, i) => ({
                             children:
                               `'Add ' || ` +
-                              stringLiteral(system.db.tables[t.table].displayName),
+                              stringLiteral(
+                                system.db.tables[t.table].displayName,
+                              ),
                             onClick: (s) =>
                               s.setScalar(`ui.adding_${i}`, `true`),
                           })),
