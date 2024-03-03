@@ -11,6 +11,7 @@ db.addTable("user", (table) => {
   table.catalog.addRequiredUserFields();
   table.bool("is_sys_admin").notNull().default("false");
   table.bool("is_admin").notNull().default("false");
+  table.bool("disabled").notNull().default("false");
   table.fk("employee");
 });
 
@@ -141,6 +142,8 @@ db.addTable("order_detail", (table) => {
     .notNull()
     .default("0");
 });
+
+db.catalog.addDatagridViewTables(["order", "customer"]);
 
 //
 // UI
@@ -436,12 +439,12 @@ app.addSimpleDatagridPage("employee", (page) => {
           withValues: { image_thumb: "null", image_full: "null" },
           beforeTransactionCommit: (state, s) =>
             s
-              .addUsers(
-                `select ${
+              .addUsers({
+                app: "northwind",
+                query: `select ${
                   state.field("email").value
                 } as email, 'none' as notification_type`,
-                "added_user",
-              )
+              })
               .modify(
                 `insert into db.user (global_id, is_sys_admin, is_admin, disabled, email, employee) values ((select global_id from added_user), false, false, false, ${
                   state.field("email").value
@@ -459,11 +462,14 @@ app.addSimpleDatagridPage("employee", (page) => {
           .modify(`update db.user set email = ${newValue} where id = user_id`)
           .if(`not (select disabled from db.user where id = user_id)`, (s) =>
             s
-              .removeUsers(`select global_id from db.user where id = user_id`)
-              .addUsers(
-                `select ${newValue} as email, 'none' as notification_type`,
-                `added_user`,
+              .removeUsers(
+                "northwind",
+                `select global_id from db.user where id = user_id`,
               )
+              .addUsers({
+                query: `select ${newValue} as email, 'none' as notification_type`,
+                app: "northwind",
+              })
               .modify(
                 `update db.user set global_id = (select global_id from added_user) where id = user_id`,
               ),
@@ -504,11 +510,12 @@ app.addSimpleDatagridPage("user", (page) => {
         withValues: { global_id: "new_global_id", disabled: "false" },
         beforeTransactionStart: (state, s) =>
           s
-            .addUsers(
-              `select 'none' as notification_type, ${
+            .addUsers({
+              app: "northwind",
+              query: `select ${
                 state.field("email").value
-              } as email`,
-            )
+              } as email, 'none' as notification_type`,
+            })
             .scalar(`new_global_id`, `(select global_id from added_user)`),
       }),
     )
@@ -518,14 +525,15 @@ app.addSimpleDatagridPage("user", (page) => {
           condition: newValue,
           then: (s) =>
             s.removeUsers(
+              "northwind",
               `select global_id from db.user where id = ${recordId}`,
             ),
           else: (s) =>
             s
-              .addUsers(
-                `select email, 'none' as notification_type from db.user where id = ${recordId}`,
-                `added_user`,
-              )
+              .addUsers({
+                app: "northwind",
+                query: `select email, 'none' as notification_type from db.user where id = ${recordId}`,
+              })
               .modify(
                 `update db.user set global_id = (select global_id from added_user) where id = ${recordId}`,
               ),
@@ -541,11 +549,14 @@ app.addSimpleDatagridPage("user", (page) => {
           .modify(
             `update db.employee set email = ${newValue} where id = employee`,
           )
-          .removeUsers(`select global_id from db.user where id = ${recordId}`)
-          .addUsers(
-            `select ${newValue} as email, 'none' as notification_type`,
-            `added_user`,
+          .removeUsers(
+            "northwind",
+            `select global_id from db.user where id = ${recordId}`,
           )
+          .addUsers({
+            app: "northwind",
+            query: `select ${newValue} as email, 'none' as notification_type`,
+          })
           .modify(
             `update db.user set global_id = (select global_id from added_user) where id = ${recordId}`,
           ),
@@ -868,7 +879,7 @@ app.addRecordGridPage("supplier", (page) => {
 app.addSimpleDatagridPage("product", (page) => {
   page
     .toolbar((t) => t.insertDialog())
-    .fieldConfig("discontinued", { immutable: true });
+    .fieldConfig("discontinued", { canEdit: false });
 });
 
 app.addRecordGridPage("product", (page) => {

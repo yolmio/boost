@@ -36,7 +36,7 @@ import { styles as sharedStyles } from "./datagridInternals/styles";
 type FieldConfigs = Record<string, FieldConfig>;
 
 export interface FieldConfig extends FieldEditProcConfig {
-  immutable?: boolean;
+  canEdit?: boolean;
   header?: string;
 }
 
@@ -56,7 +56,7 @@ export class DatagridToolbarBuilder {
     | { type: "dialog"; opts?: Partial<InsertDialogOpts> }
     | { type: "href"; href?: string };
 
-  constructor(private table: Table) { }
+  constructor(private table: Table) {}
 
   header(header: Node) {
     this.#header = header;
@@ -105,7 +105,7 @@ export class SimpleDatagridPageBuilder {
   #allow?: yom.SqlExpression;
   #viewButtonUrl?: (id: yom.SqlExpression) => yom.SqlExpression;
   #selectable?: boolean;
-  #immutable?: boolean | yom.SqlExpression;
+  #canEdit?: boolean | yom.SqlExpression;
   #ignoreFields?: string[];
   #fieldOrder?: string[];
   #extraState?: StateStatementsOrFn;
@@ -153,7 +153,7 @@ export class SimpleDatagridPageBuilder {
       if (!this.#table.getHrefToRecord) {
         throw new Error(
           "viewButton is true but table has no getHrefToRecord, on datagrid for table " +
-          this.#table.name,
+            this.#table.name,
         );
       }
       this.#viewButtonUrl = (id) => this.#table.getHrefToRecord!(id);
@@ -168,8 +168,8 @@ export class SimpleDatagridPageBuilder {
     return this;
   }
 
-  immutable(immutable?: boolean | yom.SqlExpression) {
-    this.#immutable = immutable ?? true;
+  canEdit(canEdit: boolean | yom.SqlExpression) {
+    this.#canEdit = canEdit;
     return this;
   }
 
@@ -201,10 +201,10 @@ export class SimpleDatagridPageBuilder {
   }) {
     const header = stringLiteral(
       column.headerText ??
-      column.name
-        .split("_")
-        .map((v, i) => (i === 0 ? upcaseFirst(v) : v))
-        .join(" "),
+        column.name
+          .split("_")
+          .map((v, i) => (i === 0 ? upcaseFirst(v) : v))
+          .join(" "),
     );
     this.#extraColumns.push(({ columnIndex }) => {
       const toggleColumnSort = simpleToggleColumnSort(columnIndex);
@@ -343,7 +343,7 @@ export class SimpleDatagridPageBuilder {
         beforeEditTransaction: fieldConfig?.beforeEditTransaction,
         afterEdit: fieldConfig?.afterEdit,
         afterEditTransaction: fieldConfig?.afterEditTransaction,
-        immutable: fieldConfig?.immutable ?? this.#immutable,
+        canEdit: fieldConfig?.canEdit ?? this.#canEdit,
         columnIndex: columns.length,
       });
       if (column) {
@@ -363,8 +363,6 @@ export class SimpleDatagridPageBuilder {
       extraState.table(`selected_row`, [
         { name: "id", type: { type: "BigInt" } },
       ]);
-    }
-    if (typeof this.#immutable === "string") {
     }
     extraState.statements(this.#extraState);
     const path = this.#path ?? this.#table.baseUrl;

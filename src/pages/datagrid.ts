@@ -35,7 +35,7 @@ import { FilterTermHelper } from "./datagridInternals/filterPopover";
 type FieldConfigs = Record<string, FieldConfig>;
 
 export interface FieldConfig extends FieldEditProcConfig {
-  immutable?: boolean | yom.SqlExpression;
+  canEdit?: boolean | yom.SqlExpression;
   displayName?: string;
 }
 
@@ -174,7 +174,7 @@ export class DatagridPageBuilder {
   #viewButtonUrl?: (id: yom.SqlExpression) => yom.SqlExpression;
   #selectable?: boolean;
   #defaultView?: DefaultView;
-  #immutable?: boolean | yom.SqlExpression;
+  #canEdit?: boolean | yom.SqlExpression;
   #ignoreFields?: string[];
   #extraState?: StateStatementsOrFn;
   #extraColumns: ((opts: ExtraColumnOpts) => SuperGridColumn)[] = [];
@@ -209,7 +209,7 @@ export class DatagridPageBuilder {
       if (!this.#table.getHrefToRecord) {
         throw new Error(
           "viewButton is true but table has no getHrefToRecord, on datagrid for table " +
-          this.#table.name,
+            this.#table.name,
         );
       }
       this.#viewButtonUrl = (id) => this.#table.getHrefToRecord!(id);
@@ -229,8 +229,8 @@ export class DatagridPageBuilder {
     return this;
   }
 
-  immutable(immutable?: boolean | yom.SqlExpression) {
-    this.#immutable = immutable ?? true;
+  canEdit(canEdit: boolean | yom.SqlExpression) {
+    this.#canEdit = canEdit;
     return this;
   }
 
@@ -452,15 +452,15 @@ export class DatagridPageBuilder {
         continue;
       }
       const fieldConfig = this.#fields?.[field.name];
-      let immutable;
-      if (typeof fieldConfig?.immutable === "string") {
-        immutable = "field_" + field.name + "_is_immutable";
-      } else if (typeof fieldConfig?.immutable === "boolean") {
-        immutable = fieldConfig.immutable;
-      } else if (typeof this.#immutable === "string") {
-        immutable = "global_is_immutable";
+      let canEdit;
+      if (typeof fieldConfig?.canEdit === "string") {
+        canEdit = "field_" + field.name + "_can_edit";
+      } else if (typeof fieldConfig?.canEdit === "boolean") {
+        canEdit = fieldConfig.canEdit;
+      } else if (typeof this.#canEdit === "string") {
+        canEdit = "global_can_edit";
       } else {
-        immutable = this.#immutable;
+        canEdit = this.#canEdit;
       }
       const column = columnFromField({
         table: this.#table.name,
@@ -472,7 +472,7 @@ export class DatagridPageBuilder {
         beforeEdit: fieldConfig?.beforeEdit,
         afterEditTransaction: fieldConfig?.afterEditTransaction,
         afterEdit: fieldConfig?.afterEdit,
-        immutable,
+        canEdit,
       });
       if (column) {
         columns.push(column);
@@ -495,16 +495,13 @@ export class DatagridPageBuilder {
         { name: "id", type: { type: "BigInt" } },
       ]);
     }
-    if (typeof this.#immutable === "string") {
-      extraState.scalar(`global_is_immutable`, this.#immutable);
+    if (typeof this.#canEdit === "string") {
+      extraState.scalar(`global_can_edit`, this.#canEdit);
     }
     for (const field of Object.values(this.#table.fields)) {
       const fieldConfig = this.#fields?.[field.name];
-      if (typeof fieldConfig?.immutable === "string") {
-        extraState.scalar(
-          `field_${field.name}_is_immutable`,
-          fieldConfig.immutable,
-        );
+      if (typeof fieldConfig?.canEdit === "string") {
+        extraState.scalar(`field_${field.name}_can_edit`, fieldConfig.canEdit);
       }
     }
     extraState.statements(this.#extraState);

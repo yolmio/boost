@@ -95,13 +95,15 @@ const styles = createStyles({
   },
 });
 
-function andNotImmutable(
-  immutable: boolean | undefined | yom.SqlExpression,
+function andCanEdit(
+  canEdit: boolean | undefined | yom.SqlExpression,
   expr: yom.SqlExpression,
 ) {
-  return typeof immutable === "string"
-    ? expr + " and not " + parenWrap(expr)
-    : expr;
+  return typeof canEdit === "string"
+    ? expr + " and " + parenWrap(canEdit)
+    : canEdit !== false
+    ? expr
+    : "false";
 }
 
 function foreignKeyCell(
@@ -124,7 +126,7 @@ function foreignKeyCell(
         children,
       });
     }
-    if (opts.immutable === true) {
+    if (opts.canEdit === false) {
       return wrapInState(
         nodes.element("span", {
           styles: sharedStyles.ellipsisSpan,
@@ -163,7 +165,7 @@ function foreignKeyCell(
               children: [
                 text,
                 nodes.if(
-                  andNotImmutable(opts.immutable, `text is not null`),
+                  andCanEdit(opts.canEdit, `text is not null`),
                   iconButton({
                     size: "sm",
                     variant: "plain",
@@ -190,7 +192,7 @@ function foreignKeyCell(
               ],
             }),
         nodes.if(
-          andNotImmutable(opts.immutable, cell.editing),
+          andCanEdit(opts.canEdit, cell.editing),
           recordSelectDialog({
             onSelect: (id, label) => (s) =>
               s.if({
@@ -230,7 +232,7 @@ function enumCell(opts: BaseFieldCellOpts, field: EnumField): CellNode {
         `try_cast(${cell.value} as enums.${enumModel.name})`,
       ),
     });
-    if (opts.immutable === true) {
+    if (opts.canEdit === false) {
       return display;
     }
     const options = Object.values(enumModel.values).map((v) =>
@@ -258,7 +260,7 @@ function enumCell(opts: BaseFieldCellOpts, field: EnumField): CellNode {
       newUiValue: opts.stringified ? `cast(value as string)` : `value`,
     });
     return nodes.if({
-      condition: andNotImmutable(opts.immutable, cell.editing),
+      condition: andCanEdit(opts.canEdit, cell.editing),
       then: nodes.state({
         procedure: (s) =>
           s.scalar(
@@ -303,7 +305,7 @@ function dateCell(opts: BaseFieldCellOpts, field: DateField): CellNode {
       styles: sharedStyles.ellipsisSpan,
       children: `format.date(${dateValue}, ${stringLiteral(formatString)})`,
     });
-    if (opts.immutable === true) {
+    if (opts.canEdit === false) {
       return display;
     }
     const handlers = cell.fieldEditorEventHandlers({
@@ -327,7 +329,7 @@ function dateCell(opts: BaseFieldCellOpts, field: DateField): CellNode {
       }),
     });
     return nodes.if({
-      condition: andNotImmutable(opts.immutable, cell.editing),
+      condition: andCanEdit(opts.canEdit, cell.editing),
       then: editor,
       else: display,
     });
@@ -349,7 +351,7 @@ function timestampCell(
         formatString,
       )})`,
     });
-    if (opts.immutable === true) {
+    if (opts.canEdit === false) {
       return display;
     }
     const handlers = cell.fieldEditorEventHandlers({
@@ -377,7 +379,7 @@ function timestampCell(
       }),
     });
     return nodes.if({
-      condition: andNotImmutable(opts.immutable, cell.editing),
+      condition: andCanEdit(opts.canEdit, cell.editing),
       then: editor,
       else: display,
     });
@@ -432,7 +434,7 @@ function numericField(
       styles: sharedStyles.ellipsisSpan,
       children: formatted,
     });
-    if (opts.immutable === true) {
+    if (opts.canEdit === false) {
       return display;
     }
     const handlers = castEventHandlers(opts, field, cell, typeName);
@@ -456,7 +458,7 @@ function numericField(
       }),
     });
     return nodes.if({
-      condition: andNotImmutable(opts.immutable, cell.editing),
+      condition: andCanEdit(opts.canEdit, cell.editing),
       then: editor,
       else: display,
     });
@@ -469,7 +471,7 @@ function stringCell(opts: BaseFieldCellOpts, field: StringField): CellNode {
       styles: sharedStyles.ellipsisSpan,
       children: cell.value,
     });
-    if (opts.immutable === true) {
+    if (opts.canEdit === false) {
       return display;
     }
     const { value } = cell;
@@ -497,7 +499,7 @@ function stringCell(opts: BaseFieldCellOpts, field: StringField): CellNode {
       }),
     });
     return nodes.if({
-      condition: andNotImmutable(opts.immutable, cell.editing),
+      condition: andCanEdit(opts.canEdit, cell.editing),
       then: editor,
       else: display,
     });
@@ -536,7 +538,7 @@ function uuidCell(opts: BaseFieldCellOpts, field: UuidField): CellNode {
       styles: sharedStyles.ellipsisSpan,
       children: cell.value,
     });
-    if (opts.immutable === true) {
+    if (opts.canEdit === false) {
       return display;
     }
     const handlers = castEventHandlers(opts, field, cell, "uuid");
@@ -556,7 +558,7 @@ function uuidCell(opts: BaseFieldCellOpts, field: UuidField): CellNode {
       }),
     });
     return nodes.if({
-      condition: andNotImmutable(opts.immutable, cell.editing),
+      condition: andCanEdit(opts.canEdit, cell.editing),
       then: editor,
       else: display,
     });
@@ -574,7 +576,7 @@ function boolCell(opts: BaseFieldCellOpts, field: BoolField): CellNode {
           enumLike,
         ),
       });
-      if (opts.immutable === true) {
+      if (opts.canEdit === false) {
         return display;
       }
       const handlers = cell.fieldEditorEventHandlers({
@@ -590,7 +592,7 @@ function boolCell(opts: BaseFieldCellOpts, field: BoolField): CellNode {
           : `try_cast(ui.value as bool)`,
       });
       return nodes.if({
-        condition: andNotImmutable(opts.immutable, cell.editing),
+        condition: andCanEdit(opts.canEdit, cell.editing),
         then: nodes.state({
           procedure: (s) =>
             s.scalar(
@@ -650,9 +652,9 @@ function boolCell(opts: BaseFieldCellOpts, field: BoolField): CellNode {
           props: {
             tabIndex: "-1",
             readOnly:
-              typeof opts.immutable === "string"
-                ? opts.immutable
-                : opts.immutable
+              typeof opts.canEdit === "string"
+                ? opts.canEdit
+                : opts.canEdit === false
                 ? "true"
                 : undefined,
           },
@@ -660,16 +662,16 @@ function boolCell(opts: BaseFieldCellOpts, field: BoolField): CellNode {
       },
       on: {
         checkboxChange:
-          opts.immutable === true
+          opts.canEdit === false
             ? (s) => s.preventDefault()
             : {
                 detachedFromNode: true,
                 procedure: (s) =>
                   s
                     .conditionalStatements(
-                      typeof opts.immutable === "string",
+                      typeof opts.canEdit === "string",
                       (s) =>
-                        s.if(opts.immutable as string, (s) =>
+                        s.if((`not ` + opts.canEdit) as string, (s) =>
                           s.preventDefault().return(),
                         ),
                     )
@@ -705,7 +707,7 @@ function durationCell(
         styles: sharedStyles.ellipsisSpan,
         children: `fn.display_minutes_duration(try_cast(${cell.value} as bigint))`,
       });
-      if (opts.immutable === true) {
+      if (opts.canEdit === false) {
         return display;
       }
       const bigintValue = opts.stringified
@@ -726,7 +728,7 @@ function durationCell(
           : `fn.parse_minutes_duration(input_value)`,
       });
       return nodes.if({
-        condition: andNotImmutable(opts.immutable, cell.editing),
+        condition: andCanEdit(opts.canEdit, cell.editing),
         then: nodes.state({
           procedure: (s) =>
             s
@@ -874,7 +876,7 @@ export interface FieldCellOpts extends BaseFieldCellOpts {
 export interface BaseFieldCellOpts extends FieldEditProcConfig {
   tableName: string;
   stringified: boolean;
-  immutable?: boolean | yom.SqlExpression;
+  canEdit?: boolean | yom.SqlExpression;
 }
 
 export function fieldCell(opts: FieldCellOpts): CellNode {

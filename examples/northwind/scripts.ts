@@ -5,6 +5,7 @@ import { system } from "@yolm/boost";
 system.addScript("init-dev-db", (s) =>
   s
     .importCsv(`csv`, `data/csv`)
+    .startTransaction("db")
     .modify(
       `insert into db.user (global_id, is_sys_admin, is_admin, disabled, email) values (random.uuid(), true, true, false, 'coolguy@coolemail.com')`,
     )
@@ -90,5 +91,6 @@ system.addScript("init-dev-db", (s) =>
           discount
         from csv.OrderDetails`,
     )
+    .commitTransaction("db")
     .saveDbToDir(`data/dev`),
 );

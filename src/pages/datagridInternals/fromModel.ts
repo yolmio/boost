@@ -222,7 +222,7 @@ export interface SuperColumnFieldOpts extends FieldEditProcConfig {
   dynIndex: number;
   columnIndex: number;
   startFixedColumns: number;
-  immutable?: boolean | yom.SqlExpression;
+  canEdit?: boolean | yom.SqlExpression;
 }
 
 export function columnFromField({
@@ -231,7 +231,7 @@ export function columnFromField({
   dynIndex,
   columnIndex,
   startFixedColumns,
-  immutable,
+  canEdit,
   ...restOpts
 }: SuperColumnFieldOpts): SuperGridColumn | undefined {
   let keydownHandler = new DomStatements();
@@ -241,7 +241,7 @@ export function columnFromField({
   if (field.type === "Ordering" || field.type === "Time") {
     return;
   }
-  if (!immutable) {
+  if (canEdit !== false) {
     switch (field.type) {
       case "BigInt":
       case "BigUint":
@@ -337,7 +337,7 @@ export function columnFromField({
     displayInfo: {
       cell: fieldCell({
         ...restOpts,
-        immutable,
+        canEdit,
         tableName: table,
         field,
         stringified: true,
@@ -406,7 +406,7 @@ export interface SimpleColumnFieldOpts extends FieldEditProcConfig {
   field: Field;
   idField: string;
   columnIndex: number;
-  immutable?: boolean | yom.SqlExpression;
+  canEdit?: boolean | yom.SqlExpression;
 }
 
 export function simpleToggleColumnSort(columnIndex: number) {
@@ -428,7 +428,7 @@ export function simpleColumnFromField({
   table,
   idField,
   columnIndex,
-  immutable,
+  canEdit,
   ...restOpts
 }: SimpleColumnFieldOpts): SimpleColumn | undefined {
   let keydownHandler = new DomStatements();
@@ -436,7 +436,7 @@ export function simpleColumnFromField({
   if (field.type === "Ordering" || field.type === "Time") {
     return;
   }
-  if (!immutable) {
+  if (canEdit !== false) {
     switch (field.type) {
       case "BigInt":
       case "BigUint":
@@ -487,7 +487,7 @@ export function simpleColumnFromField({
       tableName: table,
       field,
       stringified: false,
-      immutable,
+      canEdit,
     }),
     width: getFieldCellWidth(field, table, 10),
     header: [
