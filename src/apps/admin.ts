@@ -1,9 +1,9 @@
-import { createDbManagementPage } from "../pages/dbManagement";
 import { system } from "../system";
 
 export interface AdminAppOpts {
   name?: string;
   displayName?: string;
+  links?: string[];
 }
 
 export function addAdminApp(opts: AdminAppOpts) {
@@ -11,8 +11,11 @@ export function addAdminApp(opts: AdminAppOpts) {
     opts.name ?? "admin",
     opts.displayName ?? system.name + " Admin",
   );
-  app.pages.push({
-    content: createDbManagementPage({}),
-    path: "/",
+  app.useNavbarShell({
+    color: "primary",
+    variant: "solid",
+    links: opts.links ?? [],
   });
+  app.addDbManagementPage({ path: "/" });
+  return app;
 }

@@ -376,10 +376,10 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
           typeof v === "string"
             ? v
             : "field" in v
-              ? v.field
-              : v.condition(...v.fields.map((f) => `record.${f}`)) +
-                " as chip_" +
-                i,
+            ? v.field
+            : v.condition(...v.fields.map((f) => `record.${f}`)) +
+              " as chip_" +
+              i,
         )
         .join(", ")
     : "";
@@ -490,7 +490,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                 variant: "soft",
                 startDecorator: materialIcon("Edit"),
                 children: `'Edit'`,
-                href: `${stringLiteral(
+                href: `'/' || ${stringLiteral(
                   ctx.pathBase,
                 )} || '/' || ui.record_id || '/edit'`,
               }),

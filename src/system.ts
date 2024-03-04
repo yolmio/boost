@@ -259,7 +259,7 @@ export class System {
   }
 
   addAdminApp(opts: AdminAppOpts = {}) {
-    addAdminApp(opts);
+    return addAdminApp(opts);
   }
 
   generateYom(): yom.System {

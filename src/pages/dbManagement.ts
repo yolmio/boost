@@ -865,7 +865,10 @@ export interface DbManagmentPageOpts {
   queryColumnCount?: number;
 }
 
-export function createDbManagementPage(opts: DbManagmentPageOpts = {}) {
+export function dbManagementPage(opts: DbManagmentPageOpts = {}) {
+  if (opts.doNotDeploy && !isDeploy()) {
+    return;
+  }
   let content: Node = nodes.element("div", {
     styles: styles.root,
     children: [
@@ -921,14 +924,6 @@ export function createDbManagementPage(opts: DbManagmentPageOpts = {}) {
       ),
     });
   }
-  return content;
-}
-
-export function dbManagementPage(opts: DbManagmentPageOpts = {}) {
-  if (opts.doNotDeploy && !isDeploy()) {
-    return;
-  }
-  const content = createDbManagementPage(opts);
   system.currentApp!.pages.push({
     path: opts.path ?? `/db-management`,
     content,
