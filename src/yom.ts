@@ -1402,10 +1402,12 @@ export interface AddImageStatement {
 
 export type ViewTransitionTiming =
   | "immediate"
+  | "not_immediate"
   | "fallback"
   | "final"
   | "next"
   | "next_not_immediate"
+  | "next_and_final"
   | "all";
 
 export interface TriggerViewTransition {
@@ -1544,6 +1546,30 @@ export interface App {
     defaultUniqueDistinctNulls?: boolean;
     tables: Table[];
   };
+  navigationViewTransitionConfig?: NavigationViewTransitionConfig;
+}
+
+export interface NavigationViewTransitionConfig {
+  link?: LinkViewTransitionConfig;
+  popstate?: PopstateViewTransitionConfig;
+  statement?: StatementViewTransitionConfig;
+}
+
+export interface LinkViewTransitionConfig {
+  timing: ViewTransitionTiming;
+  type: string;
+}
+
+export interface PopstateViewTransitionConfig {
+  timing: ViewTransitionTiming;
+  forwardType: string;
+  backwardType: string;
+  otherType: string;
+}
+
+export interface StatementViewTransitionConfig {
+  timing: ViewTransitionTiming;
+  type: string;
 }
 
 export type Node =

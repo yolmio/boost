@@ -554,8 +554,8 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
                                           ),
                                         )
                                         .triggerViewTransition(
-                                          "all",
-                                          "'navigate close-modal'",
+                                          "next",
+                                          "'close-modal'",
                                         )
                                         .statements(closeModal),
                                     )
@@ -649,7 +649,7 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
                           s
                             .statements(updateRecentSearch)
                             .navigate(tableModel.getHrefToRecord!(`record.id`))
-                            .triggerViewTransition("all")
+                            .triggerViewTransition("next", "'close-modal'")
                             .statements(closeModal),
                       },
                       children: [
