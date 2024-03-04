@@ -49,4 +49,4 @@ app.addRecordGridPage("contact", (page) => {
   page.namedPageHeader().addressCard({}).attachmentsCard({}).notesListCard({});
 });
 
-app.addDbManagementPage();
+system.addAdminApp();

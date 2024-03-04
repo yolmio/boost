@@ -558,7 +558,7 @@ export class NodeTransformer {
     keyframes: Map<KeyFrames, string>,
     globalStyles: StyleObject[],
   ) {
-    const rootThemeStyles = rootStyles(app.theme);
+    const rootThemeStyles = rootStyles(app);
     createRulesFromStyle(prepStyle(rootThemeStyles, app.theme), this.#cssRules);
     for (const [frames, id] of keyframes) {
       const selectors = [];

@@ -1,10 +1,11 @@
+import { App } from "./system";
+
 const css = `
   html {
     min-height: 100vh;
     background: var(--background);
     box-sizing: border-box;
-    font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
-      "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    font-family: var(--font-family);
   }
   
   *,
@@ -50,7 +51,7 @@ const css = `
     margin-top: 1.25rem;
     text-align: center;
     font-size: 1.5rem;
-    font-weight: bold;
+    font-weight: 700;
     line-height: 2.25rem;
     letter-spacing: -0.025em;
     color: var(--login-text-color);
@@ -68,7 +69,7 @@ const css = `
   .email-label {
     display: block;
     font-size: 0.875rem;
-    font-weight: medium;
+    font-weight: 500;
     line-height: 1.5rem;
     color: var(--email-label-color);
     padding-bottom: 0.5rem;
@@ -89,7 +90,7 @@ const css = `
     line-height: 1.5;
   
     &:focus {
-      box-shadow: inset 0 1px 2px 0 rgba(37, 99, 235, 0.6);
+      outline: 2px solid var(--email-focus-outline);
     }
   }
   
@@ -163,7 +164,7 @@ const css = `
     margin-top: 1.25rem;
     text-align: center;
     font-size: 1.875rem;
-    font-weight: bold;
+    font-weight: 700;
     line-height: 2.25rem;
     letter-spacing: -0.025em;
     color: var(--register-heading-color);
@@ -171,7 +172,7 @@ const css = `
   
   .register-text {
     font-size: 1rem;
-    font-weight: medium;
+    font-weight: 500;
     color: var(--register-text-color);
     margin-left: auto;
     margin-right: auto;
@@ -207,10 +208,11 @@ const css = `
   }
   
   .code-input-wrapper {
-    width: 3rem;
-    height: 3rem;
+    width: 2.125rem;
+    height: 2.75rem;
   
     @media (min-width: 768px) {
+      width: 3rem;
       height: 3.5rem;
     }
   }
@@ -222,12 +224,16 @@ const css = `
     padding: 0.5rem;
     border-radius: 0.75rem;
     border: 1px solid var(--code-input-border-color);
-    font-size: 1.125rem;
+    font-size: 1rem;
     background-color: var(--code-input-background);
   
     &:focus {
       background-color: var(--code-input-focus-background);
-      box-shadow: 0 0 0 1px var(--code-input-focus-ring-color);
+      outline: 2px solid var(--email-focus-outline);
+    }
+
+    @media (min-width: 768px) {
+      font-size: 1.125rem;
     }
   }
   
@@ -252,47 +258,76 @@ const css = `
   }
 `;
 
-const defaultVars = `
-:root {
-    --background: white;
-    --logo-height: 5rem;
-    --login-text-color: #4b5563;
-
-    --email-label-color: #4b5563;
-    --email-input-color: #4b5563;
-
-    --submit-button-background: #5a35a3;
-    --submit-button-hover-background: #4c2d8a;
-    --submit-button-focus-outline: #4c2d8a;
-    --submit-button-color: #ffffff;
-
-    --error-background: #dc2626;
-    --error-color: #f9fafb;
-
-    --spinner-text-color: #1d4ed8;
-    --spinner-fill-color: #d1d5db;
-
-    --register-heading-color: #1f2937;
-    --register-text-color: #4b5563;
-
-    --code-input-border-color: #d1d5db;
-    --code-input-background: #ffffff;
-    --code-input-focus-background: #f3f4f6;
-    --code-input-focus-ring-color: #4c2d8a;
+export interface LoginCssVars {
+  "--background"?: string;
+  "--font-family"?: string;
+  "--logo-height"?: string;
+  "--login-text-color"?: string;
+  "--email-label-color"?: string;
+  "--email-input-color"?: string;
+  "--email-focus-outline"?: string;
+  "--submit-button-background"?: string;
+  "--submit-button-hover-background"?: string;
+  "--submit-button-focus-outline"?: string;
+  "--submit-button-color"?: string;
+  "--error-background"?: string;
+  "--error-color"?: string;
+  "--spinner-text-color"?: string;
+  "--spinner-fill-color"?: string;
+  "--register-heading-color"?: string;
+  "--register-text-color"?: string;
+  "--code-input-border-color"?: string;
+  "--code-input-background"?: string;
+  "--code-input-focus-background"?: string;
+  "--code-input-focus-ring-color"?: string;
 }
-`;
+
+const defaultVars: LoginCssVars = {
+  "--background": "white",
+  "--font-family": `ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"`,
+  "--logo-height": "5rem",
+  "--login-text-color": "#4b5563",
+
+  "--email-label-color": "#4b5563",
+  "--email-input-color": "#4b5563",
+  "--email-focus-outline": "rgba(37, 99, 235, 0.6)",
+
+  "--submit-button-background": "#5a35a3",
+  "--submit-button-hover-background": "#4c2d8a",
+  "--submit-button-focus-outline": "#4c2d8a",
+  "--submit-button-color": "#ffffff",
+
+  "--error-background": "#dc2626",
+  "--error-color": "#f9fafb",
+
+  "--spinner-text-color": "#1d4ed8",
+  "--spinner-fill-color": "#d1d5db",
+
+  "--register-heading-color": "#1f2937",
+  "--register-text-color": "#4b5563",
+
+  "--code-input-border-color": "#d1d5db",
+  "--code-input-background": "#ffffff",
+  "--code-input-focus-background": "#f3f4f6",
+  "--code-input-focus-ring-color": "#4c2d8a",
+};
 
 interface Logo {
   src: string;
   alt: string;
 }
 
-interface LoginOptions {
-  vars?: string;
+export interface LoginOptions {
+  vars?: LoginCssVars;
   logo?: Logo;
+  favicon32x32?: string;
+  favicon16x16?: string;
+  signInText?: string;
+  priorCss?: string;
+  title?: string;
 }
 
-function createLoginHtml(opts: LoginOptions): string {
+function createLoginHtml(opts: LoginOptions, app: App): string {
   const logo = opts.logo ?? {
     src: "/global_assets/logo/main.png",
     alt: "Yolm logo",
@@ -303,19 +338,19 @@ function createLoginHtml(opts: LoginOptions): string {
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Yolm</title>
+    <title>${opts.title ?? app.title}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link
       rel="icon"
       type="image/png"
       sizes="32x32"
-      href="/global_assets/logo/favicon-32x32.png"
+      href="${opts.favicon32x32 ?? "/global_assets/logo/favicon-32x32.png"}"
     />
     <link
       rel="icon"
       type="image/png"
       sizes="16x16"
-      href="/global_assets/logo/favicon-16x16.png"
+      href="${opts.favicon16x16 ?? "/global_assets/logo/favicon-16x16.png"}"
     />
     <link rel="stylesheet" href="/login.css" />
   </head>
@@ -327,7 +362,9 @@ function createLoginHtml(opts: LoginOptions): string {
 <div id="login-root">
   <div class="header">
     <img class="logo" src="${logo.src}" alt="${logo.alt}" />
-    <h2 class="login-text">Sign in to your yolm account</h2>
+    <h2 class="login-text">${
+      opts.signInText ?? "Sign in to your yolm account"
+    }</h2>
   </div>
 
   <form id="login-form">
@@ -480,12 +517,20 @@ function createLoginHtml(opts: LoginOptions): string {
 `);
 }
 
-export function createLogin(opts: LoginOptions): {
+export function createLogin(
+  opts: LoginOptions,
+  app: App,
+): {
   css: string;
   html: string;
 } {
+  const mergedVars = { ...defaultVars, ...opts.vars };
+  const varsString =
+    Object.entries(mergedVars).reduce((acc, [key, value]) => {
+      return value ? `${acc}    ${key}: ${value};\n` : acc;
+    }, ":root {\n") + "}";
   return {
-    css: (opts.vars ?? defaultVars) + css,
-    html: createLoginHtml(opts),
+    css: (opts.priorCss ?? "") + varsString + css,
+    html: createLoginHtml(opts, app),
   };
 }

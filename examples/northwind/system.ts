@@ -1081,4 +1081,4 @@ order by unit_price desc
   });
 });
 
-app.addDbManagementPage();
+system.addAdminApp();

@@ -1,14 +1,10 @@
 import type { ColorScheme, Theme } from "./theme";
-import {
-  cssVar,
-  darkSchemeSelector,
-  fadeIn,
-  fadeOut,
-  lightSchemeSelector,
-} from "./styleUtils";
+import { cssVar, darkSchemeSelector, lightSchemeSelector } from "./styleUtils";
 import { StyleObject } from "./styleTypes";
+import { App } from "./system";
 
-export function rootStyles(theme: Theme): StyleObject {
+export function rootStyles(app: App): StyleObject {
+  const { theme } = app;
   return {
     ":root": getRootVariables(theme),
     [lightSchemeSelector]: {
@@ -61,11 +57,25 @@ export function rootStyles(theme: Theme): StyleObject {
       animationTimingFunction: theme.transitionEasing.navigation,
     },
     'html[data-yolm-transition-type*="navigate"]::view-transition-new(root)': {
-      animationName: fadeIn(),
+      animationName: app.registerKeyframes({
+        from: {
+          opacity: 0,
+        },
+        to: {
+          opacity: 1,
+        },
+      }),
       mixBlendMode: "plus-lighter",
     },
     'html[data-yolm-transition-type*="navigate"]::view-transition-old(root)': {
-      animationName: fadeOut(),
+      animationName: app.registerKeyframes({
+        from: {
+          opacity: 1,
+        },
+        to: {
+          opacity: 0,
+        },
+      }),
       mixBlendMode: "plus-lighter",
     },
   };

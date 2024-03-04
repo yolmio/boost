@@ -46,10 +46,11 @@ import { escapeHtml } from "./utils/escapeHtml";
 import { default404Page } from "./pages/default404";
 import { snackbar, SnackbarOpts } from "./components";
 import { nodes } from "./nodeHelpers";
-import { createLogin } from "./login";
+import { createLogin, LoginOptions } from "./login";
 import { addViewTables } from "./pages/datagridInternals/datagridBase";
 import { createScriptDbFromDir, ScriptDbFromDirOpts } from "./migrate";
 import * as fs from "fs";
+import { AdminAppOpts, addAdminApp } from "./apps/admin";
 
 /**
  * The app singleton.
@@ -127,6 +128,7 @@ export class System {
       returnType: f.returnType,
       procedure: (s) =>
         s
+          .scalar("output", helperScalarTypeToFieldType(f.returnType))
           .statements(f.setup)
           .evalRules(...f.rules)
           .return("output"),
@@ -245,6 +247,10 @@ export class System {
         })
         .statements(procedure),
     );
+  }
+
+  addAdminApp(opts: AdminAppOpts = {}) {
+    addAdminApp(opts);
   }
 
   generateYom(): yom.System {
@@ -385,6 +391,12 @@ export class App {
   //
   // Helper methods
   //
+
+  setLoginPage(opts: LoginOptions) {
+    const login = createLogin(opts, this);
+    this.loginHtml = login.html;
+    this.loginCss = login.css;
+  }
 
   setTheme(themeOptions: ThemeOpts) {
     this.theme = createTheme(themeOptions);
@@ -637,7 +649,7 @@ export class App {
       this.webAppConfig.manifest.name = this.displayName;
     }
     if (this.domain && !(this.loginHtml && this.loginCss)) {
-      const login = createLogin({});
+      const login = createLogin({}, this);
       this.loginHtml = login.html;
       this.loginCss = login.css;
     }
@@ -2657,6 +2669,19 @@ function scalarFunctionFromHelper(f: HelperScalarFunction): ScalarFunction {
     returnType:
       typeof f.returnType === "string" ? { type: f.returnType } : f.returnType,
   };
+}
+
+function helperScalarTypeToFieldType(ty: HelperScalarType): yom.FieldType {
+  if (ty === "String") {
+    return { type: "String", maxLength: 1_000_000 };
+  }
+  if (typeof ty === "string") {
+    return { type: ty };
+  }
+  if (ty.type === "String") {
+    return { type: "String", maxLength: 1_000_000 };
+  }
+  return ty;
 }
 
 export function fieldTypeFromHelper(ty: HelperFieldType): yom.FieldType {
