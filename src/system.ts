@@ -48,7 +48,12 @@ import { snackbar, SnackbarOpts } from "./components";
 import { nodes } from "./nodeHelpers";
 import { createLogin, LoginOptions } from "./login";
 import { addViewTables } from "./pages/datagridInternals/datagridBase";
-import { createScriptDbFromDir, ScriptDbFromDirOpts } from "./migrate";
+import {
+  addAutoImportScript,
+  createScriptDbFromDir,
+  AutoImportScriptOpts,
+  ScriptDbFromDirOpts,
+} from "./migrate";
 import * as fs from "fs";
 import { AdminAppOpts, addAdminApp } from "./apps/admin";
 
@@ -101,7 +106,7 @@ export class System {
   tableFunctions: Record<string, TableFunction> = {};
   test = new Test();
   scripts: yom.Script[] = [];
-  scriptDbs: ScriptDb[] = [];
+  scriptDbs: Record<string, ScriptDb> = {};
   currentAppName?: string;
 
   get currentApp() {
@@ -210,7 +215,7 @@ export class System {
   addScriptDb(name: string, f: (builder: ScriptDb) => void) {
     const db = new ScriptDb(name);
     f(db);
-    this.scriptDbs.push(db);
+    this.scriptDbs[name] = db;
   }
 
   addScript(name: string, procedure: ScriptStatementsOrFn) {
@@ -247,6 +252,10 @@ export class System {
         })
         .statements(procedure),
     );
+  }
+
+  addAutoImportScript(opts: AutoImportScriptOpts) {
+    addAutoImportScript(opts);
   }
 
   addAdminApp(opts: AdminAppOpts = {}) {
@@ -298,7 +307,7 @@ export class System {
       scripts: this.scripts,
       api: this.api.generateYom(),
       test: this.test.generateYom(),
-      scriptDbs: this.scriptDbs.map((db) => {
+      scriptDbs: Object.values(this.scriptDbs).map((db) => {
         return {
           name: db.name,
           mapping: db.mapping,
@@ -1650,6 +1659,12 @@ export class TableBuilder {
     return field;
   }
 
+  nuvaId(name: string) {
+    const field = new NuvaIdFieldBuilder(name);
+    this.addField(field);
+    return field;
+  }
+
   money(
     name: string,
     opts?:
@@ -2411,6 +2426,16 @@ class JsonFieldBuilder extends BaseFieldBuilder {
   finish(): Field {
     const field = new UuidField(this._name, this._displayName);
     this.writeBaseFields(field);
+    return field;
+  }
+}
+
+class NuvaIdFieldBuilder extends BaseFieldBuilder {
+  finish(): Field {
+    const field = new NuvaIdField(this._name, this._displayName);
+    // @ts-ignore
+    this.writeBaseFields(field);
+    // @ts-ignore
     return field;
   }
 }
