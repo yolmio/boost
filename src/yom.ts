@@ -1983,21 +1983,36 @@ export interface BarChartClasses {
 
 export interface PieChartNode {
   t: "PieChart";
-  labels?: String;
-  series: string;
+  labels?: SqlQuery;
+  series: SqlQuery;
   classes: PieChartClasses;
-  low?: string;
-  high?: string;
-  referenceValue?: string;
-  chartPadding?: string;
-  startAngle?: string;
-  total?: string;
-  donut?: string;
-  donutWidth?: string;
-  showLabel?: string;
-  labelOffset?: string;
-  labelPosition?: string;
-  labelDirection?: string;
+  low?: SqlExpression;
+  high?: SqlExpression;
+  referenceValue?: SqlExpression;
+  chartPadding?: SqlExpression;
+  startAngle?: SqlExpression;
+  total?: SqlExpression;
+  donut?: SqlExpression;
+  donutWidth?: SqlExpression;
+  showLabel?: SqlExpression;
+  /**
+   * Label position offset from the standard position which is half distance of the radius.
+   * This value can be either positive or negative. Positive values will position the label away from the center.
+   */
+  labelOffset?: SqlExpression;
+  /**
+   * This option can be set to 'inside', 'outside' or 'center'. Positioned with 'inside' the labels will be
+   * placed on half the distance of the radius to the border of the Pie by respecting the 'labelOffset'.
+   * The 'outside' option will place the labels at the border of the pie and 'center' will place the labels in the absolute center point of the chart.
+   * The 'center' option only makes sense in conjunction with the 'labelOffset' option.
+   */
+  labelPosition?: "'inside'" | "'outside'" | "'center'" | SqlExpression;
+  /**
+   * Label direction can be 'neutral', 'explode' or 'implode'. The labels anchor will be positioned based on those settings
+   * as well as the fact if the labels are on the right or left side of the center of the chart. Usually explode
+   * is useful when labels are positioned far away from the center.
+   */
+  labelDirection?: "'neutral'" | "'explode'" | "'implode'" | SqlExpression;
   ignoreEmptyValues?: string;
   labelInterpolation?: string;
 }

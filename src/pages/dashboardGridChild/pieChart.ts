@@ -11,7 +11,6 @@ import { alert, materialIcon, skeleton, typography } from "../../components";
 export interface Opts {
   styles?: Style;
   cardStyles?: Style;
-  stateQuery?: string;
   /**
    * Adds a state node wrapper around the bar chart where you can query the database.
    *
@@ -94,6 +93,45 @@ const styles = createStyles({
       stroke: cssVar("palette-success-200"),
     },
   },
+  slicePie: {
+    stroke: "transparent",
+    ".ct-series-a &": {
+      fill: cssVar("palette-primary-400"),
+    },
+    ".ct-series-b &": {
+      fill: cssVar("palette-neutral-400"),
+    },
+    ".ct-series-c &": {
+      fill: cssVar("palette-danger-400"),
+    },
+    ".ct-series-d &": {
+      fill: cssVar("palette-success-400"),
+    },
+    ".ct-series-e &": {
+      fill: cssVar("palette-primary-300"),
+    },
+    ".ct-series-f &": {
+      fill: cssVar("palette-neutral-300"),
+    },
+    ".ct-series-g &": {
+      fill: cssVar("palette-danger-300"),
+    },
+    ".ct-series-h &": {
+      fill: cssVar("palette-success-300"),
+    },
+    ".ct-series-i &": {
+      fill: cssVar("palette-primary-200"),
+    },
+    ".ct-series-j &": {
+      fill: cssVar("palette-neutral-200"),
+    },
+    ".ct-series-k &": {
+      fill: cssVar("palette-danger-200"),
+    },
+    ".ct-series-l &": {
+      fill: cssVar("palette-success-200"),
+    },
+  },
   alert: {
     m: 2,
   },
@@ -111,9 +149,6 @@ const styles = createStyles({
 });
 
 export function content(opts: Opts) {
-  if (!opts.stateQuery && !opts.state) {
-    throw new Error("pieChart expects either stateQuery or state");
-  }
   return nodes.element("div", {
     styles: opts.styles ? [styles.root, opts.styles] : styles.root,
     children: [
@@ -164,6 +199,7 @@ export function content(opts: Opts) {
                   root: styles.chartRoot,
                   sliceDonut: styles.slice,
                   label: styles.label,
+                  slicePie: styles.slicePie,
                 },
                 donutWidth: "30",
                 labelDirection: "'explode'",

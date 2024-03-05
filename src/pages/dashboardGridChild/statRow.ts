@@ -2,6 +2,7 @@ import { alert, skeleton, typography } from "../../components";
 import { chip } from "../../components/chip";
 import { materialIcon } from "../../components/materialIcon";
 import { nodes } from "../../nodeHelpers";
+import { Node } from "../../nodeTypes";
 import { StateStatementsOrFn } from "../../statements";
 import { StyleObject } from "../../styleTypes";
 import { createStyles, getVariantStyle } from "../../styleUtils";
@@ -16,7 +17,7 @@ interface StatOptions {
 }
 
 export interface Opts {
-  header?: string;
+  header?: Node;
   stats: StatOptions[];
 }
 
