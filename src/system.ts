@@ -393,7 +393,10 @@ export class App {
   #keyFrames: Map<KeyFrames, string> = new Map();
   #crosspageSnackbars: CrossPageSnackbar[] = [];
 
-  constructor(public name: string, public displayName: string) {
+  constructor(
+    public name: string,
+    public displayName: string,
+  ) {
     this.title = displayName;
   }
 
@@ -547,7 +550,7 @@ export class App {
             t: "Route",
             path: p.path,
             children: p.content,
-          } as RouteNode),
+          }) as RouteNode,
       );
     const pagesWithoutShell = this.pages
       .filter((p) => p.ignoreShell)
@@ -557,7 +560,7 @@ export class App {
             t: "Route",
             path: p.path,
             children: p.content,
-          } as RouteNode),
+          }) as RouteNode,
       );
     let rootNode: Node;
     if (this.shell) {
@@ -633,11 +636,11 @@ export class App {
         break;
       case "App":
         htmlHead += `
-  <link rel="apple-touch-icon" sizes="180x180" href="/assets/logo/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/assets/logo/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/assets/logo/favicon-16x16.png">
-  <link rel="mask-icon" href="/assets/logo/safari-pinned-tab.svg" color="${this.webAppConfig.logoGeneration.safariPinnedTabColor}">
-  <link rel="shortcut icon" href="/assets/logo/favicon.ico">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png">
+  <link rel="mask-icon" href="/assets/safari-pinned-tab.svg" color="${this.webAppConfig.logoGeneration.safariPinnedTabColor}">
+  <link rel="shortcut icon" href="/assets/favicon.ico">
   <meta name="msapplication-TileColor" content="${this.webAppConfig.logoGeneration.msTileColor}">
   <meta name="theme-color" content="${this.webAppConfig.logoGeneration.themeColor}">`;
         break;
@@ -842,8 +845,8 @@ export class Api {
       body: helper.jsonBodyScalar
         ? { type: "Json", scalar: helper.jsonBodyScalar }
         : helper.textBodyScalar
-        ? { type: "Text", scalar: helper.textBodyScalar }
-        : undefined,
+          ? { type: "Text", scalar: helper.textBodyScalar }
+          : undefined,
       procedure: EndpointStatements.normalizeToArray(helper.procedure),
       query: helper.query,
     });
@@ -1123,7 +1126,10 @@ abstract class FieldBase {
   indexed = false;
   ext: Record<string, any> = {};
 
-  constructor(public name: string, public displayName: string) {}
+  constructor(
+    public name: string,
+    public displayName: string,
+  ) {}
 
   /** Name of field escaped as sql identifier */
   get identName() {
@@ -1154,7 +1160,11 @@ export class StringField extends FieldBase {
   multiline?: boolean;
   usage?: StringUsage;
 
-  constructor(name: string, displayName: string, public maxLength: number) {
+  constructor(
+    name: string,
+    displayName: string,
+    public maxLength: number,
+  ) {
     super(name, displayName);
   }
 
