@@ -11,6 +11,7 @@ export function addAdminApp(opts: AdminAppOpts) {
     opts.name ?? "admin",
     opts.displayName ?? system.name + " Admin",
   );
+  app.executionConfig = { canDownload: true };
   app.useNavbarShell({
     color: "primary",
     variant: "solid",

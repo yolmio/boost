@@ -633,7 +633,7 @@ export class App {
         break;
       case "App":
         const assetDir =
-          this.webAppConfig.logoGeneration.assetDir ?? "/assets/logo/";
+          this.webAppConfig.logoGeneration.assetDir ?? "/assets/";
         htmlHead += `
   <link rel="apple-touch-icon" sizes="180x180" href="${assetDir}apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="${assetDir}favicon-32x32.png">
