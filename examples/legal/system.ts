@@ -4,8 +4,8 @@ const { db } = system;
 
 system.name = "legal";
 system.region = "us-miami";
-system.memoryGb = 8;
-system.vcpus = 2;
+system.memoryGb = 16;
+system.vcpus = 4;
 
 //
 // DATABASE
@@ -124,7 +124,7 @@ db.catalog.addDatagridViewTables([
 //
 
 const app = system.addApp("legal", "Legal");
-app.executionConfig = { canDownload: true, preferDownload: true };
+app.executionConfig = { canDownload: true, preferDownload: false };
 
 // generated the woff files with:
 // https://gwfh.mranftl.com/fonts
@@ -294,7 +294,7 @@ app.addDashboardGridPage((page) =>
               ),
           value: `fn.display_minutes_duration(value_num)`,
           previous: `fn.display_minutes_duration(previous_num)`,
-          trend: `cast((value_num - previous_num) as decimal(10, 2)) / cast(previous_num as decimal(10, 2))`,
+          trend: `cast((value_num - previous_num) as decimal(18, 2)) / cast(previous_num as decimal(18, 2))`,
         },
         {
           title: "'Income'",
@@ -302,11 +302,11 @@ app.addDashboardGridPage((page) =>
             s
               .scalar(
                 `value_num`,
-                `(select sum(cost) from db.payment where date > date.add(day, -30, today()))`,
+                `(select sum(cast(cost as decimal(18, 2))) from db.payment where date > date.add(day, -30, today()))`,
               )
               .scalar(
                 `previous_num`,
-                `(select sum(cost) from db.payment where date between date.add(day, -60, today()) and date.add(day, -30, today()))`,
+                `(select sum(cast(cost as decimal(18, 2))) from db.payment where date between date.add(day, -60, today()) and date.add(day, -30, today()))`,
               ),
           value: `format.currency(value_num, 'USD')`,
           previous: `format.currency(previous_num, 'USD')`,
