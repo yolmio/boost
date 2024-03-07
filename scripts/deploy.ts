@@ -7,6 +7,9 @@ import {
 
 process.env.YOLM_BOOST_ENV = "deploy";
 const appModel = await getScriptModel();
+if ((appModel.region as any) === "not-set") {
+  throw new Error("Please set the region before attempting to deploy");
+}
 writeModelToDisk(appModel);
 const config = await getSystemYolmConfig();
 const cmd = [yolmPath(), "deploy"];

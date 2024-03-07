@@ -632,22 +632,14 @@ export class App {
   <meta name="theme-color" content="#ffffff">`;
         break;
       case "App":
+        const assetDir =
+          this.webAppConfig.logoGeneration.assetDir ?? "/assets/logo/";
         htmlHead += `
-  <link rel="apple-touch-icon" sizes="180x180" href="/assets/logo/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/assets/logo/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/assets/logo/favicon-16x16.png">
-  <link rel="mask-icon" href="/assets/logo/safari-pinned-tab.svg" color="${this.webAppConfig.logoGeneration.safariPinnedTabColor}">
-  <link rel="shortcut icon" href="/assets/logo/favicon.ico">
-  <meta name="msapplication-TileColor" content="${this.webAppConfig.logoGeneration.msTileColor}">
-  <meta name="theme-color" content="${this.webAppConfig.logoGeneration.themeColor}">`;
-        break;
-      case "Account":
-        htmlHead += `
-  <link rel="apple-touch-icon" sizes="180x180" href="/account_assets/logo/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/account_assets/logo/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/account_assets/logo/favicon-16x16.png">
-  <link rel="mask-icon" href="/account_assets/logo/safari-pinned-tab.svg" color="${this.webAppConfig.logoGeneration.safariPinnedTabColor}">
-  <link rel="shortcut icon" href="/account_assets/logo/favicon.ico">
+  <link rel="apple-touch-icon" sizes="180x180" href="${assetDir}apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="${assetDir}favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="${assetDir}favicon-16x16.png">
+  <link rel="mask-icon" href="${assetDir}safari-pinned-tab.svg" color="${this.webAppConfig.logoGeneration.safariPinnedTabColor}">
+  <link rel="shortcut icon" href="${assetDir}favicon.ico">
   <meta name="msapplication-TileColor" content="${this.webAppConfig.logoGeneration.msTileColor}">
   <meta name="theme-color" content="${this.webAppConfig.logoGeneration.themeColor}">`;
         break;
@@ -692,12 +684,7 @@ export interface WebAppConfig {
         safariPinnedTabColor: string;
         msTileColor: string;
         themeColor: string;
-      }
-    | {
-        type: "Account";
-        safariPinnedTabColor: string;
-        msTileColor: string;
-        themeColor: string;
+        assetDir?: string;
       }
     | { type: "Default" }
     | { type: "Custom" };

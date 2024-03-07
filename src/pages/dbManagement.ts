@@ -582,6 +582,10 @@ function transactionQueryReference(): Node[] {
       nodes.element("div", {
         styles: styles.tableFields,
         children: [
+          nodes.element("p", {
+            styles: styles.txInfoText,
+            children: `'This "table" gives you access to every record operation every performed in the database. It can have very many records and it has many fields.'`,
+          }),
           displayField({ name: "tx_id", type: "biguint", notNull: true }),
           displayField({
             name: "tx_timestamp",
@@ -618,6 +622,37 @@ function transactionQueryReference(): Node[] {
             type: "biguint",
             notNull: true,
           }),
+          displayField({
+            name: "tx_log_position",
+            type: "biguint",
+            notNull: true,
+          }),
+          nodes.element("p", {
+            styles: styles.txInfoText,
+            children: `'If the content of a field in provided in the record operation (insert, update), you can access it using the following field: '`,
+          }),
+          displayField({
+            name: "{table}__{field}",
+            type: "field's type",
+            notNull: false,
+          }),
+          nodes.element("p", {
+            styles: styles.txInfoText,
+            children: `'In an update operation, you can use the following to see if the field was set in the record operation'`,
+          }),
+          displayField({
+            name: "{table}__{field}__set",
+            type: "bool",
+            notNull: false,
+          }),
+          nodes.element("p", {
+            styles: styles.txInfoText,
+            children: `'The following query gets what the first name of the contact with id 0 was updated to, in only the first update operation:'`,
+          }),
+          nodes.element("p", {
+            styles: styles.txInfoCode,
+            children: `'select contact__first_name from tx_op where table = ''contact'' and kind = ''update'' and contact__first_name__set and record_id = 0 order by tx_id limit 1'`,
+          }),
         ],
       }),
     ),
@@ -637,78 +672,6 @@ function transactionQueryReference(): Node[] {
           nodes.element("p", {
             styles: styles.txInfoText,
             children: `'The above query gets the first_name of the contact with id 0 after the second transaction (transaction with id 1) was applied.'`,
-          }),
-        ],
-      }),
-    ),
-    collapse(
-      "'{table}_insert_op'",
-      nodes.element("div", {
-        styles: styles.tableFields,
-        children: [
-          nodes.element("p", {
-            styles: styles.txInfoText,
-            children: `'This table gives you detailed access to insert operations for the table specified. In addition to the fields below you can access all of the fields in the insert with field_{field_name}. For example:'`,
-          }),
-          nodes.element("p", {
-            styles: styles.txInfoCode,
-            children: `'select field_name from contact_insert_op'`,
-          }),
-          nodes.element("p", {
-            styles: styles.txInfoText,
-            children: `'The above query gets the name field value on all insert operations.'`,
-          }),
-          displayField({ name: "tx_id", type: "biguint", notNull: true }),
-          displayField({
-            name: "tx_timestamp",
-            type: "timestamp",
-            notNull: true,
-          }),
-          displayField({
-            name: "tx_creator",
-            type: `${userFk} (fk)`,
-            notNull: false,
-          }),
-          displayField({
-            name: "record_id",
-            type: "biguint",
-            notNull: true,
-          }),
-        ],
-      }),
-    ),
-    collapse(
-      "'{table}_update_op'",
-      nodes.element("div", {
-        styles: styles.tableFields,
-        children: [
-          nodes.element("p", {
-            styles: styles.txInfoText,
-            children: `'This table gives you detailed access to update operations for the table specified. In addition to the fields below you can access all of the fields in the update with field_{field_name} and you can check if it is populated through populated_{field_name}. For example:'`,
-          }),
-          nodes.element("p", {
-            styles: styles.txInfoCode,
-            children: `'select field_checked from todo_update_op where populated_checked'`,
-          }),
-          nodes.element("p", {
-            styles: styles.txInfoText,
-            children: `'The above query gets the checked field value on all update operations where the checked field was populated.'`,
-          }),
-          displayField({ name: "tx_id", type: "biguint", notNull: true }),
-          displayField({
-            name: "tx_timestamp",
-            type: "timestamp",
-            notNull: true,
-          }),
-          displayField({
-            name: "tx_creator",
-            type: `${userFk} (fk)`,
-            notNull: false,
-          }),
-          displayField({
-            name: "record_id",
-            type: "biguint",
-            notNull: true,
           }),
         ],
       }),
