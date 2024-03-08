@@ -406,7 +406,7 @@ export interface ComboboxListboxOpts
 export function comboboxListbox(opts: ComboboxListboxOpts) {
   const rootStyles = styles.listbox(
     opts.size,
-    opts.variant ?? "plain",
+    opts.variant ?? "outlined",
     opts.color ?? "neutral",
     false,
   );

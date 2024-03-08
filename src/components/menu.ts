@@ -54,7 +54,7 @@ export function menuList(opts: MenuListOpts) {
       tag: "div",
       styles: styles.menuList(
         opts.size,
-        opts.variant ?? "plain",
+        opts.variant ?? "outlined",
         opts.color ?? "neutral",
         typeof opts.nestedIn === "string",
       ),
