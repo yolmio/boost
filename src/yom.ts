@@ -8,7 +8,7 @@ export interface System {
   replicas: Replica[];
   vcpus: VCpus;
   memoryGb: MemoryGb;
-  /** Must be either 1 or divisible by 100 */
+  /** Must be either 10 or divisible by 100 */
   fileSizeGb: number;
   collation: Collation;
   db: Database;
@@ -57,7 +57,7 @@ export interface AppDbExecutionConfig {
   preferDownload?: boolean;
 }
 
-export interface PollingPullConfig {
+export interface PullConfig {
   /**
    * Stop pulling after this many ms since last interaction.
    *
@@ -535,8 +535,8 @@ export interface Tokenizer {
 
 export interface RankedSearchTable {
   table: string;
-  filterExpr?: string;
-  disabled?: string;
+  filterExpr?: SqlExpression;
+  disabled?: SqlExpression;
   fields?: { field: string; priority: number }[];
   fieldGroups?: { fields: string[]; priority: number }[];
 }
@@ -1529,7 +1529,7 @@ export interface DynamicQueryToCsv {
 export interface App {
   name: string;
   displayName: string;
-  pollingPullConfig?: PollingPullConfig;
+  pullConfig?: PullConfig;
   executionConfig?: AppDbExecutionConfig;
   domain?: string;
   loginHtml?: string;
