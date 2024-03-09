@@ -97,7 +97,7 @@ export class System {
   autoTrim = "None" as yom.AutoTrim;
   vcpus: yom.VCpus = 1;
   memoryGb: yom.MemoryGb = 1;
-  fileSizeGb: number = 1;
+  fileSizeGb: number = 10;
   db: Db = new Db();
   apps: Record<string, App> = {};
   api: Api = new Api();
@@ -363,7 +363,7 @@ export class App {
     },
   };
   deviceDb = new DeviceDb();
-  pollingPullConfig?: yom.PollingPullConfig;
+  pullConfig?: yom.PullConfig;
   executionConfig?: yom.AppDbExecutionConfig;
   theme: Theme = createTheme();
   shell?: (pages: Node) => Node;
@@ -658,7 +658,7 @@ export class App {
       name: this.name,
       displayName: this.displayName,
       pwaManifest: this.webAppConfig.manifest,
-      pollingPullConfig: this.pollingPullConfig,
+      pullConfig: this.pullConfig,
       executionConfig: this.executionConfig,
       htmlHead: htmlHead,
       domain: this.domain,
