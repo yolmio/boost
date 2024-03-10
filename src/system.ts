@@ -393,7 +393,10 @@ export class App {
   #keyFrames: Map<KeyFrames, string> = new Map();
   #crosspageSnackbars: CrossPageSnackbar[] = [];
 
-  constructor(public name: string, public displayName: string) {
+  constructor(
+    public name: string,
+    public displayName: string,
+  ) {
     this.title = displayName;
   }
 
@@ -547,7 +550,7 @@ export class App {
             t: "Route",
             path: p.path,
             children: p.content,
-          } as RouteNode),
+          }) as RouteNode,
       );
     const pagesWithoutShell = this.pages
       .filter((p) => p.ignoreShell)
@@ -557,7 +560,7 @@ export class App {
             t: "Route",
             path: p.path,
             children: p.content,
-          } as RouteNode),
+          }) as RouteNode,
       );
     let rootNode: Node;
     if (this.shell) {
@@ -829,8 +832,8 @@ export class Api {
       body: helper.jsonBodyScalar
         ? { type: "Json", scalar: helper.jsonBodyScalar }
         : helper.textBodyScalar
-        ? { type: "Text", scalar: helper.textBodyScalar }
-        : undefined,
+          ? { type: "Text", scalar: helper.textBodyScalar }
+          : undefined,
       procedure: EndpointStatements.normalizeToArray(helper.procedure),
       query: helper.query,
     });
@@ -1110,7 +1113,10 @@ abstract class FieldBase {
   indexed = false;
   ext: Record<string, any> = {};
 
-  constructor(public name: string, public displayName: string) {}
+  constructor(
+    public name: string,
+    public displayName: string,
+  ) {}
 
   /** Name of field escaped as sql identifier */
   get identName() {
@@ -1141,7 +1147,11 @@ export class StringField extends FieldBase {
   multiline?: boolean;
   usage?: StringUsage;
 
-  constructor(name: string, displayName: string, public maxLength: number) {
+  constructor(
+    name: string,
+    displayName: string,
+    public maxLength: number,
+  ) {
     super(name, displayName);
   }
 
@@ -1366,14 +1376,6 @@ export class TxField extends FieldBase {
 
   generateYomFieldType(): yom.FieldType {
     return { type: "Tx" };
-  }
-}
-
-export class NuvaIdField extends FieldBase {
-  type = "NuvaId" as const;
-
-  generateYomFieldType(): yom.FieldType {
-    return { type: "NuvaId" as any };
   }
 }
 
@@ -1642,12 +1644,6 @@ export class TableBuilder {
 
   enum(name: string, enumName?: string) {
     const field = new EnumFieldBuilder(name, enumName ?? name);
-    this.addField(field);
-    return field;
-  }
-
-  nuvaId(name: string) {
-    const field = new NuvaIdFieldBuilder(name);
     this.addField(field);
     return field;
   }
@@ -2413,16 +2409,6 @@ class JsonFieldBuilder extends BaseFieldBuilder {
   finish(): Field {
     const field = new UuidField(this._name, this._displayName);
     this.writeBaseFields(field);
-    return field;
-  }
-}
-
-class NuvaIdFieldBuilder extends BaseFieldBuilder {
-  finish(): Field {
-    const field = new NuvaIdField(this._name, this._displayName);
-    // @ts-ignore
-    this.writeBaseFields(field);
-    // @ts-ignore
     return field;
   }
 }
