@@ -855,8 +855,7 @@ function imageCell(
             onClose: (s) =>
               s
                 .setScalar(`ui.open`, `false`)
-                .statements(cell.stopEditingAndFocus)
-                .delay(`10`),
+                .statements(cell.stopEditingAndFocus),
             group: group.name,
             tableName: opts.tableName,
             recordId: cell.recordId,
