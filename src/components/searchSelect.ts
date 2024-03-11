@@ -35,7 +35,6 @@ const styles = createStyles({
     iconButtonStyles.root(size, "plain", color),
     {
       marginLeft: "calc(var(--input-padding-y) / 2)",
-
       "&.hide": {
         visibility: "hidden",
       },
@@ -227,9 +226,8 @@ export function queryCombobox(opts: QueryComboboxOpts) {
                     .statements(updateComboboxWidth),
                 blur: (s) =>
                   s
-                    .if("not ui.clicking_on_list", (s) =>
-                      s.setScalar("ui.showing_list", "false"),
-                    )
+                    .if(`clicking_on_list`, (s) => s.return())
+                    .setScalar("ui.showing_list", "false")
                     .scalar(
                       `return_to`,
                       opts.initialInputText
@@ -383,7 +381,7 @@ export function queryCombobox(opts: QueryComboboxOpts) {
               on: {
                 click: (s) =>
                   s
-                    .setScalar(`ui.selected_index`, `record.iteration_index `)
+                    .setScalar(`ui.selected_index`, `record.iteration_index`)
                     .statements(doSelection),
               },
               children: "record.label",
