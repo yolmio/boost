@@ -235,11 +235,6 @@ export function createScriptDbFromDir(opts: ScriptDbFromDirOpts) {
             case "ForeignKey":
               t.fk(fieldName, field.type.table);
               break;
-            // @ts-ignore
-            case "NuvaId":
-              // @ts-ignore
-              t.nuvaId(fieldName);
-              break;
           }
         }
       });
