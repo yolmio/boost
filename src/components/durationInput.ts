@@ -19,7 +19,6 @@ export function durationInput(opts: DurationInputOpts) {
       input: {
         ...opts.slots?.input,
         props: {
-          inputMode: `'numeric'`,
           placeholder: "'hh:mm'",
           ...opts.slots?.input?.props,
         },
