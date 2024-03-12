@@ -104,6 +104,21 @@ export function inlineFieldDisplay(field: Field, expr: string) {
           expr = `case when ${expr} then ${trueStr} else ${falseStr} end`;
         }
       }
+      break;
+    }
+    case "String": {
+      if (field.usage) {
+        switch (field.usage.type) {
+          case "Email": {
+            return nodes.element("a", {
+              styles: styles.link,
+              props: { href: `'mailto:' || ${expr}` },
+              children: expr,
+            });
+          }
+        }
+      }
+      break;
     }
   }
   return expr;

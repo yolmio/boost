@@ -12,6 +12,7 @@ import {
 import { Color, ComponentOpts, Size } from "./types";
 import { circularProgress } from "./circularProgress";
 import * as yom from "../yom";
+import { memoize } from "../utils/memoize";
 
 export interface ButtonOpts
   extends SlottedComponentWithSlotNames<
@@ -32,6 +33,44 @@ export interface ButtonOpts
   endDecorator?: Node;
   children: Node;
 }
+
+export const buttonSizeStyles = memoize((size: Size) => {
+  switch (size) {
+    case "sm":
+      return {
+        "--circular-progress-size": "20px",
+        "--circular-progress-thickness": "2px",
+        "--icon-font-size": "1.25rem",
+        "--button-gap": "0.375rem",
+        minHeight: "var(--button-minHeight, 2rem)",
+        fontSize: cssVar("font-size-sm"),
+        paddingY: "2px",
+        paddingX: "0.75rem",
+      };
+    case "md":
+      return {
+        "--circular-progress-size": "24px",
+        "--circular-progress-thickness": "3px",
+        "--icon-font-size": "1.5rem", // control the SvgIcon font-size
+        "--button-gap": "0.5rem",
+        minHeight: "var(--button-minHeight, 2.5rem)", // use min-height instead of height to make the button resilient to its content
+        fontSize: cssVar("font-size-sm"),
+        paddingY: "0.25rem", // the padding-block act as a minimum spacing between content and root element
+        paddingX: "1rem",
+      };
+    case "lg":
+      return {
+        "--circular-progress-size": "28px",
+        "--circular-progress-thickness": "4px",
+        "--icon-font-size": "1.75rem",
+        "--button-gap": "0.75rem",
+        minHeight: "var(--button-min-height, 3rem)",
+        fontSize: cssVar("font-size-md"),
+        paddingY: "0.375rem",
+        paddingX: "1.5rem",
+      };
+  }
+});
 
 export const styles = createStyles({
   button: (
@@ -62,45 +101,8 @@ export const styles = createStyles({
       "&:hover": getVariantStyle(variant, color, "hover"),
       "&:active": getVariantStyle(variant, color, "active"),
       ...getVariantStyle(variant, color),
+      ...buttonSizeStyles(size),
     };
-    switch (size) {
-      case "sm":
-        Object.assign(styles, {
-          "--circular-progress-size": "20px",
-          "--circular-progress-thickness": "2px",
-          "--icon-font-size": "1.25rem",
-          "--button-gap": "0.375rem",
-          minHeight: "var(--button-minHeight, 2rem)",
-          fontSize: cssVar("font-size-sm"),
-          paddingY: "2px",
-          paddingX: "0.75rem",
-        });
-        break;
-      case "md":
-        Object.assign(styles, {
-          "--circular-progress-size": "24px",
-          "--circular-progress-thickness": "3px",
-          "--icon-font-size": "1.5rem", // control the SvgIcon font-size
-          "--button-gap": "0.5rem",
-          minHeight: "var(--button-minHeight, 2.5rem)", // use min-height instead of height to make the button resilient to its content
-          fontSize: cssVar("font-size-sm"),
-          paddingY: "0.25rem", // the padding-block act as a minimum spacing between content and root element
-          paddingX: "1rem",
-        });
-        break;
-      case "lg":
-        Object.assign(styles, {
-          "--circular-progress-size": "28px",
-          "--circular-progress-thickness": "4px",
-          "--icon-font-size": "1.75rem",
-          "--button-gap": "0.75rem",
-          minHeight: "var(--button-min-height, 3rem)",
-          fontSize: cssVar("font-size-md"),
-          paddingY: "0.375rem",
-          paddingX: "1.5rem",
-        });
-        break;
-    }
     if (fullWidth) {
       (styles as any).width = "100%";
     }

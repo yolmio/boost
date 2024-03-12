@@ -6,6 +6,7 @@ import {
   button,
   ButtonOpts,
   styles as buttonStyles,
+  buttonSizeStyles,
 } from "../components/button";
 import { iconButton } from "../components/iconButton";
 import { drawer } from "../components/drawer";
@@ -20,10 +21,12 @@ import { makeConditionalLink } from "./internals/authLink";
 import { globalSearchDialog } from "./internals/globalSearchDialog";
 import * as yom from "../yom";
 import { Node } from "../nodeTypes";
+import { Size } from "../components/types";
 
 export interface NavbarProps extends GlobalSearchOpts {
   variant?: "soft" | "solid";
   color?: ColorPaletteProp;
+  size?: Size;
   links: (
     | string
     | { label?: string; url: string; showIf?: yom.SqlExpression }
@@ -32,7 +35,12 @@ export interface NavbarProps extends GlobalSearchOpts {
 }
 
 const styles = createStyles({
-  root: (app, variant: "soft" | "solid", color: ColorPaletteProp) => {
+  root: (
+    app,
+    variant: "soft" | "solid",
+    size: Size,
+    color: ColorPaletteProp,
+  ) => {
     app.addGlobalStyle({
       "::view-transition-new(navbar)": {
         animation: "none",
@@ -46,7 +54,7 @@ const styles = createStyles({
       alignItems: "center",
       justifyContent: "center",
       px: 1,
-      py: 2,
+      py: size === "sm" ? 2 : 2,
       sm: { px: 2 },
       lg: { px: 3 },
       viewTransitionName: "navbar",
@@ -67,7 +75,7 @@ const styles = createStyles({
     display: "flex",
     gap: 1.5,
   },
-  searchButton: ({ theme }) => {
+  searchButton: ({ theme }, size: Size) => {
     return {
       appearance: "none",
       "--icon-margin": "initial", // reset the icon's margin.
@@ -79,20 +87,16 @@ const styles = createStyles({
       justifyContent: "center",
       position: "relative",
       fontFamily: cssVar(`font-family-body`),
-      fontWeight: cssVar(`font-weight-md`),
+      fontWeight: "lg",
       lineHeight: 1,
       "&:focus-visible": theme.focus.default,
       "&:hover": getVariantStyle("soft", "harmonize", "hover"),
       "&:active": getVariantStyle("soft", "harmonize", "active"),
       ...getVariantStyle("soft", "harmonize"),
-      "--icon-font-size": "1.25rem",
-      minHeight: "2rem",
-      fontSize: cssVar("font-size-sm"),
-      paddingY: "2px",
+      ...buttonSizeStyles(size),
+      fontSize: size === "sm" ? "sm" : "md",
       border: "1px solid",
       borderColor: "divider",
-      paddingLeft: "0.5rem",
-      paddingRight: "0.5rem",
       sm: {
         paddingRight: "0.75rem",
       },
@@ -144,15 +148,17 @@ const styles = createStyles({
       viewTransitionName: "navbar-link-active",
     };
   },
-  link: () => ({
-    ...buttonStyles.button("plain", "harmonize", "sm", false),
+  link: (_, size: Size) => ({
+    ...buttonStyles.button("plain", "harmonize", size, false),
     fontWeight: "lg",
+    fontSize: size === "sm" ? "sm" : "md",
   }),
 });
 
 export function navbarShell(opts: NavbarProps): (n: Node) => Node {
   const variant = opts.variant ?? "solid";
   const color = opts.color ?? "neutral";
+  const size = opts.size ?? "sm";
   const normalizedLabels = opts.links.map((link) => {
     function getLabelFromUrl(url: string) {
       return url.split(/-|\//).filter(Boolean).map(upcaseFirst).join(" ");
@@ -180,14 +186,14 @@ export function navbarShell(opts: NavbarProps): (n: Node) => Node {
           s.scalar("searching", "false"),
         ),
     children: nodes.element("nav", {
-      styles: styles.root(variant, color),
+      styles: styles.root(variant, size, color),
       children: [
         nodes.element("div", {
           styles: styles.menuIcon,
           children: iconButton({
             color: "harmonize",
             variant: "soft",
-            size: "sm",
+            size,
             ariaLabel: "'Open Menu'",
             children: materialIcon("Menu"),
             on: {
@@ -207,7 +213,7 @@ export function navbarShell(opts: NavbarProps): (n: Node) => Node {
                 iconButton({
                   color: "harmonize",
                   variant: "plain",
-                  size: "sm",
+                  size,
                   ariaLabel: "'Home'",
                   children: materialIcon("Home"),
                   href: "'/'",
@@ -225,7 +231,7 @@ export function navbarShell(opts: NavbarProps): (n: Node) => Node {
                   children: [
                     nodes.element("a", {
                       props: { href: stringLiteral(link.url) },
-                      styles: styles.link(),
+                      styles: styles.link(size),
                       children: stringLiteral(link.label),
                     }),
                     nodes.if(
@@ -245,11 +251,11 @@ export function navbarShell(opts: NavbarProps): (n: Node) => Node {
           styles: styles.navRight,
           children: [
             opts.primaryActionButton
-              ? button(opts.primaryActionButton)
+              ? button({ size, ...opts.primaryActionButton })
               : undefined,
             hasSearchDialog
               ? nodes.element("button", {
-                  styles: styles.searchButton(),
+                  styles: styles.searchButton(size),
                   children: [
                     nodes.element("span", {
                       styles: styles.searchButtonStartIcon,
@@ -273,7 +279,7 @@ export function navbarShell(opts: NavbarProps): (n: Node) => Node {
             iconButton({
               color: "harmonize",
               variant: "soft",
-              size: "sm",
+              size,
               ariaLabel: "'Open Settings'",
               children: materialIcon("Settings"),
               on: {
@@ -303,7 +309,7 @@ export function navbarShell(opts: NavbarProps): (n: Node) => Node {
                   children: materialIcon("Close"),
                   ariaLabel: "'Close Menu'",
                   variant: "plain",
-                  size: "sm",
+                  size,
                   on: { click: closeDrawer },
                 }),
               ],
