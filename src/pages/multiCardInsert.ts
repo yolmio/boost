@@ -166,7 +166,10 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
       }
     },
     initializeFormState: opts.initialCardRecord
-      ? (state) => state.addRecordToTable(opts.table, opts.initialCardRecord!)
+      ? (state, s) =>
+          s.statements(
+            state.addRecordToTable(opts.table, opts.initialCardRecord!),
+          )
       : undefined,
     children: (formState) =>
       nodes.element("div", {
