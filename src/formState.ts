@@ -1051,6 +1051,12 @@ export function defaultValidate(
     case "Uint":
     case "BigInt":
     case "BigUint": {
+      if (field.notNull) {
+        statements.if(
+          `${value} is null or trim(${value}) = ''`,
+          setError(`'Required'`),
+        );
+      }
       if (field.usage) {
         if (field.usage.type === "Duration") {
           return;
@@ -1105,12 +1111,6 @@ export function defaultValidate(
             max = "9223372036854775807";
             break;
         }
-      }
-      if (field.notNull) {
-        statements.if(
-          `${value} is null or trim(${value}) = ''`,
-          setError(`'Required'`),
-        );
       }
       statements.block((s) =>
         s
