@@ -10,3 +10,4 @@ export type {
 } from "./system";
 export type * as yom from "./yom";
 export type * as pages from "./pages/types";
+export { Style, StyleObject } from "./styleTypes";

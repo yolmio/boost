@@ -50,13 +50,13 @@ export function displayAddressText(
       typography({
         level: "body-md",
         styles: styles.addressLine,
-        children: `record.${ident(
+        children: `coalesce(record.${ident(
           group.fields.city!,
-        )} || ', ' || coalesce(record.${ident(
+        )} || ', ', '') || coalesce(record.${ident(
           group.fields.region!,
-        )} || ' ', '') || record.${ident(
+        )} || ' ', '') || coalesce(record.${ident(
           group.fields.country!,
-        )} || ' ' ||  record.${ident(group.fields.zip!)}`,
+        )} || ' ', '') ||  coalesce(record.${ident(group.fields.zip!)}, '')`,
       }),
     ],
   });

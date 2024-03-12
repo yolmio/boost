@@ -19,6 +19,7 @@ export function durationInput(opts: DurationInputOpts) {
       input: {
         ...opts.slots?.input,
         props: {
+          // don't use inputMode="numeric" because it doesn't allow ":" on iOS
           placeholder: "'hh:mm'",
           ...opts.slots?.input?.props,
         },
