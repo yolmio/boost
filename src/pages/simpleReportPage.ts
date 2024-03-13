@@ -20,6 +20,7 @@ import {
   StateStatements,
   StateStatementsOrFn,
 } from "../statements";
+import { components } from "..";
 
 export type SimpleTableReportOpts = {
   name: string;
@@ -79,6 +80,14 @@ export interface TableColumn {
   cell: (record: string) => Node;
   download?: (record: string) => string;
   href?: (record: string) => string;
+}
+
+export interface DownloadButtonReport extends ReportBase {
+  stateTable?: string;
+  query?: string;
+  /** Combined with count of records for display purposes like `(select count(*) from result) || ${COUNT_EXPR}` */
+  displayCount?: yom.SqlExpression;
+  toCsvQuery?: (stateTable: string) => yom.SqlQuery;
 }
 
 export interface TableComparisonReport extends ReportBase {
@@ -518,6 +527,52 @@ export class SimpleReportsPageBuilder {
               })
             : undefined,
           tableNode(opts.stateTable ?? `table_report_query`, opts.columns),
+        ]),
+      }),
+    );
+    this.#addReport(node, opts);
+  }
+
+  downloadButton(opts: DownloadButtonReport) {
+    const procedure = StateStatements.normalize(opts.procedure);
+    if (opts.query) {
+      procedure.pushSource(`options.query`);
+      procedure.table(`download_button_query`, opts.query);
+      procedure.popSource();
+    }
+    const stateTableName = opts.stateTable ?? `download_button_query`;
+    let node: Node = nodes.sourceMap(
+      `simpleReportPage.downloadButton(${opts.name})`,
+      nodes.state({
+        watch: opts.parameters?.map((p) => p.name),
+        procedure,
+        statusScalar: "status",
+        children: wrapWithLoadingErrorSwitch([
+          opts.displayCount
+            ? components.typography({
+                level: "title-md",
+                styles: { mb: 2 },
+                children: `(select count(*) from ${stateTableName}) || ${opts.displayCount}`,
+              })
+            : undefined,
+          button({
+            variant: "outlined",
+            color: "primary",
+            size: "md",
+            styles: styles.downloadButtonWraper,
+            startDecorator: materialIcon("Download"),
+            on: {
+              click: (s) =>
+                s
+                  .queryToCsv(
+                    opts.toCsvQuery?.(stateTableName) ??
+                      `select * from ${stateTableName}`,
+                    `csv`,
+                  )
+                  .download(`${stringLiteral(opts.name)} || '.csv'`, `csv`),
+            },
+            children: `'Download ' || ${stringLiteral(opts.name)}`,
+          }),
         ]),
       }),
     );
