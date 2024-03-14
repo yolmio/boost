@@ -1,5 +1,4 @@
 import { iconButton } from "../../components/iconButton";
-import { InsertDialogOpts } from "../../components/insertDialog";
 import { list, listItem, listItemButton } from "../../components/list";
 import { materialIcon } from "../../components/materialIcon";
 import { getUniqueUiId } from "../../components/utils";
@@ -23,6 +22,7 @@ import * as yom from "../../yom";
 import { FilterTermHelper } from "./filterPopover";
 import { lazyPerApp } from "../../utils/memoize";
 import { createBounceViewTransition } from "./toolbarPopover";
+import { EmbeddedInsertDialog } from "../../components/forms/dialogs";
 
 export interface ToolbarConfig {
   views: boolean;
@@ -33,7 +33,7 @@ export interface ToolbarConfig {
   export: boolean;
   quickSearch?: (quickSearch: yom.SqlExpression) => yom.SqlExpression;
   add?:
-    | { type: "dialog"; opts?: Partial<InsertDialogOpts> }
+    | { type: "dialog"; dialog?: EmbeddedInsertDialog }
     | { type: "href"; href: string };
 }
 
@@ -540,28 +540,28 @@ function addSupergridDatagridDts(
     }
   }
   const idToColumnsDisplayName = `${datagridName}_dg_col_id_to_columns_display_name`;
-  system.addRulesFunction({
+  system.rulesFunction({
     parameters: [{ name: "id", type: "SmallUint" }],
     rules: [["input.id", "output"], ...columnsDisplayName],
     name: idToColumnsDisplayName,
     returnType: "String",
   });
   const idToDefaultOp = `${datagridName}_dg_col_id_to_op`;
-  system.addRulesFunction({
+  system.rulesFunction({
     parameters: [{ name: "id", type: "SmallUint" }],
     rules: [["input.id", "output"], ...defaultOps],
     name: idToDefaultOp,
     returnType: { type: "Enum", enum: "dg_filter_op" },
   });
   const idToSortDisplayName = `${datagridName}_dg_col_id_to_sort_display_name`;
-  system.addRulesFunction({
+  system.rulesFunction({
     parameters: [{ name: "id", type: "SmallUint" }],
     rules: [["input.id", "output"], ...sortDisplayName],
     name: idToSortDisplayName,
     returnType: "String",
   });
   const idToFilterDisplayName = `${datagridName}_dg_col_id_to_filter_display_name`;
-  system.addRulesFunction({
+  system.rulesFunction({
     parameters: [{ name: "id", type: "SmallUint" }],
     rules: [["input.id", "output"], ...filterDisplayName],
     name: idToFilterDisplayName,

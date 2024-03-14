@@ -2,12 +2,11 @@ import { alert } from "../components/alert";
 import { circularProgress } from "../components/circularProgress";
 import { nodes } from "../nodeHelpers";
 import { Node } from "../nodeTypes";
-import { Table, system } from "../system";
+import { App, Table, system } from "../system";
 import { Style } from "../styleTypes";
 import { baseGridStyles, containerStyles, createStyles } from "../styleUtils";
 import { pluralize } from "../utils/inflectors";
 import { stringLiteral } from "../utils/sqlHelpers";
-import { updateFormPage } from "./updateForm";
 import { materialIcon } from "../components/materialIcon";
 import { BasicStatements } from "../statements";
 import * as yom from "../yom";
@@ -25,6 +24,8 @@ import * as addressesCard from "./recordGridChild/addressesCard";
 import * as attachmentsCard from "./recordGridChild/attachmentsCard";
 import * as notesListCard from "./recordGridChild/notesListCard";
 import * as twoColumnDisplayCard from "./recordGridChild/twoColumnDisplayCard";
+import * as forms from "./forms/index";
+import { getTableBaseUrl } from "../utils/url";
 
 export class RecordGridBuilder {
   table: Table;
@@ -37,9 +38,9 @@ export class RecordGridBuilder {
   #rootStyles?: Style;
   #children: Node[] = [];
 
-  constructor(table: string) {
+  constructor(table: string, private app: App) {
     const tableModel = system.db.tables[table];
-    this.pathBase = pluralize(table.split("_").join(" ")).split(" ").join("-");
+    this.pathBase = getTableBaseUrl(table);
     this.recordId = "ui.record_id";
     this.refreshKey = "ui.record_grid_refresh_key";
     this.triggerRefresh = new BasicStatements().setScalar(
@@ -64,17 +65,17 @@ export class RecordGridBuilder {
     return this;
   }
 
-  createUpdatePage() {
-    updateFormPage({
+  addUpdateFormPage(
+    opts: Omit<forms.UpdateAutoSingleColumnOpts, "table"> = {},
+  ) {
+    this.app.pages.forms.updateAutoSingleColumn({
       table: this.table.name,
-      afterTransactionCommit: (_, s) =>
-        s.navigate(`${stringLiteral(this.pathBase)} || '/' || ui.record_id`),
-      content: {
-        type: "AutoLabelOnLeft",
-        header: `Edit ` + this.table.displayName,
+      ...opts,
+      afterTransactionCommit: (formState, s) => {
+        opts.afterTransactionCommit?.(formState, s);
+        s.navigate(`${stringLiteral(this.pathBase)} || '/' || ui.record_id`);
       },
     });
-    return this;
   }
 
   superSimpleHeader(opts: superSimpleHeader.Opts) {
@@ -152,7 +153,9 @@ export class RecordGridBuilder {
     return this;
   }
 
-  createPage() {
+  // used externally, but we don't want to polute the public API
+
+  private createNode() {
     const tableLowercase = stringLiteral(this.table.displayName.toLowerCase());
     const content = nodes.state({
       procedure:
@@ -212,9 +215,13 @@ export class RecordGridBuilder {
         ),
       }),
     });
+    return nodes.sourceMap(`recordGridPage(${this.table.name})`, content);
+  }
+
+  private createPage() {
     return {
       path: this.#path ?? this.pathBase + `/{record_id:id}`,
-      content: nodes.sourceMap(`recordGridPage(${this.table.name})`, content),
+      content: this.createNode(),
     };
   }
 }
@@ -235,12 +242,3 @@ const styles = createStyles({
     };
   },
 });
-
-export function recordGridPage(
-  table: string,
-  fn: (builder: RecordGridBuilder) => unknown,
-) {
-  const builder = new RecordGridBuilder(table);
-  fn(builder);
-  system.currentApp!.pages.push(builder.createPage());
-}

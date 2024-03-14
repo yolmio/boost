@@ -66,28 +66,26 @@ export interface InsertGridSection {
   relation?: InsertRelationFormPart;
 }
 
-export interface LabelOnLeftPart {
+export interface SingleColumnPart {
   field: string;
   initialValue?: string;
   label?: string;
   onChange?: (formState: FormState, s: DomStatements) => DomStatements;
 }
 
-export interface LabelOnLeftInsertFormContent {
-  type: "LabelOnLeft";
+export interface SingleColumnOpts {
   header?: string;
-  parts: LabelOnLeftPart[];
+  parts: SingleColumnPart[];
 }
 
-export type AutoLabelOnLeftFieldOverride = Partial<
-  Omit<LabelOnLeftPart, "field">
+export type AutoSingleColumnFieldOverride = Partial<
+  Omit<SingleColumnPart, "field">
 >;
 
-export interface AutoLabelOnLeftInsertFormContent {
-  type: "AutoLabelOnLeft";
+export interface AutoSingleColumnOpts {
   header?: string;
   ignoreFields?: string[];
-  fieldOverrides?: Record<string, AutoLabelOnLeftFieldOverride>;
+  fieldOverrides?: Record<string, AutoSingleColumnFieldOverride>;
 }
 
 export interface TwoColumnSectionedSection {
@@ -98,16 +96,10 @@ export interface TwoColumnSectionedSection {
   relation?: InsertRelationFormPart;
 }
 
-export interface TwoColumnSectionedInsertFormContent {
-  type: "TwoColumnSectioned";
+export interface TwoColumnSectionedOpts {
   header?: string;
   sections: TwoColumnSectionedSection[];
 }
-
-export type InsertFormContent =
-  | LabelOnLeftInsertFormContent
-  | AutoLabelOnLeftInsertFormContent
-  | TwoColumnSectionedInsertFormContent;
 
 export interface InsertFormContentOpts {
   table: Table;
@@ -120,74 +112,52 @@ export interface InsertFormContentOpts {
       };
 }
 
-export function getFieldsAndRelationsFromInsertFormContent(
-  content: InsertFormContent,
-  table: Table,
+export function getFieldsAndRelationsFromTwoColumnSectioned(
+  content: TwoColumnSectionedOpts,
 ) {
   let fields: InsertFormField[] = [];
   const relations: InsertFormRelation[] = [];
-  switch (content.type) {
-    case "TwoColumnSectioned": {
-      for (const section of content.sections) {
-        if (section.relation) {
-          relations.push({
-            table: section.relation.table,
-            fields: section.relation.fields.map((f) =>
-              typeof f === "string" ? { field: f } : f,
-            ),
-          });
-        }
-        if (!section.parts) {
-          continue;
-        }
-        for (const p of section.parts) {
-          if (p.field) {
-            fields.push({
-              field: p.field,
-              initialValue: p.initialValue,
-            });
-          }
-        }
-      }
-      break;
+  for (const section of content.sections) {
+    if (section.relation) {
+      relations.push({
+        table: section.relation.table,
+        fields: section.relation.fields.map((f) =>
+          typeof f === "string" ? { field: f } : f,
+        ),
+      });
     }
-    case "LabelOnLeft":
-      fields = content.parts.map((p) => ({
-        field: p.field,
-        initialValue: p.initialValue,
-      }));
-      break;
-    case "AutoLabelOnLeft":
-      fields = Object.keys(table.fields)
-        .filter((f) => !content.ignoreFields?.includes(f))
-        .map((f) => ({
-          field: f,
-          ...content.fieldOverrides?.[f],
-        }));
-      break;
+    if (!section.parts) {
+      continue;
+    }
+    for (const p of section.parts) {
+      if (p.field) {
+        fields.push({
+          field: p.field,
+          initialValue: p.initialValue,
+        });
+      }
+    }
   }
   return { fields, relations };
 }
 
-export function insertFormContent(
-  content: InsertFormContent,
-  opts: InsertFormContentOpts,
-): Node {
-  switch (content.type) {
-    case "LabelOnLeft":
-      return labelOnLeftInsertFormContent(content, opts);
-    case "AutoLabelOnLeft": {
-      const parts = Object.keys(opts.table.fields)
-        .filter((f) => !content.ignoreFields?.includes(f))
-        .map((f) => ({ field: f, ...content.fieldOverrides?.[f] }));
-      return labelOnLeftInsertFormContent(
-        { type: "LabelOnLeft", parts, header: content.header },
-        opts,
-      );
-    }
-    case "TwoColumnSectioned":
-      return twoColumnSectionedInsertFormContent(content, opts);
-  }
+export function getFieldsFromAutoSingleColumn(
+  opts: AutoSingleColumnOpts,
+  table: Table,
+) {
+  return Object.keys(table.fields)
+    .filter((f) => !opts.ignoreFields?.includes(f))
+    .map((f) => ({
+      field: f,
+      ...opts.fieldOverrides?.[f],
+    }));
+}
+
+export function getFieldsFromSingleColumn(opts: SingleColumnOpts) {
+  return opts.parts.map((p) => ({
+    field: p.field,
+    initialValue: p.initialValue,
+  }));
 }
 
 function gridPart(
@@ -255,8 +225,8 @@ function gridPart(
   });
 }
 
-function twoColumnSectionedInsertFormContent(
-  content: TwoColumnSectionedInsertFormContent,
+export function twoColumnSectionedContent(
+  content: TwoColumnSectionedOpts,
   { table, formState, cancel }: InsertFormContentOpts,
 ): Node {
   const header = stringLiteral(
@@ -400,8 +370,18 @@ function twoColumnSectionedInsertFormContent(
   });
 }
 
-export function labelOnLeftInsertFormContent(
-  content: LabelOnLeftInsertFormContent,
+export function autoSingleColumnContent(
+  opts: AutoSingleColumnOpts,
+  contentOpts: InsertFormContentOpts,
+) {
+  const parts = Object.keys(contentOpts.table.fields)
+    .filter((f) => !opts.ignoreFields?.includes(f))
+    .map((f) => ({ field: f, ...opts.fieldOverrides?.[f] }));
+  return singleColumnContent({ parts, header: opts.header }, contentOpts);
+}
+
+export function singleColumnContent(
+  content: SingleColumnOpts,
   { table, formState, cancel }: InsertFormContentOpts,
 ) {
   const fields: Node[] = [];

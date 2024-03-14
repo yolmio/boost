@@ -342,9 +342,7 @@ export class FormStateTableCursor {
 
   get delete() {
     return new BasicStatements().modify(
-      `delete from ui.${this.#tableName} where ${FORM_STATE_TABLE_ID} = ${
-        this.idField
-      }`,
+      `delete from ui.${this.#tableName} where ${FORM_STATE_TABLE_ID} = ${this.idField}`,
     );
   }
 
@@ -358,11 +356,7 @@ export class FormStateTableCursor {
 
   setRecordError(error: yom.SqlExpression) {
     return new BasicStatements().modify(
-      `update ui.${
-        this.#tableName
-      } set ${FORM_STATE_TABLE_ERR} = ${error} where ${FORM_STATE_TABLE_ID} = ${
-        this.idField
-      }`,
+      `update ui.${this.#tableName} set ${FORM_STATE_TABLE_ERR} = ${error} where ${FORM_STATE_TABLE_ID} = ${this.idField}`,
     );
   }
 }
@@ -396,9 +390,7 @@ export class FormStateFieldHelper {
 
   setError = (error: yom.SqlExpression) => {
     return new BasicStatements().modify(
-      `update ${this.#recordName} set ${
-        this.#field.name
-      }${ERROR_SUFFIX} = ${error}`,
+      `update ${this.#recordName} set ${this.#field.name}${ERROR_SUFFIX} = ${error}`,
     );
   };
 
@@ -408,9 +400,7 @@ export class FormStateFieldHelper {
 
   setTouched = (touched: yom.SqlExpression) => {
     return new BasicStatements().modify(
-      `update ${this.#recordName} set ${
-        this.#field.name
-      }${TOUCHED_SUFFIX} = ${touched}`,
+      `update ${this.#recordName} set ${this.#field.name}${TOUCHED_SUFFIX} = ${touched}`,
     );
   };
 }
@@ -670,9 +660,7 @@ export class MultiInsertFormState extends FormState {
               ...Object.values(this.#sharedStaticValues ?? {}),
             ].join(",");
             s.modify(
-              `insert into db.${
-                this.#table.name
-              } (${insertFields}) values (${insertValues})`,
+              `insert into db.${this.#table.name} (${insertFields}) values (${insertValues})`,
             );
           });
           this.#formStateExtensions?.beforeTransactionCommit?.(this, s);
@@ -1336,9 +1324,7 @@ export class UpdateFormState extends FormState {
             }
           }
           s.modify(
-            `update db.${
-              this.#table.name
-            } set ${setValues} where id = ${recordId}`,
+            `update db.${this.#table.name} set ${setValues} where id = ${recordId}`,
           );
           this.#formStateExtensions?.beforeTransactionCommit?.(this, s);
           s.commitTransaction();

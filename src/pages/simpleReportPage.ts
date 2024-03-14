@@ -74,12 +74,24 @@ export interface TableReport extends ReportBase {
   download?: boolean;
 }
 
-export interface TableColumn {
+export type TableColumn = string | TableColumnObject;
+
+export interface TableColumnObject {
   header: string;
   downloadHeader?: string;
   cell: (record: string) => Node;
   download?: (record: string) => string;
   href?: (record: string) => string;
+}
+
+function normalizeColumn(column: TableColumn): TableColumnObject {
+  if (typeof column === "string") {
+    return {
+      header: upcaseFirst(normalizeCase(column).join(" ")),
+      cell: (record) => `${record}.${column}`,
+    };
+  }
+  return column;
 }
 
 export interface DownloadButtonReport extends ReportBase {
@@ -180,7 +192,7 @@ function getParameterControl(parameter: ReportParameter) {
   }
 }
 
-function tableNode(stateTable: string, columns: TableColumn[]) {
+function tableNode(stateTable: string, columns: TableColumnObject[]) {
   return nodes.element("table", {
     styles: styles.table,
     children: [
@@ -249,7 +261,7 @@ function tableDownloadStatements(
   reportName: string,
 ) {
   let selectColumns = "";
-  for (const col of columns) {
+  for (const col of columns.map(normalizeColumn)) {
     const header = col.downloadHeader ?? col.header;
     if (col.download) {
       if (selectColumns) {
@@ -526,7 +538,10 @@ export class SimpleReportsPageBuilder {
                 children: `'Download table'`,
               })
             : undefined,
-          tableNode(opts.stateTable ?? `table_report_query`, opts.columns),
+          tableNode(
+            opts.stateTable ?? `table_report_query`,
+            opts.columns.map(normalizeColumn),
+          ),
         ]),
       }),
     );
@@ -665,7 +680,10 @@ export class SimpleReportsPageBuilder {
                 styles: { display: "flex", flexDirection: "column", gap: 2 },
                 children: [
                   leftHeader,
-                  tableNode(leftStateTable, opts.left.columns),
+                  tableNode(
+                    leftStateTable,
+                    opts.left.columns.map(normalizeColumn),
+                  ),
                 ],
               }),
               nodes.element("div", {
@@ -674,7 +692,7 @@ export class SimpleReportsPageBuilder {
                   rightHeader,
                   tableNode(
                     opts.right.stateTable ?? `right_table_comparison_query`,
-                    opts.right.columns,
+                    opts.right.columns.map(normalizeColumn),
                   ),
                 ],
               }),
@@ -746,7 +764,9 @@ export class SimpleReportsPageBuilder {
     });
   }
 
-  finish() {
+  // used externally, but we don't want to polute the public API
+
+  private createNode() {
     const sections: Node[] = [];
     const routes: RouteNode[] = [];
     for (const section of this.#sections) {
@@ -793,7 +813,7 @@ export class SimpleReportsPageBuilder {
         );
       }
     }
-    const content = nodes.element("div", {
+    return nodes.element("div", {
       styles: styles.root,
       children: [
         nodes.element("div", {
@@ -821,9 +841,12 @@ export class SimpleReportsPageBuilder {
         }),
       ],
     });
-    system.currentApp!.pages.push({
+  }
+
+  private createPage() {
+    return {
       path: this.#basePath,
-      content,
-    });
+      content: this.createNode(),
+    };
   }
 }

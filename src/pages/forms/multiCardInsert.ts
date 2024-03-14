@@ -4,29 +4,29 @@ import {
   FormStateTableCursor,
   InsertFormField,
   withMultiInsertFormState,
-} from "../formState";
-import { nodes } from "../nodeHelpers";
-import { Node } from "../nodeTypes";
-import { system } from "../system";
-import { downcaseFirst, pluralize } from "../utils/inflectors";
-import { stringLiteral } from "../utils/sqlHelpers";
-import { button } from "../components/button";
-import { card } from "../components/card";
-import { checkbox } from "../components/checkbox";
-import { iconButton } from "../components/iconButton";
-import { materialIcon } from "../components/materialIcon";
-import { typography } from "../components/typography";
-import { fieldFormControl } from "../components/internal/fieldFormControl";
-import { createStyles } from "../styleUtils";
-import { containerStyles } from "../styleUtils";
-import { flexGrowStyles } from "../styleUtils";
-import { alert } from "../components/alert";
-import { formHelperText } from "../components/formHelperText";
-import { formControl } from "../components/formControl";
-import { getTableBaseUrl } from "../utils/url";
-import { getUniqueUiId } from "../components/utils";
-import { labelOnLeftFormField } from "../components/internal/labelOnLeftFormField";
-import { DomStatementsOrFn, StateStatementsOrFn } from "../statements";
+} from "../../formState";
+import { nodes } from "../../nodeHelpers";
+import { Node } from "../../nodeTypes";
+import { system } from "../../system";
+import { downcaseFirst, pluralize } from "../../utils/inflectors";
+import { stringLiteral } from "../../utils/sqlHelpers";
+import { button } from "../../components/button";
+import { card } from "../../components/card";
+import { checkbox } from "../../components/checkbox";
+import { iconButton } from "../../components/iconButton";
+import { materialIcon } from "../../components/materialIcon";
+import { typography } from "../../components/typography";
+import { fieldFormControl } from "../../components/internal/fieldFormControl";
+import { createStyles } from "../../styleUtils";
+import { containerStyles } from "../../styleUtils";
+import { flexGrowStyles } from "../../styleUtils";
+import { alert } from "../../components/alert";
+import { formHelperText } from "../../components/formHelperText";
+import { formControl } from "../../components/formControl";
+import { getTableBaseUrl } from "../../utils/url";
+import { getUniqueUiId } from "../../components/utils";
+import { labelOnLeftFormField } from "../../components/internal/labelOnLeftFormField";
+import { DomStatementsOrFn, StateStatementsOrFn } from "../../statements";
 
 export interface CardFormField extends InsertFormField {
   emptyComboboxQuery?: (
@@ -143,7 +143,9 @@ const styles = createStyles({
   },
 });
 
-export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
+export function createMultiCardInsertPageNode(
+  opts: Readonly<MultiCardInsertPageOpts>,
+) {
   const table = system.db.tables[opts.table];
   const formStateFields = opts.cardFields.slice();
   if (opts.cardFooterFields) {
@@ -345,8 +347,5 @@ export function multiCardInsertPage(opts: Readonly<MultiCardInsertPageOpts>) {
       }),
     });
   }
-  system.currentApp!.pages.push({
-    path: opts.path ?? "/" + getTableBaseUrl(table.name) + "/add",
-    content,
-  });
+  return content;
 }

@@ -1,4 +1,11 @@
-import { system, colors, colorUtils, components, nodes } from "@yolm/boost";
+import {
+  system,
+  colors,
+  colorUtils,
+  components,
+  nodes,
+  types,
+} from "@yolm/boost";
 
 const { db } = system;
 
@@ -11,47 +18,47 @@ system.vcpus = 4;
 // DATABASE
 //
 
-db.addTable("user", (table) => {
-  table.catalog.addRequiredUserFields();
+db.table("user", (table) => {
+  table.catalog.requiredUserFields();
   table.bool("disabled").notNull().default("false");
   table.bool("is_sys_admin").notNull().default("false");
   table.bool("is_admin").notNull().default("false");
   table.fk("employee");
 });
 
-db.addTable("employee", (table) => {
+db.table("employee", (table) => {
   table.string("first_name", 50).notNull();
   table.string("last_name", 50).notNull();
   table.email("email").notNull();
 });
 
-system.addEnum({
+system.enum_({
   name: "contact_type",
   values: ["prospect", "client", "lead", "other"],
 });
 
-db.addTable("contact", (table) => {
+db.table("contact", (table) => {
   table.enum("type", "contact_type").notNull();
   table.string("first_name", 50).notNull();
   table.string("last_name", 50).notNull();
   table.email("email").maxLength(500);
   table.phoneNumber("phone_number");
   table.date("date_of_birth");
-  table.catalog.addAddressFields();
+  table.catalog.addressFields();
   table.bool("mailing_list").notNull().default("false");
 
   table.linkable();
 });
 
-db.catalog.addNotesTable("contact");
-db.catalog.addAttachmentsTable("contact");
+db.catalog.table.notes("contact");
+db.catalog.table.attachments("contact");
 
-system.addEnum({
+system.enum_({
   name: "matter_type",
   values: ["civil", "corporate", "criminal", "family", "other"],
 });
 
-system.addEnum({
+system.enum_({
   name: "client_position",
   values: [
     "plaintiff",
@@ -64,7 +71,7 @@ system.addEnum({
   ],
 });
 
-db.addTable("matter", (table) => {
+db.table("matter", (table) => {
   table.enum("type", "matter_type").notNull();
   table.string("name", 100).notNull();
   table.fk("contact").notNull();
@@ -76,9 +83,9 @@ db.addTable("matter", (table) => {
   table.linkable();
 });
 
-db.catalog.addAttachmentsTable("matter");
+db.catalog.table.attachments("matter");
 
-db.addTable("time_entry", (table) => {
+db.table("time_entry", (table) => {
   table.fk("matter").notNull().onDelete("Restrict");
   table.fk("employee").notNull().onDelete("Restrict");
   table.date("date").notNull().indexed();
@@ -87,7 +94,7 @@ db.addTable("time_entry", (table) => {
   table.string("note", 500).multiline();
 });
 
-db.addTable("payment", (table) => {
+db.table("payment", (table) => {
   table.fk("contact").notNull();
   table.money("cost", { precision: 10, scale: 2 }).notNull();
   table.minutesDuration("minutes", "Uint").notNull();
@@ -95,7 +102,7 @@ db.addTable("payment", (table) => {
   table.string("invoice_id", 50).notNull();
 });
 
-db.addScalarFunction({
+db.scalarFunction({
   name: "remaining_minutes",
   parameters: [
     {
@@ -112,19 +119,14 @@ db.addScalarFunction({
     ),
 });
 
-db.catalog.addDatagridViewTables([
-  "contact",
-  "matter",
-  "time_entry",
-  "payment",
-]);
+db.catalog.tables.datagridView(["contact", "matter", "time_entry", "payment"]);
 
 //
 // UI
 //
 
-const app = system.addApp("legal", "Legal");
-app.executionConfig = { canDownload: true, preferDownload: false };
+const app = system.apps.add("legal", "Legal");
+app.executionConfig = { canDownload: true };
 
 // generated the woff files with:
 // https://gwfh.mranftl.com/fonts
@@ -201,7 +203,7 @@ app.setTheme({
 
 const isSysAdmin = `(select is_sys_admin from db.user from where id = current_user())`;
 
-app.useNavbarShell({
+app.shells.navbar({
   color: "primary",
   variant: "solid",
   links: [
@@ -261,7 +263,7 @@ where close_date is null
 order by date
 limit 10`;
 
-app.addDashboardGridPage((page) =>
+app.pages.dashboardGrid((page) =>
   page
     .header({
       header: `'Legal App Demo'`,
@@ -365,18 +367,21 @@ app.addDashboardGridPage((page) =>
     }),
 );
 
-const thirdStyles = {
+const thirdStyles: types.StyleObject = {
   gridColumnSpan: 12,
   md: { gridColumnSpan: 6 },
   lg: { gridColumnSpan: 4 },
 };
-const halfStyles = { gridColumnSpan: 12, md: { gridColumnSpan: 6 } };
-const boolFieldStyles = {
+const halfStyles: types.StyleObject = {
+  gridColumnSpan: 12,
+  md: { gridColumnSpan: 6 },
+};
+const boolFieldStyles: types.StyleObject = {
   gridColumnSpan: 6,
   sm: { gridColumnSpan: 3 },
 };
 
-const contactFormSections = [
+const contactFormSections: types.form.insert.TwoColumnSectionedSection[] = [
   {
     header: "General Information",
     parts: [
@@ -408,26 +413,20 @@ const contactFormSections = [
   },
 ];
 
-app.addInsertFormPage({
+app.pages.forms.insertTwoColumnSectioned({
   table: "contact",
-  content: {
-    type: "TwoColumnSectioned",
-    sections: contactFormSections,
-  },
+  sections: contactFormSections,
   afterTransactionCommit: (_, s) =>
     s.navigate(`'/contacts/' || last_record_id(db.contact)`),
 });
 
-app.addUpdateFormPage({
+app.pages.forms.updateTwoColumnSectioned({
   table: "contact",
-  content: {
-    type: "TwoColumnSectioned",
-    sections: contactFormSections,
-  },
+  sections: contactFormSections,
   afterTransactionCommit: (_, s) => s.navigate(`'/contacts/' || ui.record_id`),
 });
 
-const contactDatagridPage = app.createDatagridPageNode("contact", (page) => {
+app.pages.datagrid("contact", (page) => {
   page
     .selectable()
     .viewButton()
@@ -442,10 +441,7 @@ const contactDatagridPage = app.createDatagridPageNode("contact", (page) => {
     });
 });
 
-app.pages.push({ path: "/contacts", content: contactDatagridPage });
-app.pages.push({ path: "/contactsssss", content: contactDatagridPage });
-
-const remainingHoursStyles = {
+const remainingHoursStyles: types.StyleObject = {
   color: "text-secondary",
   my: 0,
   "& .positive": { color: "text-primary", fontWeight: "lg" },
@@ -471,13 +467,13 @@ function remainingHoursDisplay(label: string, value: string) {
   });
 }
 
-const linkStyle = {
+const linkStyle: types.StyleObject = {
   color: "primary-500",
   textDecoration: "none",
   "&:hover": { textDecoration: "underline" },
 };
 
-app.addRecordGridPage("contact", (page) =>
+app.pages.recordGrid("contact", (page) =>
   page
     .namedPageHeader({
       chips: ["mailing_list"],
@@ -587,7 +583,7 @@ app.addRecordGridPage("contact", (page) =>
     }),
 );
 
-app.addSimpleDatagridPage("employee", (page) => {
+app.pages.simpleDatagrid("employee", (page) => {
   page
     .toolbar((t) =>
       t.insertDialog({
@@ -632,7 +628,7 @@ app.addSimpleDatagridPage("employee", (page) => {
     });
 });
 
-app.addSimpleDatagridPage("user", (page) => {
+app.pages.simpleDatagrid("user", (page) => {
   page
     .toolbar((t) =>
       t.insertDialog({
@@ -692,7 +688,7 @@ app.addSimpleDatagridPage("user", (page) => {
     });
 });
 
-app.addRecordGridPage("matter", (page) =>
+app.pages.recordGrid("matter", (page) =>
   page
     .namedPageHeader({
       subHeader: "fn.display_matter_type(type)",
@@ -746,7 +742,7 @@ app.addRecordGridPage("matter", (page) =>
     }),
 );
 
-app.addDatagridPage("matter", (page) => {
+app.pages.datagrid("matter", (page) => {
   page
     .selectable()
     .viewButton()
@@ -760,11 +756,11 @@ app.addDatagridPage("matter", (page) => {
     );
 });
 
-app.addDatagridPage("time_entry", (page) => {
+app.pages.datagrid("time_entry", (page) => {
   page.selectable().toolbar((t) => t.insertPage().export().delete());
 });
 
-app.addMultiCardInsert({
+app.pages.forms.multiCardInsert({
   table: "time_entry",
   sharedSection: {
     header: `'Choose an employee and date'`,
@@ -850,7 +846,7 @@ app.addMultiCardInsert({
       .setScalar(`ui.added_entries`, `(select count(*) from ui.time_entry)`),
 });
 
-app.addSimpleReportsPage((page) => {
+app.pages.simpleReports((page) => {
   page.section("Employees");
 
   const lastMonthParams = page.defineParams(
@@ -1054,8 +1050,6 @@ limit 10`;
       },
     ],
   });
-
-  page.finish();
 });
 
-app.addDbManagementPage({ allow: isSysAdmin });
+system.apps.admin();

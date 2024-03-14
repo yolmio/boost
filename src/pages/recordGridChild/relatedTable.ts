@@ -4,13 +4,15 @@ import { createStyles } from "../../styleUtils";
 import { ident, stringLiteral } from "../../utils/sqlHelpers";
 import { inlineFieldDisplay } from "../../components/internal/fieldInlineDisplay";
 import { deleteRecordDialog } from "../../components/deleteRecordDialog";
-import { updateDialog } from "../../components/updateDialog";
 import { iconButton } from "../../components/iconButton";
 import { materialIcon } from "../../components/materialIcon";
 import { button } from "../../components/button";
-import { insertDialog } from "../../components/insertDialog";
-import { AutoLabelOnLeftInsertFormContent } from "../../components/internal/insertFormShared";
-import { deepmerge } from "../../utils/deepmerge";
+import {
+  resolveEmbeddedInsertDialog,
+  resolveEmbeddedUpdateDialog,
+  EmbeddedUpdateDialog,
+  EmbeddedInsertDialog,
+} from "../../components/forms/dialogs/index";
 import { system } from "../../system";
 import { RecordGridBuilder } from "../recordGrid";
 
@@ -25,7 +27,8 @@ export interface Opts {
       }
   )[];
   addButtonText?: string;
-  insertDialog?: Omit<AutoLabelOnLeftInsertFormContent, "type">;
+  insertDialog?: EmbeddedInsertDialog;
+  updateDialog?: EmbeddedUpdateDialog;
 }
 
 const styles = createStyles({
@@ -173,18 +176,18 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                               },
                             }),
                           }),
-                          updateDialog({
-                            content: {
-                              type: "AutoLabelOnLeft",
+                          resolveEmbeddedUpdateDialog(
+                            {
                               ignoreFields: [foreignKeyField.name],
+                              onClose: (s) => s.setScalar(`editing`, `false`),
+                              open: `editing`,
+                              table: opts.table,
+                              recordId: `record.id`,
+                              afterTransactionCommit: (_, s) =>
+                                s.statements(ctx.triggerRefresh),
                             },
-                            onClose: (s) => s.setScalar(`editing`, `false`),
-                            open: `editing`,
-                            table: opts.table,
-                            recordId: `record.id`,
-                            afterTransactionCommit: (_, s) =>
-                              s.statements(ctx.triggerRefresh),
-                          }),
+                            opts.updateDialog,
+                          ),
                           nodes.element("td", {
                             styles: styles.cell,
                             children: iconButton({
@@ -227,21 +230,17 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                   on: { click: (s) => s.setScalar(`adding`, `true`) },
                 }),
               }),
-              insertDialog({
-                content: deepmerge(
-                  {
-                    type: "AutoLabelOnLeft",
-                    ignoreFields: [foreignKeyField.name],
-                  },
-                  opts.insertDialog,
-                ),
-                withValues: { [foreignKeyField.name]: ctx.recordId },
-                onClose: (s) => s.setScalar(`adding`, `false`),
-                open: `adding`,
-                table: opts.table,
-                afterTransactionCommit: (_, s) =>
-                  s.statements(ctx.triggerRefresh),
-              }),
+              resolveEmbeddedInsertDialog(
+                {
+                  withValues: { [foreignKeyField.name]: ctx.recordId },
+                  onClose: (s) => s.setScalar(`adding`, `false`),
+                  open: `adding`,
+                  table: opts.table,
+                  afterTransactionCommit: (_, s) =>
+                    s.statements(ctx.triggerRefresh),
+                },
+                opts.insertDialog,
+              ),
             ],
           }),
         ],

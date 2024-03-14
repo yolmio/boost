@@ -326,7 +326,7 @@ export function tableSearchDialog(opts: TableSearchDialogOpts) {
   const displayValues = opts.displayValues?.map((value) =>
     prepareDisplayValue(tableModel, value),
   );
-  system.currentApp!.deviceDb.addTable(
+  system.currentApp!.deviceDb.table(
     `recent_${opts.table}_search`,
     (table) => {
       table.bigUint("recent_search_id").notNull();
@@ -842,7 +842,7 @@ export function multiTableSearchDialog(opts: MultiTableSearchDialogOpts) {
       ),
     };
   });
-  system.currentApp!.deviceDb.addTable("recent_multi_table_search", (table) => {
+  system.currentApp!.deviceDb.table("recent_multi_table_search", (table) => {
     table.bigUint("recent_search_id").notNull();
     table.string("recent_search_table", 200).notNull();
     table.string("recent_search_label", 500).notNull();

@@ -1,4 +1,3 @@
-import { InsertDialogOpts } from "../components/insertDialog";
 import { HelperFieldType, Table, system, fieldTypeFromHelper } from "../system";
 import { pluralize, upcaseFirst } from "../utils/inflectors";
 import { stringLiteral } from "../utils/sqlHelpers";
@@ -32,6 +31,7 @@ import { Node } from "../nodeTypes";
 import { nodes } from "../nodeHelpers";
 import { materialIcon } from "../components";
 import { styles as sharedStyles } from "./datagridInternals/styles";
+import { EmbeddedInsertDialog } from "../components/forms/dialogs/index";
 
 type FieldConfigs = Record<string, FieldConfig>;
 
@@ -53,7 +53,7 @@ export class DatagridToolbarBuilder {
   #delete = false;
   #export = false;
   #add?:
-    | { type: "dialog"; opts?: Partial<InsertDialogOpts> }
+    | { type: "dialog"; dialog?: EmbeddedInsertDialog }
     | { type: "href"; href?: string };
 
   constructor(private table: Table) {}
@@ -63,8 +63,8 @@ export class DatagridToolbarBuilder {
     return this;
   }
 
-  insertDialog(opts?: Partial<InsertDialogOpts>) {
-    this.#add = { type: "dialog", opts };
+  insertDialog(dialog?: EmbeddedInsertDialog) {
+    this.#add = { type: "dialog", dialog };
     return this;
   }
 
@@ -90,7 +90,7 @@ export class DatagridToolbarBuilder {
       add:
         this.#add?.type === "href"
           ? { type: "href", href: this.#add.href ?? addHref }
-          : { type: "dialog", opts: this.#add?.opts },
+          : { type: "dialog", dialog: this.#add?.dialog },
     };
   }
 }
@@ -356,7 +356,9 @@ export class SimpleDatagridPageBuilder {
     return columns;
   }
 
-  _finish() {
+  // used externally, but we don't want to polute the public API
+
+  private createNode() {
     const extraState = new StateStatements();
     if (this.#selectable) {
       extraState.scalar(`selected_all`, `false`);
@@ -367,7 +369,7 @@ export class SimpleDatagridPageBuilder {
     extraState.statements(this.#extraState);
     const path = this.#path ?? this.#table.baseUrl;
     const addHref = path.endsWith("/") ? path + "add" : path + "/add";
-    const content = nodes.sourceMap(
+    return nodes.sourceMap(
       `simpleDatagridPage(${this.#table.name})`,
       styledSimpleDatagrid({
         columns: this.#getColumns(),
@@ -380,18 +382,12 @@ export class SimpleDatagridPageBuilder {
         rowHeight: this.#rowHeight,
       }),
     );
-    system.currentApp!.pages.push({
-      path,
-      content,
-    });
   }
-}
 
-export function simpleDatagridPage(
-  table: string,
-  f: (b: SimpleDatagridPageBuilder) => unknown,
-) {
-  const builder = new SimpleDatagridPageBuilder(table);
-  f(builder);
-  builder._finish();
+  private createPage() {
+    return {
+      path: this.#path ?? this.#table.baseUrl,
+      content: this.createNode(),
+    };
+  }
 }

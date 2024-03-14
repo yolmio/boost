@@ -18,27 +18,9 @@ import {
 import { ident, stringLiteral } from "./utils/sqlHelpers";
 import { Style, StyleObject } from "./styleTypes";
 import { WebAppManifest } from "./pwaManifest";
-import { navbarShell, NavbarProps } from "./shells/navbar";
+import { Shells } from "./shells/index";
 import { Node, RouteNode, RoutesNode } from "./nodeTypes";
-import { dashboardGridPage, DashboardGridBuilder } from "./pages/dashboardGrid";
-import { recordGridPage, RecordGridBuilder } from "./pages/recordGrid";
-import { dbManagementPage, DbManagmentPageOpts } from "./pages/dbManagement";
-import { insertFormPage, InsertFormPageOpts } from "./pages/insertForm";
-import { SimpleReportsPageBuilder } from "./pages/simpleReportPage";
-import {
-  simpleDatagridPage,
-  SimpleDatagridPageBuilder,
-} from "./pages/simpleDatagrid";
-import {
-  createDatagridPageNode,
-  datagridPage,
-  DatagridPageBuilder,
-} from "./pages/datagrid";
-import { updateFormPage, UpdateFormPage } from "./pages/updateForm";
-import {
-  multiCardInsertPage,
-  MultiCardInsertPageOpts,
-} from "./pages/multiCardInsert";
+import { Pages } from "./pages/index";
 import { ComponentOpts } from "./components/types";
 import { KeyFrames, NodeTransformer } from "./nodeTransform";
 import { SequentialIDGenerator } from "./utils/SequentialIdGenerator";
@@ -47,7 +29,6 @@ import { default404Page } from "./pages/default404";
 import { snackbar, SnackbarOpts } from "./components";
 import { nodes } from "./nodeHelpers";
 import { createLogin, LoginOptions } from "./login";
-import { addViewTables } from "./pages/datagridInternals/datagridBase";
 import {
   addAutoImportScript,
   createScriptDbFromDir,
@@ -55,18 +36,18 @@ import {
   ScriptDbFromDirOpts,
 } from "./migrate";
 import * as fs from "fs";
-import { AdminAppOpts, addAdminApp } from "./apps/admin";
+import { Apps } from "./apps/index";
+import { DbCatalog } from "./catalog/db";
+import { TableCatalog } from "./catalog/table";
 
 /**
- * The app singleton.
+ * The system singleton.
  *
- * This is where everything about the app is configured, the database, the ui, the api, everything.
+ * This is where everything about the system is configured, the database, the ui for apps, the api, everything.
  */
 export class System {
   /**
-   * The name of the application it will show up at: yolm.app/{YOUR_ACCOUNT_NAME}/{APP_NAME}
-   *
-   * It needs to be unique within an account
+   * The name of the system
    */
   name = "please-rename";
   region?: yom.Region;
@@ -99,7 +80,7 @@ export class System {
   memoryGb: yom.MemoryGb = 1;
   fileSizeGb: number = 10;
   db: Db = new Db();
-  apps: Record<string, App> = {};
+  apps = new Apps(this);
   api: Api = new Api();
   enums: Record<string, Enum> = {};
   scalarFunctions: Record<string, ScalarFunction> = {};
@@ -107,26 +88,23 @@ export class System {
   test = new Test();
   scripts: yom.Script[] = [];
   scriptDbs: Record<string, ScriptDb> = {};
-  currentAppName?: string;
 
   get currentApp() {
-    return this.currentAppName ? this.apps[this.currentAppName] : undefined;
+    return this.apps.currentApp;
   }
 
-  addApp(name: string, displayName: string): App {
-    this.apps[name] = new App(name, displayName);
-    this.currentAppName = name;
-    return this.apps[name];
+  get currentAppName() {
+    return this.apps.currentAppName;
   }
 
-  addScalarFunction(f: HelperScalarFunction) {
+  scalarFunction(f: HelperScalarFunction) {
     this.scalarFunctions[f.name] = scalarFunctionFromHelper(f);
   }
 
-  addRulesFunction(f: RulesFunction) {
+  rulesFunction(f: RulesFunction) {
     const firstRow = f.rules[0];
     firstRow[firstRow.length - 1] = "output";
-    this.addScalarFunction({
+    this.scalarFunction({
       name: f.name,
       description: f.description,
       parameters: f.parameters,
@@ -140,7 +118,7 @@ export class System {
     });
   }
 
-  addEnum(enum_: HelperEnum) {
+  enum_(enum_: HelperEnum) {
     const displayName = system.displayNameConfig.enum(enum_.name);
     const values = enum_.values.map((v) => {
       if (typeof v === "string") {
@@ -175,7 +153,7 @@ export class System {
     }
     if (Array.isArray(enum_.withRulesFn)) {
       for (const rfn of enum_.withRulesFn) {
-        this.addRulesFunction({
+        this.rulesFunction({
           name: rfn.name,
           parameters: [
             {
@@ -212,38 +190,38 @@ export class System {
     }
   }
 
-  addScriptDb(name: string, f: (builder: ScriptDb) => void) {
+  scriptDb(name: string, f: (builder: ScriptDb) => void) {
     const db = new ScriptDb(name);
     f(db);
     this.scriptDbs[name] = db;
   }
 
-  addScript(name: string, procedure: ScriptStatementsOrFn) {
+  script(name: string, procedure: ScriptStatementsOrFn) {
     this.scripts.push({
       name,
       procedure: ScriptStatements.normalizeToArray(procedure),
     });
   }
 
-  addPullMigrateDbScript() {
-    system.addScript("pull-migrate-db", (s) => s.pull("data/migrate", false));
+  pullMigrateDbScript() {
+    system.script("pull-migrate-db", (s) => s.pull("data/migrate", false));
   }
 
-  addScriptDbFromDir(dirOrOpts: ScriptDbFromDirOpts | string) {
+  scriptDbFromDir(dirOrOpts: ScriptDbFromDirOpts | string) {
     createScriptDbFromDir(
       typeof dirOrOpts === "string" ? { dir: dirOrOpts } : dirOrOpts,
     );
   }
 
-  addMigrateScript(procedure: ScriptStatementsOrFn) {
+  migrateScript(procedure: ScriptStatementsOrFn) {
     if (!fs.existsSync("data/migrate/data.db")) {
       console.warn(
         "create migration script called before pulled migration db.",
       );
       return;
     }
-    this.addScriptDbFromDir("data/migrate");
-    this.addScript("migrate", (s) =>
+    this.scriptDbFromDir("data/migrate");
+    this.script("migrate", (s) =>
       s
         .loadDbFromDir({
           dir: "data/migrate",
@@ -254,21 +232,17 @@ export class System {
     );
   }
 
-  addAutoImportScript(opts: AutoImportScriptOpts) {
+  autoImportScript(opts: AutoImportScriptOpts) {
     addAutoImportScript(opts);
-  }
-
-  addAdminApp(opts: AdminAppOpts = {}) {
-    return addAdminApp(opts);
   }
 
   generateYom(): yom.System {
     if (!system.db.tables[system.db.userTableName]) {
-      system.db.addTable(system.db.userTableName, (t) => {
-        t.catalog.addRequiredUserFields();
+      system.db.table(system.db.userTableName, (t) => {
+        t.catalog.requiredUserFields();
       });
     }
-    const apps = Object.values(this.apps).map((app) => app.generateYom());
+    const apps = Object.values(this.apps.apps).map((app) => app.generateYom());
     if (system.name === "please-rename") {
       console.log();
       console.warn(
@@ -367,7 +341,8 @@ export class App {
   executionConfig?: yom.AppDbExecutionConfig;
   theme: Theme = createTheme();
   shell?: (pages: Node) => Node;
-  pages: Page[] = [];
+  pages = new Pages(this);
+  shells = new Shells(this);
   domain?: string;
   loginHtml?: string;
   loginCss?: string;
@@ -393,7 +368,10 @@ export class App {
   #keyFrames: Map<KeyFrames, string> = new Map();
   #crosspageSnackbars: CrossPageSnackbar[] = [];
 
-  constructor(public name: string, public displayName: string) {
+  constructor(
+    public name: string,
+    public displayName: string,
+  ) {
     this.title = displayName;
   }
 
@@ -477,69 +455,14 @@ export class App {
     };
   }
 
-  useNavbarShell(opts: NavbarProps) {
-    this.shell = navbarShell(opts);
-  }
-
-  addDashboardGridPage(fn: (page: DashboardGridBuilder) => any) {
-    dashboardGridPage(fn);
-  }
-
-  addDbManagementPage(opts: DbManagmentPageOpts = {}) {
-    dbManagementPage(opts);
-  }
-
-  addInsertFormPage(opts: InsertFormPageOpts) {
-    insertFormPage(opts);
-  }
-
-  addUpdateFormPage(opts: UpdateFormPage) {
-    updateFormPage(opts);
-  }
-
-  addMultiCardInsert(opts: MultiCardInsertPageOpts) {
-    multiCardInsertPage(opts);
-  }
-
-  addRecordGridPage(
-    table: string,
-    fn: (builder: RecordGridBuilder) => unknown,
-  ) {
-    recordGridPage(table, fn);
-  }
-
-  addSimpleReportsPage(fn: (builder: SimpleReportsPageBuilder) => unknown) {
-    const builder = new SimpleReportsPageBuilder();
-    fn(builder);
-    builder.finish();
-  }
-
-  addSimpleDatagridPage(
-    table: string,
-    f: (f: SimpleDatagridPageBuilder) => unknown,
-  ) {
-    simpleDatagridPage(table, f);
-  }
-
-  addDatagridPage(table: string, f: (f: DatagridPageBuilder) => unknown) {
-    datagridPage(table, f);
-  }
-
-  createDatagridPageNode(
-    table: string,
-    f: (f: DatagridPageBuilder) => unknown,
-  ) {
-    return createDatagridPageNode(table, f);
-  }
-
   generateYom(): yom.App {
-    if (!this.pages.some((p) => p.path === "/*" || p.path === "*")) {
-      this.pages.push({
+    if (!this.pages.pages.some((p) => p.path === "/*" || p.path === "*")) {
+      this.pages.pages.push({
         path: "*",
         content: default404Page(),
       });
     }
-    const pagesWithShell = this.pages
+    const pagesWithShell = this.pages.pages
       .filter((p) => !p.ignoreShell)
       .map(
         (p) =>
@@ -547,9 +470,9 @@ export class App {
             t: "Route",
             path: p.path,
             children: p.content,
-          } as RouteNode),
+          }) as RouteNode,
       );
-    const pagesWithoutShell = this.pages
+    const pagesWithoutShell = this.pages.pages
       .filter((p) => p.ignoreShell)
       .map(
         (p) =>
@@ -557,7 +480,7 @@ export class App {
             t: "Route",
             path: p.path,
             children: p.content,
-          } as RouteNode),
+          }) as RouteNode,
       );
     let rootNode: Node;
     if (this.shell) {
@@ -714,20 +637,20 @@ export class Db {
     return new DbCatalog(this);
   }
 
-  addTable(name: string, f: (builder: TableBuilder) => void) {
+  table(name: string, f: (builder: TableBuilder) => void) {
     const builder = new TableBuilder(name);
     f(builder);
     this.tables[name] = builder.finish();
   }
 
-  addScalarFunction(f: HelperScalarFunction) {
+  scalarFunction(f: HelperScalarFunction) {
     this.scalarFunctions[f.name] = scalarFunctionFromHelper(f);
   }
 
-  addRulesFunction(f: RulesFunction) {
+  rulesFunction(f: RulesFunction) {
     const firstRow = f.rules[0];
     firstRow[firstRow.length - 1] = "output";
-    this.addScalarFunction({
+    this.scalarFunction({
       name: f.name,
       description: f.description,
       parameters: f.parameters,
@@ -755,57 +678,6 @@ export class Db {
   }
 }
 
-export class DbCatalog {
-  #db: Db;
-
-  constructor(db: Db) {
-    this.#db = db;
-  }
-
-  /**
-   * Add a related notes table to the given main table.
-   *
-   * The notes table will be named `${mainTable}_note`, and will have a foreign key to the main table.
-   *
-   * The notes table will have the following fields:
-   * content: string
-   * date: date
-   */
-  addNotesTable(mainTable: string) {
-    this.#db.addTable(mainTable + "_note", (table) => {
-      table.fk(mainTable).notNull();
-      table.string("content", 2000).notNull();
-      table.date("date").notNull();
-    });
-  }
-
-  /**
-   * Add a related attachments table to the given main table.
-   *
-   * The attachments table will be named `${mainTable}_attachment`, and will have a foreign key to the main table.
-   *
-   * The attachments table will have the following fields:
-   * name: string
-   * file: uuid (This is the id of the file in our file storage which you can use to create a public url to the file)
-   */
-  addAttachmentsTable(mainTable: string) {
-    this.#db.addTable(mainTable + "_attachment", (table) => {
-      table.fk(mainTable).notNull();
-      table.string("name", 100).notNull();
-      table.uuid("file").notNull();
-    });
-  }
-
-  /**
-   * Adds tables that allow views to be stored and reused for various datagrids
-   *
-   * @param datagrids
-   */
-  addDatagridViewTables(datagrids: string[]) {
-    addViewTables(datagrids);
-  }
-}
-
 export class Api {
   #endpoints: yom.ApiEndpoint[] = [];
 
@@ -829,8 +701,8 @@ export class Api {
       body: helper.jsonBodyScalar
         ? { type: "Json", scalar: helper.jsonBodyScalar }
         : helper.textBodyScalar
-        ? { type: "Text", scalar: helper.textBodyScalar }
-        : undefined,
+          ? { type: "Text", scalar: helper.textBodyScalar }
+          : undefined,
       procedure: EndpointStatements.normalizeToArray(helper.procedure),
       query: helper.query,
     });
@@ -873,7 +745,7 @@ export class Test {
   #data: yom.TestData[] = [];
   #api: yom.ApiTest[] = [];
 
-  addTestDataProc(name: string, time: Date, procedure: BasicStatementsOrFn) {
+  testDataProc(name: string, time: Date, procedure: BasicStatementsOrFn) {
     this.#data.push({
       name,
       time: time.toISOString(),
@@ -881,14 +753,14 @@ export class Test {
     });
   }
 
-  addTestDataDir(name: string, dir: string) {
+  testDataDir(name: string, dir: string) {
     this.#data.push({
       name,
       dir,
     });
   }
 
-  addApiTest(helper: ApiTestHelper) {
+  apiTest(helper: ApiTestHelper) {
     this.#api.push({
       name: helper.name,
       time: helper.time.toISOString(),
@@ -924,7 +796,7 @@ export class ScriptDb {
 
   constructor(public name: string) {}
 
-  addTable(name: string, f: (builder: TableBuilder) => void) {
+  table(name: string, f: (builder: TableBuilder) => void) {
     const builder = new TableBuilder(name);
     f(builder);
     this.tables[name] = builder.finish();
@@ -935,7 +807,7 @@ export class DeviceDb {
   defaultUniqueDistinctNulls = true;
   tables: Record<string, Table> = {};
 
-  addTable(name: string, f: (builder: TableBuilder) => void) {
+  table(name: string, f: (builder: TableBuilder) => void) {
     const builder = new TableBuilder(name);
     f(builder);
     this.tables[name] = builder.finish();
@@ -1110,7 +982,10 @@ abstract class FieldBase {
   indexed = false;
   ext: Record<string, any> = {};
 
-  constructor(public name: string, public displayName: string) {}
+  constructor(
+    public name: string,
+    public displayName: string,
+  ) {}
 
   /** Name of field escaped as sql identifier */
   get identName() {
@@ -1144,7 +1019,11 @@ export class StringField extends FieldBase {
   multiline?: boolean;
   usage?: StringUsage;
 
-  constructor(name: string, displayName: string, public maxLength: number) {
+  constructor(
+    name: string,
+    displayName: string,
+    public maxLength: number,
+  ) {
     super(name, displayName);
   }
 
@@ -1970,193 +1849,8 @@ export class TableBuilder {
   }
 }
 
-export class TableCatalog {
-  #table: TableBuilder;
-
-  constructor(builder: TableBuilder) {
-    this.#table = builder;
-  }
-
-  /**
-   * Adds the fields that are required on the `user` table for our integrated authentication
-   * system.
-   */
-  addRequiredUserFields() {
-    this.#table.uuid(`global_id`).notNull().unique();
-    this.#table.string("email", 320).unique();
-  }
-
-  /**
-   * Adds fields which represents an address.
-   *
-   * Integrates with addressCard and addressesCards.
-   */
-  addAddressFields(opts: AddressFieldGroupOpts = {}) {
-    function createFieldName(
-      option: boolean | string | undefined,
-      defaultName: string,
-      createByDefault: boolean,
-    ) {
-      if (typeof option === "string") {
-        return option;
-      }
-      if (option || createByDefault) {
-        return opts.prefix ? opts.prefix + defaultName : defaultName;
-      }
-    }
-    const groupName = opts.name ?? "address";
-    const nameField = createFieldName(opts.createFields?.name, "name", false);
-    const street1Field = createFieldName(
-      opts.createFields?.street,
-      "street",
-      true,
-    );
-    const street2Field = createFieldName(
-      opts.createFields?.streetTwo,
-      "street_two",
-      false,
-    );
-    const cityField = createFieldName(opts.createFields?.city, "city", true);
-    const stateField = createFieldName(opts.createFields?.state, "state", true);
-    const countryField = createFieldName(
-      opts.createFields?.country,
-      "country",
-      true,
-    );
-    const zipField = createFieldName(opts.createFields?.zip, "zip", true);
-    this.#table.fieldGroup(groupName, {
-      type: "Address",
-      name: groupName,
-      fields: {
-        name: nameField,
-        city: cityField,
-        street1: street1Field!,
-        street2: street2Field,
-        country: countryField,
-        region: stateField,
-        zip: zipField,
-      },
-    });
-    if (nameField) {
-      this.#table.string(nameField, 100).group(groupName);
-    }
-    if (street1Field) {
-      this.#table.string(street1Field, 80).group(groupName);
-    }
-    if (street2Field) {
-      this.#table.string(street2Field, 80).group(groupName);
-    }
-    if (cityField) {
-      this.#table.string(cityField, 85).group(groupName);
-    }
-    if (stateField) {
-      this.#table.string(stateField, 50).group(groupName);
-    }
-    if (countryField) {
-      this.#table.string(countryField, 60).group(groupName);
-    }
-    if (zipField) {
-      this.#table.string(zipField, 20).group(groupName);
-    }
-  }
-
-  addImageSet(opts: ImageSetOpts) {
-    const groupName = opts.groupName ?? "image";
-    this.#table.fieldGroup(groupName, {
-      type: "Image",
-      name: groupName,
-      variants: opts.variants,
-    });
-    for (const fieldName of Object.keys(opts.variants)) {
-      this.#table.uuid(fieldName).group(groupName);
-    }
-  }
-
-  /**
-   * Adds a field group of two fields that integrates with the datagrid and record grid page header.
-   *
-   * Creates a field group with the following fields:
-   * image_full: uuid
-   * image_thumb: uuid
-   */
-  addSimpleImageSet(groupName = "image") {
-    this.#table.fieldGroup(groupName, {
-      type: "Image",
-      name: groupName,
-      variants: {
-        image_full: { quality: 95, usage: "general_full" },
-        image_thumb: {
-          quality: 80,
-          resize: { height: "180", width: "180", type: "'cover'" },
-          usage: "square_thumbnail",
-        },
-      },
-    });
-    this.#table.uuid("image_full").group(groupName);
-    this.#table.uuid("image_thumb").group(groupName);
-  }
-}
-
-export interface AddressFieldGroupOpts {
-  /**
-   * Name of the field group. Defaults to `address`.
-   */
-  name?: string;
-  /**
-   * Add a prefix to all the fields in the group.
-   * Useful if you want to add multiple address field groups to a table.
-   * For example: billing_, shipping_, etc.
-   */
-  prefix?: string;
-  /**
-   * Control which fields are created
-   */
-  createFields?: {
-    /**
-     * Address name field, not the street, but the name of the company or person at the address.
-     * @default false
-     */
-    name?: boolean | string;
-    /**
-     * Street address line 1 (often all that is neede), name is street by default
-     * @default true
-     */
-    street?: boolean | string;
-    /**
-     * Street address line 2, name is street_two by default
-     * @default false
-     */
-    streetTwo?: boolean | string;
-    /**
-     * City, name is city by default
-     * @default true
-     */
-    city?: boolean | string;
-    /**
-     * State, name is state by default
-     * @default true
-     */
-    state?: boolean | string;
-    /**
-     * Country, name is country by default
-     * @default true
-     */
-    country?: boolean | string;
-    /**
-     * Zip code/Postal code, name is zip by default
-     * @default true
-     */
-    zip?: boolean | string;
-  };
-}
-
-export interface ImageSetOpts {
-  groupName?: string;
-  variants: Record<string, ImageSetVariant>;
-}
-
 function addMinuteDurationFns() {
-  system.addScalarFunction({
+  system.scalarFunction({
     name: `parse_minutes_duration`,
     parameters: [
       {
@@ -2186,7 +1880,7 @@ function addMinuteDurationFns() {
         catch: (s) => s.return(),
       }),
   });
-  system.addScalarFunction({
+  system.scalarFunction({
     name: `display_minutes_duration`,
     parameters: [{ name: "value", type: { type: "BigInt" } }],
     returnType: { type: "String" },

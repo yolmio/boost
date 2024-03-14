@@ -1,7 +1,9 @@
 import { button } from "../../components/button";
 import { divider } from "../../components/divider";
-import { InsertDialogOpts, insertDialog } from "../../components/insertDialog";
-import { AutoLabelOnLeftFieldOverride } from "../../components/internal/insertFormShared";
+import {
+  EmbeddedInsertDialogOpts,
+  resolveEmbeddedInsertDialog,
+} from "../../components/forms/dialogs/index";
 import { materialIcon } from "../../components/materialIcon";
 import { typography } from "../../components/typography";
 import { nodes } from "../../nodeHelpers";
@@ -54,7 +56,7 @@ export interface Opts {
   foreignKeyExpr?: yom.SqlExpression;
   disableInsert?: boolean;
   itemContent: RecordDefaultTableItemContent | CustomTableItemContent;
-  insertDialogOpts?: InsertDialogOpts;
+  insertDialog?: EmbeddedInsertDialogOpts;
   icon: {
     styles: Style;
     content: Node;
@@ -76,23 +78,18 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
   }
   const tableModel = system.db.tables[opts.table];
   const itemContent = opts.itemContent;
-  const insertDialogOpts = opts.insertDialogOpts;
-  const withValues: Record<string, string> = insertDialogOpts?.withValues ?? {};
+  const insertDialogOpts = opts.insertDialog;
+  const withValues: Record<string, string> = {};
   let foreignKeyField = Object.values(tableModel.fields).find(
     (f) => f.type === "ForeignKey" && f.table === ctx.table.name,
   );
-  const overrides: Record<string, AutoLabelOnLeftFieldOverride> = {
-    date: {
-      initialValue: `current_date()`,
-    },
+  const initialValues: Record<string, string> = {
+    date: `current_date()`,
   };
   if (foreignKeyField) {
-    overrides[foreignKeyField.name] = {
-      initialValue: ctx.recordId,
-    };
+    initialValues[foreignKeyField.name] = ctx.recordId;
     withValues[foreignKeyField.name] = ctx.recordId;
   }
-  const ignoreFields = Object.keys(withValues);
   let itemRight: Node;
   if (itemContent.type === "RecordDefault") {
     let customAction: Node | undefined;
@@ -270,29 +267,19 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                         click: (s) => s.setScalar(`adding`, `true`),
                       },
                     }),
-                    insertDialog({
-                      open: `ui.adding`,
-                      onClose: (s) => s.setScalar(`ui.adding`, `false`),
-                      table: opts.table,
-                      content: {
-                        type: "AutoLabelOnLeft",
-                        fieldOverrides: overrides,
-                        ignoreFields,
+                    resolveEmbeddedInsertDialog(
+                      {
+                        open: `ui.adding`,
+                        onClose: (s) => s.setScalar(`ui.adding`, `false`),
+                        table: opts.table,
+                        initialValues,
+                        withValues,
+                        afterTransactionCommit: (_, s) => {
+                          s.statements(ctx.triggerRefresh);
+                        },
                       },
-                      withValues,
-                      beforeSubmitClient: insertDialogOpts?.beforeSubmitClient,
-                      beforeTransactionStart:
-                        insertDialogOpts?.beforeTransactionStart,
-                      afterTransactionStart:
-                        insertDialogOpts?.afterTransactionStart,
-                      beforeTransactionCommit:
-                        insertDialogOpts?.beforeTransactionCommit,
-                      afterTransactionCommit: (state, s) => {
-                        insertDialogOpts?.afterTransactionCommit?.(state, s);
-                        s.statements(ctx.triggerRefresh);
-                      },
-                      afterSubmitClient: insertDialogOpts?.afterSubmitClient,
-                    }),
+                      insertDialogOpts,
+                    ),
                   ],
                 }),
               ],

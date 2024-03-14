@@ -5,7 +5,10 @@ import { inlineFieldDisplay } from "../../components/internal/fieldInlineDisplay
 import { materialIcon } from "../../components/materialIcon";
 import { popoverMenu } from "../../components/menu";
 import { typography } from "../../components/typography";
-import { updateDialog } from "../../components/updateDialog";
+import {
+  EmbeddedUpdateDialog,
+  resolveEmbeddedUpdateDialog,
+} from "../../components/forms/dialogs/index";
 import { getUniqueUiId } from "../../components/utils";
 import { Table } from "../../system";
 import { nodes } from "../../nodeHelpers";
@@ -122,6 +125,7 @@ interface RecordDefaultTableItemContentOpts {
   header: Node;
   disableDefaultAction?: boolean;
   customAction?: Node;
+  updateDialog?: EmbeddedUpdateDialog;
 }
 
 const basePopoverMenuId = stringLiteral(getUniqueUiId());
@@ -185,17 +189,18 @@ export function recordDefaultItemContent(
         }),
         nodes.if(
           `editing`,
-          updateDialog({
-            table: tableModel.name,
-            open: `ui.editing`,
-            onClose: (s) => s.setScalar(`ui.editing`, `false`),
-            recordId: `record.id`,
-            content: {
-              type: "AutoLabelOnLeft",
+          resolveEmbeddedUpdateDialog(
+            {
+              table: tableModel.name,
+              open: `ui.editing`,
+              onClose: (s) => s.setScalar(`ui.editing`, `false`),
+              recordId: `record.id`,
               ignoreFields: editIgnoreFields,
+              afterTransactionCommit: (_, s) =>
+                s.statements(ctx.triggerRefresh),
             },
-            afterTransactionCommit: (_, s) => s.statements(ctx.triggerRefresh),
-          }),
+            opts.updateDialog,
+          ),
         ),
         confirmDangerDialog({
           onConfirm: (closeModal) => (s) =>
