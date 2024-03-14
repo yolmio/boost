@@ -23,7 +23,6 @@ import { flexGrowStyles } from "../../styleUtils";
 import { alert } from "../../components/alert";
 import { formHelperText } from "../../components/formHelperText";
 import { formControl } from "../../components/formControl";
-import { getTableBaseUrl } from "../../utils/url";
 import { getUniqueUiId } from "../../components/utils";
 import { labelOnLeftFormField } from "../../components/internal/labelOnLeftFormField";
 import { DomStatementsOrFn, StateStatementsOrFn } from "../../statements";
@@ -39,15 +38,16 @@ export interface CardFormField extends InsertFormField {
   ) => DomStatementsOrFn;
 }
 
+export interface SharedFormField extends InsertFormField {
+  emptyComboboxQuery?: (formState: FormState) => string;
+}
+
 export interface MultiCardInsertPageOpts extends FormStateProcedureExtensions {
   path?: string;
   table: string;
   sharedSection?: {
     header: string;
-    fields: {
-      field: string;
-      initialValue?: string;
-    }[];
+    fields: SharedFormField[];
   };
   sharedStaticValues?: Record<string, string>;
   cardsHeader?: string;
@@ -192,6 +192,7 @@ export function createMultiCardInsertPageNode(
                       field,
                       id: stringLiteral(getUniqueUiId()),
                       fieldHelper,
+                      comboboxEmptyQuery: f.emptyComboboxQuery?.(formState),
                     });
                     if (!control) {
                       throw new Error(
