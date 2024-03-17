@@ -294,7 +294,7 @@ export function datagridBase(opts: DatagridBaseOpts) {
               `insert into filter_term (id, column_id, ordering, op, value_1) values
             (next_filter_id, ${id}, ordering.n_after(${i}), cast(${stringLiteral(
               filter.op,
-            )} as enums.dg_filter_op), ${stringLiteral(filter.value_1)})}`,
+            )} as enums.dg_filter_op), ${stringLiteral(filter.value_1)})`,
             )
             .setScalar(`next_filter_id`, `next_filter_id + 1`);
         }

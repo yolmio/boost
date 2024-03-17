@@ -102,8 +102,8 @@ function andCanEdit(
   return typeof canEdit === "string"
     ? expr + " and " + parenWrap(canEdit)
     : canEdit !== false
-    ? expr
-    : "false";
+      ? expr
+      : "false";
 }
 
 function foreignKeyCell(
@@ -279,7 +279,7 @@ function enumCell(opts: BaseFieldCellOpts, field: EnumField): CellNode {
                 input: (s) =>
                   s.setScalar(
                     `ui.value`,
-                    `try_cast(target_value as enums.${enumModel.name}))`,
+                    `try_cast(target_value as enums.${enumModel.name})`,
                   ),
               },
             }),
@@ -655,8 +655,8 @@ function boolCell(opts: BaseFieldCellOpts, field: BoolField): CellNode {
               typeof opts.canEdit === "string"
                 ? opts.canEdit
                 : opts.canEdit === false
-                ? "true"
-                : undefined,
+                  ? "true"
+                  : undefined,
           },
         },
       },

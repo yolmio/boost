@@ -27,7 +27,7 @@ export function getTableRecordSelect(
         ...tableModel.recordDisplayName.fields.map((f) => `record.${f}`),
       );
       const selectPart = `select ${nameExpr} as label, rank() over () - 1 as index, id `;
-      let emptyQuery = `${selectPart} from db.${tableModel.name} as record limit 10 order by id desc`;
+      let emptyQuery = `${selectPart} from db.${tableModel.name} as record order by id desc limit 10`;
       if (opts.emptyQuery) {
         emptyQuery = `${selectPart} ${opts.emptyQuery}`;
       }
