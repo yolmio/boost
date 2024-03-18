@@ -76,8 +76,8 @@ export class System {
   };
   collation = "NoCase" as yom.Collation;
   autoTrim = "None" as yom.AutoTrim;
-  vcpus: yom.VCpus = 1;
-  memoryGb: yom.MemoryGb = 1;
+  vcpus: yom.VCpus = 2;
+  memoryGb: yom.MemoryGb = 2;
   fileSizeGb: number = 10;
   db: Db = new Db();
   apps = new Apps(this);

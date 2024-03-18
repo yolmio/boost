@@ -7,15 +7,15 @@ system.name = "northwind";
 // DATABASE
 //
 
-db.addTable("user", (table) => {
-  table.catalog.addRequiredUserFields();
+db.table("user", (table) => {
+  table.catalog.requiredUserFields();
   table.bool("is_sys_admin").notNull().default("false");
   table.bool("is_admin").notNull().default("false");
   table.bool("disabled").notNull().default("false");
   table.fk("employee");
 });
 
-db.addTable("employee", (table) => {
+db.table("employee", (table) => {
   table.string("first_name", 10).notNull();
   table.string("last_name", 20).notNull();
   table.email("email").notNull();
@@ -24,12 +24,12 @@ db.addTable("employee", (table) => {
   table.fk("reports_to", "employee");
   table.date("birth_date");
   table.date("hire_date");
-  table.catalog.addAddressFields({
+  table.catalog.addressFields({
     createFields: { street: "address" },
   });
   table.phoneNumber("home_phone");
   table.string("Extension", 4);
-  table.catalog.addSimpleImageSet();
+  table.catalog.simpleImageSet();
   table.string("notes", 2000);
 
   table.check({
@@ -40,17 +40,17 @@ db.addTable("employee", (table) => {
   table.linkable();
 });
 
-db.addTable("category", (table) => {
+db.table("category", (table) => {
   table.string("name", 15).notNull();
   table.string("description", 2000);
   table.setFormControl("Select");
 });
 
-db.addTable("customer", (table) => {
+db.table("customer", (table) => {
   table.string("company_name", 40).notNull();
   table.string("contact_name", 30);
   table.string("contact_title", 30);
-  table.catalog.addAddressFields({
+  table.catalog.addressFields({
     createFields: { street: "address" },
   });
   table.phoneNumber("phone");
@@ -70,17 +70,17 @@ db.addTable("customer", (table) => {
   });
 });
 
-db.addTable("shipper", (table) => {
+db.table("shipper", (table) => {
   table.string("name", 40).notNull();
   table.string("phone", 24);
   table.setFormControl("Select");
 });
 
-db.addTable("supplier", (table) => {
+db.table("supplier", (table) => {
   table.string("company_name", 40).notNull();
   table.string("contact_name", 30);
   table.string("contact_title", 30);
-  table.catalog.addAddressFields({
+  table.catalog.addressFields({
     createFields: { street: "address" },
   });
   table.phoneNumber("phone");
@@ -101,7 +101,7 @@ db.addTable("supplier", (table) => {
   });
 });
 
-db.addTable("order", (table) => {
+db.table("order", (table) => {
   table.fk("customer").notNull();
   table.fk("employee").notNull();
   table.date("order_date");
@@ -111,7 +111,7 @@ db.addTable("order", (table) => {
   table
     .decimal("freight", { precision: 10, scale: 2, signed: false })
     .default("0");
-  table.catalog.addAddressFields({
+  table.catalog.addressFields({
     name: "ship_address",
     prefix: "ship_",
     createFields: { street: "ship_address", name: "ship_name" },
@@ -119,7 +119,7 @@ db.addTable("order", (table) => {
   table.linkable();
 });
 
-db.addTable("product", (table) => {
+db.table("product", (table) => {
   table.string("name", 40).notNull();
   table.fk("supplier").notNull();
   table.fk("category").notNull();
@@ -132,7 +132,7 @@ db.addTable("product", (table) => {
   table.linkable();
 });
 
-db.addTable("order_detail", (table) => {
+db.table("order_detail", (table) => {
   table.fk("order").notNull();
   table.fk("product").notNull();
   table.money("unit_price", { precision: 10, scale: 2 }).notNull().default("0");
@@ -143,18 +143,18 @@ db.addTable("order_detail", (table) => {
     .default("0");
 });
 
-db.catalog.addDatagridViewTables(["order", "customer"]);
+db.catalog.tables.datagridView(["order", "customer"]);
 
 //
 // UI
 //
 
-const app = system.addApp("northwind", "Northwind Traders");
+const app = system.apps.add("northwind", "Northwind Traders");
 
 const isSysAdmin = `(select is_sys_admin from db.user from where id = current_user())`;
 const isAdmin = `(select is_admin from db.user from where id = current_user())`;
 
-app.useNavbarShell({
+app.shells.navbar({
   color: "primary",
   variant: "solid",
   links: [
@@ -297,7 +297,7 @@ select first_name || ' ' || last_name as employee, count
 from employee_order_count
 join db.employee on employee = employee.id`;
 
-app.addDashboardGridPage((page) =>
+app.pages.dashboardGrid((page) =>
   page
     .header({
       header: `'Northwind Traders Dashboard'`,
@@ -425,7 +425,7 @@ app.addDashboardGridPage((page) =>
     }),
 );
 
-app.addSimpleDatagridPage("employee", (page) => {
+app.pages.simpleDatagrid("employee", (page) => {
   page
     .selectable()
     .viewButton()
@@ -477,7 +477,7 @@ app.addSimpleDatagridPage("employee", (page) => {
     });
 });
 
-app.addRecordGridPage("employee", (page) => {
+app.pages.recordGrid("employee", (page) => {
   page
     .namedPageHeader({
       prefix: "title_of_courtesy",
@@ -503,7 +503,7 @@ app.addRecordGridPage("employee", (page) => {
     });
 });
 
-app.addSimpleDatagridPage("user", (page) => {
+app.pages.simpleDatagrid("user", (page) => {
   page
     .toolbar((toolbar) =>
       toolbar.insertDialog({
@@ -563,7 +563,7 @@ app.addSimpleDatagridPage("user", (page) => {
     });
 });
 
-app.addDatagridPage("order", (page) => {
+app.pages.datagrid("order", (page) => {
   page
     .selectable()
     .viewButton()
@@ -572,165 +572,160 @@ app.addDatagridPage("order", (page) => {
 
 const orderFormPartStyles = { gridColumnSpan: 12, lg: { gridColumnSpan: 3 } };
 
-app.addInsertFormPage({
+app.pages.forms.insertTwoColumnSectioned({
   table: "order",
   withValues: { employee: "current_user()" },
-  content: {
-    type: "TwoColumnSectioned",
-    sections: [
-      {
-        header: "General Information",
-        parts: [
+  sections: [
+    {
+      header: "General Information",
+      parts: [
+        {
+          field: "customer",
+          styles: orderFormPartStyles,
+          onChange: (state, s) =>
+            s.spawn({
+              detached: true,
+              procedure: (s) =>
+                s
+                  .record(`customer`, [
+                    {
+                      name: "name",
+                      type: { type: "String", maxLength: 2000 },
+                    },
+                    {
+                      name: "address",
+                      type: { type: "String", maxLength: 2000 },
+                    },
+                    {
+                      name: "city",
+                      type: { type: "String", maxLength: 2000 },
+                    },
+                    {
+                      name: "zip",
+                      type: { type: "String", maxLength: 2000 },
+                    },
+                    {
+                      name: "state",
+                      type: { type: "String", maxLength: 2000 },
+                    },
+                    {
+                      name: "country",
+                      type: { type: "String", maxLength: 2000 },
+                    },
+                  ])
+                  .serviceProc((s) =>
+                    s.modify(
+                      `insert into customer select company_name as name, * from db.customer where id = ${
+                        state.field("customer").value
+                      }`,
+                    ),
+                  )
+                  .if(
+                    `not ` + state.field("ship_address").touched,
+                    state.field("ship_address").setValue("customer.address"),
+                  )
+                  .if(
+                    `not ` + state.field("ship_name").touched,
+                    state.field("ship_name").setValue("customer.name"),
+                  )
+                  .if(
+                    `not ` + state.field("ship_city").touched,
+                    state.field("ship_city").setValue("customer.city"),
+                  )
+                  .if(
+                    `not ` + state.field("ship_zip").touched,
+                    state.field("ship_zip").setValue("customer.zip"),
+                  )
+                  .if(
+                    `not ` + state.field("ship_state").touched,
+                    state.field("ship_state").setValue("customer.state"),
+                  )
+                  .if(
+                    `not ` + state.field("ship_country").touched,
+                    state.field("ship_country").setValue("customer.country"),
+                  )
+                  .commitUiTreeChanges(),
+            }),
+        },
+        {
+          field: "order_date",
+          initialValue: `current_date()`,
+          styles: orderFormPartStyles,
+        },
+        { field: "required_date", styles: orderFormPartStyles },
+        { field: "ship_via", styles: orderFormPartStyles },
+        { field: "freight", styles: orderFormPartStyles },
+      ],
+    },
+    {
+      header: "Shipping Information",
+      description:
+        "Auto-populated when you choose a customer, make changes if needed.",
+      parts: [
+        { field: "ship_name", styles: orderFormPartStyles },
+        { field: "ship_address", styles: orderFormPartStyles },
+        { field: "ship_city", styles: orderFormPartStyles },
+        { field: "ship_zip", styles: orderFormPartStyles },
+        { field: "ship_state", styles: orderFormPartStyles },
+        { field: "ship_country", styles: orderFormPartStyles },
+      ],
+    },
+    {
+      header: "Order Details",
+      description: "Add products to the order.",
+      relation: {
+        type: "Card",
+        table: "order_detail",
+        fields: [
           {
-            field: "customer",
-            styles: orderFormPartStyles,
-            onChange: (state, s) =>
+            field: "product",
+            onChange: (_, cursor, s) =>
               s.spawn({
                 detached: true,
                 procedure: (s) =>
-                  s
-                    .record(`customer`, [
-                      {
-                        name: "name",
-                        type: { type: "String", maxLength: 2000 },
-                      },
-                      {
-                        name: "address",
-                        type: { type: "String", maxLength: 2000 },
-                      },
-                      {
-                        name: "city",
-                        type: { type: "String", maxLength: 2000 },
-                      },
-                      {
-                        name: "zip",
-                        type: { type: "String", maxLength: 2000 },
-                      },
-                      {
-                        name: "state",
-                        type: { type: "String", maxLength: 2000 },
-                      },
-                      {
-                        name: "country",
-                        type: { type: "String", maxLength: 2000 },
-                      },
-                    ])
-                    .serviceProc((s) =>
-                      s.modify(
-                        `insert into customer select company_name as name, * from db.customer where id = ${
-                          state.field("customer").value
-                        }`,
+                  s.if(`not ` + cursor.field("unit_price").touched, (s) =>
+                    s
+                      .scalar(`product_unit_price`, {
+                        type: "Decimal",
+                        precision: 10,
+                        scale: 2,
+                        signed: true,
+                      })
+                      .serviceProc((s) =>
+                        s.setScalar(
+                          "product_unit_price",
+                          `(select unit_price from db.product where id = ${
+                            cursor.field("product").value
+                          })`,
+                        ),
+                      )
+                      .if(
+                        `product_unit_price is not null and not ` +
+                          cursor.field("unit_price").touched,
+                        (s) =>
+                          s
+                            .statements(
+                              cursor
+                                .field("unit_price")
+                                .setValue("cast(product_unit_price as string)"),
+                            )
+                            .commitUiTreeChanges(),
                       ),
-                    )
-                    .if(
-                      `not ` + state.field("ship_address").touched,
-                      state.field("ship_address").setValue("customer.address"),
-                    )
-                    .if(
-                      `not ` + state.field("ship_name").touched,
-                      state.field("ship_name").setValue("customer.name"),
-                    )
-                    .if(
-                      `not ` + state.field("ship_city").touched,
-                      state.field("ship_city").setValue("customer.city"),
-                    )
-                    .if(
-                      `not ` + state.field("ship_zip").touched,
-                      state.field("ship_zip").setValue("customer.zip"),
-                    )
-                    .if(
-                      `not ` + state.field("ship_state").touched,
-                      state.field("ship_state").setValue("customer.state"),
-                    )
-                    .if(
-                      `not ` + state.field("ship_country").touched,
-                      state.field("ship_country").setValue("customer.country"),
-                    )
-                    .commitUiTreeChanges(),
+                  ),
               }),
           },
-          {
-            field: "order_date",
-            initialValue: `current_date()`,
-            styles: orderFormPartStyles,
-          },
-          { field: "required_date", styles: orderFormPartStyles },
-          { field: "ship_via", styles: orderFormPartStyles },
-          { field: "freight", styles: orderFormPartStyles },
+          "unit_price",
+          "quantity",
+          "discount",
         ],
       },
-      {
-        header: "Shipping Information",
-        description:
-          "Auto-populated when you choose a customer, make changes if needed.",
-        parts: [
-          { field: "ship_name", styles: orderFormPartStyles },
-          { field: "ship_address", styles: orderFormPartStyles },
-          { field: "ship_city", styles: orderFormPartStyles },
-          { field: "ship_zip", styles: orderFormPartStyles },
-          { field: "ship_state", styles: orderFormPartStyles },
-          { field: "ship_country", styles: orderFormPartStyles },
-        ],
-      },
-      {
-        header: "Order Details",
-        description: "Add products to the order.",
-        relation: {
-          type: "Card",
-          table: "order_detail",
-          fields: [
-            {
-              field: "product",
-              onChange: (_, cursor, s) =>
-                s.spawn({
-                  detached: true,
-                  procedure: (s) =>
-                    s.if(`not ` + cursor.field("unit_price").touched, (s) =>
-                      s
-                        .scalar(`product_unit_price`, {
-                          type: "Decimal",
-                          precision: 10,
-                          scale: 2,
-                          signed: true,
-                        })
-                        .serviceProc((s) =>
-                          s.setScalar(
-                            "product_unit_price",
-                            `(select unit_price from db.product where id = ${
-                              cursor.field("product").value
-                            })`,
-                          ),
-                        )
-                        .if(
-                          `product_unit_price is not null and not ` +
-                            cursor.field("unit_price").touched,
-                          (s) =>
-                            s
-                              .statements(
-                                cursor
-                                  .field("unit_price")
-                                  .setValue(
-                                    "cast(product_unit_price as string)",
-                                  ),
-                              )
-                              .commitUiTreeChanges(),
-                        ),
-                    ),
-                }),
-            },
-            "unit_price",
-            "quantity",
-            "discount",
-          ],
-        },
-      },
-    ],
-  },
+    },
+  ],
   afterTransactionCommit: (_, s) =>
     s.navigate(`'/orders/' || last_record_id(db.order)`),
 });
 
-app.addRecordGridPage("order", (page) => {
+app.pages.recordGrid("order", (page) => {
   page
     .superSimpleHeader({
       header: "Order Details",
@@ -820,14 +815,14 @@ app.addRecordGridPage("order", (page) => {
     });
 });
 
-app.addDatagridPage("customer", (page) => {
+app.pages.datagrid("customer", (page) => {
   page
     .selectable()
     .viewButton()
     .toolbar((t) => t.insertDialog().export().delete());
 });
 
-app.addRecordGridPage("customer", (page) => {
+app.pages.recordGrid("customer", (page) => {
   page
     .namedPageHeader()
     .staticTableCard({
@@ -852,15 +847,15 @@ app.addRecordGridPage("customer", (page) => {
     });
 });
 
-app.addSimpleDatagridPage("shipper", (page) => {
+app.pages.simpleDatagrid("shipper", (page) => {
   page.toolbar((t) => t.insertDialog());
 });
 
-app.addSimpleDatagridPage("supplier", (page) => {
+app.pages.simpleDatagrid("supplier", (page) => {
   page.toolbar((t) => t.insertDialog());
 });
 
-app.addRecordGridPage("supplier", (page) => {
+app.pages.recordGrid("supplier", (page) => {
   page
     .namedPageHeader()
     .staticTableCard({
@@ -876,13 +871,13 @@ app.addRecordGridPage("supplier", (page) => {
     });
 });
 
-app.addSimpleDatagridPage("product", (page) => {
+app.pages.simpleDatagrid("product", (page) => {
   page
     .toolbar((t) => t.insertDialog())
     .fieldConfig("discontinued", { canEdit: false });
 });
 
-app.addRecordGridPage("product", (page) => {
+app.pages.recordGrid("product", (page) => {
   page.namedPageHeader({ chips: ["discontinued"] }).staticTableCard({
     styles: { gridColumnSpan: 12, md: { gridColumnSpan: 6 } },
     rows: [
@@ -897,11 +892,11 @@ app.addRecordGridPage("product", (page) => {
   });
 });
 
-app.addSimpleDatagridPage("category", (page) => {
+app.pages.simpleDatagrid("category", (page) => {
   page.toolbar((t) => t.insertDialog());
 });
 
-app.addSimpleReportsPage((page) => {
+app.pages.simpleReports((page) => {
   page.section("Sales");
   const dateRangeParams = page.defineParams(
     {
@@ -1081,4 +1076,4 @@ order by unit_price desc
   });
 });
 
-system.addAdminApp();
+system.apps.admin();
