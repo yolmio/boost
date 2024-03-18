@@ -3,7 +3,7 @@ import { system } from "@yolm/boost";
 
 const email = process.env.YOLM_TEST_EMAIL ?? "your@email.com";
 
-system.addScript("init-dev-db", (s) =>
+system.script("init-dev-db", (s) =>
   s
     .importCsv("db", "data/csv")
     .startTransaction("db")
@@ -14,7 +14,7 @@ system.addScript("init-dev-db", (s) =>
     .saveDbToDir("data/dev"),
 );
 
-system.addScript("init-db", (s) =>
+system.script("init-db", (s) =>
   s
     .addUsers({
       app: "legal",

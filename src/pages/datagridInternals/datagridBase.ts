@@ -294,7 +294,7 @@ export function datagridBase(opts: DatagridBaseOpts) {
               `insert into filter_term (id, column_id, ordering, op, value_1) values
             (next_filter_id, ${id}, ordering.n_after(${i}), cast(${stringLiteral(
               filter.op,
-            )} as enums.dg_filter_op), ${stringLiteral(filter.value_1)})}`,
+            )} as enums.dg_filter_op), ${stringLiteral(filter.value_1)})`,
             )
             .setScalar(`next_filter_id`, `next_filter_id + 1`);
         }
@@ -431,7 +431,7 @@ export function addDatagridRfns(
     }
   }
   const storageNameToIdDt = `${datagridName}_dg_col_storage_name_to_id`;
-  system.addRulesFunction({
+  system.rulesFunction({
     parameters: [
       {
         name: "sql_name",
@@ -443,14 +443,14 @@ export function addDatagridRfns(
     returnType: "Int",
   });
   const idToStorageName = `${datagridName}_dg_col_id_to_storage_name`;
-  system.addRulesFunction({
+  system.rulesFunction({
     parameters: [{ name: "id", type: "SmallUint" }],
     rules: [["input.id", "storage_name"], ...idsToStorageNames],
     name: idToStorageName,
     returnType: "String",
   });
   const idToSqlExprDt = `${datagridName}_dg_col_id_to_sql_expr`;
-  system.addRulesFunction({
+  system.rulesFunction({
     parameters: [{ name: "id", type: "SmallUint", notNull: true }],
     rules: [["input.id", "sql_expr"], ...sqlExprs],
     name: idToSqlExprDt,
@@ -459,7 +459,7 @@ export function addDatagridRfns(
   let idToFilterExpr;
   if (idsToFilterExpr.length > 0) {
     idToFilterExpr = `${datagridName}_dg_col_id_to_filter_expr`;
-    system.addRulesFunction({
+    system.rulesFunction({
       parameters: [
         { name: "id", type: "SmallUint", notNull: true },
         {
@@ -827,11 +827,11 @@ export function makeIdsQuery(
 }
 
 export function addViewTables(datagridNames: string[]) {
-  system.addEnum({
+  system.enum_({
     name: "datagrid_name",
     values: datagridNames,
   });
-  system.db.addTable("datagrid_view", (t) => {
+  system.db.table("datagrid_view", (t) => {
     t.string("name", 200).notNull();
     t.enum("datagrid_name").notNull();
     t.fk("user", system.db.userTableName);
@@ -844,7 +844,7 @@ export function addViewTables(datagridNames: string[]) {
       "datagrid_name",
     ]);
   });
-  system.db.addTable("datagrid_view_column", (t) => {
+  system.db.table("datagrid_view_column", (t) => {
     t.fk("view", "datagrid_view").notNull();
     t.string("name", 200).notNull();
     t.bool("displaying").notNull();
@@ -852,7 +852,7 @@ export function addViewTables(datagridNames: string[]) {
     t.tinyUint("sort_index");
     t.bool("sort_asc");
   });
-  system.db.addTable("datagrid_view_filter_term", (t) => {
+  system.db.table("datagrid_view_filter_term", (t) => {
     t.fk("view", "datagrid_view").notNull();
     t.fk("group", "datagrid_view_filter_term");
     t.ordering("ordering").notNull();
@@ -868,7 +868,7 @@ export function addViewTables(datagridNames: string[]) {
 
 function addDgFilterOp() {
   if (!system.enums.dg_filter_op) {
-    system.addEnum({
+    system.enum_({
       name: "dg_filter_op",
       values: [
         "empty",
@@ -961,7 +961,7 @@ function addDgFilterOp() {
         },
       ],
     });
-    system.addRulesFunction({
+    system.rulesFunction({
       name: "encode_date_dg_filter_param",
       parameters: [
         {
@@ -998,7 +998,7 @@ function addDgFilterOp() {
       ],
       returnType: "String",
     });
-    system.addRulesFunction({
+    system.rulesFunction({
       name: "encode_dg_filter_op",
       parameters: [
         {

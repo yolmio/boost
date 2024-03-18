@@ -2,9 +2,10 @@ import { alert, materialIcon, skeleton, typography } from "../../components";
 import { nodes } from "../../nodeHelpers";
 import { Node } from "../../nodeTypes";
 import { createStyles } from "../../styleUtils";
+import { normalizeCase, upcaseFirst } from "../../utils/inflectors";
 import { stringLiteral } from "../../utils/sqlHelpers";
 
-export interface TableColumn {
+export interface TableColumnObject {
   header: string;
   cell: (record: string) => Node;
   href?: (record: string) => string;
@@ -13,7 +14,7 @@ export interface TableColumn {
 export interface Opts {
   header: string;
   query: string;
-  columns: TableColumn[];
+  columns: (string | TableColumnObject)[];
 }
 
 const styles = createStyles({
@@ -70,6 +71,14 @@ const styles = createStyles({
 });
 
 export function content(opts: Opts) {
+  const columns = opts.columns.map((col) =>
+    typeof col === "string"
+      ? {
+          header: upcaseFirst(normalizeCase(col).join(" ")),
+          cell: (r: string) => `${r}.${col}`,
+        }
+      : col,
+  );
   return nodes.element("div", {
     styles: styles.root,
     children: [
@@ -92,7 +101,7 @@ export function content(opts: Opts) {
             styles: styles.table,
             children: [
               nodes.element("thead", {
-                children: opts.columns.map((col) =>
+                children: columns.map((col) =>
                   nodes.element("th", {
                     styles: styles.eachHeaderCell,
                     children: stringLiteral(col.header),
@@ -117,7 +126,7 @@ export function content(opts: Opts) {
                     table: `table`,
                     recordName: `each_record`,
                     children: nodes.element("tr", {
-                      children: opts.columns.map((col) =>
+                      children: columns.map((col) =>
                         nodes.element("td", {
                           styles: styles.cell,
                           children: col.href

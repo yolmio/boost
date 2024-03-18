@@ -64,19 +64,19 @@ export class DashboardGridBuilder {
     return this;
   }
 
-  createPage() {
+  // used externally, but we don't want to polute the public API
+
+  private createNode() {
+    return nodes.element("div", {
+      styles: styles.root(),
+      children: this.#children,
+    });
+  }
+
+  private createPage() {
     return {
       path: this.#path,
-      content: nodes.element("div", {
-        styles: styles.root(),
-        children: this.#children,
-      }),
+      content: this.createNode(),
     };
   }
-}
-
-export function dashboardGridPage(fn: (page: DashboardGridBuilder) => any) {
-  const builder = new DashboardGridBuilder();
-  fn(builder);
-  system.currentApp!.pages.push(builder.createPage());
 }

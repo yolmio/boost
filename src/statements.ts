@@ -582,6 +582,15 @@ export class DomStatements extends StatementsBase<yom.DomProcStatement> {
     this.pushToBacking({ t: "TriggerViewTransition", on, type });
     return this;
   }
+
+  request(info: RequestOpts) {
+    this.pushToBacking({
+      t: "Request",
+      ...info,
+      method: info.method ?? "'GET'",
+    });
+    return this;
+  }
 }
 
 export interface RequestOpts {

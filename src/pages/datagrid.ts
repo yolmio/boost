@@ -1,5 +1,9 @@
 import { button } from "../components/button";
-import { InsertDialogOpts } from "../components/insertDialog";
+import {
+  EmbeddedInsertDialog,
+  EmbeddedInsertDialogOpts,
+  resolveEmbeddedInsertDialog,
+} from "../components/forms/dialogs/index";
 import { Table } from "../system";
 import { nodes } from "../nodeHelpers";
 import { system } from "../system";
@@ -103,11 +107,11 @@ export class DatagridToolbarBuilder {
   #delete = false;
   #export = false;
   #add?:
-    | { type: "dialog"; opts?: Partial<InsertDialogOpts> }
+    | { type: "dialog"; dialog?: EmbeddedInsertDialog }
     | { type: "href"; href?: string };
 
-  insertDialog(opts?: Partial<InsertDialogOpts>) {
-    this.#add = { type: "dialog", opts };
+  insertDialog(opts?: EmbeddedInsertDialog) {
+    this.#add = { type: "dialog", dialog: opts };
     return this;
   }
 
@@ -157,7 +161,7 @@ export class DatagridToolbarBuilder {
       add:
         this.#add?.type === "href"
           ? { type: "href", href: this.#add.href ?? addHref }
-          : { type: "dialog", opts: this.#add?.opts },
+          : { type: "dialog", dialog: this.#add?.dialog },
     };
   }
 }
@@ -487,7 +491,9 @@ export class DatagridPageBuilder {
     return columns;
   }
 
-  private _createNode() {
+  // used externally, but we don't want to polute the public API
+
+  private createNode() {
     const extraState = new StateStatements();
     if (this.#selectable) {
       extraState.scalar(`selected_all`, `false`);
@@ -534,30 +540,12 @@ export class DatagridPageBuilder {
     );
   }
 
-  private _finish() {
+  private createPage() {
     const path = this.#path ?? this.#table.baseUrl;
-    const content = this._createNode();
-    system.currentApp!.pages.push({
+    const content = this.createNode();
+    return {
       path,
       content,
-    });
+    };
   }
-}
-
-export function datagridPage(
-  table: string,
-  f: (t: DatagridPageBuilder) => unknown,
-) {
-  const builder = new DatagridPageBuilder(table);
-  f(builder);
-  (builder as any)._finish();
-}
-
-export function createDatagridPageNode(
-  table: string,
-  f: (t: DatagridPageBuilder) => unknown,
-): Node {
-  const builder = new DatagridPageBuilder(table);
-  f(builder);
-  return (builder as any)._createNode();
 }

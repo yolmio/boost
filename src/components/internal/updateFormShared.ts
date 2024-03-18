@@ -24,7 +24,7 @@ import {
 } from "./sharedFormStyles";
 import { DomStatementsOrFn } from "../../statements";
 
-export interface UpdateGridFormPart {
+export interface GridFormPart {
   styles?: Style;
   field?: string;
   initialValue?: string;
@@ -35,42 +35,35 @@ export interface TwoColumnSectionedSection {
   styles?: Style;
   header: string;
   description?: string;
-  parts: UpdateGridFormPart[];
+  parts: GridFormPart[];
 }
 
-export interface TwoColumnSectionedUpdateFormContent {
-  type: "TwoColumnSectioned";
+export interface TwoColumnSectionedOpts {
   header?: string;
   sections: TwoColumnSectionedSection[];
 }
 
-export interface LabelOnLeftPart {
+export interface SingleColumnPart {
   field: string;
   initialValue?: string;
   label?: string;
 }
 
-export interface LabelOnLeftUpdateFormContent {
-  type: "LabelOnLeft";
+export interface SingleColumnOpts {
   header?: string;
-  parts: LabelOnLeftPart[];
+  parts: SingleColumnPart[];
 }
 
-export type AutoLabelOnLeftFieldOverride = Partial<
-  Omit<LabelOnLeftPart, "field">
->;
+export interface AutoSingleColumnFieldOverride {
+  initialValue?: string;
+  label?: string;
+}
 
-export interface AutoLabelOnLeftUpdateFormContent {
-  type: "AutoLabelOnLeft";
+export interface AutoSingleColumnOpts {
   header?: string;
   ignoreFields?: string[];
-  fieldOverrides?: Record<string, AutoLabelOnLeftFieldOverride>;
+  fieldOverrides?: Record<string, AutoSingleColumnFieldOverride>;
 }
-
-export type UpdateFormContent =
-  | TwoColumnSectionedUpdateFormContent
-  | LabelOnLeftUpdateFormContent
-  | AutoLabelOnLeftUpdateFormContent;
 
 export interface UpdateFormContentOpts {
   table: Table;
@@ -83,70 +76,55 @@ export interface UpdateFormContentOpts {
       };
 }
 
-export function getFieldsFromUpdateFormContent(
-  content: UpdateFormContent,
-  table: Table,
-) {
-  const fields: UpdateFormField[] = [];
-  switch (content.type) {
-    case "TwoColumnSectioned": {
-      for (const section of content.sections) {
-        if (!section.parts) {
-          continue;
-        }
-        for (const p of section.parts) {
-          if (p.field) {
-            fields.push({
-              field: p.field,
-              initialValue: p.initialValue,
-            });
-          }
-        }
+export function getFieldsFromTwoColumnSectioned(
+  content: TwoColumnSectionedOpts,
+): UpdateFormField[] {
+  let fields: UpdateFormField[] = [];
+  content.sections.forEach((section) => {
+    section.parts.forEach((part) => {
+      if (part.field) {
+        fields.push({
+          field: part.field,
+          initialValue: part.initialValue,
+        });
       }
-      break;
-    }
-    case "LabelOnLeft":
-      return content.parts.map((p) => ({
-        field: p.field,
-        initialValue: p.initialValue,
-      }));
-    case "AutoLabelOnLeft":
-      return Object.keys(table.fields)
-        .filter((f) => !content.ignoreFields?.includes(f))
-        .map((f) => ({
-          field: f,
-          ...content.fieldOverrides?.[f],
-        }));
-  }
+    });
+  });
   return fields;
 }
 
-export function updateFormContent(
-  content: UpdateFormContent,
-  opts: UpdateFormContentOpts,
-): Node {
-  switch (content.type) {
-    case "TwoColumnSectioned":
-      return twoColumnSectionedUpdateFormContent(content, opts);
-    case "LabelOnLeft":
-      return labelOnLeftUpdateFormContent(content, opts);
-    case "AutoLabelOnLeft": {
-      const parts = Object.keys(opts.table.fields)
-        .filter((f) => !content.ignoreFields?.includes(f))
-        .map((f) => ({ field: f }));
-      return labelOnLeftUpdateFormContent(
-        { type: "LabelOnLeft", parts, header: content.header },
-        opts,
-      );
-    }
-  }
+export function getFieldsFromSingleColumn(
+  content: SingleColumnOpts,
+): UpdateFormField[] {
+  return content.parts.map((part) => ({
+    field: part.field,
+    initialValue: part.initialValue,
+  }));
 }
 
-function gridPart(
-  part: UpdateGridFormPart,
-  formState: FormState,
+export function getFieldsFromAutoSingleColumn(
+  content: AutoSingleColumnOpts,
   table: Table,
-) {
+): UpdateFormField[] {
+  return Object.keys(table.fields)
+    .filter((f) => !content.ignoreFields?.includes(f))
+    .map((f) => ({
+      field: f,
+      ...content.fieldOverrides?.[f],
+    }));
+}
+
+export function autoSingleColumnContent(
+  opts: AutoSingleColumnOpts,
+  contentOpts: UpdateFormContentOpts,
+): Node {
+  const parts = Object.keys(contentOpts.table.fields)
+    .filter((f) => !opts.ignoreFields?.includes(f))
+    .map((f) => ({ field: f, ...opts.fieldOverrides?.[f] }));
+  return singleColumnContent({ parts, header: opts.header }, contentOpts);
+}
+
+function gridPart(part: GridFormPart, formState: FormState, table: Table) {
   if (!part.field) {
     return nodes.element("div", { styles: part.styles });
   }
@@ -206,8 +184,8 @@ function gridPart(
   });
 }
 
-function twoColumnSectionedUpdateFormContent(
-  content: TwoColumnSectionedUpdateFormContent,
+export function twoColumnSectionedContent(
+  content: TwoColumnSectionedOpts,
   { table, formState, cancel }: UpdateFormContentOpts,
 ): Node {
   const header = stringLiteral(
@@ -288,8 +266,8 @@ function twoColumnSectionedUpdateFormContent(
   });
 }
 
-function labelOnLeftUpdateFormContent(
-  content: LabelOnLeftUpdateFormContent,
+export function singleColumnContent(
+  content: SingleColumnOpts,
   { table, formState, cancel }: UpdateFormContentOpts,
 ) {
   const fields: Node[] = [];

@@ -1,7 +1,7 @@
 import "./system.ts";
 import { system } from "@yolm/boost";
 
-system.addScript("init-dev-db", (s) =>
+system.script("init-dev-db", (s) =>
   s
     .startTransaction("db")
     .modify(
@@ -27,7 +27,7 @@ system.addScript("init-dev-db", (s) =>
 
 const YOUR_EMAIL = `test@yolm.io`;
 
-system.addScript("init-db", (s) =>
+system.script("init-db", (s) =>
   s
     .addUsers({
       app: "crm",

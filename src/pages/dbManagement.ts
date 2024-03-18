@@ -14,8 +14,6 @@ import { stringLiteral } from "../utils/sqlHelpers";
 import { createStyles, flexGrowStyles } from "../styleUtils";
 import { chip } from "../components/chip";
 import { divider } from "../components/divider";
-import { isDeploy } from "../utils/env";
-import { getUniqueUiId } from "../components/utils";
 
 const styles = createStyles({
   root: {
@@ -824,14 +822,10 @@ function schemaReference() {
 export interface DbManagmentPageOpts {
   path?: string;
   allow?: yom.SqlExpression;
-  doNotDeploy?: boolean;
   queryColumnCount?: number;
 }
 
-export function dbManagementPage(opts: DbManagmentPageOpts = {}) {
-  if (opts.doNotDeploy && !isDeploy()) {
-    return;
-  }
+export function createDbManagementPageNode(opts: DbManagmentPageOpts) {
   let content: Node = nodes.element("div", {
     styles: styles.root,
     children: [
@@ -887,8 +881,5 @@ export function dbManagementPage(opts: DbManagmentPageOpts = {}) {
       ),
     });
   }
-  system.currentApp!.pages.push({
-    path: opts.path ?? `/db-management`,
-    content,
-  });
+  return content;
 }

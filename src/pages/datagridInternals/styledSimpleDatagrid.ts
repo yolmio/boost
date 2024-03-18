@@ -1,7 +1,6 @@
 import { alert } from "../../components/alert";
 import { confirmDangerDialog } from "../../components/confirmDangerDialog";
 import { iconButton } from "../../components/iconButton";
-import { insertDialog, InsertDialogOpts } from "../../components/insertDialog";
 import { materialIcon } from "../../components/materialIcon";
 import { typography } from "../../components/typography";
 import { Table } from "../../system";
@@ -20,6 +19,10 @@ import { styles as sharedStyles } from "./styles";
 import { circularProgress } from "../../components/circularProgress";
 import { StateStatements } from "../../statements";
 import { CellNode, dgState, ColumnEventHandlers, RowHeight } from "./shared";
+import {
+  EmbeddedInsertDialog,
+  resolveEmbeddedInsertDialog,
+} from "../../components/forms/dialogs/index";
 
 export interface ToolbarConfig {
   header: Node;
@@ -27,7 +30,7 @@ export interface ToolbarConfig {
   export: boolean;
   search?: { matchConfig: string };
   add?:
-    | { type: "dialog"; opts?: Partial<InsertDialogOpts> }
+    | { type: "dialog"; dialog?: EmbeddedInsertDialog }
     | { type: "href"; href: string };
 }
 
@@ -84,8 +87,6 @@ export function styledSimpleDatagrid(config: StyledSimpleGridConfig) {
       ariaLabel: `'Add new record'`,
     });
   } else if (config.toolbar.add?.type === "dialog") {
-    const withValues: Record<string, string> =
-      config.toolbar.add.opts?.withValues ?? {};
     addButton = nodes.state({
       procedure: (s) => s.scalar(`adding`, `false`),
       children: [
@@ -97,23 +98,17 @@ export function styledSimpleDatagrid(config: StyledSimpleGridConfig) {
           on: { click: (s) => s.setScalar(`adding`, `true`) },
           ariaLabel: `'Add new record'`,
         }),
-        insertDialog({
-          ...config.toolbar.add.opts,
-          table: config.tableModel.name,
-          open: `adding`,
-          onClose: (s) => s.setScalar(`adding`, `false`),
-          content: {
-            type: "AutoLabelOnLeft",
-            ignoreFields: Object.keys(withValues),
+        resolveEmbeddedInsertDialog(
+          {
+            table: config.tableModel.name,
+            open: `adding`,
+            onClose: (s) => s.setScalar(`adding`, `false`),
+            afterTransactionCommit: (_, s) => {
+              s.statements(dgState.triggerRefresh);
+            },
           },
-          afterTransactionCommit: (formState, s) => {
-            (config.toolbar.add as any).opts?.afterTransactionCommit?.(
-              formState,
-              s,
-            );
-            s.statements(dgState.triggerRefresh);
-          },
-        }),
+          config.toolbar.add.dialog,
+        ),
       ],
     });
   }

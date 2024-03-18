@@ -115,7 +115,7 @@ export function addAutoImportScript(opts: AutoImportScriptOpts) {
       );
     }
   }
-  system.addScript(scriptName, (s) =>
+  system.script(scriptName, (s) =>
     s
       .loadDbFromDir({
         dir: opts.inputDir,
@@ -151,15 +151,15 @@ export function createScriptDbFromDir(opts: ScriptDbFromDirOpts) {
   for (const [enumName, enumValues] of Object.entries(enumsClone)) {
     const nameWithPrefix = prefixEnums + enumName;
     mapping.enums[nameWithPrefix] = enumValues;
-    system.addEnum({
+    system.enum_({
       name: nameWithPrefix,
       values: Object.keys(enumValues.values),
     });
   }
-  system.addScriptDb(dbName, (db) => {
+  system.scriptDb(dbName, (db) => {
     db.mapping = mapping;
     for (const [name, tableMapping] of Object.entries(mapping.tables)) {
-      db.addTable(name, (t) => {
+      db.table(name, (t) => {
         t.primaryKeyFieldName(tableMapping.primaryKeyFieldName);
         for (const [fieldName, field] of Object.entries(tableMapping.fields)) {
           switch (field.type.type) {

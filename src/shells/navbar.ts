@@ -155,7 +155,7 @@ const styles = createStyles({
   }),
 });
 
-export function navbarShell(opts: NavbarProps): (n: Node) => Node {
+export function navbar(opts: NavbarProps): (n: Node) => Node {
   const variant = opts.variant ?? "solid";
   const color = opts.color ?? "neutral";
   const size = opts.size ?? "sm";

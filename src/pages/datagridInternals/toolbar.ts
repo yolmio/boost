@@ -21,10 +21,10 @@ import { DatagridRfns, makeCountQuery, makeIdsQuery } from "./datagridBase";
 import { Table } from "../../system";
 import { select } from "../../components/select";
 import { Node } from "../../nodeTypes";
-import { insertDialog } from "../../components/insertDialog";
 import { DgStateHelpers } from "./shared";
 import * as yom from "../../yom";
 import { createUndoSnackbars } from "../../components/undoSnackbars";
+import { resolveEmbeddedInsertDialog } from "../../components/forms/dialogs";
 
 const columnsButtonId = stringLiteral(getUniqueUiId());
 const sortButtonId = stringLiteral(getUniqueUiId());
@@ -88,8 +88,6 @@ export function toolbar(
       href: stringLiteral(toolbar.add.href),
     });
   } else if (toolbar.add?.type === "dialog") {
-    const withValues: Record<string, string> =
-      toolbar.add.opts?.withValues ?? {};
     addButton = nodes.state({
       procedure: (s) => s.scalar(`adding`, `false`),
       children: [
@@ -101,20 +99,17 @@ export function toolbar(
           children: materialIcon("Add"),
           on: { click: (s) => s.setScalar(`adding`, `true`) },
         }),
-        insertDialog({
-          ...toolbar.add.opts,
-          table: tableModel.name,
-          open: `adding`,
-          onClose: (s) => s.setScalar(`adding`, `false`),
-          content: {
-            type: "AutoLabelOnLeft",
-            ignoreFields: Object.keys(withValues),
+        resolveEmbeddedInsertDialog(
+          {
+            open: `adding`,
+            onClose: (s) => s.setScalar(`adding`, `false`),
+            table: tableModel.name,
+            afterTransactionCommit: (_, s) => {
+              s.statements(state.triggerRefresh);
+            },
           },
-          afterTransactionCommit: (formState, s) => {
-            (toolbar.add as any).opts?.afterTransactionCommit?.(formState, s);
-            s.statements(state.triggerRefresh);
-          },
-        }),
+          toolbar.add.dialog,
+        ),
       ],
     });
   }

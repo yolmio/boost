@@ -413,21 +413,17 @@ export function resizeableSeperator({
           nodes.eventHandlers({
             document: {
               mouseMove: (s) =>
-                s
-                  .setScalar(`pending_width`, newValue)
-                  .setScalar("pending_width", "pending_width")
-                  .if(`not waiting`, (s) =>
-                    s.spawn({
-                      detached: true,
-                      procedure: (s) =>
-                        s
-                          .setScalar(`waiting`, `true`)
-                          .delay(`16`)
-                          .statements(setWidth(`pending_width`))
-                          .setScalar(`waiting`, `false`)
-                          .commitUiTreeChanges(),
-                    }),
-                  ),
+                s.setScalar(`pending_width`, newValue).if(`not waiting`, (s) =>
+                  s.spawn({
+                    detached: true,
+                    procedure: (s) =>
+                      s
+                        .setScalar(`waiting`, `true`)
+                        .delay(`16`)
+                        .statements(setWidth(`pending_width`))
+                        .setScalar(`waiting`, `false`),
+                  }),
+                ),
               mouseUp: (s) => s.setScalar(`start_width`, `null`),
             },
           }),

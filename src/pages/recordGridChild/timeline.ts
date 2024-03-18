@@ -7,13 +7,16 @@ import { materialIcon } from "../../components/materialIcon";
 import { popoverMenu } from "../../components/menu";
 import { typography } from "../../components/typography";
 import { button } from "../../components/button";
-import { insertDialog } from "../../components/insertDialog";
+import {
+  EmbeddedInsertDialog,
+  resolveEmbeddedInsertDialog,
+} from "../../components/forms/dialogs/index";
 import { divider } from "../../components/divider";
 import * as yom from "../../yom";
 import { Node } from "../../nodeTypes";
 import { FormStateProcedureExtensions } from "../../formState";
 import { getUniqueUiId } from "../../components/utils";
-import { AutoLabelOnLeftFieldOverride } from "../../components/internal/updateFormShared";
+import { AutoSingleColumnFieldOverride } from "../../components/internal/updateFormShared";
 import { recordDefaultItemContent, styles } from "./timelineShared";
 import { StateStatementsOrFn } from "../../statements";
 import { RecordGridBuilder } from "../recordGrid";
@@ -52,10 +55,6 @@ export interface CustomTableItemContent {
   node: (...values: yom.SqlExpression[]) => Node;
 }
 
-type InsertDialogOpts = {
-  withValues?: Record<string, string>;
-} & FormStateProcedureExtensions;
-
 export interface TableTimelineSource {
   table: string;
   customFrom?: string;
@@ -63,7 +62,7 @@ export interface TableTimelineSource {
   foreignKeyExpr?: yom.SqlExpression;
   disableInsert?: boolean;
   itemContent: RecordDefaultTableItemContent | CustomTableItemContent;
-  insertDialogOpts?: InsertDialogOpts;
+  insertDialog?: EmbeddedInsertDialog;
   icon: {
     styles: Style;
     content: Node;
@@ -367,9 +366,6 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                       .filter((t) => !t.disableInsert)
                       .map((t, i) => {
                         const tableModel = system.db.tables[t.table];
-                        const opts = t.insertDialogOpts ?? {};
-                        const withValues: Record<string, string> =
-                          opts.withValues ?? {};
                         let foreignKeyField = Object.values(
                           tableModel.fields,
                         ).find(
@@ -377,42 +373,28 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
                             f.type === "ForeignKey" &&
                             f.table === ctx.table.name,
                         );
-                        const overrides: Record<
-                          string,
-                          AutoLabelOnLeftFieldOverride
-                        > = {
-                          date: {
-                            initialValue: `current_date()`,
-                          },
+                        const initialValues: Record<string, string> = {
+                          date: `current_date()`,
                         };
+                        const withValues: Record<string, string> = {};
                         if (foreignKeyField) {
-                          overrides[foreignKeyField.name] = {
-                            initialValue: ctx.recordId,
-                          };
+                          initialValues[foreignKeyField.name] = ctx.recordId;
                           withValues[foreignKeyField.name] = ctx.recordId;
                         }
-                        const ignoreFields = Object.keys(withValues);
-                        return insertDialog({
-                          open: `ui.adding_${i}`,
-                          onClose: (s) =>
-                            s.setScalar(`ui.adding_${i}`, `false`),
-                          table: t.table,
-                          content: {
-                            type: "AutoLabelOnLeft",
-                            fieldOverrides: overrides,
-                            ignoreFields,
+                        return resolveEmbeddedInsertDialog(
+                          {
+                            open: `ui.adding_${i}`,
+                            onClose: (s) =>
+                              s.setScalar(`ui.adding_${i}`, `false`),
+                            table: t.table,
+                            withValues,
+                            initialValues,
+                            afterTransactionCommit: (_, s) => {
+                              s.statements(ctx.triggerRefresh);
+                            },
                           },
-                          withValues,
-                          beforeSubmitClient: opts.beforeSubmitClient,
-                          beforeTransactionStart: opts.beforeTransactionStart,
-                          afterTransactionStart: opts.afterTransactionStart,
-                          beforeTransactionCommit: opts.beforeTransactionCommit,
-                          afterTransactionCommit: (state, s) => {
-                            opts.afterTransactionCommit?.(state, s);
-                            s.statements(ctx.triggerRefresh);
-                          },
-                          afterSubmitClient: opts.afterSubmitClient,
-                        });
+                          t.insertDialog,
+                        );
                       }),
                   ],
                 }),

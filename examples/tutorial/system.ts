@@ -1,26 +1,25 @@
-import { system } from "@yolm/boost";
+import { system, types } from "@yolm/boost";
 const { db } = system;
 
 system.name = "tutorial";
 system.region = "us-miami";
 
-db.addTable("contact", (table) => {
+db.table("contact", (table) => {
   table.string("first_name", 50).notNull();
   table.string("last_name", 50).notNull();
   table.email("email").notNull();
-  table.catalog.addAddressFields();
+  table.catalog.addressFields();
   table.linkable();
 });
 
-db.catalog.addNotesTable("contact");
-db.catalog.addAttachmentsTable("contact");
+db.catalog.table.notes("contact");
+db.catalog.table.attachments("contact");
+db.catalog.tables.datagridView(["contact"]);
 
-db.catalog.addDatagridViewTables(["contact"]);
-
-const app = system.addApp("crm", "My CRM");
+const app = system.apps.add("crm", "My CRM");
 app.executionConfig = { canDownload: true };
 
-app.useNavbarShell({
+app.shells.navbar({
   color: "primary",
   variant: "solid",
   links: ["/contacts"],
@@ -30,7 +29,7 @@ app.useNavbarShell({
   },
 });
 
-app.addDashboardGridPage((page) => {
+app.pages.dashboardGrid((page) => {
   page
     .statRow({
       header: "'Contacts'",
@@ -55,14 +54,8 @@ app.addDashboardGridPage((page) => {
           href: (row) => `'/contacts/' || ${row}.id`,
           header: "Name",
         },
-        {
-          cell: (row) => `${row}.email`,
-          header: "Email",
-        },
-        {
-          cell: (row) => `${row}.country`,
-          header: "Country",
-        },
+        "email",
+        "country",
       ],
     })
     .pieChart({
@@ -79,22 +72,25 @@ app.addDashboardGridPage((page) => {
     });
 });
 
-app.addDatagridPage("contact", (page) => {
+app.pages.datagrid("contact", (page) => {
   page
     .viewButton()
     .selectable()
     .toolbar((toolbar) => toolbar.insertDialog().delete());
 });
 
-const halfStyles = { gridColumnSpan: 12, md: { gridColumnSpan: 6 } };
+const halfStyles: types.StyleObject = {
+  gridColumnSpan: 12,
+  md: { gridColumnSpan: 6 },
+};
 
-app.addRecordGridPage("contact", (page) => {
+app.pages.recordGrid("contact", (page) => {
   page
     .namedPageHeader()
     .addressCard({ styles: halfStyles })
     .attachmentsCard({ styles: halfStyles })
     .notesListCard({ styles: halfStyles })
-    .createUpdatePage();
+    .addUpdateFormPage();
 });
 
-system.addAdminApp();
+system.apps.admin();

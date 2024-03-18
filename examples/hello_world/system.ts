@@ -5,9 +5,9 @@ system.region = "us-miami";
 
 // ui
 
-const app = system.addApp("hello_world", "Hello World");
+const app = system.apps.add("hello_world", "Hello World");
 
-app.useNavbarShell({
+app.shells.navbar({
   color: "primary",
   variant: "solid",
   links: ["/contacts", "/reports"],
