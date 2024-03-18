@@ -229,7 +229,7 @@ const css = `
   
     &:focus {
       background-color: var(--code-input-focus-background);
-      outline: 2px solid var(--email-focus-outline);
+      outline: 2px solid var(--code-input-focus-outline);
     }
 
     @media (min-width: 768px) {
@@ -279,7 +279,7 @@ export interface LoginCssVars {
   "--code-input-border-color"?: string;
   "--code-input-background"?: string;
   "--code-input-focus-background"?: string;
-  "--code-input-focus-ring-color"?: string;
+  "--code-input-focus-outline"?: string;
 }
 
 const defaultVars: LoginCssVars = {
@@ -290,18 +290,18 @@ const defaultVars: LoginCssVars = {
 
   "--email-label-color": "#4b5563",
   "--email-input-color": "#4b5563",
-  "--email-focus-outline": "rgba(37, 99, 235, 0.6)",
+  "--email-focus-outline": "rgba(37, 37, 37, 0.6)",
 
-  "--submit-button-background": "#5a35a3",
-  "--submit-button-hover-background": "#4c2d8a",
-  "--submit-button-focus-outline": "#4c2d8a",
-  "--submit-button-color": "#ffffff",
+  "--submit-button-background": "#000000",
+  "--submit-button-hover-background": "#1a1a1a",
+  "--submit-button-focus-outline": "#1a1a1a",
+  "--submit-button-color": "#fafafa",
 
   "--error-background": "#dc2626",
   "--error-color": "#f9fafb",
 
-  "--spinner-text-color": "#1d4ed8",
-  "--spinner-fill-color": "#d1d5db",
+  "--spinner-text-color": "#1a1a1a",
+  "--spinner-fill-color": "#ffffff",
 
   "--register-heading-color": "#1f2937",
   "--register-text-color": "#4b5563",
@@ -309,7 +309,7 @@ const defaultVars: LoginCssVars = {
   "--code-input-border-color": "#d1d5db",
   "--code-input-background": "#ffffff",
   "--code-input-focus-background": "#f3f4f6",
-  "--code-input-focus-ring-color": "#4c2d8a",
+  "--code-input-focus-outline": "rgba(37, 37, 37, 0.6)",
 };
 
 interface Logo {
