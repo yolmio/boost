@@ -5,7 +5,6 @@ import { Node } from "../nodeTypes";
 import { App, Table, system } from "../system";
 import { Style } from "../styleTypes";
 import { baseGridStyles, containerStyles, createStyles } from "../styleUtils";
-import { pluralize } from "../utils/inflectors";
 import { stringLiteral } from "../utils/sqlHelpers";
 import { materialIcon } from "../components/materialIcon";
 import { BasicStatements } from "../statements";
@@ -24,6 +23,8 @@ import * as addressesCard from "./recordGridChild/addressesCard";
 import * as attachmentsCard from "./recordGridChild/attachmentsCard";
 import * as notesListCard from "./recordGridChild/notesListCard";
 import * as twoColumnDisplayCard from "./recordGridChild/twoColumnDisplayCard";
+import * as shallowDateRelationCard from "./recordGridChild/shallowDateRelationCard";
+import * as relatedListCard from "./recordGridChild/relatedListCard";
 import * as forms from "./forms/index";
 import { getTableBaseUrl } from "../utils/url";
 
@@ -38,7 +39,10 @@ export class RecordGridBuilder {
   #rootStyles?: Style;
   #children: Node[] = [];
 
-  constructor(table: string, private app: App) {
+  constructor(
+    table: string,
+    private app: App,
+  ) {
     const tableModel = system.db.tables[table];
     this.pathBase = getTableBaseUrl(table);
     this.recordId = "ui.record_id";
@@ -145,6 +149,16 @@ export class RecordGridBuilder {
 
   twoColumnDisplayCard(opts: twoColumnDisplayCard.Opts) {
     this.#children.push(twoColumnDisplayCard.content(opts, this));
+    return this;
+  }
+
+  shallowDateRelationCard(opts: shallowDateRelationCard.Opts) {
+    this.#children.push(shallowDateRelationCard.content(opts, this));
+    return this;
+  }
+
+  relatedListCard(opts: relatedListCard.Opts) {
+    this.#children.push(relatedListCard.content(opts, this));
     return this;
   }
 
