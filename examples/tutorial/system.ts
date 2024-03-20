@@ -94,3 +94,11 @@ app.pages.recordGrid("contact", (page) => {
 });
 
 system.apps.admin();
+
+system.api.auto({
+  tables: {
+    contact: {
+      relations: ["contact_attachment", "contact_note"],
+    },
+  },
+});

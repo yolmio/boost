@@ -9,8 +9,6 @@ import {
   BasicStatementsOrFn,
   DomStatements,
   DomStatementsOrFn,
-  EndpointStatements,
-  EndpointStatementsOrFn,
   ScriptStatements,
   ScriptStatementsOrFn,
   StateStatementsOrFn,
@@ -39,6 +37,7 @@ import * as fs from "fs";
 import { Apps } from "./apps/index";
 import { DbCatalog } from "./catalog/db";
 import { TableCatalog } from "./catalog/table";
+import { Api } from "./api";
 
 /**
  * The system singleton.
@@ -79,9 +78,9 @@ export class System {
   vcpus: yom.VCpus = 2;
   memoryGb: yom.MemoryGb = 2;
   fileSizeGb: number = 10;
-  db: Db = new Db();
+  db = new Db();
   apps = new Apps(this);
-  api: Api = new Api();
+  api = new Api(this);
   enums: Record<string, Enum> = {};
   scalarFunctions: Record<string, ScalarFunction> = {};
   tableFunctions: Record<string, TableFunction> = {};
@@ -678,69 +677,6 @@ export class Db {
   }
 }
 
-export class Api {
-  #endpoints: yom.ApiEndpoint[] = [];
-
-  get(path: string, helper: GetEndpointHelper) {
-    this.#endpoints.push({
-      method: "GET",
-      path,
-      procedure: EndpointStatements.normalizeToArray(helper.procedure),
-      query: helper.query,
-    });
-  }
-
-  #addEndpoint(
-    method: yom.EndpointMethod,
-    path: string,
-    helper: EndpointHelper,
-  ) {
-    this.#endpoints.push({
-      method,
-      path,
-      body: helper.jsonBodyScalar
-        ? { type: "Json", scalar: helper.jsonBodyScalar }
-        : helper.textBodyScalar
-          ? { type: "Text", scalar: helper.textBodyScalar }
-          : undefined,
-      procedure: EndpointStatements.normalizeToArray(helper.procedure),
-      query: helper.query,
-    });
-  }
-
-  post(path: string, helper: EndpointHelper) {
-    this.#addEndpoint("POST", path, helper);
-  }
-
-  put(path: string, helper: EndpointHelper) {
-    this.#addEndpoint("PUT", path, helper);
-  }
-
-  patch(path: string, helper: EndpointHelper) {
-    this.#addEndpoint("PATCH", path, helper);
-  }
-
-  delete(path: string, helper: EndpointHelper) {
-    this.#addEndpoint("DELETE", path, helper);
-  }
-
-  generateYom(): yom.AppApi {
-    return { endpoints: this.#endpoints };
-  }
-}
-
-export interface GetEndpointHelper {
-  query?: yom.QueryParam[];
-  procedure: EndpointStatementsOrFn;
-}
-
-export interface EndpointHelper {
-  query?: yom.QueryParam[];
-  jsonBodyScalar?: string;
-  textBodyScalar?: string;
-  procedure: EndpointStatementsOrFn;
-}
-
 export class Test {
   #data: yom.TestData[] = [];
   #api: yom.ApiTest[] = [];
@@ -893,6 +829,8 @@ export class Table {
   getHrefToRecord?: (id: yom.SqlExpression) => yom.SqlExpression;
   baseUrl = "";
 
+  skipAutoApi = false;
+
   ext: Record<string, any> = {};
 
   constructor(
@@ -981,6 +919,8 @@ abstract class FieldBase {
   group?: string;
   indexed = false;
   ext: Record<string, any> = {};
+  /** Type this should be cast into */
+  abstract castType: string;
 
   constructor(
     public name: string,
@@ -1012,6 +952,7 @@ export type StringUsage =
 
 export class StringField extends FieldBase {
   type = "String" as const;
+  castType = "string";
   collation?: yom.Collation;
   minLength?: number;
   maxBytesPerChar?: number;
@@ -1074,6 +1015,7 @@ abstract class IntegerFieldBase extends NumericFieldBase {
 
 export class TinyUintField extends IntegerFieldBase {
   type = "TinyUint" as const;
+  castType = "smallint";
 
   generateYomFieldType(): yom.FieldType {
     return { type: "TinyUint" };
@@ -1081,6 +1023,7 @@ export class TinyUintField extends IntegerFieldBase {
 }
 export class SmallUintField extends IntegerFieldBase {
   type = "SmallUint" as const;
+  castType = "int";
 
   generateYomFieldType(): yom.FieldType {
     return { type: "SmallUint" };
@@ -1088,6 +1031,7 @@ export class SmallUintField extends IntegerFieldBase {
 }
 export class UintField extends IntegerFieldBase {
   type = "Uint" as const;
+  castType = "bigint";
 
   generateYomFieldType(): yom.FieldType {
     return { type: "Uint" };
@@ -1095,6 +1039,7 @@ export class UintField extends IntegerFieldBase {
 }
 export class BigUintField extends IntegerFieldBase {
   type = "BigUint" as const;
+  castType = "bigint";
 
   generateYomFieldType(): yom.FieldType {
     return { type: "BigUint" };
@@ -1102,6 +1047,7 @@ export class BigUintField extends IntegerFieldBase {
 }
 export class TinyIntField extends IntegerFieldBase {
   type = "TinyInt" as const;
+  castType = "smallint";
 
   generateYomFieldType(): yom.FieldType {
     return { type: "TinyInt" };
@@ -1109,6 +1055,7 @@ export class TinyIntField extends IntegerFieldBase {
 }
 export class SmallIntField extends IntegerFieldBase {
   type = "SmallInt" as const;
+  castType = "smallint";
 
   generateYomFieldType(): yom.FieldType {
     return { type: "SmallInt" };
@@ -1116,6 +1063,7 @@ export class SmallIntField extends IntegerFieldBase {
 }
 export class IntField extends IntegerFieldBase {
   type = "Int" as const;
+  castType = "int";
 
   generateYomFieldType(): yom.FieldType {
     return { type: "Int" };
@@ -1123,6 +1071,7 @@ export class IntField extends IntegerFieldBase {
 }
 export class BigIntField extends IntegerFieldBase {
   type = "BigInt" as const;
+  castType = "bigint";
 
   generateYomFieldType(): yom.FieldType {
     return { type: "BigInt" };
@@ -1141,6 +1090,7 @@ export type IntegerField =
 
 export class RealField extends NumericFieldBase {
   type = "Real" as const;
+  castType = "real";
   isVariablePrecision(): boolean {
     return true;
   }
@@ -1151,6 +1101,7 @@ export class RealField extends NumericFieldBase {
 }
 export class DoubleField extends NumericFieldBase {
   type = "Double" as const;
+  castType = "double";
   isVariablePrecision(): boolean {
     return true;
   }
@@ -1164,6 +1115,7 @@ export type DecimalUsage = MoneyUsage | { type: "Percentage" };
 
 export class DecimalField extends NumericFieldBase {
   type = "Decimal" as const;
+  castType: string;
   usage?: DecimalUsage;
   constructor(
     name: string,
@@ -1173,6 +1125,7 @@ export class DecimalField extends NumericFieldBase {
     public signed: boolean,
   ) {
     super(name, displayName);
+    this.castType = `decimal(${precision}, ${scale})`;
   }
 
   generateYomFieldType(): yom.FieldType {
@@ -1200,6 +1153,7 @@ export type NumericFields =
 
 export class DateField extends FieldBase {
   type = "Date" as const;
+  castType = "date";
   formatString?: string;
 
   formatExpr(expr: yom.SqlExpression): yom.SqlExpression {
@@ -1214,6 +1168,7 @@ export class DateField extends FieldBase {
 
 export class TimeField extends FieldBase {
   type = "Time" as const;
+  castType = "time";
   formatString?: string;
 
   formatExpr(expr: yom.SqlExpression): yom.SqlExpression {
@@ -1229,6 +1184,7 @@ export class TimeField extends FieldBase {
 
 export class TimestampField extends FieldBase {
   type = "Timestamp" as const;
+  castType = "timestamp";
   formatString?: string;
 
   formatExpr(expr: yom.SqlExpression): yom.SqlExpression {
@@ -1245,6 +1201,7 @@ export class TimestampField extends FieldBase {
 
 export class TxField extends FieldBase {
   type = "Tx" as const;
+  castType = "bigint";
 
   generateYomFieldType(): yom.FieldType {
     return { type: "Tx" };
@@ -1259,6 +1216,7 @@ export interface BoolEnumLikeConfig {
 
 export class BoolField extends FieldBase {
   type = "Bool" as const;
+  castType = "bool";
   enumLike?: BoolEnumLikeConfig;
 
   generateYomFieldType(): yom.FieldType {
@@ -1267,6 +1225,7 @@ export class BoolField extends FieldBase {
 }
 
 export class UuidField extends FieldBase {
+  castType = "uuid";
   type = "Uuid" as const;
 
   generateYomFieldType(): yom.FieldType {
@@ -1275,6 +1234,7 @@ export class UuidField extends FieldBase {
 }
 
 export class JsonField extends FieldBase {
+  castType = "json";
   type = "Json" as const;
 
   generateYomFieldType(): yom.FieldType {
@@ -1283,6 +1243,7 @@ export class JsonField extends FieldBase {
 }
 
 export class OrderingField extends FieldBase {
+  castType = "ordering";
   type = "Ordering" as const;
 
   generateYomFieldType(): yom.FieldType {
@@ -1293,9 +1254,11 @@ export class OrderingField extends FieldBase {
 export class EnumField extends FieldBase {
   type = "Enum" as const;
   enum: string;
+  castType: string;
   constructor(name: string, displayName: string, _enum: string) {
     super(name, displayName);
     this.enum = _enum;
+    this.castType = "enums." + _enum;
   }
 
   generateYomFieldType(): yom.FieldType {
@@ -1305,6 +1268,7 @@ export class EnumField extends FieldBase {
 
 export class ForeignKeyField extends FieldBase {
   type = "ForeignKey" as const;
+  castType = "bigint";
   constructor(
     name: string,
     displayName: string,
@@ -1351,6 +1315,7 @@ export class TableBuilder {
   #formControl?: TableControl;
   #displayName: string;
   #primaryKeyFieldName?: string;
+  #skipAutoApi = false;
 
   constructor(private name: string) {
     this.#displayName = system.displayNameConfig.table(name);
@@ -1726,6 +1691,11 @@ export class TableBuilder {
     return this;
   }
 
+  skipAutoApi(shouldSkip?: boolean) {
+    this.#skipAutoApi = shouldSkip ?? true;
+    return this;
+  }
+
   finish(): Table {
     const fields: { [s: string]: Field } = {};
     for (const f of this.#fields) {
@@ -1845,6 +1815,7 @@ export class TableBuilder {
     table.getHrefToRecord = this.#getHrefToRecord;
     table.baseUrl = this.#getBaseUrl();
     table.control = this.#formControl;
+    table.skipAutoApi = this.#skipAutoApi;
     return table;
   }
 }

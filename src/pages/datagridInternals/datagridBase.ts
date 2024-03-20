@@ -843,6 +843,7 @@ export function addViewTables(datagridNames: string[]) {
       { field: "user", distinctNulls: false },
       "datagrid_name",
     ]);
+    t.skipAutoApi();
   });
   system.db.table("datagrid_view_column", (t) => {
     t.fk("view", "datagrid_view").notNull();
@@ -851,6 +852,7 @@ export function addViewTables(datagridNames: string[]) {
     t.ordering("ordering").notNull();
     t.tinyUint("sort_index");
     t.bool("sort_asc");
+    t.skipAutoApi();
   });
   system.db.table("datagrid_view_filter_term", (t) => {
     t.fk("view", "datagrid_view").notNull();
@@ -862,6 +864,7 @@ export function addViewTables(datagridNames: string[]) {
     t.string("value_1", 2000);
     t.string("value_2", 2000);
     t.string("value_3", 2000);
+    t.skipAutoApi();
   });
   addDgFilterOp();
 }
