@@ -61,7 +61,8 @@ async function downloadLatestYolm() {
 async function initSystem() {
   const yolmPath = getYolmPath();
   await ensureDir(getYolmDir());
-  if (!Bun.file(yolmPath).exists()) {
+  const yolmExecutableExists = await Bun.file(yolmPath).exists();
+  if (!yolmExecutableExists) {
     await downloadLatestYolm();
   } else {
     const proc = Bun.spawn([yolmPath, "upgrade"], {
