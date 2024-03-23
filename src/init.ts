@@ -51,7 +51,7 @@ async function downloadLatestYolm() {
   const compressedArray = new Uint8Array(compressedBuffer);
   const data = await Bun.gunzipSync(compressedArray);
   const yolmPath = getYolmPath();
-  Bun.write(yolmPath, data, { createPath: true });
+  await Bun.write(yolmPath, data, { createPath: true });
   if (!isWindows()) {
     chmodSync(yolmPath, 0o777);
   }
