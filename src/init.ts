@@ -1,7 +1,7 @@
-import { arch as osArch, homedir, type as osType } from "os";
-import { join } from "path";
-import { chmodSync } from "fs";
-import { exit } from "process";
+import { arch as osArch, homedir, type as osType } from "node:os";
+import { join } from "node:path";
+import { exit } from "node:process";
+import { chmodSync, unlinkSync } from "node:fs";
 
 function isWindows() {
   return osType().toLowerCase() === "windows_nt";
@@ -29,6 +29,10 @@ function getYolmPath() {
   return join(homedir(), ".yolm", "bin", "yolm", suffix);
 }
 
+function getDownloadedPath() {
+  return join(homedir(), ".yolm", "bin", "yolm_downloaded");
+}
+
 async function downloadLatestYolm() {
   const fileUrl = `https://yolmcli.com/${getCompressedFileName()}`;
   const response = await fetch(fileUrl);
@@ -40,12 +44,10 @@ async function downloadLatestYolm() {
   if (!isWindows()) {
     chmodSync(yolmPath, 0o777);
   }
-  console.log(
-    "Yolm CLI successfully installed. Please add $HOME/.yolm/bin to your path",
-  );
+  console.log("Yolm development executable successfully installed.");
 }
 
-async function createSystem() {
+async function initSystem() {
   const yolmPath = getYolmPath();
   if (!Bun.file(yolmPath).exists()) {
     await downloadLatestYolm();
@@ -58,7 +60,15 @@ async function createSystem() {
     if (proc.exitCode !== 0) {
       exit(1);
     }
+    if (isWindows()) {
+      const downloadedPath = getDownloadedPath();
+      const downloadedFile = Bun.file(downloadedPath);
+      if (await downloadedFile.exists()) {
+        Bun.write(yolmPath, downloadedFile);
+        unlinkSync(downloadedPath);
+      }
+    }
   }
 }
 
-await createSystem();
+await initSystem();
