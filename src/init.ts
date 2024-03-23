@@ -2,9 +2,16 @@ import { arch as osArch, homedir, type as osType } from "node:os";
 import { join } from "node:path";
 import { exit } from "node:process";
 import { chmodSync, unlinkSync } from "node:fs";
+import { mkdir } from "node:fs/promises";
 
 function isWindows() {
   return osType().toLowerCase() === "windows_nt";
+}
+
+export async function ensureDir(dir: string) {
+  if (!(await Bun.file(dir).exists())) {
+    await mkdir(dir, { recursive: true });
+  }
 }
 
 function getCompressedFileName() {
@@ -24,9 +31,13 @@ function getCompressedFileName() {
   throw new Error("unsupported operating system");
 }
 
+function getYolmDir() {
+  return join(homedir(), ".yolm", "bin");
+}
+
 function getYolmPath() {
   const suffix = isWindows() ? ".exe" : "";
-  return join(homedir(), ".yolm", "bin", "yolm", suffix);
+  return join(getYolmDir(), "yolm", suffix);
 }
 
 function getDownloadedPath() {
@@ -49,6 +60,7 @@ async function downloadLatestYolm() {
 
 async function initSystem() {
   const yolmPath = getYolmPath();
+  await ensureDir(getYolmDir());
   if (!Bun.file(yolmPath).exists()) {
     await downloadLatestYolm();
   } else {
