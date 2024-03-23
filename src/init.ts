@@ -58,7 +58,7 @@ async function downloadLatestYolm() {
   console.log("Yolm development executable successfully installed.");
 }
 
-async function initSystem() {
+async function ensureLatestYolmExecutable() {
   const yolmPath = getYolmPath();
   await ensureDir(getYolmDir());
   const yolmExecutableExists = await Bun.file(yolmPath).exists();
@@ -82,6 +82,23 @@ async function initSystem() {
       }
     }
   }
+}
+
+async function runInitCommand() {
+  const yolmPath = getYolmPath();
+  const proc = Bun.spawn([yolmPath, "init"], {
+    stdout: "inherit",
+    stderr: "inherit",
+  });
+  await proc.exited;
+  if (proc.exitCode !== 0) {
+    exit(1);
+  }
+}
+
+async function initSystem() {
+  await ensureLatestYolmExecutable();
+  await runInitCommand();
 }
 
 await initSystem();
