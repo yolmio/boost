@@ -50,7 +50,7 @@ async function downloadLatestYolm() {
   const response = await fetch(fileUrl);
   const compressedBuffer = await response.arrayBuffer();
   const compressedArray = new Uint8Array(compressedBuffer);
-  const data = await Bun.gunzipSync(compressedArray);
+  const data = Bun.gunzipSync(compressedArray);
   const yolmPath = getYolmPath();
   await Bun.write(yolmPath, data, { createPath: true });
   if (!isWindows()) {
@@ -78,7 +78,7 @@ async function ensureLatestYolmExecutable() {
       const downloadedPath = getDownloadedPath();
       const downloadedFile = Bun.file(downloadedPath);
       if (await downloadedFile.exists()) {
-        Bun.write(yolmPath, downloadedFile);
+        await Bun.write(yolmPath, downloadedFile);
         unlinkSync(downloadedPath);
       }
     }

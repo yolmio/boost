@@ -1,4 +1,4 @@
-import { homedir } from "os";
+import { homedir, type as osType } from "os";
 import * as path from "path";
 
 export function yolmPath() {
@@ -133,4 +133,8 @@ export function createProfiles(profiles: Record<string, any>) {
     };
   }
   return computedProfile;
+}
+
+export function isWindows() {
+  return osType().toLowerCase() === "windows_nt";
 }
