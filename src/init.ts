@@ -37,7 +37,8 @@ function getYolmDir() {
 
 function getYolmPath() {
   const suffix = isWindows() ? ".exe" : "";
-  return join(getYolmDir(), "yolm", suffix);
+  const fileName = `yolm${suffix}`;
+  return join(getYolmDir(), fileName);
 }
 
 function getDownloadedPath() {
