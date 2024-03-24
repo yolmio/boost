@@ -14,7 +14,7 @@ function Get-DownloadedPath {
     return Join-Path $HOME ".yolm\bin\yolm_downloaded"
 }
 
-function Ensure-LatestYolmExecutable {
+function Update-LatestYolmVersion {
     $yolmPath = Get-YolmPath
     $yolmDir = Get-YolmDir
     if (-not (Test-Path $yolmDir)) {
@@ -22,7 +22,7 @@ function Ensure-LatestYolmExecutable {
     }
 
     if (-not (Test-Path $yolmPath)) {
-        Download-LatestYolm
+        Add-Yolm
     } else {
         $proc = Start-Process -FilePath $yolmPath -ArgumentList "upgrade" -PassThru -Wait
         if ($proc.ExitCode -ne 0) {
@@ -36,34 +36,51 @@ function Ensure-LatestYolmExecutable {
     }
 }
 
-function Download-LatestYolm {
+Function Decompress-GZip-File{
+    Param(
+        $infile,
+        $outfile = ($infile -replace '\.gz$','')
+        )
+
+    $inputData = New-Object System.IO.FileStream $inFile, ([IO.FileMode]::Open), ([IO.FileAccess]::Read), ([IO.FileShare]::Read)
+    $output = New-Object System.IO.FileStream $outFile, ([IO.FileMode]::Create), ([IO.FileAccess]::Write), ([IO.FileShare]::None)
+    $gzipStream = New-Object System.IO.Compression.GzipStream $inputData, ([IO.Compression.CompressionMode]::Decompress)
+
+    $buffer = New-Object byte[](1024)
+    while($true){
+        $read = $gzipstream.Read($buffer, 0, 1024)
+        if ($read -le 0){break}
+        $output.Write($buffer, 0, $read)
+        }
+
+    $gzipStream.Close()
+    $output.Close()
+    $inputData.Close()
+}
+
+function Add-Yolm {
     $fileUrl = "https://yolmcli.com/" + (Get-CompressedFileName)
     $yolmPath = Get-YolmPath
     $yolmGzPath = "$yolmPath.gz"
 
     Invoke-WebRequest -Uri $fileUrl -OutFile $yolmGzPath
-
-    # Decompress the .gz file
-    $fileStream = [System.IO.File]::OpenRead($yolmGzPath)
-    $decompressedStream = New-Object System.IO.FileStream $yolmPath, 'Create'
-    $gzipStream = New-Object System.IO.Compression.GZipStream $fileStream, [System.IO.Compression.CompressionMode]::Decompress
-    $gzipStream.CopyTo($decompressedStream)
-    $gzipStream.Dispose()
-    $decompressedStream.Dispose()
-    $fileStream.Dispose()
-
+    Decompress-GZip-File $yolmGzPath $yolmPath
     Remove-Item -Path $yolmGzPath
+    
     Write-Host "Yolm development executable successfully installed."
 }
 
-function Run-InitCommand {
+function Add-System {
     $yolmPath = Get-YolmPath
-    $proc = Start-Process -FilePath $yolmPath -ArgumentList "init" -PassThru -Wait
-    if ($proc.ExitCode -ne 0) {
+    $arguments = "init"
+    $command = "$yolmPath $arguments"
+    Invoke-Expression $command
+    if ($LASTEXITCODE -ne 0) {
         exit 1
     }
 }
 
+
 # Init System
-Ensure-LatestYolmExecutable
-Run-InitCommand
+Update-LatestYolmVersion
+Add-System
