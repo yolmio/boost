@@ -63,7 +63,8 @@ function Add-Yolm {
     $yolmPath = Get-YolmPath
     $yolmGzPath = "$yolmPath.gz"
 
-    Invoke-WebRequest -Uri $fileUrl -OutFile $yolmGzPath
+    $ProgressPreference = 'SilentlyContinue'
+    Invoke-WebRequest -UseBasicParsing -Uri $fileUrl -OutFile $yolmGzPath
     Decompress-GZip-File $yolmGzPath $yolmPath
     Remove-Item -Path $yolmGzPath
     
