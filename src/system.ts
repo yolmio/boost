@@ -75,8 +75,36 @@ export class System {
   };
   collation = "NoCase" as yom.Collation;
   autoTrim = "None" as yom.AutoTrim;
+  /**
+   * If set to true, the system will be deployed as a hobby plan, ignoring the vcpus, memoryGb and fileSizeGb settings.
+   *
+   * @default false
+   */
+  hobbyPlan = false;
+  /**
+   * How many vcpus to allocate to the system on the main and failover server.
+   *
+   * @default 2
+   */
   vcpus: yom.VCpus = 2;
+  /**
+   * How many gigabytes of memory to allocate to the system on the main and failover server.
+   *
+   * Keep in mind yolm is an in memory database, and runs the whole api, ui, etc in the same process.
+   *
+   * @default 2
+   */
   memoryGb: yom.MemoryGb = 2;
+  /**
+   * How many gigabytes of files this system can have.
+   *
+   * We do not automatically add capacity to this, if you need more space you will need to upgrade your plan
+   * otherwise your file uploads will fail.
+   *
+   * For the standard plan 10GB is the limit, for the hobby plan 1GB is the limit.
+   *
+   * @default 10
+   */
   fileSizeGb: number = 10;
   db = new Db();
   apps = new Apps(this);
@@ -255,6 +283,7 @@ export class System {
     return {
       // todo make this part of the model
       locale: "en_us",
+      hobbyPlan: this.hobbyPlan,
       region: (this.region ?? "not-set") as any,
       replicas: this.replicas,
       name: this.name,

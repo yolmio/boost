@@ -6,6 +6,7 @@ export interface System {
   name: string;
   region: Region;
   replicas: Replica[];
+  hobbyPlan?: boolean;
   vcpus: VCpus;
   memoryGb: MemoryGb;
   /** Must be either 10 or divisible by 100 */
