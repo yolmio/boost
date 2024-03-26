@@ -87,6 +87,7 @@ export function content(opts: Opts) {
         children: stringLiteral(opts.header),
       }),
       nodes.state({
+        watch: [`global_refresh_key`],
         procedure: (s) => s.table(`table`, opts.query),
         statusScalar: `status`,
         children: nodes.if({

@@ -161,6 +161,7 @@ export function content(opts: Opts) {
           ? [styles.card(), opts.cardStyles]
           : styles.card(),
         children: nodes.state({
+          watch: [`global_refresh_key`],
           procedure:
             typeof opts.state === "string"
               ? (s) => s.table(`result`, opts.state as string)

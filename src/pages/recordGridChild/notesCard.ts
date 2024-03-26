@@ -75,7 +75,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
           }),
           divider(),
           nodes.state({
-            watch: [ctx.refreshKey],
+            watch: ctx.refreshKeys,
             procedure: (s) =>
               s.scalar(
                 `note`,

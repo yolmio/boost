@@ -7,7 +7,6 @@ import { input } from "../components/input";
 import { materialIcon } from "../components/materialIcon";
 import { getTableRecordSelect } from "../components/tableRecordSelect";
 import { typography } from "../components/typography";
-import { system } from "../system";
 import { nodes } from "../nodeHelpers";
 import { Node, RouteNode } from "../nodeTypes";
 import { createStyles, cssVar } from "../styleUtils";
@@ -436,6 +435,13 @@ export class SimpleReportsPageBuilder {
     this.#sections.push({ header, reports: [] });
   }
 
+  #stateWatch(opts: ReportBase) {
+    return [
+      ...(opts.parameters?.map((p) => p.name) ?? []),
+      "global_refresh_key",
+    ];
+  }
+
   /**
    * Helper function to define parameters that can be shared between reports.
    *
@@ -459,7 +465,7 @@ export class SimpleReportsPageBuilder {
     let node = nodes.sourceMap(
       `simpleReportsPage.singleColumnFixedRowsTable(${opts.name})`,
       nodes.state({
-        watch: opts.parameters?.map((p) => p.name),
+        watch: this.#stateWatch(opts),
         procedure,
         statusScalar: "status",
         children: wrapWithLoadingErrorSwitch(
@@ -517,7 +523,7 @@ export class SimpleReportsPageBuilder {
     let node: Node = nodes.sourceMap(
       `simpleReportPage.table(${opts.name})`,
       nodes.state({
-        watch: opts.parameters?.map((p) => p.name),
+        watch: this.#stateWatch(opts),
         procedure,
         statusScalar: "status",
         children: wrapWithLoadingErrorSwitch([
@@ -559,7 +565,7 @@ export class SimpleReportsPageBuilder {
     let node: Node = nodes.sourceMap(
       `simpleReportPage.downloadButton(${opts.name})`,
       nodes.state({
-        watch: opts.parameters?.map((p) => p.name),
+        watch: this.#stateWatch(opts),
         procedure,
         statusScalar: "status",
         children: wrapWithLoadingErrorSwitch([
@@ -669,7 +675,7 @@ export class SimpleReportsPageBuilder {
     let node = nodes.sourceMap(
       `simpleReportPage.tableComparison(${opts.name})`,
       nodes.state({
-        watch: opts.parameters?.map((p) => p.name),
+        watch: this.#stateWatch(opts),
         procedure,
         statusScalar: "status",
         children: wrapWithLoadingErrorSwitch(
@@ -708,7 +714,7 @@ export class SimpleReportsPageBuilder {
     let node: Node = nodes.sourceMap(
       `simpleReportPage.customReport(${opts.name})`,
       nodes.state({
-        watch: opts.parameters?.map((p) => p.name),
+        watch: this.#stateWatch(opts),
         procedure: opts.state,
         statusScalar: "status",
         errorRecord: `report_error`,

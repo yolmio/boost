@@ -376,10 +376,10 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
           typeof v === "string"
             ? v
             : "field" in v
-            ? v.field
-            : v.condition(...v.fields.map((f) => `record.${f}`)) +
-              " as chip_" +
-              i,
+              ? v.field
+              : v.condition(...v.fields.map((f) => `record.${f}`)) +
+                " as chip_" +
+                i,
         )
         .join(", ")
     : "";
@@ -405,7 +405,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
   return nodes.sourceMap(
     "namedPageHeader",
     nodes.state({
-      watch: [refreshKey],
+      watch: ctx.refreshKeys,
       procedure: (s) =>
         s.record(
           `record`,

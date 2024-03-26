@@ -81,7 +81,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
   return nodes.sourceMap(
     `relatedTable(table: ${opts.table})`,
     nodes.state({
-      watch: [ctx.refreshKey],
+      watch: ctx.refreshKeys,
       procedure: (s) =>
         s.table(
           "record",

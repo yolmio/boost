@@ -164,6 +164,7 @@ function createStat(opts: StatOptions, statCount: number) {
         children: opts.title,
       }),
       nodes.state({
+        watch: [`global_refresh_key`],
         procedure: (s) =>
           s
             .statements(opts.procedure)

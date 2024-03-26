@@ -390,6 +390,20 @@ export class App {
       type: "statement-navigate",
     },
   };
+  globalRefreshConfig: yom.GlobalRefreshConfig = {
+    windowFocus: {
+      viewTransition: {
+        timing: "next_and_final",
+        type: "global-refresh",
+      },
+    },
+    pullTransactionChange: {
+      viewTransition: {
+        timing: "next_and_final",
+        type: "global-refresh",
+      },
+    },
+  };
 
   #globalStyles: StyleObject[] = [];
   #keyframeIdGen = new SequentialIDGenerator();
@@ -621,6 +635,7 @@ export class App {
         tables: Object.values(this.deviceDb.tables).map((t) => t.generateYom()),
       },
       navigationViewTransitionConfig: this.navigationViewTransitionConfig,
+      globalRefreshConfig: this.globalRefreshConfig,
     };
   }
 }

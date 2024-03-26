@@ -38,6 +38,7 @@ export class RecordGridBuilder {
   #allow?: yom.SqlExpression;
   #rootStyles?: Style;
   #children: Node[] = [];
+  refreshKeys: string[];
 
   constructor(
     table: string,
@@ -52,6 +53,7 @@ export class RecordGridBuilder {
       `ui.record_grid_refresh_key + 1`,
     );
     this.table = tableModel;
+    this.refreshKeys = [this.refreshKey, "global_refresh_key"];
   }
 
   allow(expr: yom.SqlExpression) {
@@ -177,7 +179,7 @@ export class RecordGridBuilder {
         // in the same round trip and so there will be no switch to status = 'fallback_triggered'
         (s) => s.scalar(`record_grid_refresh_key`, `0`),
       children: nodes.state({
-        watch: [`record_grid_refresh_key`],
+        watch: [`record_grid_refresh_key`, `global_refresh_key`],
         procedure: (s) =>
           s.scalar(
             `record_exists`,

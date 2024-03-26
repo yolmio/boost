@@ -136,7 +136,7 @@ export function simpleDatagridBase(opts: SimpleDatagridBaseOpts) {
     dgState,
   );
   children = nodes.state({
-    watch: ["dg_refresh_key"],
+    watch: ["dg_refresh_key", "global_refresh_key"],
     procedure: getResultsProc,
     allow,
     statusScalar: "status",

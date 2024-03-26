@@ -1548,17 +1548,26 @@ export interface App {
     tables: Table[];
   };
   navigationViewTransitionConfig?: NavigationViewTransitionConfig;
+  globalRefreshConfig?: GlobalRefreshConfig;
+}
+
+export interface GlobalRefreshConfig {
+  windowFocus?: GlobalRefreshWindowFocusConfig;
+  pullTransactionChange?: GlobalRefreshPullTransactionChangeConfig;
+}
+
+export interface GlobalRefreshWindowFocusConfig {
+  viewTransition?: SimpleViewTransitionConfig;
+}
+
+export interface GlobalRefreshPullTransactionChangeConfig {
+  viewTransition?: SimpleViewTransitionConfig;
 }
 
 export interface NavigationViewTransitionConfig {
-  link?: LinkViewTransitionConfig;
+  link?: SimpleViewTransitionConfig;
   popstate?: PopstateViewTransitionConfig;
-  statement?: StatementViewTransitionConfig;
-}
-
-export interface LinkViewTransitionConfig {
-  timing: ViewTransitionTiming;
-  type: string;
+  statement?: SimpleViewTransitionConfig;
 }
 
 export interface PopstateViewTransitionConfig {
@@ -1568,7 +1577,7 @@ export interface PopstateViewTransitionConfig {
   otherType: string;
 }
 
-export interface StatementViewTransitionConfig {
+export interface SimpleViewTransitionConfig {
   timing: ViewTransitionTiming;
   type: string;
 }

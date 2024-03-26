@@ -251,7 +251,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
           divider(),
           cardOverflow({
             children: nodes.state({
-              watch: [ctx.refreshKey, `row_count`],
+              watch: [...ctx.refreshKeys, `row_count`],
               procedure: (s) =>
                 s
                   .record("related", relatedQuery)

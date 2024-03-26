@@ -20,7 +20,6 @@ import {
 } from "./datagridBase";
 import { alert } from "../../components/alert";
 import { checkbox } from "../../components/checkbox";
-import { system } from "../../system";
 
 function withViewDrawerState(datagridName: string, children: Node) {
   return nodes.state({
@@ -31,7 +30,7 @@ function withViewDrawerState(datagridName: string, children: Node) {
         .scalar(`proc_error`, { type: "String", maxLength: 2000 })
         .scalar(`proc_in_progress`, `false`),
     children: nodes.state({
-      watch: ["drawer_refresh_key"],
+      watch: ["drawer_refresh_key", "global_refresh_key"],
       procedure: (s) =>
         s.table(
           `datagrid_view`,

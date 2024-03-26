@@ -158,8 +158,8 @@ export function datagridBase(opts: DatagridBaseOpts) {
   );
   children = nodes.state({
     watch: opts.enableViews
-      ? ["dg_refresh_key", "view", "reset_key"]
-      : ["dg_refresh_key"],
+      ? ["dg_refresh_key", "view", "reset_key", "global_refresh_key"]
+      : ["dg_refresh_key", "global_refresh_key"],
     procedure: getResultsProc,
     statusScalar: "status",
     errorRecord: "dg_error",

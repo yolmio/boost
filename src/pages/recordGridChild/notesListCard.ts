@@ -212,7 +212,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
               }),
             ),
             nodes.state({
-              watch: [ctx.refreshKey],
+              watch: ctx.refreshKeys,
               procedure: (s) =>
                 s.table(
                   `note`,

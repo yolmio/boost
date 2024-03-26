@@ -14,9 +14,7 @@ import {
 import { divider } from "../../components/divider";
 import * as yom from "../../yom";
 import { Node } from "../../nodeTypes";
-import { FormStateProcedureExtensions } from "../../formState";
 import { getUniqueUiId } from "../../components/utils";
-import { AutoSingleColumnFieldOverride } from "../../components/internal/updateFormShared";
 import { recordDefaultItemContent, styles } from "./timelineShared";
 import { StateStatementsOrFn } from "../../statements";
 import { RecordGridBuilder } from "../recordGrid";
@@ -282,7 +280,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
     nodes.state({
       procedure: (s) => s.scalar(`row_count`, `50`),
       children: nodes.state({
-        watch: [ctx.refreshKey, `row_count`],
+        watch: [...ctx.refreshKeys, `row_count`],
         procedure: (s) =>
           s
             .table(`result`, query.query)

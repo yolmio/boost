@@ -63,7 +63,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
     variant: "outlined",
     styles: opts.styles,
     children: nodes.state({
-      watch: [ctx.refreshKey],
+      watch: ctx.refreshKeys,
       procedure: (s) => s.record(`record`, query),
       children: nodes.element("table", {
         children: nodes.element("tbody", {

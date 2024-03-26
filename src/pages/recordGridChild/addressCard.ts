@@ -52,7 +52,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
       }),
       divider({ styles: styles.divider }),
       nodes.state({
-        watch: [ctx.refreshKey],
+        watch: ctx.refreshKeys,
         procedure: (s) =>
           s.record(
             "record",

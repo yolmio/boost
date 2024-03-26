@@ -219,7 +219,7 @@ export function content(opts: Opts, ctx: RecordGridBuilder) {
     nodes.state({
       procedure: (s) => s.scalar(`row_count`, `50`),
       children: nodes.state({
-        watch: [ctx.refreshKey, `row_count`],
+        watch: [...ctx.refreshKeys, `row_count`],
         procedure: (s) =>
           s
             .table(`result`, fullQuery)

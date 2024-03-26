@@ -120,6 +120,7 @@ export function content(opts: Opts) {
       nodes.element("div", {
         styles: styles.card,
         children: nodes.state({
+          watch: [`global_refresh_key`],
           procedure:
             typeof opts.state === "string"
               ? (s) => s.table(`result`, opts.state as string)
