@@ -1,13 +1,16 @@
 import { EndpointStatements, EndpointStatementsOrFn } from "./statements";
 import * as yom from "./yom";
 import { System } from "./system";
-import { normalizeCase, pluralize } from "./utils/inflectors";
+import { pluralize } from "./utils/inflectors";
 
 export class Api {
   #endpoints: yom.ApiEndpoint[] = [];
 
   constructor(private system: System) {}
 
+  /**
+   * Adds a GET endpoint to the system at the provided path.
+   */
   get(path: string, helper: GetEndpointHelper) {
     this.#endpoints.push({
       method: "GET",

@@ -1552,15 +1552,33 @@ export interface App {
 }
 
 export interface GlobalRefreshConfig {
+  /**
+   * This defines the behavior of the app when the window regains focus or has a visibilitychange.
+   *
+   * If set, it will increment the `global_refresh_key`
+   * If not set, it will do nothing.
+   */
   windowFocus?: GlobalRefreshWindowFocusConfig;
+  /**
+   * When doing polling pulls, we can see if there is a new transaction and if so this defines the behavior.
+   *
+   * If set, it will increment the `global_refresh_key`
+   * If not set, it will do nothing.
+   */
   pullTransactionChange?: GlobalRefreshPullTransactionChangeConfig;
 }
 
 export interface GlobalRefreshWindowFocusConfig {
+  /**
+   * Defines the view transition to use when doing the refresh, if desired
+   */
   viewTransition?: SimpleViewTransitionConfig;
 }
 
 export interface GlobalRefreshPullTransactionChangeConfig {
+  /**
+   * Defines the view transition to use when doing the refresh, if desired
+   */
   viewTransition?: SimpleViewTransitionConfig;
 }
 

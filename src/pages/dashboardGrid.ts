@@ -24,6 +24,9 @@ export class DashboardGridBuilder {
   #path = "/";
   #children: Node[] = [];
 
+  /**
+   * Override the path for the page
+   */
   path(path: string): this {
     this.#path = path;
     return this;
@@ -34,11 +37,20 @@ export class DashboardGridBuilder {
     return this;
   }
 
+  /**
+   * Create a row of stats, this takes an array of 2-4 stats to display and will display them in a row
+   * that goes across the whole page.
+   *
+   * It will be vertical on mobile and horizontal on desktop.
+   */
   statRow(opts: statRow.Opts) {
     this.#children.push(statRow.content(opts));
     return this;
   }
 
+  /**
+   * Display a table with the given query and columns.
+   */
   table(opts: table.Opts) {
     this.#children.push(table.content(opts));
     return this;
@@ -54,11 +66,19 @@ export class DashboardGridBuilder {
     return this;
   }
 
+  /**
+   * Defines a pie chart to display on the dashboard.
+   */
   pieChart(opts: pieChart.Opts) {
     this.#children.push(pieChart.content(opts));
     return this;
   }
 
+  /**
+   * Adds a custom node to the dashboard grid.
+   *
+   * Make sure to have styles on the root element that size it correctly in the grid.
+   */
   custom(node: Node) {
     this.#children.push(node);
     return this;

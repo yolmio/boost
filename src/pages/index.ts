@@ -19,6 +19,9 @@ export class Pages {
     this.forms = new FormPages(this.app);
   }
 
+  /**
+   * Adds a page to the app.
+   */
   push(page: Page) {
     this.#pages.push(page);
   }
@@ -27,12 +30,22 @@ export class Pages {
     return this.#pages;
   }
 
+  /**
+   * Creates a dashboard grid page, but doesn't add it to the pages, instead returns the node.
+   */
   createDashboardGridNode(fn: (page: DashboardGridBuilder) => any): Node {
     const builder = new DashboardGridBuilder();
     fn(builder);
     return (builder as any).createNode();
   }
 
+  /**
+   * Defines a dashboard grid page.
+   *
+   * This creates a page with a grid layout (12 columns) and has components like stats, tables, charts, etc.
+   *
+   * The default path of the page is `/`, this can be ovewritten.
+   */
   dashboardGrid(fn: (page: DashboardGridBuilder) => any) {
     const builder = new DashboardGridBuilder();
     fn(builder);
@@ -59,6 +72,15 @@ export class Pages {
     return (builder as any).createNode();
   }
 
+  /**
+   * Defines a page for a table that displays information about a single record.
+   *
+   * This creates a page with a grid layout (12 columns) and has components to display information about
+   * the record.
+   *
+   * The default path of the page is `/table/{record_id:id}`, this can be ovewritten. Check `Table.getBaseUrl()`
+   * for the default path logic for tables.
+   */
   recordGrid(table: string, fn: (builder: RecordGridBuilder) => any) {
     const builder = new RecordGridBuilder(table, this.app);
     fn(builder);
@@ -97,6 +119,9 @@ export class Pages {
     this.push((builder as any).createPage());
   }
 
+  /**
+   * Creates a datagrid page, but doesn't add it to the pages, instead returns the node.
+   */
   createDatagridNode(
     table: string,
     fn: (builder: DatagridPageBuilder) => any,
@@ -106,6 +131,12 @@ export class Pages {
     return (builder as any).createNode();
   }
 
+  /**
+   * Defines an editable datagrid page for this table.
+   *
+   * By default will be at the tables base path (e.g. /contacts for contact), but can be overwritten. Check `Table.getBaseUrl()`
+   * for the default path logic for tables
+   */
   datagrid(table: string, fn: (builder: DatagridPageBuilder) => any) {
     const builder = new DatagridPageBuilder(table);
     fn(builder);

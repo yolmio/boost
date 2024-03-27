@@ -47,10 +47,29 @@ import { Api } from "./api";
 export class System {
   /**
    * The name of the system
+   *
+   * Shows up in the yolm cli and eventually in our web ui.
    */
   name = "please-rename";
+  /**
+   * Which region to deploy the system to.
+   *
+   * Choose the region closest to your users in order to minimize latency.
+   *
+   * This creates a main and active failover server in that region.
+   */
   region?: yom.Region;
+  /**
+   * Creates readonly replicas of the system in other regions.
+   *
+   * Users closer to the replica will be served by it, reducing latency.
+   */
   replicas: yom.Replica[] = [];
+  /**
+   * Configures how display names are generated for various parts of the system.
+   *
+   * You can override these functions to customize how display names are generated.
+   */
   displayNameConfig: DisplayNameConfig = {
     default: defaultGetDisplayName,
     table: defaultGetDisplayName,
@@ -58,6 +77,9 @@ export class System {
     enum: defaultGetDisplayName,
     enumValue: defaultGetDisplayName,
   };
+  /**
+   * Configures the default search settings for the system, generators will use these (for example the navbar search dialog).
+   */
   searchConfig: SearchConfig = {
     defaultFuzzyConfig: {
       prefix: "Last",
@@ -73,10 +95,27 @@ export class System {
       filters: [{ type: "AsciiFold" }, { type: "Lowercase" }],
     },
   };
+  /**
+   * The default collation to use for text fields in the system.
+   *
+   * Collation determines how text is sorted and compared.
+   *
+   * @default "NoCase"
+   */
   collation = "NoCase" as yom.Collation;
+  /**
+   * The default auto trim setting to use for text fields in the system.
+   *
+   * Auto trim determines if leading and trailing whitespace should be removed from text fields.
+   *
+   * @default "None"
+   */
   autoTrim = "None" as yom.AutoTrim;
   /**
    * If set to true, the system will be deployed as a hobby plan, ignoring the vcpus, memoryGb and fileSizeGb settings.
+   *
+   * Hobby plan has a limit of 1GB of files, 1/4 vcpus and 256MB of memory. You can't have replicas, custom domains,
+   * backups are only weekly and you are limited on how often you can poll for the downloaded database.
    *
    * @default false
    */
@@ -106,28 +145,90 @@ export class System {
    * @default 10
    */
   fileSizeGb: number = 10;
+  /**
+   * The database definition for the system. This is where you define your tables, scalar functions, enums, etc.
+   *
+   * You can also access defined tables to automatically generate api endpoints, ui, etc.
+   */
   db = new Db();
+  /**
+   * The apps in the system.
+   */
   apps = new Apps(this);
+  /**
+   * The api definition for the system. This is where you define your api endpoints for use external to the system.
+   */
   api = new Api(this);
+  /**
+   * Enums defined globally in the system.
+   */
   enums: Record<string, Enum> = {};
+  /**
+   * All scalar functions defined in the system. Scalar functions are functions that take in arguments and return a single value.
+   *
+   * These functions are defined at the root level and do not have access to the database.
+   */
   scalarFunctions: Record<string, ScalarFunction> = {};
+  /**
+   * All table functions defined in the system. Table functions are functions that take in arguments and return a table.
+   *
+   * These functions are defined at the root level and do not have access to the database.
+   */
   tableFunctions: Record<string, TableFunction> = {};
+  /**
+   * The test data and api tests for the system. More tests coming eventually
+   */
   test = new Test();
+  /**
+   * The scripts for the system. Scripts are used to do things like migrate the database, import data, etc.
+   */
   scripts: yom.Script[] = [];
+  /**
+   * The script dbs for the system. These databases are only accessible from scripts.
+   */
   scriptDbs: Record<string, ScriptDb> = {};
 
+  /**
+   * The current app, when you call `apps.add()` it sets the current app to the app you just added.
+   */
   get currentApp() {
     return this.apps.currentApp;
   }
 
+  /**
+   * The current app name, when you call `apps.add()` it sets the current app to the app you just added.
+   */
   get currentAppName() {
     return this.apps.currentAppName;
   }
 
+  /**
+   * Defines a new scalar function in the system, this is defined at the root level and does not have access to the database.
+   *
+   * @param f Content of the function
+   */
   scalarFunction(f: HelperScalarFunction) {
     this.scalarFunctions[f.name] = scalarFunctionFromHelper(f);
   }
 
+  /**
+   * Wrapper around `scalarFunction` that makes it easy to define a function that is a set of rules.
+   *
+   * @example
+   * system.rulesFunction({
+   *   name: "classify",
+   *   parameters: [{ name: "v", type: { type: "Int" } }],
+   *   returnType: "String",
+   *   rules: [
+   *     ["input.v", "output"],
+   *     ["> 100", "'enormous'"],
+   *     ["> 50", "'meh'"],
+   *     ["any", "'not good enough'"],
+   *   ],
+   * });
+   *
+   * @param f Content of the function
+   */
   rulesFunction(f: RulesFunction) {
     const firstRow = f.rules[0];
     firstRow[firstRow.length - 1] = "output";
@@ -145,6 +246,11 @@ export class System {
     });
   }
 
+  /**
+   * Defines an enum (a set of named values) in the system that can be accessed anywhere.
+   *
+   * @param enum_ Parameters for the enum
+   */
   enum_(enum_: HelperEnum) {
     const displayName = system.displayNameConfig.enum(enum_.name);
     const values = enum_.values.map((v) => {
@@ -223,6 +329,9 @@ export class System {
     this.scriptDbs[name] = db;
   }
 
+  /**
+   * Defines a script which the yolm cli can run.
+   */
   script(name: string, procedure: ScriptStatementsOrFn) {
     this.scripts.push({
       name,
@@ -356,6 +465,9 @@ export class App {
    * The title of the html document for this application
    */
   title: string;
+  /**
+   * Configuration for the web app, this is where you configure things like the manifest, viewport, etc.
+   */
   webAppConfig: WebAppConfig = {
     htmlHead: `<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default">`,
     viewport: `width=device-width, initial-scale=1`,
@@ -364,16 +476,59 @@ export class App {
       display: "minimal-ui",
     },
   };
+  /**
+   * The device database definition for the application.
+   *
+   * This is a light database that is only stored in the browser and never synced.
+   */
   deviceDb = new DeviceDb();
+  /**
+   * If the database is downloaded, this defines the behavior of pulling.
+   */
   pullConfig?: yom.PullConfig;
+  /**
+   * Defines how the database should be executed, can this app download the database and should it by default be downloaded.
+   */
   executionConfig?: yom.AppDbExecutionConfig;
+  /**
+   * The theme for the application, this is where you configure things like colors, fonts, etc.
+   *
+   * Generators will use this and it will also be used to create the root stylesheet.
+   */
   theme: Theme = createTheme();
-  shell?: (pages: Node) => Node;
+  /**
+   * The pages for the application, this is where you define the routes and the content for each page.
+   */
   pages = new Pages(this);
+  /**
+   * The shells for the application, this is where you set the outermost component that wraps all the pages.
+   */
   shells = new Shells(this);
+  /**
+   * The domain for the application, this is where you configure the domain for the application.
+   *
+   * This is entirely optional and if you don't you can still access the app via yolm.app
+   *
+   * To actually use the domain you need to set up a CNAME record in your DNS provider to point to yolm.app
+   *
+   * Documentation coming soon
+   */
   domain?: string;
+  /**
+   * The HTML for the page that is shown when the user is not logged in.
+   *
+   * This is only applicable if you have a domain set.
+   */
   loginHtml?: string;
+  /**
+   * The CSS for the page that is shown when the user is not logged in.
+   *
+   * This is only applicable if you have a domain set.
+   */
   loginCss?: string;
+  /**
+   * This lets you configure how view transitions are triggered on navigations.
+   */
   navigationViewTransitionConfig: yom.NavigationViewTransitionConfig = {
     link: {
       timing: "next_and_final",
@@ -390,6 +545,9 @@ export class App {
       type: "statement-navigate",
     },
   };
+  /**
+   * This lets you configure how global refreshes are triggered and the view transitions they trigger.
+   */
   globalRefreshConfig: yom.GlobalRefreshConfig = {
     windowFocus: {
       viewTransition: {
@@ -417,20 +575,25 @@ export class App {
     this.title = displayName;
   }
 
-  //
-  // Helper methods
-  //
-
+  /**
+   * Easy way to define a themed login page for your domain.
+   */
   setLoginPage(opts: LoginOptions) {
     const login = createLogin(opts, this);
     this.loginHtml = login.html;
     this.loginCss = login.css;
   }
 
+  /**
+   * Helper method that lets you define the theme.
+   */
   setTheme(themeOptions: ThemeOpts) {
     this.theme = createTheme(themeOptions);
   }
 
+  /**
+   * Adds a global style to the application.
+   */
   addGlobalStyle(style: StyleObject) {
     this.#globalStyles.push(style);
   }
@@ -525,8 +688,8 @@ export class App {
           }) as RouteNode,
       );
     let rootNode: Node;
-    if (this.shell) {
-      const shell = this.shell({
+    if (this.shells.shell) {
+      const shell = this.shells.shell({
         t: "Routes",
         children: pagesWithShell,
       });
@@ -641,9 +804,41 @@ export class App {
 }
 
 export interface WebAppConfig {
+  /**
+   * The html head content for the web app.
+   *
+   * Don't add scripts, css, etc. here use this for meta tags
+   */
   htmlHead: string;
+  /**
+   * Viewport settings for the web app.
+   */
   viewport?: string;
+  /**
+   * The manifest.json for the web app.
+   *
+   * This is used to control PWA settings like the name, theme color, etc.
+   */
   manifest: WebAppManifest;
+  /**
+   * How to add the favicon, apple-touch-icon, etc. to the html head.
+   *
+   * App will use the assets in the assetDir, if not set it will use the /assets/ folder.
+   *
+   * It expects the following files:
+   *
+   * - apple-touch-icon.png
+   * - favicon-32x32.png
+   * - favicon-16x16.png
+   * - safari-pinned-tab.svg
+   * - favicon.ico
+   *
+   * I have used https://realfavicongenerator.net/ to generate these files. We may add a helper to generate these in the future.
+   *
+   * Default means use the yolm logo.
+   *
+   * Custom means add nothing to the html head and you can add your own.
+   */
   logoGeneration:
     | {
         type: "App";
@@ -657,8 +852,25 @@ export interface WebAppConfig {
 }
 
 export interface Page {
+  /**
+   * The path of the page.
+   *
+   * This uses the route syntax, for example
+   *
+   * - `/users/{user_id:id}`
+   * - `/user-by-name/{name:string}`
+   *
+   * These add scalars into the scope below, for example the first one adds `user_id` to the scope and means
+   * that any node in `content` can access `user_id`.
+   */
   path: string;
+  /**
+   * The content of the page.
+   */
   content: Node;
+  /**
+   * If set to true, the shell will not be used for this page.
+   */
   ignoreShell?: boolean;
 }
 
@@ -680,6 +892,12 @@ export class Db {
     return new DbCatalog(this);
   }
 
+  /**
+   * Defines a table in the database.
+   *
+   * @param name The name of the table
+   * @param f The function that defines the table
+   */
   table(name: string, f: (builder: TableBuilder) => void) {
     const builder = new TableBuilder(name);
     f(builder);
@@ -891,6 +1109,11 @@ export class Table {
     return ident(this.primaryKeyFieldName);
   }
 
+  /**
+   * The base url for the table, this is the pluralized name of the table and made kebab-case.
+   *
+   * This is used for the api, ui and other places where the table name is used in a url.
+   */
   getBaseUrl() {
     return pluralize(this.name.split("_").join(" ")).split(" ").join("-");
   }

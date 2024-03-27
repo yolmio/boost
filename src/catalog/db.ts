@@ -4,7 +4,13 @@ import { Db } from "../system";
 export class DbCatalog {
   #db: Db;
 
+  /**
+   * Catalog for single tables.
+   */
   table: DbTableCatalog;
+  /**
+   * Catalog for multiple tables.
+   */
   tables: DbTablesCatalog;
 
   constructor(db: Db) {
